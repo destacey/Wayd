@@ -59,7 +59,7 @@ public sealed class OpenApiToolSchemaTests
                 "required": ["name"],
                 "properties": {
                   "name": { "type": "string", "maxLength": 10, "example": "x", "x-csv-column": "Name" },
-                  "status": { "nullable": true, "oneOf": [ { "$ref": "#/components/schemas/ThingStatus" } ] }
+                  "status": { "oneOf": [ { "$ref": "#/components/schemas/ThingStatus" }, { "enum": [null], "nullable": true } ] }
                 }
               },
               "ThingStatus": { "type": "string", "enum": ["Open", "Closed"], "x-enumNames": ["Open", "Closed"] }

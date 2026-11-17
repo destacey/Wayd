@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 namespace Wayd.Web.Api.Mcp;
 
 /// <summary>
-/// Turns an operation in the API's OpenAPI 3.0 document into a tool's input schema (JSON Schema 2020-12):
+/// Turns an operation in the API's OpenAPI document, written as 3.0, into a tool's input schema (JSON Schema 2020-12):
 /// one property per path, query or header parameter, plus <c>requestBody</c> for a JSON or JSON Patch body. Its success
 /// response becomes the tool's output schema.
 /// </summary>
@@ -285,13 +285,21 @@ public sealed class OpenApiToolSchema
 
     /// <summary>
     /// Resolves a reference, and the single-entry <c>oneOf</c>/<c>allOf</c> wrapper around one, into one
-    /// schema; keywords written beside the reference win over the referenced type's.
+    /// schema; keywords written beside the reference win over the referenced type's. A null-only member
+    /// beside the reference makes the result nullable.
     /// </summary>
     private JsonObject Flatten(JsonObject source, HashSet<string> resolving, out string? referenced)
     {
         referenced = null;
         var wrapped = (source["oneOf"] ?? source["allOf"]) as JsonArray;
-        var inner = wrapped is { Count: 1 } ? wrapped[0] as JsonObject : null;
+        var members = wrapped?.OfType<JsonObject>().Where(m => !IsNullOnly(m)).ToList();
+        if (members is not null && members.Count < wrapped!.Count)
+        {
+            source = source.DeepClone().AsObject();
+            source["nullable"] = true;
+        }
+
+        var inner = members is { Count: 1 } ? members[0] : null;
         var reference = (string?)(inner ?? source)["$ref"];
 
         if (reference is null)
@@ -304,6 +312,13 @@ public sealed class OpenApiToolSchema
         referenced = name;
         return Merge(target, source);
     }
+
+    /// <summary>
+    /// Whether a <c>oneOf</c> member says only that the value may be null, which is how the document pairs a
+    /// reference with null: <c>{ "enum": [null], "nullable": true }</c> once written as OpenAPI 3.0.
+    /// </summary>
+    private static bool IsNullOnly(JsonObject member) =>
+        member.Count == 2 && member["nullable"]?.GetValue<bool>() == true && member["enum"] is JsonArray { Count: 1 } values && values[0] is null;
 
     private static JsonObject Merge(JsonObject baseSchema, JsonObject overrides)
     {

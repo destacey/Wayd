@@ -14,12 +14,11 @@ namespace Wayd.Infrastructure.OpenApi;
 /// <item>An operation id used twice fails generation. Numbering the repeat would name a client method by
 /// the order the endpoints happen to be found in, and renumber it when they move.</item>
 /// <item>A property that refers to a component and may be null is written
-/// <c>{ "nullable": true, "oneOf": [ { "$ref": … } ] }</c>, not as the generator's
-/// <c>oneOf: [ { "nullable": true }, { "$ref": … } ]</c>, which a TypeScript generator would read as a
-/// union with an empty type.</item>
-/// <item>A described reference keeps its description in a <c>oneOf</c> wrapper. OpenAPI 3.0 ignores anything
-/// beside a <c>$ref</c>, so the generator's serializer drops it, and these descriptions are what an agent
-/// reads about a field.</item>
+/// <c>{ "oneOf": [ { "$ref": … }, { "type": "null" } ] }</c>, the reference first, with the description the
+/// generator put on either member moved onto the wrapper.</item>
+/// <item>A described reference keeps its description in a <c>oneOf</c> wrapper. The MCP server reads the
+/// document as OpenAPI 3.0, which ignores anything beside a <c>$ref</c>, and these descriptions are what an
+/// agent reads about a field.</item>
 /// <item>A request body is never nullable: a TypeScript generator would type the argument as
 /// possibly null for an endpoint that only accepts an absent body.</item>
 /// <item>An object schema allows no properties beyond its own (<c>additionalProperties: false</c>). Without it
@@ -74,7 +73,7 @@ public sealed class DocumentShapeTransformer(SwaggerSettings settings) : IOpenAp
             foreach (var mediaType in operation.RequestBody?.Content?.Values ?? [])
             {
                 mediaType.Schema = Reshape(mediaType.Schema, document);
-                if (mediaType.Schema is OpenApiSchema { Type: JsonSchemaType.Null, Description: null, OneOf: [OpenApiSchemaReference body] })
+                if (mediaType.Schema is OpenApiSchema { Description: null } wrapper && OpenApiSchemas.NullableTarget(wrapper) is OpenApiSchemaReference body)
                     mediaType.Schema = body;
             }
             foreach (var mediaType in operation.Responses?.Values.SelectMany(r => r.Content?.Values ?? []) ?? [])
@@ -132,20 +131,14 @@ public sealed class DocumentShapeTransformer(SwaggerSettings settings) : IOpenAp
                     OneOf = [new OpenApiSchemaReference(reference.Reference.Id!, document)],
                 };
 
-            case OpenApiSchema { OneOf: [var first, var second] } wrapper when OpenApiSchemas.IsNullOnly(first) || OpenApiSchemas.IsNullOnly(second):
-                var target = OpenApiSchemas.IsNullOnly(first) ? second : first;
+            case OpenApiSchema { OneOf: [var first, var second] } wrapper when OpenApiSchemas.NullableTarget(wrapper) is { } target:
                 var wrappedDescription = wrapper.Description
                     ?? (target as OpenApiSchemaReference)?.Reference.Description
                     ?? (first as OpenApiSchema)?.Description
                     ?? (second as OpenApiSchema)?.Description;
                 if (target is OpenApiSchemaReference targetReference)
                     target = new OpenApiSchemaReference(targetReference.Reference.Id!, document);
-                return new OpenApiSchema
-                {
-                    Type = JsonSchemaType.Null,
-                    Description = Normalize(wrappedDescription),
-                    OneOf = [Reshape(target, document)],
-                };
+                return OpenApiSchemas.NullableReference(Reshape(target, document), Normalize(wrappedDescription));
 
             case OpenApiSchema inline:
                 inline.Description = Normalize(inline.Description);

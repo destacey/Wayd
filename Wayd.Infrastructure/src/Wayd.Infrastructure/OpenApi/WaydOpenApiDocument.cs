@@ -34,8 +34,7 @@ public static class WaydOpenApiDocument
     {
         var settings = config.GetSection(nameof(SwaggerSettings)).Get<SwaggerSettings>() ?? new SwaggerSettings();
 
-        // NSwag's generators read 3.1's type arrays (["string", "null"]) poorly.
-        options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
+        options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
         options.CreateSchemaReferenceId = SchemaReferenceIds.Create;
 
         // Transformers run in the order they are added, after the XML documentation ones the package's source

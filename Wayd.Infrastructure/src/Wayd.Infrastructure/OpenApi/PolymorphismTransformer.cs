@@ -6,7 +6,7 @@ using Microsoft.OpenApi;
 namespace Wayd.Infrastructure.OpenApi;
 
 /// <summary>
-/// Describes a <see cref="JsonPolymorphicAttribute"/> hierarchy the standard OpenAPI 3.0 way: the base as an
+/// Describes a <see cref="JsonPolymorphicAttribute"/> hierarchy the standard OpenAPI way: the base as an
 /// object with its own properties and a <c>discriminator</c>, and each derived type, under its own name, as
 /// <c>allOf</c> the base and its own properties.
 /// </summary>

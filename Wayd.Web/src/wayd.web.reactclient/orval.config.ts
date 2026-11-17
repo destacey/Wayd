@@ -6,10 +6,10 @@ const mutator = (name: string) => ({
 
 type Schema = {
   allOf?: unknown[]
+  oneOf?: Schema[]
   properties?: object
   additionalProperties?: unknown
-  type?: string
-  nullable?: boolean
+  type?: string | string[]
   items?: Schema
 }
 
@@ -39,6 +39,21 @@ function dropEmptyClosedAllOfMembers(spec: Spec): void {
 }
 
 /**
+ * Removes null from what a schema allows: from a `type` list
+ * (`["string", "null"]`), and the `{ type: "null" }` member a nullable
+ * reference's `oneOf` carries.
+ */
+function dropNull(schema: Schema): void {
+  if (Array.isArray(schema.type)) {
+    const types = schema.type.filter((t) => t !== 'null')
+    schema.type = types.length === 1 ? types[0] : types
+  }
+  if (schema.oneOf) {
+    schema.oneOf = schema.oneOf.filter((member) => member.type !== 'null')
+  }
+}
+
+/**
  * Adapts each query parameter to how a URL carries it.
  *
  * - An array is exploded (`status=A&status=B`), the OpenAPI default for a
@@ -54,8 +69,8 @@ function adaptQueryParameters(spec: Spec): void {
       const parameters = (operation as { parameters?: Parameter[] })?.parameters
       for (const parameter of parameters ?? []) {
         if (parameter.in !== 'query' || !parameter.schema) continue
-        delete parameter.schema.nullable
-        if (parameter.schema.items) delete parameter.schema.items.nullable
+        dropNull(parameter.schema)
+        if (parameter.schema.items) dropNull(parameter.schema.items)
         if (parameter.schema.type === 'array') parameter.explode ??= true
       }
     }

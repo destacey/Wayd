@@ -93,6 +93,9 @@ come from it too, and the hosted MCP server builds its tools from the same docum
 that knows neither path finds both through the RFC 9727 API catalog at `/.well-known/api-catalog`, and
 `/openapi.json` redirects to the document.
 
+The document is OpenAPI 3.1. The MCP server alone reads it written as 3.0, because its tool schemas are built
+by converting 3.0's `nullable` into JSON Schema 2020-12.
+
 An action's `[EndpointSummary]` and `[EndpointDescription]` are its published summary and description, and
 the description of its MCP tool, so write them for an API consumer.
 
@@ -108,6 +111,8 @@ or retypes generated code:
   is a base with a `discriminator` and its derived types under their own names.
 - **A property is required when it cannot be null**, or when it is declared `required` or `[Required]`
   even if it can, so the client types it as present; nullability comes from the declaration.
+- **A nullable reference is `oneOf` the reference, then `{ "type": "null" }`**, so the TypeScript client
+  writes `Target | null`. A null `type` beside the `oneOf`, the 3.0 way, would demand both at once in 3.1.
 - **NodaTime values** are strings: an `Instant` is `date-time`, a `LocalDate` `date`. The TypeScript client
   types them as the branded `Instant` and `CalendarDate` — see [Dates and instants](./frontend.mdx#dates-and-instants).
 - **Request bodies are `application/json`**, except file uploads (`multipart/form-data`) and JSON Patch

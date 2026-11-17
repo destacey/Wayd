@@ -7,7 +7,7 @@ namespace Wayd.Infrastructure.Tests.Sut.OpenApi;
 public sealed class OpenApiSchemasTests
 {
     [Fact]
-    public void Nullable_WrapsAReferenceInANullableOneOf()
+    public void Nullable_OffersAReferenceOrNull()
     {
         // Arrange
         var document = new OpenApiDocument();
@@ -16,10 +16,45 @@ public sealed class OpenApiSchemasTests
         // Act
         var schema = OpenApiSchemas.Nullable(reference);
 
+        // Assert — a null type beside the oneOf would demand both at once in OpenAPI 3.1
+        var wrapper = schema.Should().BeOfType<OpenApiSchema>().Subject;
+        wrapper.Type.Should().BeNull();
+        wrapper.OneOf.Should().HaveCount(2);
+        wrapper.OneOf![0].Should().BeSameAs(reference);
+        wrapper.OneOf[1].Type.Should().Be(JsonSchemaType.Null);
+    }
+
+    [Fact]
+    public void Nullable_KeepsADescribedWrappersDescription()
+    {
+        // Arrange
+        var reference = new OpenApiSchemaReference("TeamDto", new OpenApiDocument());
+        var described = new OpenApiSchema { Description = "The owning team.", OneOf = [reference] };
+
+        // Act
+        var schema = OpenApiSchemas.Nullable(described);
+
         // Assert
         var wrapper = schema.Should().BeOfType<OpenApiSchema>().Subject;
-        wrapper.Type.Should().Be(JsonSchemaType.Null);
-        wrapper.OneOf.Should().ContainSingle().Which.Should().BeSameAs(reference);
+        wrapper.Description.Should().Be("The owning team.");
+        OpenApiSchemas.NullableTarget(wrapper).Should().BeSameAs(reference);
+    }
+
+    [Fact]
+    public void NullableTarget_FindsTheTargetOnEitherSideAndNothingElse()
+    {
+        // Arrange
+        var reference = new OpenApiSchemaReference("TeamDto", new OpenApiDocument());
+        var nullMember = new OpenApiSchema { Type = JsonSchemaType.Null };
+        var referenceFirst = new OpenApiSchema { OneOf = [reference, nullMember] };
+        var nullFirst = new OpenApiSchema { OneOf = [nullMember, reference] };
+        var union = new OpenApiSchema { OneOf = [reference, new OpenApiSchema { Type = JsonSchemaType.String }] };
+
+        // Act
+        var targets = new[] { referenceFirst, nullFirst, union }.Select(OpenApiSchemas.NullableTarget).ToList();
+
+        // Assert
+        targets.Should().Equal(reference, reference, null);
     }
 
     [Fact]

@@ -108,9 +108,6 @@ or retypes generated code:
   is a base with a `discriminator` and its derived types under their own names.
 - **A property is required when it cannot be null**, or when it is declared `required` or `[Required]`
   even if it can, so the client types it as present; nullability comes from the declaration.
-- **`x-position` and `x-name`** set the order of a C# client method's arguments and the name of its body
-  argument, and the data-generation tool calls them positionally. The TypeScript client ignores them: its
-  functions take the path parameters in route order, then the query parameters as one object, then the body.
 - **NodaTime values** are strings: an `Instant` is `date-time`, a `LocalDate` `date`. The TypeScript client
   types them as the branded `Instant` and `CalendarDate` — see [Dates and instants](./frontend.mdx#dates-and-instants).
 - **Request bodies are `application/json`**, except file uploads (`multipart/form-data`) and JSON Patch

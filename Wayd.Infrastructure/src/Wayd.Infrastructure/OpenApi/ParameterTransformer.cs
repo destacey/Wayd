@@ -10,21 +10,9 @@ using Microsoft.OpenApi;
 namespace Wayd.Infrastructure.OpenApi;
 
 /// <summary>
-/// Marks each parameter and request body with <c>x-position</c> and <c>x-name</c>, each parameter that
-/// may be omitted as <c>nullable</c>, and gives date and instant parameters their formats.
+/// Marks each parameter that may be omitted as <c>nullable</c>, and gives date and instant parameters
+/// their formats.
 /// </summary>
-/// <remarks>
-/// <para>
-/// NSwag's C# generator, which builds the data-generation tool's client, orders a client method's arguments by
-/// <c>x-position</c> and names the body argument from <c>x-name</c>. Without them the arguments of every
-/// method would be reordered and every body argument renamed <c>body</c>, and the tool calls them
-/// positionally. The TypeScript client ignores both: it takes path parameters in route order, then the query
-/// as one object, then the body.
-/// </para>
-/// <para>
-/// Form fields take no position: a file upload is a body field, not an argument of its own.
-/// </para>
-/// </remarks>
 public sealed class ParameterTransformer : IOpenApiOperationTransformer
 {
     private readonly NullabilityInfoContext _nullability = new();
@@ -32,28 +20,10 @@ public sealed class ParameterTransformer : IOpenApiOperationTransformer
     /// <inheritdoc />
     public Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
     {
-        var position = 0;
         foreach (var description in context.Description.ParameterDescriptions)
         {
-            if (description.Source == BindingSource.Body)
-            {
-                if (operation.RequestBody is OpenApiRequestBody body)
-                {
-                    position++;
-                    body.Extensions ??= new Dictionary<string, IOpenApiExtension>();
-                    body.Extensions["x-name"] = new JsonNodeExtension(JsonValue.Create(description.Name));
-                    body.Extensions["x-position"] = new JsonNodeExtension(JsonValue.Create(position));
-                }
-
-                continue;
-            }
-
             if (operation.Parameters?.OfType<OpenApiParameter>().FirstOrDefault(p => p.Name == description.Name && p.In == Location(description.Source)) is not { } parameter)
                 continue;
-
-            position++;
-            parameter.Extensions ??= new Dictionary<string, IOpenApiExtension>();
-            parameter.Extensions["x-position"] = new JsonNodeExtension(JsonValue.Create(position));
 
             if (parameter.Schema is OpenApiSchema inline && DeclaredType(description) is { } type)
                 ScalarSchemaTransformer.Apply(inline, type);

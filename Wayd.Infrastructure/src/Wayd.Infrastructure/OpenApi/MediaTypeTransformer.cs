@@ -7,8 +7,8 @@ namespace Wayd.Infrastructure.OpenApi;
 /// <remarks>
 /// The generator lists every media type the input and output formatters handle — <c>text/json</c>,
 /// <c>application/*+json</c>, <c>text/plain</c> — beside <c>application/json</c>. Clients only ever send and
-/// ask for <c>application/json</c>, and NSwag's generators pick a content type from the list, so the extras
-/// add nothing a client uses.
+/// ask for <c>application/json</c>, so the extras add nothing a client uses, and a generator that picks a
+/// content type from the list could pick one of them.
 /// </remarks>
 public sealed class MediaTypeTransformer : IOpenApiOperationTransformer
 {

@@ -18,9 +18,8 @@ namespace Wayd.Infrastructure.OpenApi;
 /// interfaces after the schemas, and the client code imports <c>EntraConnectionDetailsDto</c>.
 /// </para>
 /// <para>
-/// The mapping lists only the derived types, not the base's own discriminator, and an abstract base carries
-/// <c>x-abstract</c>, which NSwag's C# generator reads. Only the schema stage knows the hierarchy, so
-/// it records it on the base's schema; the document stage, where the generator has made the components,
+/// The mapping lists only the derived types, not the base's own discriminator. Only the schema stage knows
+/// the hierarchy, so it records it on the base's schema; the document stage, where the generator has made the components,
 /// rewrites them.
 /// </para>
 /// </remarks>
@@ -109,8 +108,6 @@ public sealed class PolymorphismTransformer : IOpenApiSchemaTransformer, IOpenAp
         };
         baseSchema.Properties[hierarchy.DiscriminatorProperty] = new OpenApiSchema { Type = JsonSchemaType.String };
         baseSchema.Required.Add(hierarchy.DiscriminatorProperty);
-        if (hierarchy.BaseType.IsAbstract)
-            baseSchema.Extensions = new Dictionary<string, IOpenApiExtension> { ["x-abstract"] = new JsonNodeExtension(JsonValue.Create(true)) };
 
         var generatedSchemas = members.Where(schemas.ContainsKey).ToDictionary(m => m, m => (OpenApiSchema)schemas[m], StringComparer.Ordinal);
         foreach (var member in members)

@@ -158,7 +158,7 @@ describe('ProjectDeliverablesSummary', () => {
     // Arrange
     const accepted = (name: string, acceptedOn: string) => ({
       ...deliverable(name, StatusCategory.Done),
-      acceptedOn: new Date(acceptedOn),
+      acceptedOn: asInstant(acceptedOn),
     })
     mockQuery.mockReturnValue({
       data: [

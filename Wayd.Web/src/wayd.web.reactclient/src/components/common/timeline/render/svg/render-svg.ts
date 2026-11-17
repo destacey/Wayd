@@ -117,7 +117,7 @@ const SVG_COLOR =
  * drawn, so they are checked rather than trusted.
  */
 export function svgColor(
-  value: string | undefined | null,
+  value: string | null | undefined,
   fallback: string,
 ): string {
   return value != null && SVG_COLOR.test(value.trim()) ? value.trim() : fallback

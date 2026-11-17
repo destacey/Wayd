@@ -36,13 +36,14 @@ const byTargetDate = (a: ProjectDeliverableDto, b: ProjectDeliverableDto) => {
   return a.order - b.order
 }
 
+const acceptedAt = (deliverable: ProjectDeliverableDto) =>
+  deliverable.acceptedOn ? instantTime(deliverable.acceptedOn) : 0
+
 /** Latest acceptance first; ties and undated acceptances in their agreed order. */
 const byMostRecentlyAccepted = (
   a: ProjectDeliverableDto,
   b: ProjectDeliverableDto,
-) =>
-  (b.acceptedOn ? instantTime(b.acceptedOn) : 0) -
-    (a.acceptedOn ? instantTime(a.acceptedOn) : 0) || a.order - b.order
+) => acceptedAt(b) - acceptedAt(a) || a.order - b.order
 
 /** Rows after the first are ruled off from the one above. */
 const rowStyle = (index: number): React.CSSProperties => ({

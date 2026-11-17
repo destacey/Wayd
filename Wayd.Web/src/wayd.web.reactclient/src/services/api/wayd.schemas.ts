@@ -5967,6 +5967,97 @@ export interface ImportEmployeeRequest {
 }
 
 /**
+ * A single CSV row for the incident import.
+ */
+export interface ImportIncidentRequest {
+  /**
+     * The caller's own key for this row, unique within the file (case-insensitively). Results are
+     * reported against it. Required: a blank cell fails the row, and the row is not numbered by its
+     * position instead. Never stored on the incident.
+     * @nullable
+     */
+  importId?: string | null;
+  /**
+     * What happened, in a line a responder can scan. Max 256 characters.
+     * @minLength 1
+     * @maxLength 256
+     */
+  title: string;
+  /**
+     * What responders are seeing, in Markdown. Max 4096 characters. Blank records none.
+     * @maxLength 4096
+     * @nullable
+     */
+  symptoms?: string | null;
+  /**
+     * Why it happened, in Markdown. Max 4096 characters. Blank records none.
+     * @maxLength 4096
+     * @nullable
+     */
+  rootCause?: string | null;
+  /**
+     * What was done about it, in Markdown. Max 4096 characters. Blank records none.
+     * @maxLength 4096
+     * @nullable
+     */
+  remediation?: string | null;
+  /**
+     * The severity level's name in the organization's selected severity set, such as `SEV-1`.
+     * A name from a set that is not selected fails the row. Matched case-insensitively.
+     * @minLength 1
+     */
+  severity: string;
+  /**
+     * `Open`, `Responding`, `Resolved`, `Closed`, or `Canceled`,
+     * case-insensitively. `Recovered` is the screen name of `Resolved` and is not a value here.
+     * The incident is created open and then walked to this alias.
+     * @minLength 1
+     */
+  status: string;
+  /**
+     * The commander, by employee id. Blank leaves the incident without one.
+     * @nullable
+     */
+  commanderEmployeeId?: string | null;
+  /**
+     * Who reported it, by employee id. Blank uses the importer's linked employee, who is always
+     * recorded as who submitted it.
+     * @nullable
+     */
+  reportedByEmployeeId?: string | null;
+  /**
+     * The products the incident points at, as a semicolon-separated list of ids. An unknown id fails
+     * the row. Blank records none.
+     * @nullable
+     */
+  productIds?: string | null;
+  /**
+     * The releases the incident points at, as a semicolon-separated list of ids. An unknown id fails
+     * the row. Blank records none.
+     * @nullable
+     */
+  releaseIds?: string | null;
+  /**
+     * When the incident was noticed, with its offset. Blank records the time of the import, and a
+     * closed walk then stamps response and recovery at that same time unless those columns are filled.
+     * @nullable
+     */
+  noticedAt?: string | null;
+  /**
+     * When response started, with its offset. Blank leaves it empty on an open incident. A later status
+     * fills it from this cell, or from `RecoveredAt` when that is set and this is not, or from the
+     * time of the import when both are blank.
+     * @nullable
+     */
+  startedAt?: string | null;
+  /**
+     * When service was restored, with its offset. Blank leaves it for the status walk to fill.
+     * @nullable
+     */
+  recoveredAt?: string | null;
+}
+
+/**
  * A single CSV row for the intake request outcome import: one thing a request already in Wayd became. The
  * request, project, work item, deliverables and people are named by id. Every column must be in the file,
  * even one whose cells are all blank. Timestamps are instants, and each must carry its offset.
@@ -6445,6 +6536,7 @@ export const ImportRecordType = {
   Deployment: 'Deployment',
   DeploymentEnvironment: 'DeploymentEnvironment',
   IntakeRequest: 'IntakeRequest',
+  Incident: 'Incident',
 } as const;
 
 /**
@@ -19750,6 +19842,15 @@ export type IncidentsGetIncidentsParams = {
 export type IncidentsGetIncidentFiguresParams = {
   status?: ProductStatusAlias[];
   severityLevelId?: string[];
+};
+
+export type IncidentsImportParams = {
+  submissionGroupId?: string;
+  validateOnly?: boolean;
+};
+
+export type IncidentsImportBody = {
+  file: Blob | File;
 };
 
 export type IncidentSeveritySetsGetSetsParams = {

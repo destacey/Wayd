@@ -27549,6 +27549,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Submit a csv file of incidents to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+        /// </summary>
+        /// <remarks>
+        /// Each row is created open and then walked to its Status alias: Open, Responding, Resolved, Closed, or Canceled. Severity is a level name in the selected severity set. Products, releases, and employees are ids. Who submitted the incident is the importer's linked employee. A second submission of the same file creates another incident for every row.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Update an incident's details.
         /// </summary>
         /// <returns>No Content</returns>
@@ -28131,6 +28142,138 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Submit a csv file of incidents to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+        /// </summary>
+        /// <remarks>
+        /// Each row is created open and then walked to its Status alias: Open, Responding, Resolved, Closed, or Canceled. Severity is a level name in the selected severity set. Products, releases, and employees are ids. Who submitted the incident is the importer's linked employee. A second submission of the same file creates another incident for every row.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var boundary_ = System.Guid.NewGuid().ToString();
+                    var content_ = new System.Net.Http.MultipartFormDataContent(boundary_);
+                    content_.Headers.Remove("Content-Type");
+                    content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
+
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
+                    else
+                    {
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
+                    }
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/incidents/import"
+                    urlBuilder_.Append("api/product-management/incidents/import");
+                    urlBuilder_.Append('?');
+                    if (submissionGroupId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 202)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -127048,6 +127191,117 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// A single CSV row for the incident import.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.8.0.0 (NJsonSchema v11.6.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportIncidentRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Required: a blank cell fails the row, and the row is not numbered by its
+        /// <br/>position instead. Never stored on the incident.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        /// <summary>
+        /// What happened, in a line a responder can scan. Max 256 characters.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(256, MinimumLength = 1)]
+        public string Title { get; set; } = default!;
+
+        /// <summary>
+        /// What responders are seeing, in Markdown. Max 4096 characters. Blank records none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("symptoms")]
+        [System.ComponentModel.DataAnnotations.StringLength(4096)]
+        public string? Symptoms { get; set; } = default!;
+
+        /// <summary>
+        /// Why it happened, in Markdown. Max 4096 characters. Blank records none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rootCause")]
+        [System.ComponentModel.DataAnnotations.StringLength(4096)]
+        public string? RootCause { get; set; } = default!;
+
+        /// <summary>
+        /// What was done about it, in Markdown. Max 4096 characters. Blank records none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("remediation")]
+        [System.ComponentModel.DataAnnotations.StringLength(4096)]
+        public string? Remediation { get; set; } = default!;
+
+        /// <summary>
+        /// The severity level's name in the organization's selected severity set, such as `SEV-1`.
+        /// <br/>A name from a set that is not selected fails the row. Matched case-insensitively.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("severity")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Severity { get; set; } = default!;
+
+        /// <summary>
+        /// `Open`, `Responding`, `Resolved`, `Closed`, or `Canceled`,
+        /// <br/>case-insensitively. `Recovered` is the screen name of `Resolved` and is not a value here.
+        /// <br/>The incident is created open and then walked to this alias.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Status { get; set; } = default!;
+
+        /// <summary>
+        /// The commander, by employee id. Blank leaves the incident without one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("commanderEmployeeId")]
+        public System.Guid? CommanderEmployeeId { get; set; } = default!;
+
+        /// <summary>
+        /// Who reported it, by employee id. Blank uses the importer's linked employee, who is always
+        /// <br/>recorded as who submitted it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reportedByEmployeeId")]
+        public System.Guid? ReportedByEmployeeId { get; set; } = default!;
+
+        /// <summary>
+        /// The products the incident points at, as a semicolon-separated list of ids. An unknown id fails
+        /// <br/>the row. Blank records none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("productIds")]
+        public string? ProductIds { get; set; } = default!;
+
+        /// <summary>
+        /// The releases the incident points at, as a semicolon-separated list of ids. An unknown id fails
+        /// <br/>the row. Blank records none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("releaseIds")]
+        public string? ReleaseIds { get; set; } = default!;
+
+        /// <summary>
+        /// When the incident was noticed, with its offset. Blank records the time of the import, and a
+        /// <br/>closed walk then stamps response and recovery at that same time unless those columns are filled.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("noticedAt")]
+        public string? NoticedAt { get; set; } = default!;
+
+        /// <summary>
+        /// When response started, with its offset. Blank leaves it empty on an open incident. A later status
+        /// <br/>fills it from this cell, or from `RecoveredAt` when that is set and this is not, or from the
+        /// <br/>time of the import when both are blank.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("startedAt")]
+        public string? StartedAt { get; set; } = default!;
+
+        /// <summary>
+        /// When service was restored, with its offset. Blank leaves it for the status walk to fill.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("recoveredAt")]
+        public string? RecoveredAt { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// A single CSV row for the intake request outcome import: one thing a request already in Wayd became. The
     /// <br/>request, project, work item, deliverables and people are named by id. Every column must be in the file,
     /// <br/>even one whose cells are all blank. Timestamps are instants, and each must carry its offset.
@@ -128456,6 +128710,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Runtime.Serialization.EnumMember(Value = @"IntakeRequest")]
         IntakeRequest = 17,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Incident")]
+        Incident = 18,
 
     }
 

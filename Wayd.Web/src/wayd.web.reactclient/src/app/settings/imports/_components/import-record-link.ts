@@ -39,6 +39,8 @@ const ROUTES: Record<ImportRecordType, (link: ImportRecordLink) => string> = {
     '/product-management/environments',
   [ImportRecordType.IntakeRequest]: (l) =>
     `/demand-management/requests/${segment(l.key)}`,
+  [ImportRecordType.Incident]: (l) =>
+    `/product-management/incidents/${segment(l.key)}`,
 }
 
 /**

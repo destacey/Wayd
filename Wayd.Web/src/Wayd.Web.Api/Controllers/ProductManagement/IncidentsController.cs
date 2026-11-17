@@ -1,5 +1,7 @@
+using CsvHelper;
 using Microsoft.FeatureManagement;
 using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.FeatureManagement;
@@ -7,6 +9,7 @@ using Wayd.ProductManagement.Application.Incidents;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.ProductManagement.Application.Incidents.Commands;
 using Wayd.ProductManagement.Application.Incidents.Dtos;
+using Wayd.ProductManagement.Application.Incidents.Imports;
 using Wayd.ProductManagement.Application.Incidents.Queries;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.ProductManagement.Incidents;
@@ -23,10 +26,11 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 [Route("api/product-management/incidents")]
 [ApiController]
 [FeatureGate(RequirementType.All, FeatureFlags.Names.ProductManagement, FeatureFlags.Names.IncidentManagement)]
-public class IncidentsController(IDispatcher dispatcher, IWorkDbContext workDbContext) : ControllerBase
+public class IncidentsController(IDispatcher dispatcher, IWorkDbContext workDbContext, ICsvService csvService) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly IWorkDbContext _workDbContext = workDbContext;
+    private readonly ICsvService _csvService = csvService;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Incidents)]
@@ -110,6 +114,63 @@ public class IncidentsController(IDispatcher dispatcher, IWorkDbContext workDbCo
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetIncident), new { idOrKey = result.Value.Id }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("import")]
+    [MustHavePermission(ApplicationAction.Import, ApplicationResource.Incidents)]
+    [EndpointSummary(
+        "Submit a csv file of incidents to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.")]
+    [EndpointDescription(
+        "Each row is created open and then walked to its Status alias: Open, Responding, Resolved, Closed, or Canceled. Severity is a level name in the selected severity set. Products, releases, and employees are ids. Who submitted the incident is the importer's linked employee. A second submission of the same file creates another incident for every row.")]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    [CsvImport(IncidentImportDefinition.ImportKey)]
+    public async Task<ActionResult> Import(
+        [FromForm, CsvRows(typeof(ImportIncidentRequest))] IFormFile file,
+        [FromQuery] Guid? submissionGroupId,
+        [FromQuery] bool validateOnly,
+        [FromServices] ImportSubmissionResponder responder,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var importedIncidents = _csvService.ReadCsv<ImportIncidentRequest>(file.OpenReadStream()).ToList();
+
+            List<SubmittedImportRow<ImportIncidentDto>> rows = [];
+            var validator = new ImportIncidentRequestValidator();
+            for (var i = 0; i < importedIncidents.Count; i++)
+            {
+                var incident = importedIncidents[i];
+                var validationResults = await validator.ValidateAsync(incident, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        error.ErrorMessage =
+                            $"{error.ErrorMessage} (Row: {SubmittedImportRow.KeyFor(incident.ImportId, i + 1)})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
+                }
+
+                rows.Add(new SubmittedImportRow<ImportIncidentDto>(incident.ImportId, incident.ToImportIncidentDto()));
+            }
+
+            var result = await _dispatcher.Send(
+                new ImportIncidentsCommand(rows, submissionGroupId, validateOnly),
+                cancellationToken);
+
+            return result.IsSuccess
+                ? await responder.Respond(this, result.Value, cancellationToken)
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
+        }
     }
 
     [HttpPut("{id:guid}")]

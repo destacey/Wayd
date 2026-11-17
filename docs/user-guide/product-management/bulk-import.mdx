@@ -59,7 +59,8 @@ A few rules apply to every import:
   position instead. It is never written onto the records the import creates.
 - **Group by group, or row by row.** A rejected row — a reference that does not exist or is inactive, a
   duplicate, or something the domain refuses — keeps out its own group and nothing else, and the run names
-  the row and the reason. What a group is differs by import; deployments have none and apply row by row.
+  the row and the reason. What a group is differs by import; deployments and incidents have none and apply
+  row by row.
   See [Limits](#limits).
 - **Every column must be present, even the optional ones.** *Required* below means the cell needs a
   value; it does not mean the column can be left out. A missing header fails the file with
@@ -87,10 +88,14 @@ Product types and tag categories (seeded, or created beforehand)
     → Versions
       → Release packages
         → Releases
+          → Incidents
 
 Environments (created under Product Management → Environments, or imported)
   → Deployments (after versions and packages)
 ```
+
+Employees are imported with the organization, and an incident severity set is selected under Settings,
+before an incident file can name them.
 
 Reference data comes first. [Product types](./products.mdx#product-types) are seeded, and any others are
 added through the product types API — they have no screen — while
@@ -111,12 +116,14 @@ Each step then needs the one above it:
 | Versions | Products | A version is cut against a product, named by id. |
 | Release packages | Products, versions | A manifest line names a product by id; where a version record matches its version string, the line is linked to it. |
 | Releases | Packages, versions | A release announces them, and cannot announce what does not exist. |
+| Incidents | Employees, products, releases, the selected severity set | A row names products, releases, and employees by id, and severity by the level's name. |
 | Environments | — | Names must not already exist. |
 | Deployments | Environments, versions, packages | A deployment names its environment by name and the version or package it deployed by id. |
 
-:::warning[Releases are last, and their contents must have shipped]
+:::warning[A release's contents must have shipped]
 A release marked with a `ReleasedDate` is **refused while anything it carries has not shipped**. This
-is the one cross-record rule in Product Management, and it is why releases come last.
+is the one cross-record rule in Product Management, and it is why a release is imported only after the
+packages and versions it announces.
 
 So a released release needs its versions and packages imported first **with their own released
 moments**. Importing them unreleased and releasing them later leaves the release unimportable in
@@ -129,8 +136,9 @@ Unlike [PPM](../ppm/bulk-import.mdx#import-order), there is **no finalize pass**
 programs active and closes them afterwards, because a program only accepts projects while active.
 Nothing here works that way: a version can be
 [marked released without ever being cut](#the-dates-decide-the-status), a package or release simply
-carries its released moment or date, and a deployment is [walked to its outcome](#the-outcome-decides-the-status)
-with the timestamps its row carries. Every record reaches its final state in one pass.
+carries its released moment or date, a deployment is [walked to its outcome](#the-outcome-decides-the-status)
+with the timestamps its row carries, and an incident is [walked to its status](#the-status-decides-the-walk).
+Every record reaches its final state in one pass.
 
 ## Permissions
 
@@ -141,16 +149,17 @@ with the timestamps its row carries. Every record reaches its final state in one
 | Versions | Import Delivery |
 | Release packages | Import Delivery |
 | Releases | Import Releases |
+| Incidents | Import Incidents |
 | Environments | Import Deployment Environments |
 | Deployments | Import Delivery |
 
 ## Limits
 
-Every import here applies **group by group**, except deployments, which apply row by row: the rows for one
-group go in together or not at all, and a rejected row keeps out only its own group. The other groups are
-still imported, and the run finishes as *Partially succeeded* with the reason on each row it refused. A row
-kept out only because another row in its group was rejected says so and names that row, so the fix is
-always to one row.
+Every import here applies **group by group**, except deployments and incidents, which apply row by row: the
+rows for one group go in together or not at all, and a rejected row keeps out only its own group. The other
+groups are still imported, and the run finishes as *Partially succeeded* with the reason on each row it
+refused. A row kept out only because another row in its group was rejected says so and names that row, so
+the fix is always to one row.
 
 | Import | A group is | One rejected row keeps out |
 |---|---|---|
@@ -159,6 +168,7 @@ always to one row.
 | Versions | one **product** | that product's versions in the file |
 | Release packages | one package, with its manifest | that package |
 | Releases | one release, with its contents | that release |
+| Incidents | — (row by row) | that incident |
 | Environments | one environment | that environment |
 | Deployments | — (row by row) | that deployment |
 
@@ -663,6 +673,64 @@ same file twice records everything in it again.
 That matters after a partially succeeded run: the rows that went in are saved, so posting the corrected
 file again duplicates every one of them. Fix and resubmit **only the rejected rows**, or retry them from
 the run's page in [Settings → System → Imports](../settings/imports.mdx).
+
+## Incidents import
+
+`POST /api/product-management/incidents/import`
+
+Loads [incidents](./incidents.mdx). Both **Product Management** and **Incident Management** must be on,
+or the import is not offered. Import employees first, select a severity set under **Settings → Product
+Management → Incident Severity Sets**, and import the [products](#products-import) and
+[releases](#releases-import) the file will name. The import creates none of those.
+
+| Column | Required | Notes |
+|---|---|---|
+| `ImportId` | Yes | The row's key **within this file only**. Unique, case-insensitively. A blank cell fails the row; it is not numbered by position. Never stored on the incident. |
+| `Title` | Yes | What happened. Max 256 characters. |
+| `Symptoms` | No | What responders are seeing, in Markdown. Max 4096 characters. |
+| `RootCause` | No | Why it happened, in Markdown. Max 4096 characters. |
+| `Remediation` | No | What was done about it, in Markdown. Max 4096 characters. |
+| `Severity` | Yes | The level's **name** in the selected severity set, such as `SEV-1`. A name from any other set fails the row. Matched case-insensitively. |
+| `Status` | Yes | `Open`, `Responding`, `Resolved`, `Closed`, or `Canceled` (case-insensitive). `Recovered` is the screen name of `Resolved` and is not accepted. |
+| `CommanderEmployeeId` | No | The commander, by employee id. Blank leaves the incident without one. An unknown id fails the row. |
+| `ReportedByEmployeeId` | No | Who reported it, by employee id. Blank uses the importer's linked employee. An unknown id fails the row. |
+| `ProductIds` | No | Semicolon-separated product ids. An unknown id fails the row. Blank records none. |
+| `ReleaseIds` | No | Semicolon-separated release ids. An unknown id fails the row. Blank records none. |
+| `NoticedAt` | No | When it was noticed. An ISO-8601 timestamp **with its offset**. Blank records the time of the import. |
+| `StartedAt` | No | When response started, with its offset. See [the walk](#the-status-decides-the-walk). |
+| `RecoveredAt` | No | When service was restored, with its offset. See [the walk](#the-status-decides-the-walk). |
+
+Who submitted the incident is the account that imports the file, and that account must be linked to an
+employee. There is no column for it, and a file cannot set a cancel reason, a Teams link, a timeline
+note, or a work item.
+
+### The status decides the walk
+
+There is no way to write a status onto the row except by the alias. Wayd creates the incident open,
+then takes the same steps, in the same order, that moving it by hand would have taken:
+
+| Status | Steps replayed |
+|---|---|
+| `Open` | Created |
+| `Responding` | Created, begin responding |
+| `Resolved` | Created, begin responding, mark recovered |
+| `Closed` | Created, begin responding, mark recovered, close |
+| `Canceled` | Created, then canceled. A reason is not asked for. |
+
+A blank `StartedAt` is filled when response begins, and a blank `RecoveredAt` when recovery is marked.
+Where the file has a recovery and no response start, that recovery time is used for both. Where both
+are blank, a closed or resolved walk stamps them at the time of the import, so the time to recover is
+about zero. A historical file should fill `NoticedAt`, `StartedAt`, and `RecoveredAt`.
+
+Response cannot start before the incident was noticed, and recovery cannot be before response started.
+A row the workflow cannot reach — there is no move straight from open to closed — fails, and nothing
+of that row is saved. One rejected row keeps out only itself.
+
+### Running it twice
+
+An incident has no natural key, and `ImportId` is not stored on it. Submitting the same file again
+creates another incident for every row. After a partially succeeded run, fix and resubmit **only the
+rejected rows**.
 
 ## Related
 

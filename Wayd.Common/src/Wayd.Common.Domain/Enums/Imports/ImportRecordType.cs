@@ -64,4 +64,7 @@ public enum ImportRecordType
 
     [Display(Name = "Intake Request", Order = 18)]
     IntakeRequest = 18,
+
+    [Display(Name = "Incident", Order = 19)]
+    Incident = 19,
 }

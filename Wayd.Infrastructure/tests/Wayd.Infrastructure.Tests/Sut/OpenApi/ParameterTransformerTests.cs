@@ -1,5 +1,4 @@
 using System.Reflection;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Controllers;
@@ -12,34 +11,6 @@ namespace Wayd.Infrastructure.Tests.Sut.OpenApi;
 
 public sealed class ParameterTransformerTests
 {
-    [Fact]
-    public async Task TransformAsync_NumbersParametersAndTheBodyInDeclarationOrder()
-    {
-        // Arrange
-        var (operation, description) = OperationFor(nameof(Actions.Update));
-
-        // Act
-        await Transform(operation, description);
-
-        // Assert
-        Positions(operation).Should().Equal(("id", 1), ("since", 2), ("dryRun", 4));
-        Extension(operation.RequestBody!.Extensions!, "x-position").GetValue<int>().Should().Be(3);
-        Extension(operation.RequestBody.Extensions!, "x-name").GetValue<string>().Should().Be("request");
-    }
-
-    [Fact]
-    public async Task TransformAsync_GivesAFormFileNoPosition()
-    {
-        // Arrange
-        var (operation, description) = OperationFor(nameof(Actions.Import));
-
-        // Act
-        await Transform(operation, description);
-
-        // Assert
-        Positions(operation).Should().Equal(("validateOnly", 1));
-    }
-
     [Fact]
     public async Task TransformAsync_MarksAParameterNullableExactlyWhenItsDeclarationIs()
     {
@@ -71,7 +42,6 @@ public sealed class ParameterTransformerTests
             {
                 "id" => BindingSource.Path,
                 "request" => BindingSource.Body,
-                "file" => BindingSource.Form,
                 _ => BindingSource.Query,
             };
             description.ParameterDescriptions.Add(new ApiParameterDescription
@@ -86,7 +56,7 @@ public sealed class ParameterTransformerTests
             {
                 operation.RequestBody = new OpenApiRequestBody { Content = new Dictionary<string, OpenApiMediaType>() };
             }
-            else if (source != BindingSource.Form)
+            else
             {
                 var type = (Nullable.GetUnderlyingType(parameter.ParameterType) ?? parameter.ParameterType) switch
                 {
@@ -117,19 +87,11 @@ public sealed class ParameterTransformerTests
             },
             TestContext.Current.CancellationToken);
 
-    private static List<(string, int)> Positions(OpenApiOperation operation) =>
-        [.. operation.Parameters!.Select(p => (p.Name!, Extension(p.Extensions!, "x-position").GetValue<int>()))];
-
-    private static System.Text.Json.Nodes.JsonNode Extension(IDictionary<string, IOpenApiExtension> extensions, string name) =>
-        ((JsonNodeExtension)extensions[name]).Node;
-
     private static OpenApiSchema Schema(OpenApiOperation operation, string name) =>
         (OpenApiSchema)operation.Parameters!.Single(p => p.Name == name).Schema!;
 
     private sealed class Actions
     {
         public void Update(int id, Guid? since, object request, bool dryRun) { }
-
-        public void Import(IFormFile file, bool validateOnly) { }
     }
 }

@@ -43,7 +43,7 @@ public sealed class OpenApiDocumentTests(WaydApiFactory factory)
 
         // Act
         var document = await provider.GetOpenApiDocumentAsync(TestContext.Current.CancellationToken);
-        var json = JsonNode.Parse(await document.SerializeAsJsonAsync(OpenApiSpecVersion.OpenApi3_0, TestContext.Current.CancellationToken))!.AsObject();
+        var json = JsonNode.Parse(await document.SerializeAsJsonAsync(OpenApiSpecVersion.OpenApi3_1, TestContext.Current.CancellationToken))!.AsObject();
 
         // Assert
         Assert.True(JsonNode.DeepEquals(served, json), $"The document provider and the endpoint describe the API differently at {FirstDifference(served, json, "$")}.");

@@ -1,0 +1,57 @@
+{
+  "descriptionHash": "2BB743B7CD7CB9E81A35B1A8AE8E4FE7F1AC58567937C50D033F3B79B839ED30FA97C2D1D076D9871022BDF7ADE287A3EDB62F6CFCAEF0FD7AEBC99B8BC61942",
+  "descriptionLocation": "../../../../../Wayd.Web/src/Wayd.Web.Api/wwwroot/api/v1/specification.json",
+  "lockFileVersion": "1.0.0",
+  "kiotaVersion": "1.38.0",
+  "clientClassName": "WaydApiClient",
+  "typeAccessModifier": "Public",
+  "clientNamespaceName": "Wayd.Tools.DataGeneration.Cli.Client",
+  "language": "CSharp",
+  "usesBackingStore": false,
+  "excludeBackwardCompatible": true,
+  "includeAdditionalData": true,
+  "disableSSLValidation": false,
+  "serializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Text.TextSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Form.FormSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Multipart.MultipartSerializationWriterFactory"
+  ],
+  "deserializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonParseNodeFactory",
+    "Microsoft.Kiota.Serialization.Text.TextParseNodeFactory",
+    "Microsoft.Kiota.Serialization.Form.FormParseNodeFactory"
+  ],
+  "structuredMimeTypes": [
+    "application/json",
+    "text/plain;q=0.9",
+    "application/x-www-form-urlencoded;q=0.2",
+    "multipart/form-data;q=0.1"
+  ],
+  "includePatterns": [
+    "/api/admin/feature-flags#GET",
+    "/api/admin/feature-flags/{id}/toggle#PUT",
+    "/api/demand-management/intake-channels#GET",
+    "/api/demand-management/intake-desks#GET,POST",
+    "/api/demand-management/intake-desks/estimation-scale-choices#GET",
+    "/api/demand-management/intake-desks/{id}/estimation-scale#PUT",
+    "/api/demand-management/intake-request-tag-categories#GET,POST",
+    "/api/demand-management/intake-request-tag-categories/{id}/active#PUT",
+    "/api/demand-management/intake-request-tag-categories/{id}/tags#POST",
+    "/api/demand-management/intake-request-tag-categories/{id}/tags/{tagId}/active#PUT",
+    "/api/demand-management/intake-requests/{id}/projects/{projectId}/deliverables#GET",
+    "/api/imports/definitions#GET",
+    "/api/imports/{id}#GET",
+    "/api/imports/{id}/rows#GET",
+    "/api/organization/team-member-roles#GET,POST",
+    "/api/ppm/expenditure-categories#GET,POST",
+    "/api/ppm/project-lifecycles#GET,POST",
+    "/api/ppm/project-lifecycles/{id}/activate#POST",
+    "/api/user-management/roles#GET,POST",
+    "/api/user-management/roles/{id}/permissions#PUT",
+    "/api/user-management/users#POST"
+  ],
+  "excludePatterns": [],
+  "disabledValidationRules": [],
+  "allowedExternalOrigins": []
+}

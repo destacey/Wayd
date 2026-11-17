@@ -5700,7 +5700,7 @@ export interface HomeLayoutResponse {
  * widget at its defaults. Keys and values are the client's; the server checks only their size.
  * @nullable
  */
-export type HomeLayoutWidgetRequestSettings = {[key: string]: string} | null;
+export type HomeLayoutWidgetRequestSettings = null | {[key: string]: string};
 
 /**
  * Where one widget sits on the home page, and whether it shows.

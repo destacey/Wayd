@@ -88,13 +88,23 @@ public sealed partial class ImportFormats
             "guid" or "uuid" => "id",
             "date" => "date",
             "date-time" => "timestamp",
-            _ => (string?)actual["type"] switch
+            _ => TypeOf(actual) switch
             {
-                "integer" or "number" or "boolean" => (string)actual["type"]!,
+                var type when type is "integer" or "number" or "boolean" => type,
                 _ => "text",
             },
         };
     }
+
+    /// <summary>
+    /// A schema's type other than null. The committed document is OpenAPI 3.1, which lists a nullable value's
+    /// types (<c>["null", "integer"]</c>); the copy the MCP server reads is 3.0, which names one.
+    /// </summary>
+    private static string? TypeOf(JsonObject schema) => schema["type"] switch
+    {
+        JsonArray types => types.Select(t => (string?)t).FirstOrDefault(t => t != "null"),
+        var single => (string?)single,
+    };
 
     /// <summary>XML doc comments keep their source line breaks.</summary>
     private static string? Flatten(string? text) =>

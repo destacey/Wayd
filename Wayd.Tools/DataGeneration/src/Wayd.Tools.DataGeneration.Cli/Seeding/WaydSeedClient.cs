@@ -1,16 +1,20 @@
 ﻿using System.Net.Http.Headers;
 using System.Text.Json;
+using Microsoft.Kiota.Abstractions;
+using Microsoft.Kiota.Abstractions.Authentication;
+using Microsoft.Kiota.Http.HttpClientLibrary;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Tools.DataGeneration.Cli.Client;
+using Wayd.Tools.DataGeneration.Cli.Client.Models;
 using Wayd.Tools.DataGeneration.Cli.Generation;
 
 namespace Wayd.Tools.DataGeneration.Cli.Seeding;
 
 /// <summary>
-/// Talks to the Wayd API for seeding. CSV uploads are posted directly as multipart/form-data (the
-/// generated NSwag client mishandles IFormFile, so we do the upload by hand with the field name "file"
-/// that the [FromForm] IFormFile endpoints expect). Settings bootstrap reuses the generated typed client.
-/// Authentication is a Personal Access Token sent in the x-api-key header on every request.
+/// Talks to the Wayd API for seeding: the one place the tool does. CSV uploads are posted by hand as
+/// multipart/form-data, one body for every import endpoint; everything else goes through the generated
+/// <see cref="WaydApiClient"/>, which covers only the operations the tool calls. Authentication is a
+/// Personal Access Token sent in the x-api-key header on every request.
 /// <para>
 /// Every import posts and then waits: a submission answers with the id of a queued run, and the ids it
 /// created are what the next stage's file references. <see cref="ImportAwaiter"/> owns that wait.
@@ -24,17 +28,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Seeding;
 public sealed class WaydSeedClient : IDisposable
 {
     private readonly HttpClient _httpClient;
-    private readonly TeamMemberRolesClient _rolesClient;
-    private readonly ExpenditureCategoriesClient _expenditureCategoriesClient;
-    private readonly ProjectLifecyclesClient _projectLifecyclesClient;
-    private readonly RolesClient _applicationRolesClient;
-    private readonly UsersClient _usersClient;
-    private readonly FeatureFlagsClient _featureFlagsClient;
-    private readonly ImportsClient _importsClient;
-    private readonly IntakeChannelsClient _intakeChannelsClient;
-    private readonly IntakeDesksClient _intakeDesksClient;
-    private readonly IntakeRequestTagCategoriesClient _intakeTagCategoriesClient;
-    private readonly IntakeRequestsClient _intakeRequestsClient;
+    private readonly WaydApiClient _api;
     private readonly ImportAwaiter _awaiter;
 
     /// <summary>
@@ -60,18 +54,12 @@ public sealed class WaydSeedClient : IDisposable
         };
         _httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
 
-        _rolesClient = new TeamMemberRolesClient(root, _httpClient);
-        _expenditureCategoriesClient = new ExpenditureCategoriesClient(root, _httpClient);
-        _projectLifecyclesClient = new ProjectLifecyclesClient(root, _httpClient);
-        _applicationRolesClient = new RolesClient(root, _httpClient);
-        _usersClient = new UsersClient(root, _httpClient);
-        _featureFlagsClient = new FeatureFlagsClient(root, _httpClient);
-        _importsClient = new ImportsClient(root, _httpClient);
-        _intakeChannelsClient = new IntakeChannelsClient(root, _httpClient);
-        _intakeDesksClient = new IntakeDesksClient(root, _httpClient);
-        _intakeTagCategoriesClient = new IntakeRequestTagCategoriesClient(root, _httpClient);
-        _intakeRequestsClient = new IntakeRequestsClient(root, _httpClient);
-        _awaiter = new ImportAwaiter(_importsClient, PollInterval, ImportTimeout);
+        // The key is already a default header, so the adapter needs no authentication of its own.
+        _api = new WaydApiClient(new HttpClientRequestAdapter(new AnonymousAuthenticationProvider(), httpClient: _httpClient)
+        {
+            BaseUrl = root.TrimEnd('/'),
+        });
+        _awaiter = new ImportAwaiter(_api.Api.Imports, PollInterval, ImportTimeout);
     }
 
     /// <summary>The group every run this client submits is filed under; each run carries it.</summary>
@@ -88,9 +76,9 @@ public sealed class WaydSeedClient : IDisposable
     public async Task<IReadOnlyDictionary<string, string>> EnsureRoles(
         IEnumerable<SeedRole> roles, CancellationToken cancellationToken)
     {
-        var existing = await _applicationRolesClient.GetListAsync(cancellationToken);
+        var existing = await _api.Api.UserManagement.Roles.GetAsync(cancellationToken: cancellationToken) ?? [];
         var idsByName = existing
-            .Where(r => r.Name is not null)
+            .Where(r => r.Name is not null && r.Id is not null)
             .ToDictionary(r => r.Name!, r => r.Id!, StringComparer.OrdinalIgnoreCase);
 
         foreach (var role in roles)
@@ -98,21 +86,20 @@ public sealed class WaydSeedClient : IDisposable
             if (string.Equals(role.Name, ApplicationRoles.Admin, StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            var id = await _applicationRolesClient.CreateOrUpdateAsync(
+            var id = Created(await _api.Api.UserManagement.Roles.PostAsync(
                 new CreateOrUpdateRoleRequest
                 {
                     Id = idsByName.TryGetValue(role.Name, out var existingId) ? existingId : null,
                     Name = role.Name,
                     Description = role.Description,
                 },
-                cancellationToken);
+                cancellationToken: cancellationToken), $"role '{role.Name}'");
 
             idsByName[role.Name] = id;
 
-            await _applicationRolesClient.UpdatePermissionsAsync(
-                id,
+            await _api.Api.UserManagement.Roles[id].Permissions.PutAsync(
                 new UpdateRolePermissionsRequest { RoleId = id, Permissions = [.. role.Permissions] },
-                cancellationToken);
+                cancellationToken: cancellationToken);
         }
 
         return idsByName;
@@ -146,7 +133,7 @@ public sealed class WaydSeedClient : IDisposable
 
             try
             {
-                await _usersClient.CreateUserAsync(
+                await _api.Api.UserManagement.Users.PostAsync(
                     new CreateUserRequest
                     {
                         FirstName = user.FirstName,
@@ -157,13 +144,13 @@ public sealed class WaydSeedClient : IDisposable
                         Password = password,
                         RoleNames = [user.RoleName],
                     },
-                    cancellationToken);
+                    cancellationToken: cancellationToken);
 
                 created++;
             }
-            catch (WaydApiException ex)
+            catch (ApiException ex)
             {
-                log($"  skipped {user.Email}: {ex.Message}");
+                log($"  skipped {user.Email}: {ApiErrors.Describe(ex)}");
             }
         }
 
@@ -172,7 +159,7 @@ public sealed class WaydSeedClient : IDisposable
 
     /// <summary>Reads the row cap of every import type this token can see.</summary>
     public async Task<ImportLimits> GetImportLimits(CancellationToken cancellationToken) =>
-        new(await _importsClient.GetDefinitionsAsync(cancellationToken));
+        new(await _api.Api.Imports.Definitions.GetAsync(cancellationToken: cancellationToken) ?? []);
 
     /// <summary>The provider a password-backed account signs in through.</summary>
     private const string LocalLoginProvider = "Wayd";
@@ -284,12 +271,13 @@ public sealed class WaydSeedClient : IDisposable
             {
                 try
                 {
-                    var copies = await _intakeRequestsClient.GetProjectDeliverablesAsync(item.RequestId, item.ProjectId, cancellationToken);
-                    var held = copies.Select(d => d.Id).ToHashSet();
+                    var copies = await _api.Api.DemandManagement.IntakeRequests[item.RequestId].Projects[item.ProjectId].Deliverables
+                        .GetAsync(cancellationToken: cancellationToken) ?? [];
+                    var held = copies.Where(d => d.Id is not null).Select(d => d.Id!.Value).ToHashSet();
                     if (!item.DeliverableIds.All(held.Contains))
                         stillWaiting.Add(item);
                 }
-                catch (WaydApiException ex) when (ex.StatusCode == 404)
+                catch (ApiException ex) when (ex.ResponseStatusCode == 404)
                 {
                     stillWaiting.Add(item);
                 }
@@ -313,8 +301,11 @@ public sealed class WaydSeedClient : IDisposable
     /// </remarks>
     public async Task<IReadOnlyDictionary<string, Guid>> GetIntakeChannelIds(CancellationToken cancellationToken)
     {
-        var channels = await _intakeChannelsClient.GetIntakeChannelsAsync(includeArchived: false, deskId: null, cancellationToken);
-        return channels.ToDictionary(c => c.Name, c => c.Id, StringComparer.OrdinalIgnoreCase);
+        var channels = await _api.Api.DemandManagement.IntakeChannels.GetAsync(
+            q => q.QueryParameters.IncludeArchived = false, cancellationToken) ?? [];
+        return channels
+            .Where(c => c.Name is not null && c.Id is not null)
+            .ToDictionary(c => c.Name!, c => c.Id!.Value, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -330,37 +321,41 @@ public sealed class WaydSeedClient : IDisposable
     public async Task<IReadOnlyDictionary<string, Guid>> EnsureIntakeTagCategories(
         IEnumerable<IntakeTagCategoryModel> categories, CancellationToken cancellationToken)
     {
-        var existing = await _intakeTagCategoriesClient.GetIntakeRequestTagCategoriesAsync(includeInactive: true, deskId: null, cancellationToken);
+        var tagCategories = _api.Api.DemandManagement.IntakeRequestTagCategories;
+        var existing = await tagCategories.GetAsync(q => q.QueryParameters.IncludeInactive = true, cancellationToken) ?? [];
         Dictionary<string, Guid> tagIds = new(StringComparer.OrdinalIgnoreCase);
 
         foreach (var category in categories)
         {
-            var match = existing.FirstOrDefault(c => string.Equals(c.Name, category.Name, StringComparison.OrdinalIgnoreCase));
-            var categoryId = match?.Id ?? await _intakeTagCategoriesClient.CreateAsync(new CreateIntakeRequestTagCategoryRequest
+            var match = existing.FirstOrDefault(c => c.Id is not null && string.Equals(c.Name, category.Name, StringComparison.OrdinalIgnoreCase));
+            var categoryId = match?.Id ?? Created(await tagCategories.PostAsync(new CreateIntakeRequestTagCategoryRequest
             {
                 Name = category.Name,
                 Description = category.Description,
                 AllowsMany = category.AllowsMany,
-            }, cancellationToken);
+            }, cancellationToken: cancellationToken), $"tag category '{category.Name}'");
 
             if (match is { IsActive: false })
-                await _intakeTagCategoriesClient.SetActiveAsync(categoryId, new SetIntakeRequestTagCategoryActiveRequest { IsActive = true }, cancellationToken);
+                await tagCategories[categoryId].Active.PutAsync(new SetIntakeRequestTagCategoryActiveRequest { IsActive = true }, cancellationToken: cancellationToken);
 
-            var tags = (match?.Tags ?? []).ToDictionary(t => t.Name, StringComparer.OrdinalIgnoreCase);
+            var tags = (match?.Tags ?? [])
+                .Where(t => t.Name is not null && t.Id is not null)
+                .ToDictionary(t => t.Name!, StringComparer.OrdinalIgnoreCase);
             foreach (var tag in category.Tags)
             {
                 if (!tags.TryGetValue(tag, out var existingTag))
                 {
-                    tagIds[$"{category.Name}|{tag}"] = await _intakeTagCategoriesClient.AddTagAsync(
-                        categoryId, new AddIntakeRequestTagRequest { Name = tag }, cancellationToken);
+                    tagIds[$"{category.Name}|{tag}"] = Created(await tagCategories[categoryId].Tags.PostAsync(
+                        new AddIntakeRequestTagRequest { Name = tag }, cancellationToken: cancellationToken), $"tag '{category.Name}|{tag}'");
                     continue;
                 }
 
-                if (!existingTag.IsActive)
-                    await _intakeTagCategoriesClient.SetTagActiveAsync(
-                        categoryId, existingTag.Id, new SetIntakeRequestTagActiveRequest { IsActive = true }, cancellationToken);
+                var existingTagId = existingTag.Id!.Value;
+                if (existingTag.IsActive == false)
+                    await tagCategories[categoryId].Tags[existingTagId].Active.PutAsync(
+                        new SetIntakeRequestTagActiveRequest { IsActive = true }, cancellationToken: cancellationToken);
 
-                tagIds[$"{category.Name}|{tag}"] = existingTag.Id;
+                tagIds[$"{category.Name}|{tag}"] = existingTagId;
             }
         }
 
@@ -380,8 +375,8 @@ public sealed class WaydSeedClient : IDisposable
         IReadOnlyDictionary<string, Guid> employeeIdsByNumber,
         CancellationToken cancellationToken)
     {
-        var existing = await _intakeDesksClient.GetIntakeDesksAsync(submittableOnly: false, cancellationToken);
-        var byName = existing.ToDictionary(d => d.Name, d => d.Id, StringComparer.OrdinalIgnoreCase);
+        var byName = (await GetIntakeDesks(cancellationToken))
+            .ToDictionary(d => d.Name!, d => d.Id!.Value, StringComparer.OrdinalIgnoreCase);
         HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
 
         foreach (var desk in desks)
@@ -393,7 +388,7 @@ public sealed class WaydSeedClient : IDisposable
             if (byName.ContainsKey(desk.Name))
                 continue;
 
-            var created = await _intakeDesksClient.CreateAsync(new CreateIntakeDeskRequest
+            var created = await _api.Api.DemandManagement.IntakeDesks.PostAsync(new CreateIntakeDeskRequest
             {
                 Name = desk.Name,
                 Description = desk.Description,
@@ -406,9 +401,9 @@ public sealed class WaydSeedClient : IDisposable
                     EmployeeId = employeeIdsByNumber[m.EmployeeNumber],
                     Role = Enum.Parse<IntakeDeskRole>(m.Role),
                 })],
-            }, cancellationToken);
+            }, cancellationToken: cancellationToken);
 
-            byName[desk.Name] = created.Id;
+            byName[desk.Name] = Created(created?.Id, $"intake desk '{desk.Name}'");
         }
 
         return byName;
@@ -428,9 +423,9 @@ public sealed class WaydSeedClient : IDisposable
         IReadOnlyDictionary<string, Guid> deskIdsByName,
         CancellationToken cancellationToken)
     {
-        var choices = await _intakeDesksClient.GetEstimationScaleChoicesAsync(cancellationToken);
-        var pinnedByDeskId = (await _intakeDesksClient.GetIntakeDesksAsync(submittableOnly: false, cancellationToken))
-            .ToDictionary(d => d.Id, d => d.EstimationScale);
+        var choices = await _api.Api.DemandManagement.IntakeDesks.EstimationScaleChoices.GetAsync(cancellationToken: cancellationToken) ?? [];
+        var pinnedByDeskId = (await GetIntakeDesks(cancellationToken))
+            .ToDictionary(d => d.Id!.Value, d => d.EstimationScale);
         Dictionary<string, IReadOnlyList<string>> valuesByDesk = new(StringComparer.OrdinalIgnoreCase);
 
         foreach (var plan in PlanIntakeDeskEstimationScales(desks, deskIdsByName, choices, pinnedByDeskId))
@@ -439,10 +434,11 @@ public sealed class WaydSeedClient : IDisposable
             {
                 try
                 {
-                    await _intakeDesksClient.ChangeEstimationScaleAsync(plan.DeskId,
-                        new ChangeIntakeDeskEstimationScaleRequest { EstimationScaleId = scaleId, OpenEstimates = ScaleChangeEstimateHandling.Keep }, cancellationToken);
+                    await _api.Api.DemandManagement.IntakeDesks[plan.DeskId].EstimationScale.PutAsync(
+                        new ChangeIntakeDeskEstimationScaleRequest { EstimationScaleId = scaleId, OpenEstimates = ScaleChangeEstimateHandling.Keep },
+                        cancellationToken: cancellationToken);
                 }
-                catch (WaydApiException e) when (e.StatusCode is 400 or 409)
+                catch (ApiException e) when (e.ResponseStatusCode is 400 or 409)
                 {
                     continue;
                 }
@@ -478,15 +474,15 @@ public sealed class WaydSeedClient : IDisposable
             if (desk.EstimationScaleName is null || !deskIdsByName.TryGetValue(desk.Name, out var deskId))
                 continue;
 
-            var scale = offered.FirstOrDefault(c => string.Equals(c.Name, desk.EstimationScaleName, StringComparison.OrdinalIgnoreCase));
+            var scale = offered.FirstOrDefault(c => c.Id is not null && string.Equals(c.Name, desk.EstimationScaleName, StringComparison.OrdinalIgnoreCase));
             if (scale is null)
                 continue;
 
             var pinned = pinnedByDeskId.GetValueOrDefault(deskId);
-            if (pinned is not null && (pinned.Id != scale.Id || !pinned.IsCurrentVersion))
+            if (pinned is not null && (pinned.Id != scale.Id || pinned.IsCurrentVersion != true))
                 continue;
 
-            plans.Add(new IntakeDeskEstimationPlan(desk.Name, deskId, pinned is null ? scale.Id : null, [.. scale.EstimateValues]));
+            plans.Add(new IntakeDeskEstimationPlan(desk.Name, deskId, pinned is null ? scale.Id : null, [.. scale.EstimateValues ?? []]));
         }
 
         return plans;
@@ -501,14 +497,16 @@ public sealed class WaydSeedClient : IDisposable
     /// </remarks>
     public async Task<bool> EnsureFeatureFlagEnabled(string name, CancellationToken cancellationToken)
     {
-        var flags = await _featureFlagsClient.FeatureFlagsAsync(cancellationToken);
-        var flag = flags.FirstOrDefault(f => string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase))
+        var flags = await _api.Api.Admin.FeatureFlags.GetAsync(cancellationToken: cancellationToken) ?? [];
+        var flag = flags.FirstOrDefault(f => f.Id is not null && string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase))
             ?? throw new SeedException($"The environment has no '{name}' feature flag. Is the API older than this tool?");
 
-        if (flag.IsEnabled)
+        if (flag.IsEnabled == true)
             return false;
 
-        await _featureFlagsClient.ToggleAsync(flag.Id, new ToggleFeatureFlagRequest { Id = flag.Id, IsEnabled = true }, cancellationToken);
+        var flagId = flag.Id!.Value;
+        await _api.Api.Admin.FeatureFlags[flagId].Toggle.PutAsync(
+            new ToggleFeatureFlagRequest { Id = flagId, IsEnabled = true }, cancellationToken: cancellationToken);
         return true;
     }
 
@@ -525,22 +523,25 @@ public sealed class WaydSeedClient : IDisposable
     public async Task<IReadOnlyDictionary<string, int>> EnsureExpenditureCategories(
         IEnumerable<PpmVocabulary.ExpenditureCategoryDefinition> categories, CancellationToken cancellationToken)
     {
-        var existing = await _expenditureCategoriesClient.GetExpenditureCategoriesAsync(cancellationToken);
-        var byName = existing.ToDictionary(c => c.Name, c => c.Id, StringComparer.OrdinalIgnoreCase);
+        var expenditureCategories = _api.Api.Ppm.ExpenditureCategories;
+        var existing = await expenditureCategories.GetAsync(cancellationToken: cancellationToken) ?? [];
+        var byName = existing
+            .Where(c => c.Name is not null && c.Id is not null)
+            .ToDictionary(c => c.Name!, c => c.Id!.Value, StringComparer.OrdinalIgnoreCase);
 
         foreach (var category in categories)
         {
             if (byName.ContainsKey(category.Name))
                 continue;
 
-            byName[category.Name] = await _expenditureCategoriesClient.CreateAsync(new CreateExpenditureCategoryRequest
+            byName[category.Name] = Created(await expenditureCategories.PostAsync(new CreateExpenditureCategoryRequest
             {
                 Name = category.Name,
                 Description = category.Description,
                 IsCapitalizable = category.IsCapitalizable,
                 RequiresDepreciation = category.RequiresDepreciation,
                 AccountingCode = category.AccountingCode,
-            }, cancellationToken);
+            }, cancellationToken: cancellationToken), $"expenditure category '{category.Name}'");
         }
 
         return byName;
@@ -552,32 +553,33 @@ public sealed class WaydSeedClient : IDisposable
     /// </summary>
     public async Task<Guid> EnsureProjectLifecycle(PpmVocabulary.ProjectLifecycleDefinition lifecycle, CancellationToken cancellationToken)
     {
-        var existing = await _projectLifecyclesClient.GetProjectLifecyclesAsync(null, cancellationToken);
-        var match = existing.FirstOrDefault(l => string.Equals(l.Name, lifecycle.Name, StringComparison.OrdinalIgnoreCase));
+        var lifecycles = _api.Api.Ppm.ProjectLifecycles;
+        var existing = await lifecycles.GetAsync(cancellationToken: cancellationToken) ?? [];
+        var match = existing.FirstOrDefault(l => l.Id is not null && string.Equals(l.Name, lifecycle.Name, StringComparison.OrdinalIgnoreCase));
 
         // If it already exists and is active, there is nothing to do — projects can use it as-is.
         if (match is not null && string.Equals(match.State?.Name, "Active", StringComparison.OrdinalIgnoreCase))
-            return match.Id;
+            return match.Id!.Value;
 
         Guid lifecycleId;
         if (match is not null)
         {
-            lifecycleId = match.Id;
+            lifecycleId = match.Id!.Value;
         }
         else
         {
-            lifecycleId = await _projectLifecyclesClient.CreateAsync(new CreateProjectLifecycleRequest
+            lifecycleId = Created(await lifecycles.PostAsync(new CreateProjectLifecycleRequest
             {
                 Name = lifecycle.Name,
                 Description = lifecycle.Description,
                 Stages = [.. lifecycle.Stages.Select(p => new StageInput { Name = p.Name, Description = p.Description })],
-            }, cancellationToken);
+            }, cancellationToken: cancellationToken), $"project lifecycle '{lifecycle.Name}'");
         }
 
         // Activate the draft so projects can be assigned it. Any failure here is surfaced rather than
         // swallowed — a lifecycle that cannot be activated (a real error, an archived one, an auth problem)
         // would otherwise let the whole seed proceed and fail confusingly at project import.
-        await _projectLifecyclesClient.ActivateAsync(lifecycleId, cancellationToken);
+        await lifecycles[lifecycleId].Activate.PostAsync(cancellationToken: cancellationToken);
 
         return lifecycleId;
     }
@@ -588,9 +590,11 @@ public sealed class WaydSeedClient : IDisposable
     /// </summary>
     public async Task EnsureRoles(IReadOnlyList<string> roleNames, CancellationToken cancellationToken)
     {
-        var existing = await _rolesClient.GetListAsync(includeInactive: true, cancellationToken);
+        var teamMemberRoles = _api.Api.Organization.TeamMemberRoles;
+        var existing = await teamMemberRoles.GetAsync(q => q.QueryParameters.IncludeInactive = true, cancellationToken) ?? [];
         var existingNames = existing
-            .Select(r => r.Name)
+            .Where(r => r.Name is not null)
+            .Select(r => r.Name!)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         foreach (var roleName in roleNames.Distinct(StringComparer.OrdinalIgnoreCase))
@@ -598,9 +602,25 @@ public sealed class WaydSeedClient : IDisposable
             if (existingNames.Contains(roleName))
                 continue;
 
-            await _rolesClient.CreateAsync(new CreateTeamMemberRoleRequest { Name = roleName }, cancellationToken);
+            await teamMemberRoles.PostAsync(new CreateTeamMemberRoleRequest { Name = roleName }, cancellationToken: cancellationToken);
         }
     }
+
+    /// <summary>Every intake desk, submittable or not, that names itself and has an id.</summary>
+    private async Task<IEnumerable<IntakeDeskDto>> GetIntakeDesks(CancellationToken cancellationToken) =>
+        (await _api.Api.DemandManagement.IntakeDesks.GetAsync(q => q.QueryParameters.SubmittableOnly = false, cancellationToken) ?? [])
+            .Where(d => d.Name is not null && d.Id is not null);
+
+    /// <summary>
+    /// The id a create answered with. The generated client reads every value as optional, so an empty answer
+    /// to a create the API documents as returning its id is a contract break, said as such.
+    /// </summary>
+    private static T Created<T>(T? id, string what) where T : struct =>
+        id ?? throw new SeedException($"Creating {what} answered without an id.");
+
+    /// <summary>The id a create answered with, for a resource whose id is a string; see the overload above.</summary>
+    private static string Created(string? id, string what) =>
+        string.IsNullOrEmpty(id) ? throw new SeedException($"Creating {what} answered without an id.") : id;
 
     /// <summary>Posts a file, waits for the run it queued, and answers with what that run created.</summary>
     private async Task<ImportRun> Import(

@@ -36,7 +36,12 @@ const columnType = (property) => {
       return 'timestamp'
   }
 
-  switch (actual.type) {
+  // OpenAPI 3.1 lists a nullable value's types: ["null", "integer"].
+  const type = Array.isArray(actual.type)
+    ? actual.type.find((t) => t !== 'null')
+    : actual.type
+
+  switch (type) {
     case 'integer':
       return 'integer'
     case 'number':

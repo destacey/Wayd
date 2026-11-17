@@ -1,7 +1,7 @@
 using FluentAssertions;
+using Wayd.Tools.DataGeneration.Cli.Client.Models;
 using Wayd.Tools.DataGeneration.Cli.Generation;
 using Wayd.Tools.DataGeneration.Cli.Seeding;
-using Wayd.Tools.DataGeneration.Cli.Client;
 
 namespace Wayd.Tools.DataGeneration.Cli.Tests.Sut;
 
@@ -9,10 +9,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Tests.Sut;
 public class WaydSeedClientTests
 {
     private static readonly Guid DeskId = Guid.NewGuid();
+    private static readonly Guid TShirtSizesId = Guid.NewGuid();
 
     private static readonly IntakeEstimationScaleChoiceDto TShirtSizes = new()
     {
-        Id = Guid.NewGuid(),
+        Id = TShirtSizesId,
         Key = 3,
         Name = "T-Shirt Sizes",
         VersionNumber = 2,
@@ -54,14 +55,14 @@ public class WaydSeedClientTests
 
         // Assert
         plans.Should().ContainSingle().Which.Should().BeEquivalentTo(
-            new IntakeDeskEstimationPlan("IT Desk", DeskId, TShirtSizes.Id, ["S", "M", "L"]));
+            new IntakeDeskEstimationPlan("IT Desk", DeskId, TShirtSizesId, ["S", "M", "L"]));
     }
 
     [Fact]
     public void PlanIntakeDeskEstimationScales_EstimatesADeskAlreadyOnTheScalesCurrentVersionWithoutChangingIt()
     {
         // Act
-        var plans = Plan(Desk(), PinnedTo(TShirtSizes.Id), TShirtSizes);
+        var plans = Plan(Desk(), PinnedTo(TShirtSizesId), TShirtSizes);
 
         // Assert
         plans.Should().ContainSingle().Which.PinScaleId.Should().BeNull();
@@ -72,7 +73,7 @@ public class WaydSeedClientTests
     {
         // Act
         var onAnother = Plan(Desk(), PinnedTo(Guid.NewGuid()), TShirtSizes);
-        var onAnOlderVersion = Plan(Desk(), PinnedTo(TShirtSizes.Id, isCurrentVersion: false), TShirtSizes);
+        var onAnOlderVersion = Plan(Desk(), PinnedTo(TShirtSizesId, isCurrentVersion: false), TShirtSizes);
 
         // Assert — its values are not the ones the choices list, so the import would refuse them
         onAnother.Should().BeEmpty();

@@ -33,8 +33,26 @@ jobs:
             - name: Restore dependencies
               run: dotnet restore
 
+            # Kiota, which builds the data-generation tool's client whenever the OpenAPI document is newer.
+            - name: Restore local tools
+              run: dotnet tool restore
+
             - name: Build
               run: dotnet build --no-restore -c Release
+
+            # The generated client is committed; fails when it no longer matches the committed
+            # specification.json, the project's path list, or the pinned Kiota version. Removing the lock
+            # file forces the generation that the build's timestamp check would otherwise skip.
+            - name: Check generated data-generation client
+              working-directory: Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli.Client
+              run: |
+                  rm Generated/kiota-lock.json
+                  dotnet build -c Release
+                  if [ -n "$(git status --porcelain -- Generated)" ]; then
+                      git status --porcelain -- Generated
+                      echo "::error::The data-generation client is out of date. Build Wayd.Tools.DataGeneration.Cli.Client and commit its Generated folder."
+                      exit 1
+                  fi
 
             # Generate the Wolverine handler tree (Internal/Generated/WolverineHandlers). It is NOT committed:
             # `codegen write` boots the freshly built app to emit the TypeLoadMode.Static handler code that the

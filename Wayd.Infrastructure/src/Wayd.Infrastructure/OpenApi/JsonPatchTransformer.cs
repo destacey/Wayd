@@ -10,9 +10,9 @@ namespace Wayd.Infrastructure.OpenApi;
 /// </summary>
 /// <remarks>
 /// The generator describes each <c>JsonPatchDocument&lt;T&gt;</c>'s items as a <c>oneOf</c> of three operation
-/// shapes, inline. NSwag's generators keep only the first branch, so the clients could build no
-/// <c>remove</c>, <c>move</c> or <c>copy</c>, and they name each inline item by its position in the document
-/// (<c>PatchDocument2</c>), which renames them whenever a patch endpoint is added.
+/// shapes, inline. A generator that reads only the first branch can build no <c>remove</c>, <c>move</c> or
+/// <c>copy</c>, and one that names inline items by their position in the document (<c>PatchDocument2</c>)
+/// renames them whenever a patch endpoint is added.
 /// <para>
 /// A <c>JsonPatchDocument&lt;T&gt;</c> parameter restricts its action to <c>application/json-patch+json</c>
 /// unless the action's <c>[Consumes]</c> says otherwise, and any other content type is answered 415. The

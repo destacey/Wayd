@@ -1,4 +1,4 @@
-using Wayd.Tools.DataGeneration.Cli.Client;
+using Wayd.Tools.DataGeneration.Cli.Client.Models;
 
 namespace Wayd.Tools.DataGeneration.Cli.Seeding;
 
@@ -18,8 +18,8 @@ public sealed class ImportLimits
     public ImportLimits(IEnumerable<ImportDefinitionDto> definitions)
     {
         _maxRowsByKey = definitions
-            .Where(d => d.CanSubmit)
-            .ToDictionary(d => d.Key, d => d.MaxRows, StringComparer.OrdinalIgnoreCase);
+            .Where(d => d.CanSubmit == true && d.Key is not null && d.MaxRows is not null)
+            .ToDictionary(d => d.Key!, d => d.MaxRows!.Value, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>The row cap the server publishes for one import type.</summary>

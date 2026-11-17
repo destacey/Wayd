@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
@@ -6,7 +5,7 @@ using Microsoft.OpenApi;
 namespace Wayd.Infrastructure.OpenApi;
 
 /// <summary>
-/// Describes a <see cref="JsonPolymorphicAttribute"/> hierarchy the standard OpenAPI 3.0 way: the base as an
+/// Describes a <see cref="JsonPolymorphicAttribute"/> hierarchy the standard OpenAPI way: the base as an
 /// object with its own properties and a <c>discriminator</c>, and each derived type, under its own name, as
 /// <c>allOf</c> the base and its own properties.
 /// </summary>
@@ -18,10 +17,9 @@ namespace Wayd.Infrastructure.OpenApi;
 /// interfaces after the schemas, and the client code imports <c>EntraConnectionDetailsDto</c>.
 /// </para>
 /// <para>
-/// The mapping lists only the derived types, not the base's own discriminator, and an abstract base carries
-/// <c>x-abstract</c>, which NSwag's C# generator reads. Only the schema stage knows the hierarchy, so
-/// it records it on the base's schema; the document stage, where the generator has made the components,
-/// rewrites them.
+/// The mapping lists only the derived types, not the base's own discriminator. Only the schema stage knows
+/// the hierarchy, so it records it on the base's schema; the document stage, where the generator has made
+/// the components, rewrites them.
 /// </para>
 /// </remarks>
 public sealed class PolymorphismTransformer : IOpenApiSchemaTransformer, IOpenApiDocumentTransformer
@@ -109,8 +107,6 @@ public sealed class PolymorphismTransformer : IOpenApiSchemaTransformer, IOpenAp
         };
         baseSchema.Properties[hierarchy.DiscriminatorProperty] = new OpenApiSchema { Type = JsonSchemaType.String };
         baseSchema.Required.Add(hierarchy.DiscriminatorProperty);
-        if (hierarchy.BaseType.IsAbstract)
-            baseSchema.Extensions = new Dictionary<string, IOpenApiExtension> { ["x-abstract"] = new JsonNodeExtension(JsonValue.Create(true)) };
 
         var generatedSchemas = members.Where(schemas.ContainsKey).ToDictionary(m => m, m => (OpenApiSchema)schemas[m], StringComparer.Ordinal);
         foreach (var member in members)

@@ -6,26 +6,42 @@ namespace Wayd.Infrastructure.OpenApi;
 internal static class OpenApiSchemas
 {
     /// <summary>
-    /// The schema, allowing null. A reference cannot carry <c>nullable</c> in OpenAPI 3.0, so it is wrapped
-    /// as <c>{ "nullable": true, "oneOf": [ { "$ref": … } ] }</c>, which the client generators read as
-    /// the referenced type or null.
+    /// The schema, allowing null. A reference becomes <see cref="OrNull"/>; a wrapper around one gains the null
+    /// alternative and keeps everything else it says; an inline schema adds <c>null</c> to its types.
     /// </summary>
     public static IOpenApiSchema Nullable(IOpenApiSchema? schema)
     {
         switch (schema)
         {
             case OpenApiSchemaReference reference:
-                return new OpenApiSchema { Type = JsonSchemaType.Null, OneOf = [reference] };
+                return OrNull(reference, description: null);
             case OpenApiSchema inline when inline.Type is { } type:
                 inline.Type = type | JsonSchemaType.Null;
                 return inline;
-            case OpenApiSchema inline when inline.OneOf is { Count: 1 }:
-                inline.Type = JsonSchemaType.Null;
-                return inline;
+            case OpenApiSchema { OneOf: [_] } wrapper:
+                wrapper.OneOf.Add(NullOnly());
+                return wrapper;
             default:
                 return schema ?? new OpenApiSchema();
         }
     }
+
+    /// <summary>
+    /// The target or null, as <c>{ "oneOf": [ target, { "type": "null" } ] }</c>: the target first, so a
+    /// TypeScript generator writes <c>Target | null</c>. Null is an alternative, never a type beside the
+    /// <c>oneOf</c>, which OpenAPI 3.1 reads as requiring both.
+    /// </summary>
+    public static OpenApiSchema OrNull(IOpenApiSchema target, string? description) =>
+        new() { Description = description, OneOf = [target, NullOnly()] };
+
+    /// <summary>The <c>oneOf</c> member that allows null.</summary>
+    private static OpenApiSchema NullOnly() => new() { Type = JsonSchemaType.Null };
+
+    /// <summary>The schema a nullable wrapper allows besides null, or null when the schema is not one.</summary>
+    public static IOpenApiSchema? NullableTarget(IOpenApiSchema? schema) =>
+        schema is OpenApiSchema { OneOf: [var first, var second] }
+            ? IsNullOnly(second) ? first : IsNullOnly(first) ? second : null
+            : null;
 
     /// <summary>Points every reference to a renamed component at its new name, wherever in the document it is.</summary>
     public static void ReplaceReferences(OpenApiDocument document, IReadOnlyDictionary<string, string> renames)

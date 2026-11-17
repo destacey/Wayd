@@ -46,6 +46,8 @@ public sealed partial class McpToolCatalog(
         var provider = documentProvider
             ?? throw new InvalidOperationException("The MCP server describes its tools from the OpenAPI document, which is not registered. Enable SwaggerSettings.");
         var openApiDocument = await provider.GetOpenApiDocumentAsync();
+        // Read as OpenAPI 3.0 whatever version the API publishes: OpenApiToolSchema converts 3.0's nullable
+        // and exclusive bounds into JSON Schema 2020-12.
         var document = JsonNode.Parse(await openApiDocument.SerializeAsJsonAsync(OpenApiSpecVersion.OpenApi3_0))!.AsObject();
 
         var operations = new Dictionary<(string Method, string Path), JsonObject>();

@@ -170,7 +170,12 @@ public sealed class OpenApiSpecificationTests
         if (!schema.TryGetProperty("type", out var type))
             return false;
 
-        return type.GetString() switch
+        // OpenAPI 3.1 lists a nullable value's types: ["null", "integer"].
+        var name = type.ValueKind == JsonValueKind.Array
+            ? type.EnumerateArray().Select(t => t.GetString()).FirstOrDefault(t => t != "null")
+            : type.GetString();
+
+        return name switch
         {
             "integer" => true,
             "array" => schema.TryGetProperty("items", out var items) && IsInteger(items),

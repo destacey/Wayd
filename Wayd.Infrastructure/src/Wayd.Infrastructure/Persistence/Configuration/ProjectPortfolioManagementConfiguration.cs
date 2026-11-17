@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.StrategicManagement;
-using Wayd.Common.Domain.Models.KeyPerformanceIndicators;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Scoring;

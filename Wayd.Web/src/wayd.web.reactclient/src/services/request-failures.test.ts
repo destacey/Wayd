@@ -4,11 +4,15 @@ import {
   isNetworkError,
   isTransientRefreshFailure,
   logFailedRequest,
+  markUnreachable,
   RateLimitPause,
   signInRateLimitMessage,
   rateLimitWaitMs,
 } from './request-failures'
 import type { ApiResponseError } from './api-fetch'
+
+/** What `fetch` rejects with when it cannot reach the server, as `apiFetch` records it. */
+const unreachable = () => markUnreachable(new TypeError('Failed to fetch'))
 
 /** What the generated client throws for a failed response. */
 const responseError = (
@@ -26,13 +30,24 @@ const responseError = (
 describe('isNetworkError', () => {
   it('is true when fetch cannot reach the server', () => {
     // Arrange
-    const error = new TypeError('Failed to fetch')
+    const error = unreachable()
 
     // Act
     const result = isNetworkError(error)
 
     // Assert
     expect(result).toBe(true)
+  })
+
+  it('is false for a TypeError fetch did not reject with', () => {
+    // Arrange — a bug in code around the request, not a failed connection
+    const error = new TypeError('Cannot read properties of undefined')
+
+    // Act
+    const result = isNetworkError(error)
+
+    // Assert
+    expect(result).toBe(false)
   })
 
   it.each(['TimeoutError', 'AbortError'])(
@@ -93,7 +108,7 @@ describe('logFailedRequest', () => {
 
   it('warns for a request that never reached the server', () => {
     // Arrange
-    const failure = { error: new TypeError('Failed to fetch'), url }
+    const failure = { error: unreachable(), url }
 
     // Act
     logFailedRequest(failure)
@@ -211,7 +226,7 @@ describe('isTransientRefreshFailure', () => {
 
   it('keeps the session when the server could not be reached', () => {
     // Arrange
-    const error = new TypeError('Failed to fetch')
+    const error = unreachable()
 
     // Act
     const result = isTransientRefreshFailure(error)

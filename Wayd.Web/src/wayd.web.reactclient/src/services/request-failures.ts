@@ -1,17 +1,30 @@
 import { toApiError } from '@/src/utils/problem-details'
 
+const unreachable = new WeakSet<object>()
+
+/**
+ * Records an error `fetch` rejected with, so {@link isNetworkError} can tell a
+ * failure to reach the server from a `TypeError` thrown by code around the
+ * request, which must not be mistaken for one. Returns the error.
+ */
+export function markUnreachable(error: unknown): unknown {
+  if (error && typeof error === 'object') unreachable.add(error)
+  return error
+}
+
 /**
  * True for a failure where no response was received: offline, DNS failure,
  * server unreachable, request timed out, request aborted. We treat these as
  * "couldn't ask the server" rather than "server said no" — the distinction
  * matters when deciding whether a failed refresh proves the session is bad.
  *
- * `fetch` rejects with a `TypeError` when it cannot reach the server and with
- * a `DOMException` named `TimeoutError` or `AbortError` when its signal fires.
+ * `fetch` rejects with a `TypeError` when it cannot reach the server, so a
+ * `TypeError` counts only when {@link markUnreachable} recorded it; a
+ * `DOMException` named `TimeoutError` or `AbortError` means the signal fired.
  */
 export function isNetworkError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
-  if (error instanceof TypeError) return true
+  if (error instanceof TypeError) return unreachable.has(error)
   const { name } = error as { name?: unknown }
   return name === 'TimeoutError' || name === 'AbortError'
 }

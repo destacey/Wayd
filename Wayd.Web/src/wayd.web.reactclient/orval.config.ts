@@ -85,8 +85,9 @@ export default defineConfig({
       // No barrel: callers import the tag file they use, so a page compiles only those endpoints.
       indexFiles: false,
       // A path parameter goes through encodeURIComponent, so a value holding
-      // `../` cannot climb out of its segment and send the session's token to
-      // another endpoint. fetch resolves dot segments before the request goes.
+      // `/` cannot climb out of its segment and send the session's token to
+      // another endpoint. A value that is all dots (`..`) is left as it is, and
+      // fetch would resolve it, so apiFetch refuses such a path.
       urlEncodeParameters: true,
       override: {
         ...mutator('apiFetch'),

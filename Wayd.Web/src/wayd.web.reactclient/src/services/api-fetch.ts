@@ -17,12 +17,16 @@ import {
 import {
   isTransientRefreshFailure,
   logFailedRequest,
+  markUnreachable,
   RateLimitPause,
 } from './request-failures'
 
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? ''
 
 const REQUEST_TIMEOUT_MS = 30_000
+
+/** A `.` or `..` path segment, which fetch resolves before sending. */
+const DOT_SEGMENT = /(^|\/)\.{1,2}(\/|$)/
 
 /**
  * What the generated functions throw for a response outside 2xx: the
@@ -58,8 +62,15 @@ const readBody = async (response: Response): Promise<unknown> => {
   if (!text) return undefined
   const contentType = response.headers.get('content-type') ?? ''
   // application/json and application/problem+json
-  if (contentType.includes('json')) return JSON.parse(text)
-  return text
+  if (!contentType.includes('json')) return text
+  try {
+    return JSON.parse(text)
+  } catch {
+    // A gateway or proxy can label an HTML or truncated error page JSON.
+    // Reading it as text keeps the response's status, which decides whether a
+    // failed refresh signs the user out.
+    return text
+  }
 }
 
 const toResponseError = (
@@ -105,6 +116,12 @@ const send = async (
   token: string | null,
   traced: boolean,
 ): Promise<SendResult> => {
+  // encodeURIComponent leaves a path parameter of `..` as it is, so an id read
+  // from a URL could otherwise move the request, and its token, to another
+  // endpoint.
+  if (DOT_SEGMENT.test(url.split('?')[0])) {
+    throw new Error(`Refused to send a request with a dot segment: ${url}`)
+  }
   const headers = new Headers(init.headers)
   if (!headers.has('Accept')) headers.set('Accept', 'application/json')
   if (token) headers.set('Authorization', `Bearer ${token}`)
@@ -121,7 +138,12 @@ const send = async (
   const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   const signal = init.signal ? AbortSignal.any([init.signal, timeout]) : timeout
 
-  const response = await fetch(`${apiUrl}${url}`, { ...init, headers, signal })
+  let response: Response
+  try {
+    response = await fetch(`${apiUrl}${url}`, { ...init, headers, signal })
+  } catch (error) {
+    throw markUnreachable(error)
+  }
   return { response, body: await readBody(response) }
 }
 

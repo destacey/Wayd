@@ -111,6 +111,42 @@ describe('apiFetch', () => {
     })
   })
 
+  it('keeps the status of a response whose JSON body does not parse', async () => {
+    // Arrange — a gateway's HTML error page, labelled JSON
+    storeSession()
+    fetchSpy.mockResolvedValue(
+      new Response('<html>Bad Gateway</html>', {
+        status: 502,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    // Act
+    const error = await caught(apiFetch('/api/ppm/projects', {}))
+
+    // Assert
+    expect(isApiResponseError(error)).toBe(true)
+    expect(error).toMatchObject({
+      status: 502,
+      detail: '<html>Bad Gateway</html>',
+    })
+  })
+
+  it.each(['/api/organization/teams/..', '/api/organization/teams/./members'])(
+    'refuses a path with a dot segment (%s)',
+    async (url) => {
+      // Arrange
+      storeSession()
+
+      // Act
+      const error = await caught(apiFetch(url, {}))
+
+      // Assert
+      expect(error).toBeInstanceOf(Error)
+      expect(fetchSpy).not.toHaveBeenCalled()
+    },
+  )
+
   it('throws a plain-text body as the detail', async () => {
     // Arrange
     storeSession()
@@ -234,6 +270,27 @@ describe('apiFetch', () => {
     fetchSpy
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(new Response(null, { status: 503 }))
+
+    // Act
+    const error = await caught(apiFetch('/api/ppm/projects', {}))
+
+    // Assert
+    expect(error).toMatchObject({ status: 401, url: '/api/ppm/projects' })
+    expect(localStorage.getItem('wayd.local.token')).toBe('old-token')
+    expect(navigateWithFullReload).not.toHaveBeenCalled()
+  })
+
+  it('keeps the session when the refresh answers 502 with a body that does not parse', async () => {
+    // Arrange
+    storeSession()
+    fetchSpy
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(
+        new Response('<html>Bad Gateway</html>', {
+          status: 502,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
 
     // Act
     const error = await caught(apiFetch('/api/ppm/projects', {}))

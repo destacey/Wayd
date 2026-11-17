@@ -7,6 +7,7 @@ import RisksGrid, {
 } from '@/src/components/common/planning/risks-grid'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 import { useFeatureFlag } from '@/src/hooks'
+import { KpiSubjectTypes } from '@/src/store/features/common/kpis-api'
 import { TeamThroughputForecastReport } from '@/src/components/common/forecasting'
 import useAuth from '@/src/components/contexts/auth'
 import {
@@ -121,8 +122,14 @@ const TeamBacklog = dynamic(
   },
 )
 
+const KpiScorecard = dynamic(
+  () => import('@/src/components/common/kpi/scorecard/kpi-scorecard'),
+  { ssr: false, loading: () => <Spin /> },
+)
+
 enum TeamTabs {
   Overview = 'overview',
+  Scorecard = 'scorecard',
   Backlog = 'backlog',
   Sprints = 'sprints',
   DependencyManagement = 'dependency-management',
@@ -153,6 +160,7 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { isEnabled: capacityEnabled } = useFeatureFlag(
     'team-capacity-management',
   )
+  const { isEnabled: kpisEnabled } = useFeatureFlag('kpis')
 
   // The active section lives in the URL (?section=), owned by RecordLayout.
   // Read here only to enable the queries that load lazily on first visit.
@@ -374,6 +382,12 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             canUpdate={canUpdateTeam}
           />
         )
+      case TeamTabs.Scorecard:
+        return kpisEnabled ? (
+          <KpiScorecard
+            subject={{ subjectType: KpiSubjectTypes.Team, subjectId: team!.id }}
+          />
+        ) : null
       case TeamTabs.Members:
         return <TeamMembersGrid teamId={team!.id!} teamType="Team" />
       case TeamTabs.Capacity:
@@ -472,6 +486,7 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const sections: RecordSection[] = (() => {
     const items: RecordSection[] = [
       { id: TeamTabs.Overview, label: 'Overview' },
+      ...(kpisEnabled ? [{ id: TeamTabs.Scorecard, label: 'Scorecard' }] : []),
       { id: TeamTabs.Backlog, label: 'Backlog' },
     ]
     if (hasEverBeenScrum === true) {

@@ -1046,6 +1046,7 @@ function WaydGridInner<T extends RowData>(
     csvFileName = 'grid-export',
     includeIdColumn = true,
     height,
+    minHeight,
     initialSorting,
     variant = 'advanced',
     includeGlobalSearch = variant === 'advanced',
@@ -1104,7 +1105,8 @@ function WaydGridInner<T extends RowData>(
     ? dataProp.length * (measuredRowHeight ?? ROW_HEIGHT_ESTIMATE)
     : SIMPLE_EMPTY_BODY_HEIGHT
   const simpleHeight = SIMPLE_HEADER_HEIGHT + simpleBodyHeight + 2
-  const resolvedHeight = height ?? (isSimple ? simpleHeight : autoHeight)
+  const resolvedHeight =
+    height ?? (isSimple ? Math.max(simpleHeight, minHeight ?? 0) : autoHeight)
 
   // ─── Split header/body viewports ─────────────────────────
   // The header lives in its own clipped viewport above the scrolling body, so

@@ -18,6 +18,7 @@ using Wayd.Common.Domain.Following;
 using Wayd.Common.Domain.Notifications;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Imports;
+using Wayd.Common.Domain.Kpis;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.Settings;
 using Wayd.Common.Domain.StatusWorkflows;
@@ -81,6 +82,8 @@ public partial class EventCoverageTests
         typeof(DiscussionSettings),
         typeof(Employee),
         typeof(ExternalIdentityMapping),
+        typeof(Kpi),
+        typeof(KpiCategory),
         typeof(OidcProvider),
         typeof(PersonalAccessToken),
         typeof(RecordType),

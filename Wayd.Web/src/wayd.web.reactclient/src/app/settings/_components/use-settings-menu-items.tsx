@@ -20,6 +20,7 @@ interface SettingsMenuOptions {
   productManagement: boolean
   incidentManagement: boolean
   demandManagement: boolean
+  kpis: boolean
   imports: boolean
   workflowSchemes: boolean
 }
@@ -74,6 +75,16 @@ const buildSettingsMenuItems = (
       'organization.team-member-roles',
       '/settings/organization/team-member-roles',
     ),
+    ...(options.kpis
+      ? [
+          restrictedPermissionMenuItem(
+            'Permissions.Kpis.Administer',
+            'KPI Categories',
+            'organization.kpi-categories',
+            '/settings/organization/kpi-categories',
+          ),
+        ]
+      : []),
   ]),
 
   ...(options.planningPoker
@@ -359,6 +370,7 @@ export const useSettingsMenuItems = () => {
     'incident-management',
   )
   const { isEnabled: demandManagement } = useFeatureFlag('demand-management')
+  const { isEnabled: kpis } = useFeatureFlag('kpis')
 
   // Cheap and cached: the same query the Imports page uses, so opening it costs nothing extra.
   const { data: importDefinitions } = useGetImportDefinitionsQuery()
@@ -373,6 +385,7 @@ export const useSettingsMenuItems = () => {
     productManagement,
     incidentManagement,
     demandManagement,
+    kpis,
     imports: (importDefinitions?.length ?? 0) > 0,
     workflowSchemes: (ownerTypes ?? []).some((o) => o.hasRecordTypes),
   })

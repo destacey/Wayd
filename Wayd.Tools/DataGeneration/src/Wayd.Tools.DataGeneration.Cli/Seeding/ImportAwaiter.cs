@@ -1,4 +1,5 @@
-using Wayd.Tools.DataGeneration.Cli.Client;
+using Wayd.Tools.DataGeneration.Cli.Client.Api.Imports;
+using Wayd.Tools.DataGeneration.Cli.Client.Models;
 
 namespace Wayd.Tools.DataGeneration.Cli.Seeding;
 
@@ -11,9 +12,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Seeding;
 /// yet. A seed depends on each stage finishing before the next writes its file, so this is where that
 /// ordering is actually enforced.
 /// </remarks>
-public sealed class ImportAwaiter(IImportsClient imports, TimeSpan pollInterval, TimeSpan timeout)
+public sealed class ImportAwaiter(ImportsRequestBuilder imports, TimeSpan pollInterval, TimeSpan timeout)
 {
-    private readonly IImportsClient _imports = imports;
+    private readonly ImportsRequestBuilder _imports = imports;
     private readonly TimeSpan _pollInterval = pollInterval;
     private readonly TimeSpan _timeout = timeout;
 
@@ -28,7 +29,7 @@ public sealed class ImportAwaiter(IImportsClient imports, TimeSpan pollInterval,
         // partial result would leave later stages referencing records that were never created — the
         // failure would surface far from its cause.
         if (process.Status != ImportProcessStatus.Succeeded)
-            throw new SeedException(await Describe(process, label, cancellationToken));
+            throw new SeedException(await Describe(processId, process, label, cancellationToken));
 
         return new ImportRun(processId, await ReadCreatedIds(processId, cancellationToken));
     }
@@ -39,7 +40,8 @@ public sealed class ImportAwaiter(IImportsClient imports, TimeSpan pollInterval,
 
         while (true)
         {
-            var process = await _imports.GetByIdAsync(processId, cancellationToken);
+            var process = await _imports[processId].GetAsync(cancellationToken: cancellationToken)
+                ?? throw new SeedException($"The {label} import ({processId}) could not be read back.");
 
             if (process.Status is not (ImportProcessStatus.Queued or ImportProcessStatus.Processing
                 or ImportProcessStatus.Cancelling))
@@ -66,10 +68,10 @@ public sealed class ImportAwaiter(IImportsClient imports, TimeSpan pollInterval,
     /// names the portfolio or project that could not be created rather than a line number in a file the
     /// operator never saw.
     /// </remarks>
-    private async Task<string> Describe(ImportProcessDto process, string label, CancellationToken cancellationToken)
+    private async Task<string> Describe(Guid processId, ImportProcessDto process, string label, CancellationToken cancellationToken)
     {
         var summary =
-            $"The {label} import ({process.Id}) finished as {process.Status}: "
+            $"The {label} import ({processId}) finished as {process.Status}: "
             + $"{process.SucceededRowCount} applied, {process.FailedRowCount} rejected.";
 
         if (!string.IsNullOrWhiteSpace(process.Error))
@@ -78,12 +80,17 @@ public sealed class ImportAwaiter(IImportsClient imports, TimeSpan pollInterval,
         if (process.FailedRowCount == 0)
             return summary;
 
-        var failed = await _imports.GetRowsAsync(
-            process.Id, ImportRowStatus.Failed, page: 1, pageSize: 10, cancellationToken: cancellationToken);
+        var failed = await _imports[processId].Rows.GetAsync(q =>
+        {
+            q.QueryParameters.Status = nameof(ImportRowStatus.Failed);
+            q.QueryParameters.Page = 1;
+            q.QueryParameters.PageSize = 10;
+        }, cancellationToken);
 
-        var lines = failed.Items.Select(r => $"  {r.ImportId}: {r.Error}");
-        var more = process.FailedRowCount > failed.Items.Count
-            ? $"{Environment.NewLine}  … and {process.FailedRowCount - failed.Items.Count} more."
+        var items = failed?.Items ?? [];
+        var lines = items.Select(r => $"  {r.ImportId}: {r.Error}");
+        var more = process.FailedRowCount > items.Count
+            ? $"{Environment.NewLine}  … and {process.FailedRowCount - items.Count} more."
             : string.Empty;
 
         return $"{summary}{Environment.NewLine}{string.Join(Environment.NewLine, lines)}{more}";
@@ -96,12 +103,17 @@ public sealed class ImportAwaiter(IImportsClient imports, TimeSpan pollInterval,
         var page = 1;
         while (true)
         {
-            var rows = await _imports.GetRowsAsync(processId, null, page, RowPageSize, cancellationToken: cancellationToken);
+            var rows = await _imports[processId].Rows.GetAsync(q =>
+            {
+                q.QueryParameters.Page = page;
+                q.QueryParameters.PageSize = RowPageSize;
+            }, cancellationToken);
+            var items = rows?.Items ?? [];
 
-            foreach (var row in rows.Items.Where(r => r.CreatedEntityId is not null))
-                created[row.ImportId] = row.CreatedEntityId!.Value;
+            foreach (var row in items.Where(r => r.ImportId is not null && r.CreatedEntityId is not null))
+                created[row.ImportId!] = row.CreatedEntityId!.Value;
 
-            if (rows.Items.Count == 0 || page * RowPageSize >= rows.TotalCount)
+            if (items.Count == 0 || page * RowPageSize >= (rows?.TotalCount ?? 0))
                 return created;
 
             page++;

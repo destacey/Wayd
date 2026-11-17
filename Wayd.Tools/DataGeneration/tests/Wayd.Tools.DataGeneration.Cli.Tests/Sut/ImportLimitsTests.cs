@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Wayd.Tools.DataGeneration.Cli.Client;
+using Wayd.Tools.DataGeneration.Cli.Client.Models;
 using Wayd.Tools.DataGeneration.Cli.Seeding;
 
 namespace Wayd.Tools.DataGeneration.Cli.Tests.Sut;

@@ -1,39 +1,73 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    A NSwag-generated C# HTTP client for the Wayd API, used only by the wayd-data CLI dev tool. The
+    A Kiota-generated C# HTTP client for the Wayd API, used only by the wayd-data CLI dev tool. The
     client is generated from the checked-in OpenAPI document (Wayd.Web.Api/wwwroot/api/v1/specification.json)
-    via NSwag.MSBuild. Not a deployed/production assembly.
+    by the Kiota local tool (.config/dotnet-tools.json), and covers only the operations listed below.
+    Not a deployed/production assembly.
   -->
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <!-- The generated client is not our code; keep its warnings from failing or cluttering the build. -->
-    <NoWarn>$(NoWarn);CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8625;CS1591</NoWarn>
+    <NoWarn>$(NoWarn);CS0108;CS1591</NoWarn>
+    <WaydApiDocument>../../../../Wayd.Web/src/Wayd.Web.Api/wwwroot/api/v1/specification.json</WaydApiDocument>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NSwag.MSBuild">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+    <PackageReference Include="Microsoft.Kiota.Bundle" />
   </ItemGroup>
 
   <!--
-    Regenerate the client from the OpenAPI document before compiling, but only when the document is
-    newer than the generated file (Inputs/Outputs incremental build) so ordinary builds stay fast.
+    The operations the tool calls, as Kiota path filters: the path as the document names it, then the methods.
+    A new seeding call adds its operation here; CSV imports are posted by hand and need no entry.
+  -->
+  <ItemGroup>
+    <KiotaIncludePath Include="/api/admin/feature-flags#GET" />
+    <KiotaIncludePath Include="/api/admin/feature-flags/{id}/toggle#PUT" />
+    <KiotaIncludePath Include="/api/demand-management/intake-channels#GET" />
+    <KiotaIncludePath Include="/api/demand-management/intake-desks#GET,POST" />
+    <KiotaIncludePath Include="/api/demand-management/intake-desks/estimation-scale-choices#GET" />
+    <KiotaIncludePath Include="/api/demand-management/intake-desks/{id}/estimation-scale#PUT" />
+    <KiotaIncludePath Include="/api/demand-management/intake-request-tag-categories#GET,POST" />
+    <KiotaIncludePath Include="/api/demand-management/intake-request-tag-categories/{id}/active#PUT" />
+    <KiotaIncludePath Include="/api/demand-management/intake-request-tag-categories/{id}/tags#POST" />
+    <KiotaIncludePath Include="/api/demand-management/intake-request-tag-categories/{id}/tags/{tagId}/active#PUT" />
+    <KiotaIncludePath Include="/api/demand-management/intake-requests/{id}/projects/{projectId}/deliverables#GET" />
+    <KiotaIncludePath Include="/api/imports/definitions#GET" />
+    <KiotaIncludePath Include="/api/imports/{id}#GET" />
+    <KiotaIncludePath Include="/api/imports/{id}/rows#GET" />
+    <KiotaIncludePath Include="/api/organization/team-member-roles#GET,POST" />
+    <KiotaIncludePath Include="/api/ppm/expenditure-categories#GET,POST" />
+    <KiotaIncludePath Include="/api/ppm/project-lifecycles#GET,POST" />
+    <KiotaIncludePath Include="/api/ppm/project-lifecycles/{id}/activate#POST" />
+    <KiotaIncludePath Include="/api/user-management/roles#GET,POST" />
+    <KiotaIncludePath Include="/api/user-management/roles/{id}/permissions#PUT" />
+    <KiotaIncludePath Include="/api/user-management/users#POST" />
+  </ItemGroup>
+
+  <!--
+    Regenerate the client before compiling, but only when the document, this project (which holds the path
+    list) or the pinned Kiota version is newer than the last generation, so ordinary builds stay fast. The
+    lock file Kiota writes stands for the whole generated tree.
   -->
   <Target Name="GenerateWaydApiClient" BeforeTargets="BeforeCompile"
-          Inputs="nswag.csharp.json;../../../../Wayd.Web/src/Wayd.Web.Api/wwwroot/api/v1/specification.json"
-          Outputs="Generated/WaydApiClient.g.cs">
-    <MakeDir Directories="Generated" />
-    <Exec ConsoleToMSBuild="true" ContinueOnError="true" WorkingDirectory="$(ProjectDir)"
-          Command="$(NSwagExe_Net100) run nswag.csharp.json" >
-      <Output TaskParameter="ExitCode" PropertyName="NSwagExitCode" />
-      <Output TaskParameter="ConsoleOutput" PropertyName="NSwagOutput" />
+          Inputs="$(WaydApiDocument);$(MSBuildProjectFullPath);../../../../.config/dotnet-tools.json"
+          Outputs="Generated/kiota-lock.json">
+    <Exec ConsoleToMSBuild="true" ContinueOnError="true" WorkingDirectory="$(ProjectDir)" IgnoreStandardErrorWarningFormat="true" StandardOutputImportance="low"
+          EnvironmentVariables="KIOTA_TUTORIAL_ENABLED=false;KIOTA_OFFLINE_ENABLED=true"
+          Command="dotnet kiota generate --language CSharp --openapi &quot;$(WaydApiDocument)&quot; --output Generated --class-name WaydApiClient --namespace-name Wayd.Tools.DataGeneration.Cli.Client --exclude-backward-compatible --clean-output @(KiotaIncludePath->'--include-path &quot;%(Identity)&quot;', ' ')">
+      <Output TaskParameter="ExitCode" PropertyName="KiotaExitCode" />
+      <Output TaskParameter="ConsoleOutput" PropertyName="KiotaOutput" />
     </Exec>
-    <Message Text="$(NSwagOutput)" Condition="'$(NSwagExitCode)' == '0'" Importance="low" />
-    <Error Text="$(NSwagOutput)" Condition="'$(NSwagExitCode)' != '0'" />
+    <Message Text="$(KiotaOutput)" Condition="'$(KiotaExitCode)' == '0'" Importance="low" />
+    <Error Text="Kiota could not generate the client. Run 'dotnet tool restore' from the repository root if the tool is missing.%0A$(KiotaOutput)" Condition="'$(KiotaExitCode)' != '0'" />
+
+    <!-- Compile items were globbed before generation ran; pick up files it added and drop ones it removed. -->
+    <ItemGroup>
+      <Compile Remove="Generated/**/*.cs" />
+      <Compile Include="Generated/**/*.cs" />
+    </ItemGroup>
   </Target>
 
 </Project>

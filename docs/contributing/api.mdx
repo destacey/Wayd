@@ -86,8 +86,8 @@ Feature-gated endpoints use `[FeatureGate(FeatureFlags.Names.MyFlag)]`.
 `Wayd.Web.Api/wwwroot/api/v1/specification.json` (the `GenerateOpenApiDocument` target), then runs
 [Orval](https://orval.dev) in the web client (the `GenerateApiClient` target, `npm run generate:api`), which
 generates the TypeScript client in `wayd.web.reactclient/src/services/api/` from that file. The target needs the
-client's `node_modules`; without them it warns and leaves the client as it was. NSwag generates the
-data-generation tool's C# client from the same file when that project builds, the client's import templates
+client's `node_modules`; without them it warns and leaves the client as it was. Kiota generates the
+data-generation tool's C# client, for the operations it calls, from the same file when that project builds, the client's import templates
 come from it too, and the hosted MCP server builds its tools from the same document at runtime. The running API serves it at
 `/openapi/v1.json`, with the Scalar API reference at `/scalar`, while `SwaggerSettings:Enable` is on. A tool
 that knows neither path finds both through the RFC 9727 API catalog at `/.well-known/api-catalog`, and
@@ -101,8 +101,8 @@ document for the generated clients. The client code depends on what they decide,
 or retypes generated code:
 
 - **Operation ids** are `{Controller}_{Action}`. The TypeScript client names each function from one
-  (`Projects_GetProjects` is `projectsGetProjects`), and the C# client its classes and methods
-  (`MultipleClientsFromOperationId`). Renaming an action renames its function.
+  (`Projects_GetProjects` is `projectsGetProjects`), so renaming an action renames its function. The C#
+  client names its request builders from the paths instead (`Api.Ppm.Projects[id]`).
 - **Component names** are the types' own: a generic type is named for its arguments
   (`NavigationDtoOfGuidAndInteger`), a derived class is `allOf` its base, and a `[JsonPolymorphic]` hierarchy
   is a base with a `discriminator` and its derived types under their own names.

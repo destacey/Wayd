@@ -20,8 +20,8 @@ Before setting up Wayd for local development, ensure you have the following inst
 
 ## Restore Local Tools
 
-Some build and migration commands (`dotnet ef`) are pinned in a local tool manifest at
-`.config/dotnet-tools.json`. Restore them once per clone:
+Some build and migration commands are pinned in a local tool manifest at `.config/dotnet-tools.json`:
+`dotnet ef`, and Kiota, which generates the data-generation tool's API client. Restore them once per clone:
 
 ```bash
 dotnet tool restore

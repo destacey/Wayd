@@ -42,6 +42,9 @@ public sealed class SeedContext(WaydSeedClient client, Action<string> log)
     /// <summary>The generated desks, tag categories and intake requests. Null when the seed was asked to skip them.</summary>
     public GeneratedDemandManagement? DemandManagement { get; set; }
 
+    /// <summary>The generated KPI categories, KPIs and their history. Null when the seed was asked to skip them.</summary>
+    public GeneratedKpis? Kpis { get; set; }
+
     /// <summary>The row cap of each import type, read from the environment before any area runs.</summary>
     public ImportLimits ImportLimits { get; set; } = default!;
 

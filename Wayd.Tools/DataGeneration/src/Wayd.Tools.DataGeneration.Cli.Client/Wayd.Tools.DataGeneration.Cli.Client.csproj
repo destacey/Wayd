@@ -37,6 +37,7 @@
     <KiotaIncludePath Include="/api/imports/definitions#GET" />
     <KiotaIncludePath Include="/api/imports/{id}#GET" />
     <KiotaIncludePath Include="/api/imports/{id}/rows#GET" />
+    <KiotaIncludePath Include="/api/kpi-categories#GET,POST" />
     <KiotaIncludePath Include="/api/organization/team-member-roles#GET,POST" />
     <KiotaIncludePath Include="/api/ppm/expenditure-categories#GET,POST" />
     <KiotaIncludePath Include="/api/ppm/project-lifecycles#GET,POST" />

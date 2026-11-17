@@ -149,6 +149,7 @@ public class RecipeLayeringTests
                 RisksPerTeam = 0.5,
             },
             DemandManagement = new DemandManagementRecipe { RequestsPerMonth = 1 },
+            Kpis = new KpisRecipe { KpisPerTeam = 1 },
         };
 
         var over = new Recipe
@@ -198,6 +199,7 @@ public class RecipeLayeringTests
                 RisksPerTeam = 2.5,
             },
             DemandManagement = new DemandManagementRecipe { RequestsPerMonth = 30 },
+            Kpis = new KpisRecipe { KpisPerTeam = 5 },
         };
 
         // Act
@@ -240,6 +242,8 @@ public class RecipeLayeringTests
         result.Planning.RisksPerTeam.Should().Be(2.5);
 
         result.DemandManagement.RequestsPerMonth.Should().Be(30);
+
+        result.Kpis.KpisPerTeam.Should().Be(5);
     }
 
     [Fact]
@@ -294,6 +298,7 @@ public class RecipeLayeringTests
                 RisksPerTeam = 2.5,
             },
             DemandManagement = new DemandManagementRecipe { RequestsPerMonth = 30 },
+            Kpis = new KpisRecipe { KpisPerTeam = 5 },
         };
 
         // Act — an upper layer that states nothing at all, which is what an unflagged run looks like
@@ -336,6 +341,8 @@ public class RecipeLayeringTests
         result.Planning.RisksPerTeam.Should().Be(2.5);
 
         result.DemandManagement.RequestsPerMonth.Should().Be(30);
+
+        result.Kpis.KpisPerTeam.Should().Be(5);
     }
 
     [Fact]

@@ -1,5 +1,5 @@
 {
-  "descriptionHash": "6BD7B8A2A60DE2C869F4B7F83E655973B7014C4DEDAD00A159B8797793A3A32DECB349C238EB6743E7C4209684512BD72D445317CD840E0EC5126F86CCC5E655",
+  "descriptionHash": "D5B3D1C95EE42B6068146C927CE0F2C201C59E54BC883271853736353F8DB7819E56BA5FBB454603BF08404B5ED7C8E2616AB7B76EB9A116574AC671E4705C8B",
   "descriptionLocation": "../../../../../Wayd.Web/src/Wayd.Web.Api/wwwroot/api/v1/specification.json",
   "lockFileVersion": "1.0.0",
   "kiotaVersion": "1.38.0",
@@ -43,6 +43,7 @@
     "/api/imports/definitions#GET",
     "/api/imports/{id}#GET",
     "/api/imports/{id}/rows#GET",
+    "/api/kpi-categories#GET,POST",
     "/api/organization/team-member-roles#GET,POST",
     "/api/ppm/expenditure-categories#GET,POST",
     "/api/ppm/project-lifecycles#GET,POST",

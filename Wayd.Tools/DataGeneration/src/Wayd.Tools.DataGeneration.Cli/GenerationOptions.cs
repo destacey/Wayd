@@ -206,6 +206,16 @@ public static class GenerationOptions
         Description = "Average number of intake requests the company submits per month.",
     };
 
+    public static Option<bool> SkipKpis { get; } = new("--skip-kpis")
+    {
+        Description = "Skip KPIs: the categories, and the KPIs and monthly history of every team and ART. A shorthand for a recipe that disables the kpis area.",
+    };
+
+    public static Option<int?> KpisPerTeam { get; } = new("--kpis-per-team")
+    {
+        Description = "How many KPIs each delivery team carries. Its ART carries half as many, at least one.",
+    };
+
     /// <summary>
     /// Every option a generating verb takes, in the order they are added to a command.
     /// </summary>
@@ -253,6 +263,8 @@ public static class GenerationOptions
         RisksPerTeam,
         SkipDemandManagement,
         RequestsPerMonth,
+        SkipKpis,
+        KpisPerTeam,
     ];
 
     public static void AddTo(Command command)
@@ -338,6 +350,11 @@ public static class GenerationOptions
             {
                 Enabled = parse.GetValue(SkipDemandManagement) ? false : null,
                 RequestsPerMonth = FlagOr(parse, RequestsPerMonth),
+            },
+            Kpis = new KpisRecipe
+            {
+                Enabled = parse.GetValue(SkipKpis) ? false : null,
+                KpisPerTeam = FlagOr(parse, KpisPerTeam),
             },
         };
 

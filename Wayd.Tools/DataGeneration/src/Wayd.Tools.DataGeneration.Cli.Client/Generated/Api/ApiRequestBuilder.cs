@@ -9,6 +9,7 @@ using System;
 using Wayd.Tools.DataGeneration.Cli.Client.Api.Admin;
 using Wayd.Tools.DataGeneration.Cli.Client.Api.DemandManagement;
 using Wayd.Tools.DataGeneration.Cli.Client.Api.Imports;
+using Wayd.Tools.DataGeneration.Cli.Client.Api.KpiCategories;
 using Wayd.Tools.DataGeneration.Cli.Client.Api.Organization;
 using Wayd.Tools.DataGeneration.Cli.Client.Api.Ppm;
 using Wayd.Tools.DataGeneration.Cli.Client.Api.UserManagement;
@@ -34,6 +35,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client.Api
         public global::Wayd.Tools.DataGeneration.Cli.Client.Api.Imports.ImportsRequestBuilder Imports
         {
             get => new global::Wayd.Tools.DataGeneration.Cli.Client.Api.Imports.ImportsRequestBuilder(PathParameters, RequestAdapter);
+        }
+        /// <summary>The kpiCategories property</summary>
+        public global::Wayd.Tools.DataGeneration.Cli.Client.Api.KpiCategories.KpiCategoriesRequestBuilder KpiCategories
+        {
+            get => new global::Wayd.Tools.DataGeneration.Cli.Client.Api.KpiCategories.KpiCategoriesRequestBuilder(PathParameters, RequestAdapter);
         }
         /// <summary>The organization property</summary>
         public global::Wayd.Tools.DataGeneration.Cli.Client.Api.Organization.OrganizationRequestBuilder Organization

@@ -122,6 +122,29 @@ public sealed class KpiPersistenceIntegrationTests(SqlServerDbContextFixture fix
     }
 
     [Fact]
+    public async Task Save_ShouldRefuseOverlappingMeasurementsStartingOnDifferentDays_WhenEachSaveTouchesTheKpi()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var kpiId = await SeedKpi();
+        await using var first = fixture.CreateContext();
+        await using var second = fixture.CreateContext();
+        var firstKpi = await first.Kpis.Include(k => k.Measurements).SingleAsync(k => k.Id == kpiId, cancellationToken);
+        var secondKpi = await second.Kpis.Include(k => k.Measurements).SingleAsync(k => k.Id == kpiId, cancellationToken);
+        firstKpi.AddMeasurement(Measurement(14, Jan1, new LocalDate(2026, 1, 31), null), Actor, Timestamp).IsSuccess.Should().BeTrue();
+        secondKpi.AddMeasurement(Measurement(15, new LocalDate(2026, 1, 15), new LocalDate(2026, 2, 14), null), Actor, Timestamp).IsSuccess.Should().BeTrue();
+        first.TouchKpi(firstKpi);
+        second.TouchKpi(secondKpi);
+        await first.SaveChangesAsync(cancellationToken);
+
+        // Act
+        var act = () => second.SaveChangesAsync(cancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<DbUpdateConcurrencyException>();
+    }
+
+    [Fact]
     public async Task RemovingAKpi_ShouldRemoveItsMeasurements()
     {
         // Arrange

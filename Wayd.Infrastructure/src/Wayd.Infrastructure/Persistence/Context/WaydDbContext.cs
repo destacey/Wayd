@@ -179,6 +179,9 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
 
     public DbSet<KpiCategory> KpiCategories => Set<KpiCategory>();
 
+    // Order is rewritten with its own value: any column would do, it only has to put the row in the UPDATE.
+    public void TouchKpi(Kpi kpi) => Entry(kpi).Property(k => k.Order).IsModified = true;
+
     #endregion Kpis
 
     #region ProductManagement

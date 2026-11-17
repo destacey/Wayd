@@ -35,5 +35,15 @@ public interface IKpisDbContext
     /// <summary>The shared employee table, for naming who took a measurement.</summary>
     DbSet<Employee> Employees { get; }
 
+    /// <summary>
+    /// Writes the KPI's own row on the next save although nothing on it changed, so its row version catches another
+    /// save of the same KPI made at the same moment.
+    /// </summary>
+    /// <remarks>
+    /// For a measurement change, which otherwise writes only the measurement's row: two overlapping periods recorded at
+    /// once would each pass the overlap rule against the measurements their request loaded.
+    /// </remarks>
+    void TouchKpi(Kpi kpi);
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

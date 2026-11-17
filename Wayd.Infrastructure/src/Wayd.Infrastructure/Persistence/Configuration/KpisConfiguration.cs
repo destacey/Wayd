@@ -85,8 +85,9 @@ public class KpiConfiguration : IEntityTypeConfiguration<Kpi>
 
         builder.Property(k => k.Order).IsRequired();
 
-        // Two people changing one KPI's details or goal at once collide here rather than the second silently undoing
-        // the first. A measurement change writes only its own row, so it is not covered.
+        // Two people changing one KPI at once collide here rather than the second silently undoing the first. A
+        // measurement change touches the KPI's row too (IKpisDbContext.TouchKpi), so two overlapping periods recorded
+        // at once collide here as well.
         builder.Property<byte[]>("RowVersion").IsRowVersion();
 
         // Restrict: a category KPIs use is deactivated, never deleted.

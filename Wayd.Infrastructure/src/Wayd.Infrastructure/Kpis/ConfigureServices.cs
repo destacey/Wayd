@@ -24,6 +24,7 @@ internal static class ConfigureServices
         services.AddScoped<IKpiSubjectType, TeamKpiSubjectType>();
 
         services.AddScoped<KpiSubjectAccessResolver>();
+        services.AddScoped<KpiCommandScope>();
 
         return services;
     }

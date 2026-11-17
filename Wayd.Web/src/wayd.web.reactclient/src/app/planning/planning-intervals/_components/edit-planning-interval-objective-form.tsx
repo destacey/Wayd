@@ -25,6 +25,7 @@ import {
   useUpdatePlanningIntervalObjectiveMutation,
 } from '@/src/store/features/planning/planning-interval-api'
 import { useModalForm } from '@/src/hooks'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Descriptions
 const { Item: FormItem } = Form
@@ -64,8 +65,10 @@ const mapToRequestValues = (
     description: values.description,
     statusId: values.statusId,
     progress: values.progress,
-    startDate: values.startDate?.format('YYYY-MM-DD'),
-    targetDate: values.targetDate?.format('YYYY-MM-DD'),
+    startDate: values.startDate ? toCalendarDate(values.startDate) : undefined,
+    targetDate: values.targetDate
+      ? toCalendarDate(values.targetDate)
+      : undefined,
     isStretch: values.isStretch,
   } as unknown as UpdatePlanningIntervalObjectiveRequest
 
@@ -99,7 +102,10 @@ const EditPlanningIntervalObjectiveForm = ({
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditPlanningIntervalObjectiveFormValues>({
-      onSubmit: async (values: EditPlanningIntervalObjectiveFormValues, form) => {
+      onSubmit: async (
+        values: EditPlanningIntervalObjectiveFormValues,
+        form,
+      ) => {
         try {
           const request = mapToRequestValues(
             values,

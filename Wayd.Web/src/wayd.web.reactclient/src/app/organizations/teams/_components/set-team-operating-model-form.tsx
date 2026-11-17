@@ -33,6 +33,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { type Dayjs } from 'dayjs'
 import { parseCalendarDate } from '@/src/utils/calendar-date'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item: FormItem } = Form
 const { Group: RadioGroup } = Radio
@@ -62,7 +63,7 @@ const mapToRequestValues = (
   values: SetTeamOperatingModelFormValues,
 ): SetTeamOperatingModelRequest => {
   return {
-    startDate: values.startDate?.format('YYYY-MM-DD'),
+    startDate: values.startDate ? toCalendarDate(values.startDate) : undefined,
     methodology: values.methodology,
     sizingMethod: values.sizingMethod,
     timeZone: values.timeZone,

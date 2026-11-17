@@ -15,6 +15,7 @@ import {
 } from '@/src/utils'
 import { Alert, DatePicker, Form, Modal } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 
@@ -46,7 +47,7 @@ const EndProductDependencyForm = ({
       onSubmit: async (values: EndProductDependencyFormValues, form) => {
         try {
           const request = {
-            endsOn: values.endsOn?.format('YYYY-MM-DD'),
+            endsOn: values.endsOn ? toCalendarDate(values.endsOn) : undefined,
           } as EndProductDependencyRequest
 
           const response = await endProductDependency({

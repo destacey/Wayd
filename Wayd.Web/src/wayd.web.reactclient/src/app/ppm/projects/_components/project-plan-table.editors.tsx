@@ -14,7 +14,11 @@ import type {
   JsonPatchOperation,
   ProjectPlanNodeDto,
 } from '@/src/services/api/wayd.schemas'
-import { parseCalendarDate, type CalendarDate } from '@/src/utils/calendar-date'
+import {
+  asCalendarDate,
+  parseCalendarDate,
+  type CalendarDate,
+} from '@/src/utils/calendar-date'
 import { rangeChangeContainmentError } from '@/src/utils/date-containment'
 import { planChildrenSpan } from './project-parent-date-hint'
 import {
@@ -301,8 +305,8 @@ export const toCreateProjectTaskRequest = (
   const has = (field: string) =>
     values[field] !== undefined && values[field] !== null
   const assigneeIds = values.assigneeIds as string[] | undefined
-  const plannedDate = (values.plannedDate ?? values.plannedStart) as
-    CalendarDate | undefined
+  const draftDate = values.plannedDate ?? values.plannedStart
+  const plannedDate = draftDate ? asCalendarDate(String(draftDate)) : undefined
   return {
     name: String(values.name ?? ''),
     parentId,
@@ -325,10 +329,10 @@ export const toCreateProjectTaskRequest = (
               : ((values.progress as number | null | undefined) ??
                 DRAFT_TASK_DEFAULTS.progress),
           ...(has('plannedStart')
-            ? { plannedStart: values.plannedStart as CalendarDate }
+            ? { plannedStart: asCalendarDate(String(values.plannedStart)) }
             : {}),
           ...(has('plannedEnd')
-            ? { plannedEnd: values.plannedEnd as CalendarDate }
+            ? { plannedEnd: asCalendarDate(String(values.plannedEnd)) }
             : {}),
           ...(has('estimatedEffortHours')
             ? { estimatedEffortHours: values.estimatedEffortHours as number }

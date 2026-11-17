@@ -15,6 +15,7 @@ import {
 } from '@/src/utils'
 import { Alert, DatePicker, Flex, Form, Modal } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 
@@ -62,7 +63,9 @@ const CorrectVersionDatesForm = ({
           // Every value is sent, so one left empty is cleared rather than left alone.
           const request = {
             id: version.id,
-            targetDate: values.targetDate?.format('YYYY-MM-DD'),
+            targetDate: values.targetDate
+              ? toCalendarDate(values.targetDate)
+              : undefined,
             cutAt: values.cutAt?.toDate(),
             releasedAt: values.releasedAt?.toDate(),
           } as CorrectVersionDatesRequest

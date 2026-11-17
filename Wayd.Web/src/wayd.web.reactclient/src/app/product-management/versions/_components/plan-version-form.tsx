@@ -17,6 +17,7 @@ import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { ProductTreeSelect } from '../../_components'
 import { DatePicker, Form, Input, Modal } from 'antd'
 import { Dayjs } from 'dayjs'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 
@@ -66,7 +67,9 @@ const PlanVersionForm = ({
             productId: values.productId,
             version: values.version,
             name: values.name,
-            targetDate: values.targetDate?.format('YYYY-MM-DD'),
+            targetDate: values.targetDate
+              ? toCalendarDate(values.targetDate)
+              : undefined,
           } as PlanVersionRequest
 
           const response = await planVersion(request)

@@ -21,6 +21,7 @@ import { MarkdownEditor } from '@/src/components/common/markdown'
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -49,8 +50,8 @@ const mapToRequestValues = (
     id: objectiveId,
     name: values.name,
     description: values.description,
-    start: (values.range?.[0] as any)?.format('YYYY-MM-DD'),
-    end: (values.range?.[1] as any)?.format('YYYY-MM-DD'),
+    start: values.range?.[0] ? toCalendarDate(values.range[0]) : undefined,
+    end: values.range?.[1] ? toCalendarDate(values.range[1]) : undefined,
     ownerIds: values.ownerIds,
     visibilityId: values.visibilityId,
   } as UpdateRoadmapRequest

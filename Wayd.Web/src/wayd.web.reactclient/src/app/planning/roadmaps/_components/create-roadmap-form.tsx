@@ -19,6 +19,7 @@ import {
 } from '@/src/utils'
 import { DatePicker, Form, Input, Modal, Radio } from 'antd'
 import { useEffect } from 'react'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -44,8 +45,8 @@ const mapToRequestValues = (
   return {
     name: values.name,
     description: values.description,
-    start: (values.range?.[0] as any)?.format('YYYY-MM-DD'),
-    end: (values.range?.[1] as any)?.format('YYYY-MM-DD'),
+    start: values.range?.[0] ? toCalendarDate(values.range[0]) : undefined,
+    end: values.range?.[1] ? toCalendarDate(values.range[1]) : undefined,
     ownerIds: values.ownerIds,
     visibilityId: values.visibilityId,
   } as CreateRoadmapRequest

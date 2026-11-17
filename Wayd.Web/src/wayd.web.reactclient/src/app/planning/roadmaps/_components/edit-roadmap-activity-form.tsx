@@ -34,6 +34,7 @@ import {
   getChildrenContainmentError,
   isShiftOnlyChange,
 } from '@/src/utils/date-containment'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -66,8 +67,8 @@ const mapToRequestValues = (
     parentId: values.parentActivityId,
     name: values.name,
     description: values.description,
-    start: (values.range?.[0] as any)?.format('YYYY-MM-DD'),
-    end: (values.range?.[1] as any)?.format('YYYY-MM-DD'),
+    start: toCalendarDate(values.range[0]),
+    end: toCalendarDate(values.range[1]),
     color: values.color,
   } satisfies UpdateRoadmapActivityRequest
 }

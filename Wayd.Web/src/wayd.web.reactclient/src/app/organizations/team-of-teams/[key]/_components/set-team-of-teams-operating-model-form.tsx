@@ -12,6 +12,7 @@ import { TimeZoneSelect } from '@/src/components/common/scheduling'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { type Dayjs } from 'dayjs'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item: FormItem } = Form
 
@@ -30,7 +31,7 @@ const mapToRequestValues = (
   values: SetTeamOfTeamsOperatingModelFormValues,
 ): SetTeamOfTeamsOperatingModelRequest => {
   return {
-    startDate: values.startDate?.format('YYYY-MM-DD'),
+    startDate: values.startDate ? toCalendarDate(values.startDate) : undefined,
     timeZone: values.timeZone,
   } as SetTeamOfTeamsOperatingModelRequest
 }

@@ -15,6 +15,7 @@ import {
 } from '@/src/utils'
 import { Alert, DatePicker, Flex, Form, Modal } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 
@@ -56,7 +57,9 @@ const CorrectReleasePackageDatesForm = ({
         try {
           // Both values are sent, so an empty target date is cleared rather than left alone.
           const request = {
-            targetDate: values.targetDate?.format('YYYY-MM-DD'),
+            targetDate: values.targetDate
+              ? toCalendarDate(values.targetDate)
+              : undefined,
             releasedAt: values.releasedAt?.toDate(),
           } as CorrectReleasePackageDatesRequest
 

@@ -27,6 +27,7 @@ import {
 } from '@/src/store/features/planning/risks-api'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import { useModalForm } from '@/src/hooks'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Descriptions
 const { Item: FormItem } = Form
@@ -64,7 +65,9 @@ const mapToRequestValues = (values: EditRiskFormValues) => {
     impactId: values.impactId,
     likelihoodId: values.likelihoodId,
     assigneeId: values.assigneeId,
-    followUpDate: values.followUpDate?.format('YYYY-MM-DD'),
+    followUpDate: values.followUpDate
+      ? toCalendarDate(values.followUpDate)
+      : undefined,
     response: values.response,
   } as unknown as UpdateRiskRequest
 }

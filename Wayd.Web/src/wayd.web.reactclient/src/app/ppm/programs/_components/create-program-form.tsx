@@ -12,6 +12,7 @@ import { useGetStrategicThemeOptionsQuery } from '@/src/store/features/strategic
 import { toFormErrors, rangeErrorsOn, toApiError } from '@/src/utils'
 import { DatePicker, Form, Input, Modal, Select } from 'antd'
 import dayjs from 'dayjs'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { TextArea } = Input
 const { Item } = Form
@@ -39,8 +40,12 @@ const mapToRequestValues = (
   return {
     name: values.name,
     description: values.description,
-    start: (values.dateRange?.[0] as any)?.format('YYYY-MM-DD'),
-    end: (values.dateRange?.[1] as any)?.format('YYYY-MM-DD'),
+    start: values.dateRange?.[0]
+      ? toCalendarDate(values.dateRange[0])
+      : undefined,
+    end: values.dateRange?.[1]
+      ? toCalendarDate(values.dateRange[1])
+      : undefined,
     portfolioId: values.portfolioId,
     sponsorIds: values.sponsorIds,
     ownerIds: values.ownerIds,

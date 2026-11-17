@@ -14,6 +14,7 @@ import {
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import { useGetTeamOptionsQuery } from '@/src/store/features/organizations/team-api'
 import { useModalForm } from '@/src/hooks'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -46,7 +47,9 @@ const mapToRequestValues = (values: CreateRiskFormValues) => {
     impactId: values.impactId,
     likelihoodId: values.likelihoodId,
     assigneeId: values.assigneeId,
-    followUpDate: values.followUpDate?.format('YYYY-MM-DD'),
+    followUpDate: values.followUpDate
+      ? toCalendarDate(values.followUpDate)
+      : undefined,
     response: values.response,
   } as unknown as CreateRiskRequest
 }

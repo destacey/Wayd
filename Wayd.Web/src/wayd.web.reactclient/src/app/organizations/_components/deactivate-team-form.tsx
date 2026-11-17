@@ -11,6 +11,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { type Dayjs } from 'dayjs'
 import DeactivateTeamAllocationsAlert from './deactivate-team-allocations-alert'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 
@@ -30,7 +31,7 @@ const mapToRequestValues = (
 ): DeactivateTeamRequest => {
   return {
     id,
-    inactiveDate: inactiveDate?.format('YYYY-MM-DD'),
+    inactiveDate: inactiveDate ? toCalendarDate(inactiveDate) : undefined,
   } as DeactivateTeamRequest
 }
 

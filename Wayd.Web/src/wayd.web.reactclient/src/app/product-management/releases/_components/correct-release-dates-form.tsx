@@ -15,6 +15,7 @@ import {
 } from '@/src/utils'
 import { Alert, DatePicker, Flex, Form, Modal } from 'antd'
 import { Dayjs } from 'dayjs'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 
@@ -56,8 +57,12 @@ const CorrectReleaseDatesForm = ({
         try {
           // Both dates are sent, so one left empty is cleared rather than left alone.
           const request = {
-            targetDate: values.targetDate?.format('YYYY-MM-DD'),
-            releasedDate: values.releasedDate?.format('YYYY-MM-DD'),
+            targetDate: values.targetDate
+              ? toCalendarDate(values.targetDate)
+              : undefined,
+            releasedDate: values.releasedDate
+              ? toCalendarDate(values.releasedDate)
+              : undefined,
           } as CorrectReleaseDatesRequest
 
           const response = await correctReleaseDates({

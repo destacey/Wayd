@@ -22,6 +22,7 @@ import { projectHelpText } from './project-help-text'
 import { DatePicker, Form, Input, Modal, Select } from 'antd'
 import dayjs from 'dayjs'
 import { useEffect } from 'react'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { TextArea } = Input
 const { Item } = Form
@@ -58,8 +59,12 @@ const mapToRequestValues = (
     businessCase: values.businessCase || undefined,
     expectedBenefits: values.expectedBenefits || undefined,
     expenditureCategoryId: values.expenditureCategoryId,
-    start: (values.dateRange?.[0] as any)?.format('YYYY-MM-DD'),
-    end: (values.dateRange?.[1] as any)?.format('YYYY-MM-DD'),
+    start: values.dateRange?.[0]
+      ? toCalendarDate(values.dateRange[0])
+      : undefined,
+    end: values.dateRange?.[1]
+      ? toCalendarDate(values.dateRange[1])
+      : undefined,
     sponsorIds: values.sponsorIds,
     ownerIds: values.ownerIds,
     managerIds: values.managerIds,
@@ -91,13 +96,13 @@ const EditProjectForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditProjectFormValues>({
       onSubmit: async (values: EditProjectFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values, projectData!.id)
-            const response = await updateProject({
-              request,
-              cacheKey: projectData!.key,
-            })
-            if (response.error) throw response.error
+        try {
+          const request = mapToRequestValues(values, projectData!.id)
+          const response = await updateProject({
+            request,
+            cacheKey: projectData!.key,
+          })
+          if (response.error) throw response.error
 
           messageApi.success('Project updated successfully.')
           return true
@@ -161,10 +166,16 @@ const EditProjectForm = ({
           strategicThemeOptionsError,
       )
       messageApi.error(
-        (isApiError(expenditureOptionsError) ? expenditureOptionsError.detail : undefined) ??
+        (isApiError(expenditureOptionsError)
+          ? expenditureOptionsError.detail
+          : undefined) ??
           toApiError(error).detail ??
-          (isApiError(employeeOptionsError) ? employeeOptionsError.detail : undefined) ??
-          (isApiError(strategicThemeOptionsError) ? strategicThemeOptionsError.detail : undefined) ??
+          (isApiError(employeeOptionsError)
+            ? employeeOptionsError.detail
+            : undefined) ??
+          (isApiError(strategicThemeOptionsError)
+            ? strategicThemeOptionsError.detail
+            : undefined) ??
           'An error occurred while loading form data. Please try again.',
       )
     }
@@ -311,7 +322,9 @@ const EditProjectForm = ({
             showSearch={{
               optionFilterProp: 'label',
               filterOption: (input, option) =>
-                (option?.label?.toLowerCase() ?? '').includes(input.toLowerCase()),
+                (option?.label?.toLowerCase() ?? '').includes(
+                  input.toLowerCase(),
+                ),
             }}
           />
         </Item>

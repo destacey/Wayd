@@ -20,6 +20,7 @@ import {
   type RoadmapColorDto,
 } from '@/src/services/api/wayd.schemas'
 import {
+  asCalendarDate,
   parseCalendarDate,
   toCalendarDate,
   type CalendarDate,
@@ -267,8 +268,8 @@ export const toCreateRoadmapItemRequest = (
     roadmapId,
     parentId: parentId ?? undefined,
     name: String(values.name ?? ''),
-    start: values.start as CalendarDate,
-    end: values.end as CalendarDate,
+    start: asCalendarDate(String(values.start)),
+    end: asCalendarDate(String(values.end)),
     ...(color ? { color } : {}),
   }
 }

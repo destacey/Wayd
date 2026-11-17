@@ -38,6 +38,7 @@ import {
   getChildrenContainmentError,
   isShiftOnlyChange,
 } from '@/src/utils/date-containment'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -81,9 +82,15 @@ const mapToRequestValues = (
     deliverableIds: values.deliverableIds ?? [],
     progress: values.progress,
     parentId: values.parentId,
-    plannedStart: (values.plannedRange?.[0] as any)?.format('YYYY-MM-DD'),
-    plannedEnd: (values.plannedRange?.[1] as any)?.format('YYYY-MM-DD'),
-    plannedDate: values.plannedDate?.format('YYYY-MM-DD'),
+    plannedStart: values.plannedRange?.[0]
+      ? toCalendarDate(values.plannedRange[0])
+      : undefined,
+    plannedEnd: values.plannedRange?.[1]
+      ? toCalendarDate(values.plannedRange[1])
+      : undefined,
+    plannedDate: values.plannedDate
+      ? toCalendarDate(values.plannedDate)
+      : undefined,
     estimatedEffortHours: values.estimatedEffortHours,
   } as unknown as UpdateProjectTaskRequest
 }
@@ -99,10 +106,7 @@ const EditProjectTaskForm = ({
 
   const [updateProjectTask] = useUpdateProjectTaskMutation()
 
-  const {
-    data: taskData,
-    isLoading,
-  } = useGetProjectTaskQuery({
+  const { data: taskData, isLoading } = useGetProjectTaskQuery({
     projectIdOrKey,
     taskIdOrKey,
   })
@@ -110,11 +114,7 @@ const EditProjectTaskForm = ({
   const taskType = taskData?.type?.name
   const isMilestone = taskType === 'Milestone'
 
-
-
-  const {
-    data: employeeData,
-  } = useGetEmployeeOptionsQuery(true)
+  const { data: employeeData } = useGetEmployeeOptionsQuery(true)
 
   const { data: statusOptions = [] } = useGetTaskStatusOptionsQuery({
     forMilestone: isMilestone,
@@ -130,10 +130,10 @@ const EditProjectTaskForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditProjectTaskFormValues>({
       onSubmit: async (values: EditProjectTaskFormValues, form) => {
-          if (!taskData) {
-            messageApi.error('Task data is not loaded.')
-            return false
-          }
+        if (!taskData) {
+          messageApi.error('Task data is not loaded.')
+          return false
+        }
 
         try {
           const request = mapToRequestValues(values, taskData.id)
@@ -182,7 +182,11 @@ const EditProjectTaskForm = ({
   const parentRange = findParentPlanNodeRange(planTree, selectedParentId)
   const parentExpansionHint = isMilestone
     ? getMilestoneParentExpansionHint(parentRange, selectedDate)
-    : getParentExpansionHint(parentRange, selectedRange?.[0], selectedRange?.[1])
+    : getParentExpansionHint(
+        parentRange,
+        selectedRange?.[0],
+        selectedRange?.[1],
+      )
 
   // Initialize form values when data is loaded
   useEffect(() => {
@@ -317,7 +321,10 @@ const EditProjectTaskForm = ({
               rules={[
                 {
                   validator: (_, value) => {
-                    const childrenSpan = findOwnChildrenSpan(planTree, taskData?.id)
+                    const childrenSpan = findOwnChildrenSpan(
+                      planTree,
+                      taskData?.id,
+                    )
                     if (childrenSpan) {
                       if (!value || !value[0] || !value[1]) {
                         return Promise.reject(
@@ -328,12 +335,25 @@ const EditProjectTaskForm = ({
                       }
                       const start = value[0]
                       const end = value[1]
-                      const originalStart = taskData?.plannedStart ? dayjs(taskData.plannedStart) : null
-                      const originalEnd = taskData?.plannedEnd ? dayjs(taskData.plannedEnd) : null
-                      const isShift = isShiftOnlyChange(originalStart, originalEnd, start, end)
+                      const originalStart = taskData?.plannedStart
+                        ? dayjs(taskData.plannedStart)
+                        : null
+                      const originalEnd = taskData?.plannedEnd
+                        ? dayjs(taskData.plannedEnd)
+                        : null
+                      const isShift = isShiftOnlyChange(
+                        originalStart,
+                        originalEnd,
+                        start,
+                        end,
+                      )
 
                       if (!isShift) {
-                        const containmentError = getChildrenContainmentError(childrenSpan, start, end)
+                        const containmentError = getChildrenContainmentError(
+                          childrenSpan,
+                          start,
+                          end,
+                        )
                         if (containmentError) {
                           return Promise.reject(new Error(containmentError))
                         }

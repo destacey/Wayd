@@ -15,6 +15,7 @@ import {
 } from '@/src/utils'
 import { DatePicker, Form, Modal } from 'antd'
 import { Dayjs } from 'dayjs'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 
@@ -50,7 +51,7 @@ const MoveVersionTargetDateForm = ({
           const request = {
             id: version.id,
             targetDate: values.targetDate
-              ? values.targetDate.format('YYYY-MM-DD')
+              ? toCalendarDate(values.targetDate)
               : undefined,
           } as MoveVersionTargetDateRequest
 

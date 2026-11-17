@@ -18,6 +18,7 @@ import dayjs, { Dayjs } from 'dayjs'
 import { ancestorIdsOf, ProductTreeSelect } from '../../_components'
 import { DependencyStrengthRadio } from './dependency-strength'
 import { InteractionStyleCheckboxes } from './interaction-style'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -63,7 +64,9 @@ const AddProductDependencyForm = ({
             strength: values.strength,
             interactionStyles: values.interactionStyles,
             description: values.description,
-            startsOn: values.startsOn?.format('YYYY-MM-DD'),
+            startsOn: values.startsOn
+              ? toCalendarDate(values.startsOn)
+              : undefined,
           } as AddProductDependencyRequest
 
           const response = await addProductDependency({

@@ -11,6 +11,7 @@ import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Alert, DatePicker, Flex, Form, Modal, Typography } from 'antd'
 import { Dayjs } from 'dayjs'
 import { outstandingContents } from './release-actions'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 const { Text } = Typography
@@ -51,7 +52,7 @@ const MarkReleaseReleasedForm = ({
       onSubmit: async (values: MarkReleaseReleasedFormValues, form) => {
         try {
           const request = {
-            releasedDate: values.releasedDate.format('YYYY-MM-DD'),
+            releasedDate: toCalendarDate(values.releasedDate),
           } as MarkReleaseReleasedRequest
 
           const response = await markReleased({

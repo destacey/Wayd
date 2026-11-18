@@ -2,6 +2,7 @@
 
 import { LabeledContent } from '@/src/components/common/content'
 import LinksCard from '@/src/components/common/links/links-card'
+import { LinkOwnerTypes } from '@/src/store/features/common/links-api'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { PlanningIntervalDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Divider, Flex } from 'antd'
@@ -63,7 +64,11 @@ const PlanningIntervalFacts = ({
 
       <Divider size="small" style={{ margin: 0 }} />
 
-      <LinksCard objectId={planningInterval.id} width="100%" />
+      <LinksCard
+        ownerType={LinkOwnerTypes.PlanningInterval}
+        ownerId={planningInterval.id}
+        width="100%"
+      />
     </>
   )
 }

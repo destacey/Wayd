@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Wayd.Tools.DataGeneration.Cli.Generation;
+using Wayd.Tools.DataGeneration.Cli.Recipes;
 
 namespace Wayd.Tools.DataGeneration.Cli.Tests.Sut;
 
@@ -412,6 +413,7 @@ public class ProductManagementGeneratorTests
         // Assert
         data.ReleasePackages.Should().BeEmpty();
         data.Versions.Should().BeEmpty();
+        data.Incidents.Should().BeEmpty();
     }
 
     [Fact]
@@ -425,6 +427,8 @@ public class ProductManagementGeneratorTests
         second.Deployments.Select(d => d.ImportId).Should().Equal(first.Deployments.Select(d => d.ImportId));
         second.Versions.Select(v => v.Handle).Should().Equal(first.Versions.Select(v => v.Handle));
         second.Products.Select(p => p.Teams).Should().Equal(first.Products.Select(p => p.Teams));
+        second.Incidents.Select(i => i.ImportId).Should().Equal(first.Incidents.Select(i => i.ImportId));
+        second.Incidents.Select(i => i.NoticedAt).Should().Equal(first.Incidents.Select(i => i.NoticedAt));
     }
 
     [Fact]
@@ -454,5 +458,126 @@ public class ProductManagementGeneratorTests
         // Act & Assert
         data.Products.Should().HaveCountLessThan(10_000);
         data.Environments.Should().HaveCountLessThan(10_000);
+    }
+
+    [Fact]
+    public void Generate_BuildsOneIncidentForEveryStatusAndSeverity()
+    {
+        // Arrange — the default catalog, so the sample has product lines and released releases to draw from
+        var context = Context();
+        var org = new OrgGenerator(new OrgOptions { ValueStreams = 3, Teams = 18 }, context).Generate();
+        string[] statuses = ["Open", "Responding", "Resolved", "Closed", "Canceled"];
+        string[] severities = ["SEV-1", "SEV-2", "SEV-3", "SEV-4"];
+
+        // Act
+        var data = new ProductManagementGenerator(org.Structure, new ProductManagementOptions(), context).Generate();
+        var incidents = data.Incidents;
+
+        // Assert — one cell of the status-by-severity grid, on a few components rather than the whole catalog
+        incidents.Should().HaveCount(statuses.Length * severities.Length);
+        incidents.Select(i => i.Status).Should().OnlyContain(status => statuses.Contains(status));
+        incidents.GroupBy(i => i.Status).Should().OnlyContain(group => group.Count() == severities.Length);
+        incidents.Select(i => i.Severity).Should().OnlyContain(severity => severities.Contains(severity));
+        incidents.GroupBy(i => i.Severity).Should().OnlyContain(group => group.Count() == statuses.Length);
+        incidents.Select(i => i.ImportId).Should().OnlyHaveUniqueItems();
+
+        var lines = data.Products.Where(p => p.ProductTypeName == "Product Line").Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var attached = incidents.Select(i => i.ProductName).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        attached.Should().NotBeEmpty();
+        attached.Count.Should().BeLessThan(data.Products.Count);
+        attached.Count.Should().BeLessThanOrEqualTo(lines.Count);
+        string[] componentTypes = ["Service", "Application", "Tool", "Library"];
+        incidents.Select(i => i.ProductName).Select(name => data.Products.Single(p => p.Name == name).ProductTypeName)
+            .Should().OnlyContain(type => componentTypes.Contains(type));
+
+        var current = org.Structure.ValueStreams
+            .SelectMany(stream => stream.Arts)
+            .SelectMany(art => art.Teams)
+            .SelectMany(team => team.MemberEmployeeNumbers)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var incident in incidents)
+        {
+            var product = data.Products.Single(p => p.Name == incident.ProductName);
+            var teamCodes = (product.Teams ?? string.Empty).Split(';', StringSplitOptions.RemoveEmptyEntries);
+            var members = org.Structure.ValueStreams
+                .SelectMany(stream => stream.Arts)
+                .SelectMany(art => art.Teams)
+                .Where(team => teamCodes.Contains(team.TeamCode, StringComparer.OrdinalIgnoreCase))
+                .SelectMany(team => team.MemberEmployeeNumbers);
+
+            current.Should().Contain(incident.CommanderEmployeeNumber);
+            members.Should().Contain(incident.CommanderEmployeeNumber);
+            org.Structure.TenureOf(incident.CommanderEmployeeNumber)!.LeftOn.Should().BeNull();
+
+            var release = data.Releases.Single(r => r.Version == incident.ReleaseVersion);
+            release.ReleasedDate.Should().NotBeNull().And.BeOnOrBefore(_asOf);
+            lines.Should().Contain(release.ProductName);
+            ReleaseContains(data, release.Version, incident.ProductName).Should().BeTrue();
+
+            var later = data.Releases.Where(r =>
+                r.ProductName == release.ProductName && r.ReleasedDate > release.ReleasedDate);
+            later.Should().NotContain(r => ReleaseContainsStaffedComponent(data, r.Version));
+        }
+
+        incidents.Select(i => i.NoticedAt).Should().OnlyHaveUniqueItems();
+        incidents.Should().OnlyContain(i => i.NoticedAt < new DateTimeOffset(_asOf, TimeOnly.MinValue, TimeSpan.Zero));
+        incidents.Where(i => i.Status is "Open" or "Canceled").Should().OnlyContain(i => i.StartedAt == null && i.RecoveredAt == null);
+        incidents.Where(i => i.Status == "Responding").Should().OnlyContain(i => i.StartedAt >= i.NoticedAt && i.RecoveredAt == null);
+        incidents.Where(i => i.Status is "Resolved" or "Closed")
+            .Should().OnlyContain(i => i.StartedAt >= i.NoticedAt && i.RecoveredAt >= i.StartedAt);
+    }
+
+    [Fact]
+    public void Generate_BuildsTheIncidentGridForTheStartupRecipe()
+    {
+        // Arrange — one product line and a year of history, the shape most likely to have nothing to attach
+        var resolved = ResolvedRecipe.From(RecipeLibrary.Resolve("startup"), seed: 7);
+
+        // Act
+        var incidents = GeneratedDataset.From(resolved).ProductManagement!.Incidents;
+
+        // Assert
+        incidents.Should().HaveCount(20);
+        incidents.Select(i => i.ProductName).Distinct().Should().ContainSingle();
+        incidents.Select(i => i.Status).Distinct().Should().BeEquivalentTo(["Open", "Responding", "Resolved", "Closed", "Canceled"]);
+    }
+
+    private static bool ReleaseContains(GeneratedProductManagement data, string releaseVersion, string productName) =>
+        ComponentNames(data, releaseVersion).Contains(productName, StringComparer.OrdinalIgnoreCase);
+
+    private static bool ReleaseContainsStaffedComponent(GeneratedProductManagement data, string releaseVersion)
+    {
+        var staffed = data.Products
+            .Where(p => p.ProductTypeName is "Service" or "Application" or "Tool" or "Library")
+            .Where(p => p.Status is "Active" or "Sunset")
+            .Where(p => !string.IsNullOrEmpty(p.Teams))
+            .Select(p => p.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return ComponentNames(data, releaseVersion).Any(staffed.Contains);
+    }
+
+    private static IEnumerable<string> ComponentNames(GeneratedProductManagement data, string releaseVersion)
+    {
+        foreach (var content in data.ReleaseContents.Where(c =>
+            string.Equals(c.ReleaseVersion, releaseVersion, StringComparison.OrdinalIgnoreCase)))
+        {
+            if (content.VersionHandle is { } handle)
+            {
+                var split = handle.Split('|', 2);
+                if (split.Length == 2)
+                    yield return split[0];
+            }
+
+            if (content.PackageVersion is not { } package)
+                continue;
+
+            foreach (var component in data.ReleasePackageComponents.Where(c =>
+                string.Equals(c.PackageVersion, package, StringComparison.OrdinalIgnoreCase)))
+            {
+                yield return component.ProductName;
+            }
+        }
     }
 }

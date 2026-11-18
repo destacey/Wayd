@@ -231,6 +231,9 @@ public sealed class WaydSeedClient : IDisposable
     public Task<ImportRun> ImportDeployments(byte[] csv, CancellationToken cancellationToken) =>
         Import("api/product-management/deployments/import", csv, "deployments.csv", "deployments", cancellationToken);
 
+    public Task<ImportRun> ImportIncidents(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/product-management/incidents/import", csv, "incidents.csv", "incidents", cancellationToken);
+
     // ---- Planning CSV imports -----------------------------------------------------------------
 
     public Task<ImportRun> ImportPlanningIntervals(byte[] csv, CancellationToken cancellationToken) =>

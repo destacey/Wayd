@@ -46,6 +46,8 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
         new ReleasePackagesArea(),
         new ReleasesArea(),
         new DeploymentsArea(),
+        new IncidentManagementFeatureFlagArea(),
+        new IncidentsArea(),
         new PlanningIntervalsArea(),
         new PlanningIntervalObjectivesArea(),
         new RisksArea(),

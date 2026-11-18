@@ -105,6 +105,11 @@ public sealed class ProductManagementGenerator
 
         StampVersionMoments();
 
+        // After the catalog is finished, and without drawing from its random stream, so the history above
+        // is the same with or without the incidents.
+        var incidents = new IncidentGenerator(
+            _org, _products, _releases, _releaseContents, _packageComponents, Today).Generate();
+
         return new GeneratedProductManagement(
             _environments,
             _products,
@@ -114,7 +119,8 @@ public sealed class ProductManagementGenerator
             _releases,
             _releaseContents,
             _deployments,
-            dependencies);
+            dependencies,
+            incidents);
     }
 
     /// <summary>

@@ -14,9 +14,14 @@ public static class ProductManagementArea
     public const string ReleasePackages = "product-management.release-packages";
     public const string Releases = "product-management.releases";
     public const string Deployments = "product-management.deployments";
+    public const string IncidentFeatureFlag = "incident-management.feature-flag";
+    public const string Incidents = "product-management.incidents";
 
     /// <summary>The feature flag every Product Management endpoint is gated on.</summary>
     public const string FeatureFlagName = "product-management";
+
+    /// <summary>The feature flag the incident endpoints are gated on, together with <see cref="FeatureFlagName"/>.</summary>
+    public const string IncidentFeatureFlagName = "incident-management";
 }
 
 /// <summary>A Product Management area, which has nothing to do when the seed was asked to skip it.</summary>
@@ -319,5 +324,64 @@ public sealed class DeploymentsArea() : ProductManagementSeedArea(
             batch => context.Client.ImportDeployments(CsvFile.ToBytes(batch), cancellationToken));
 
         context.Publish(Name, created);
+    }
+}
+
+/// <summary>
+/// Switches incident management on. The incident endpoints answer 404 while either this flag or
+/// product management is off, and both are seeded off.
+/// </summary>
+public sealed class IncidentManagementFeatureFlagArea() : ProductManagementSeedArea(
+    ProductManagementArea.IncidentFeatureFlag, ProductManagementArea.FeatureFlag)
+{
+    public override bool ShouldRun(SeedContext context) => context.ProductManagement is not null;
+
+    public override async Task Run(SeedContext context, CancellationToken cancellationToken)
+    {
+        var enabled = await context.Client.EnsureFeatureFlagEnabled(ProductManagementArea.IncidentFeatureFlagName, cancellationToken);
+
+        context.Log(enabled
+            ? $"Enabled the '{ProductManagementArea.IncidentFeatureFlagName}' feature flag."
+            : $"The '{ProductManagementArea.IncidentFeatureFlagName}' feature flag is already enabled.");
+    }
+}
+
+/// <summary>
+/// Loads the incidents. Products, releases and the commander are ids the earlier imports created, so
+/// this runs after those areas. Twenty rows fit in one file.
+/// </summary>
+public sealed class IncidentsArea() : ProductManagementSeedArea(
+    ProductManagementArea.Incidents,
+    ProductManagementArea.IncidentFeatureFlag,
+    ProductManagementArea.Products,
+    ProductManagementArea.Releases,
+    OrganizationArea.Employees)
+{
+    public override bool ShouldRun(SeedContext context) => context.ProductManagement?.Incidents.Count > 0;
+
+    public override async Task Run(SeedContext context, CancellationToken cancellationToken)
+    {
+        var incidents = Data(context).Incidents;
+        context.Log($"Importing {incidents.Count} incidents...");
+
+        var rows = incidents.Select(incident => new IncidentCsvRow
+        {
+            ImportId = incident.ImportId,
+            Title = incident.Title,
+            Symptoms = incident.Symptoms,
+            RootCause = incident.RootCause,
+            Remediation = incident.Remediation,
+            Severity = incident.Severity,
+            Status = incident.Status,
+            CommanderEmployeeId = context.Id(OrganizationArea.Employees, incident.CommanderEmployeeNumber),
+            ProductIds = context.Id(ProductManagementArea.Products, incident.ProductName).ToString(),
+            ReleaseIds = context.Id(ProductManagementArea.Releases, incident.ReleaseVersion).ToString(),
+            NoticedAt = DeploymentCsvRow.Timestamp(incident.NoticedAt),
+            StartedAt = incident.StartedAt is { } started ? DeploymentCsvRow.Timestamp(started) : null,
+            RecoveredAt = incident.RecoveredAt is { } recovered ? DeploymentCsvRow.Timestamp(recovered) : null,
+        });
+
+        var run = await context.Client.ImportIncidents(CsvFile.ToBytes(rows), cancellationToken);
+        context.Publish(Name, run.CreatedIdsByImportId);
     }
 }

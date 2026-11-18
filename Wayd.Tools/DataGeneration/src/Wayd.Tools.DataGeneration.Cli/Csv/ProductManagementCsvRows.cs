@@ -130,3 +130,24 @@ public sealed class DeploymentCsvRow
     public static string Timestamp(DateTimeOffset value) =>
         value.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture);
 }
+
+/// <summary>
+/// One row of the incidents CSV the seed posts. Products, releases and the commander are ids, and the
+/// timestamps carry an offset, matching the import.
+/// </summary>
+public sealed class IncidentCsvRow
+{
+    public required string ImportId { get; init; }
+    public required string Title { get; init; }
+    public string? Symptoms { get; init; }
+    public string? RootCause { get; init; }
+    public string? Remediation { get; init; }
+    public required string Severity { get; init; }
+    public required string Status { get; init; }
+    public required Guid CommanderEmployeeId { get; init; }
+    public required string ProductIds { get; init; }
+    public required string ReleaseIds { get; init; }
+    public required string NoticedAt { get; init; }
+    public string? StartedAt { get; init; }
+    public string? RecoveredAt { get; init; }
+}

@@ -1,4 +1,4 @@
-import { imageFileFromDataUrl } from './attachments'
+import { imageFileFromDataUrl, isSpacerImage } from './attachments'
 
 vi.mock(import('@/src/services/api/attachments'), () => ({
   attachmentsGetContent: vi.fn(),
@@ -74,5 +74,59 @@ describe('imageFileFromDataUrl', () => {
 
     // Assert
     expect(file).toBeNull()
+  })
+})
+
+/** The first bytes of a PNG of `width`×`height`: its signature and image header. */
+const pngHeader = (width: number, height: number) => {
+  const bytes = new Uint8Array(33)
+  bytes.set([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48,
+    0x44, 0x52,
+  ])
+  const view = new DataView(bytes.buffer)
+  view.setUint32(16, width)
+  view.setUint32(20, height)
+  return bytes
+}
+
+/** The first bytes of a GIF of `width`×`height`. */
+const gifHeader = (width: number, height: number) => {
+  const bytes = new Uint8Array(13)
+  bytes.set([0x47, 0x49, 0x46, 0x38, 0x39, 0x61])
+  const view = new DataView(bytes.buffer)
+  view.setUint16(6, width, true)
+  view.setUint16(8, height, true)
+  return bytes
+}
+
+describe('isSpacerImage', () => {
+  it.each([
+    ['a 1×1 GIF', gifHeader(1, 1)],
+    ['a 1×1 PNG', pngHeader(1, 1)],
+    ['a 2×2 PNG', pngHeader(2, 2)],
+  ])('takes %s for a spacer', (_name, bytes) => {
+    // Arrange — the header is the whole input.
+
+    // Act
+    const spacer = isSpacerImage(bytes)
+
+    // Assert
+    expect(spacer).toBe(true)
+  })
+
+  it.each([
+    ['a 20×20 PNG, however few bytes it takes', pngHeader(20, 20)],
+    ['a 1×40 GIF divider', gifHeader(1, 40)],
+    ['a JPEG', Uint8Array.from([0xff, 0xd8, 0xff, 0xe0])],
+    ['bytes that are no image', new Uint8Array(4)],
+  ])('keeps %s', (_name, bytes) => {
+    // Arrange — the header is the whole input.
+
+    // Act
+    const spacer = isSpacerImage(bytes)
+
+    // Assert
+    expect(spacer).toBe(false)
   })
 })

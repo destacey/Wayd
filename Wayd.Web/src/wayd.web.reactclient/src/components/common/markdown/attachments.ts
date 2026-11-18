@@ -118,15 +118,18 @@ export const dataUrlSize = (src: string): number => {
     : payload
 }
 
+/** An image decoded from a `data:` URL: its media type and its bytes. */
+export interface DataUrlImage {
+  type: string
+  bytes: Uint8Array<ArrayBuffer>
+}
+
 /**
- * The image a `data:` URL holds, as a file named `name`, or `null` when `src` is not a `data:` URL
- * of an image. Decoded here rather than fetched, since the content security policy blocks fetching
- * a `data:` URL. Whether the API accepts the image is `imageUploadProblem`'s to say.
+ * The image a `data:` URL holds, or `null` when `src` is not a `data:` URL of an image. Decoded here
+ * rather than fetched, since the content security policy blocks fetching a `data:` URL. Whether the
+ * API accepts the image is `imageUploadProblem`'s to say.
  */
-export const imageFileFromDataUrl = (
-  src: string,
-  name: string,
-): File | null => {
+export const decodeDataUrlImage = (src: string): DataUrlImage | null => {
   const match = DATA_URL.exec(src.trim())
   if (!match) return null
   const type = match[1].toLowerCase()
@@ -139,9 +142,47 @@ export const imageFileFromDataUrl = (
           char.charCodeAt(0),
         )
       : percentDecodedBytes(match[3])
-    const extension = type.slice('image/'.length).split('+')[0] || 'img'
-    return new File([bytes], `${name}.${extension}`, { type })
+    return { type, bytes }
   } catch {
     return null
   }
+}
+
+/** `image` as a file named `name`, with the extension its media type implies. */
+export const imageFileFrom = (image: DataUrlImage, name: string): File => {
+  const extension = image.type.slice('image/'.length).split('+')[0] || 'img'
+  return new File([image.bytes], `${name}.${extension}`, { type: image.type })
+}
+
+/** The image a `data:` URL holds, as a file named `name`, or `null` when it holds none. */
+export const imageFileFromDataUrl = (
+  src: string,
+  name: string,
+): File | null => {
+  const image = decodeDataUrlImage(src)
+  return image ? imageFileFrom(image, name) : null
+}
+
+/**
+ * Whether `bytes` are a PNG or GIF of at most 2×2 pixels: a web page's spacer, such as the
+ * placeholder a lazy-loading page shows until the real image loads. A small image people mean to
+ * keep, an icon or a swatch, is larger than that.
+ */
+export const isSpacerImage = (bytes: Uint8Array): boolean => {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  const isPng =
+    bytes.length >= 24 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
+  if (isPng) return view.getUint32(16) <= 2 && view.getUint32(20) <= 2
+  const isGif =
+    bytes.length >= 10 &&
+    bytes[0] === 0x47 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x38
+  if (isGif) return view.getUint16(6, true) <= 2 && view.getUint16(8, true) <= 2
+  return false
 }

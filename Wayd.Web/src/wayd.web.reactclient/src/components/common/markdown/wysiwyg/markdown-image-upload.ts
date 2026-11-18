@@ -12,7 +12,9 @@ import {
   ATTACHMENT_SRC_ATTRIBUTE,
   attachmentPathForObjectUrl,
   dataUrlSize,
-  imageFileFromDataUrl,
+  decodeDataUrlImage,
+  imageFileFrom,
+  isSpacerImage,
   imageFilesIn,
   imageUploadProblem,
   isAttachmentPath,
@@ -53,12 +55,6 @@ export interface PastedImages {
   /** Why images the paste left out could not be added, one message per reason. */
   problems: string[]
 }
-
-/**
- * Below this many bytes an embedded image is taken for a web page's spacer — a lazy-loading page's
- * 1×1 placeholder — and left out without a word.
- */
-const SPACER_BYTES = 128
 
 /**
  * Stands in for an embedded image in pasted HTML until the paste lands, so the image goes where it
@@ -156,12 +152,14 @@ export const takeImagesFromHtml = (
       continue
     }
 
-    const file = isData
-      ? imageFileFromDataUrl(src, `pasted-image-${images.embedded.length + 1}`)
-      : null
-    if (file && file.size < SPACER_BYTES) {
+    const decoded = isData ? decodeDataUrlImage(src) : null
+    if (decoded && isSpacerImage(decoded.bytes)) {
       img.remove()
-    } else if (file) {
+    } else if (decoded) {
+      const file = imageFileFrom(
+        decoded,
+        `pasted-image-${images.embedded.length + 1}`,
+      )
       images.embedded.push({ file, alt: img.getAttribute('alt') ?? '' })
       img.replaceWith(markerFor(images.embedded.length - 1))
     } else {

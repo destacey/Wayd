@@ -565,6 +565,23 @@ describe('MarkdownImageUpload', () => {
       expect(editor.getMarkdown()).toBe('before one twoafter')
     })
 
+    it('uploads a small image that is not a spacer, however few bytes it takes', () => {
+      // Arrange — a 20×20 swatch compresses to fewer bytes than many spacers.
+      const header = new Uint8Array(33)
+      header.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+      new DataView(header.buffer).setUint32(16, 20)
+      new DataView(header.buffer).setUint32(20, 20)
+      const swatch = `data:image/png;base64,${btoa(String.fromCharCode(...header))}`
+      const uploader = vi.fn(() => new Promise<{ path: string }>(() => {}))
+      setMarkdownImageUpload(editor, uploader)
+
+      // Act
+      pasteHtml(`<p>one <img src="${swatch}"> two</p>`)
+
+      // Assert
+      expect(uploader).toHaveBeenCalledTimes(1)
+    })
+
     it('keeps the web address a lazy-loading page held back behind its placeholder', () => {
       // Arrange
       const uploader = vi.fn()

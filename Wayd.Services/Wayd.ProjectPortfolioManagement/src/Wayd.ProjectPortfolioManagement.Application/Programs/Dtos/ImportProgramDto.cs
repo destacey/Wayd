@@ -35,7 +35,8 @@ public sealed record ImportProgramDto(
     IReadOnlyList<Guid> StrategicThemeIds,
     IReadOnlyList<string> SponsorEmployeeNumbers,
     IReadOnlyList<string> OwnerEmployeeNumbers,
-    IReadOnlyList<string> ManagerEmployeeNumbers);
+    IReadOnlyList<string> ManagerEmployeeNumbers,
+    string? Links = null);
 
 public sealed class ImportProgramDtoValidator : CustomValidator<ImportProgramDto>
 {

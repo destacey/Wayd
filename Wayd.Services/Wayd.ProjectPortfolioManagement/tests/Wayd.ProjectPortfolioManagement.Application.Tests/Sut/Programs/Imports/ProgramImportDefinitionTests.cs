@@ -4,6 +4,7 @@ using NodaTime;
 using NodaTime.Testing;
 using NodaTime.Extensions;
 using Wayd.Common.Application.Imports;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Enums.Imports;
@@ -31,6 +32,7 @@ public sealed class ProgramImportDefinitionTests : IDisposable
     private static readonly LocalDate _created = new(2024, 3, 4);
 
     private readonly FakeProjectPortfolioManagementDbContext _dbContext = new();
+    private readonly Mock<ILinkWriter> _linkWriter = new();
     private readonly ProgramImportDefinition _definition;
 
     private readonly ProjectPortfolio _portfolio;
@@ -43,7 +45,10 @@ public sealed class ProgramImportDefinitionTests : IDisposable
         currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
 
         _definition = new ProgramImportDefinition(
-            _dbContext, clock, currentUser.Object, new ImportPayloadSerializer());
+            _dbContext, clock, currentUser.Object, _linkWriter.Object, new ImportPayloadSerializer());
+        _linkWriter
+            .Setup(w => w.Add(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid());
 
         // Programs can only be created inside an active portfolio.
         _portfolio = ProjectPortfolio.Create(
@@ -232,4 +237,41 @@ public sealed class ProgramImportDefinitionTests : IDisposable
             [],
             [],
             []);
+
+    [Fact]
+    public async Task CreatePrograms_AddsTheRowsLinks_ToTheProgramItCreated()
+    {
+        // Arrange
+        var row = Row("Platform", ProgramStatus.Active) with { Links = "Program charter|https://example.com/charter; Status page|https://example.com/status" };
+
+        // Act
+        var result = await Run(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeFalse();
+        var ownerId = outcome.CreatedEntityId!.Value;
+
+        _linkWriter.Verify(w => w.Add("ppm.program", ownerId, "Program charter", "https://example.com/charter",
+            It.Is<EventActor>(a => a.Kind == EventActorKind.Import && a.UserId == SystemUser.Id), It.IsAny<CancellationToken>()), Times.Once);
+        _linkWriter.Verify(w => w.Add("ppm.program", ownerId, "Status page", "https://example.com/status",
+            It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreatePrograms_RejectsARowWithAMalformedLink_CreatingNeitherTheProgramNorAnyLink()
+    {
+        // Arrange
+        var row = Row("Platform", ProgramStatus.Active) with { Links = "Program charter|https://example.com/charter; Roadmap https://example.com/roadmap" };
+
+        // Act
+        var result = await Run(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().StartWith("Links entry 'Roadmap https://example.com/roadmap'");
+        _portfolio.Programs.Should().BeEmpty();
+        _linkWriter.Verify(w => w.Add(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }

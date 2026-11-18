@@ -87,6 +87,14 @@ public sealed class ImportProjectRequest
     /// <summary>Semicolon-separated employee numbers.</summary>
     public string? Members { get; set; }
 
+    /// <summary>
+    /// Links to add to the project, separated by semicolons, each written Name|URL — for example
+    /// <c>Charter|https://example.com/charter; Team wiki|https://example.com/wiki</c>. A name cannot contain | or ;,
+    /// and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects
+    /// the row.
+    /// </summary>
+    public string? Links { get; set; }
+
     public ImportProjectDto ToImportProjectDto()
     {
         var status = Enum.Parse<ProjectStatus>(Status.Trim(), ignoreCase: true);
@@ -113,7 +121,8 @@ public sealed class ImportProjectRequest
             CsvList.Split(Sponsors),
             CsvList.Split(Owners),
             CsvList.Split(Managers),
-            CsvList.Split(Members));
+            CsvList.Split(Members),
+            Links);
     }
 }
 

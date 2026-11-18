@@ -4,6 +4,8 @@ using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.Testing;
 using Wayd.Common.Application.Imports;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Identity;
@@ -26,6 +28,7 @@ public sealed class ProjectPortfolioImportDefinitionTests : IDisposable
     private static readonly LocalDate _start = new(2024, 7, 1);
 
     private readonly FakeProjectPortfolioManagementDbContext _dbContext = new();
+    private readonly Mock<ILinkWriter> _linkWriter = new();
     private readonly ProjectPortfolioImportDefinition _definition;
 
     public ProjectPortfolioImportDefinitionTests()
@@ -36,7 +39,10 @@ public sealed class ProjectPortfolioImportDefinitionTests : IDisposable
         currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
 
         _definition = new ProjectPortfolioImportDefinition(
-            _dbContext, clock, currentUser.Object, new ImportPayloadSerializer());
+            _dbContext, clock, currentUser.Object, _linkWriter.Object, new ImportPayloadSerializer());
+        _linkWriter
+            .Setup(w => w.Add(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid());
     }
 
     public void Dispose() => _dbContext.Dispose();
@@ -218,4 +224,41 @@ public sealed class ProjectPortfolioImportDefinitionTests : IDisposable
     private static ImportProjectPortfolioDto Row(
         string name, ProjectPortfolioStatus status, LocalDate? activatedOn) =>
         new(name, $"{name} portfolio", status, _created, activatedOn, [], [], []);
+
+    [Fact]
+    public async Task CreatePortfolios_AddsTheRowsLinks_ToThePortfolioItCreated()
+    {
+        // Arrange
+        var row = Row("Growth", ProjectPortfolioStatus.Proposed, activatedOn: null) with { Links = "Strategy deck|https://example.com/strategy; Status page|https://example.com/status" };
+
+        // Act
+        var result = await Run(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeFalse();
+        var ownerId = outcome.CreatedEntityId!.Value;
+
+        _linkWriter.Verify(w => w.Add("ppm.portfolio", ownerId, "Strategy deck", "https://example.com/strategy",
+            It.Is<EventActor>(a => a.Kind == EventActorKind.Import && a.UserId == SystemUser.Id), It.IsAny<CancellationToken>()), Times.Once);
+        _linkWriter.Verify(w => w.Add("ppm.portfolio", ownerId, "Status page", "https://example.com/status",
+            It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreatePortfolios_RejectsARowWithAMalformedLink_CreatingNeitherThePortfolioNorAnyLink()
+    {
+        // Arrange
+        var row = Row("Growth", ProjectPortfolioStatus.Proposed, activatedOn: null) with { Links = "Strategy deck|https://example.com/strategy; Roadmap|" };
+
+        // Act
+        var result = await Run(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().StartWith("Links entry 'Roadmap|'");
+        _dbContext.Portfolios.Should().BeEmpty();
+        _linkWriter.Verify(w => w.Add(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }

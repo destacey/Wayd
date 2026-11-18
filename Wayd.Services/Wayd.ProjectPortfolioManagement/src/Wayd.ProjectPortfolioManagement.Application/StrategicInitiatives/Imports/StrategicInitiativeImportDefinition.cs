@@ -2,11 +2,13 @@
 using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Dtos;
+using Wayd.ProjectPortfolioManagement.Domain;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
@@ -31,6 +33,7 @@ public sealed class StrategicInitiativeImportDefinition(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser,
+    ILinkWriter linkWriter,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportStrategicInitiativeDto>(serializer)
 {
     public const string ImportKey = "ppm.strategic-initiatives";
@@ -38,6 +41,7 @@ public sealed class StrategicInitiativeImportDefinition(
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ILinkWriter _linkWriter = linkWriter;
 
     public override string Key => ImportKey;
 
@@ -129,6 +133,13 @@ public sealed class StrategicInitiativeImportDefinition(
                 continue;
             }
 
+            var links = ImportedLinks.Parse(data.Links);
+            if (links.IsFailure)
+            {
+                row.Failed(links.Error);
+                continue;
+            }
+
             var created = portfolio.CreateStrategicInitiative(
                 name,
                 data.Description.Trim(),
@@ -169,6 +180,10 @@ public sealed class StrategicInitiativeImportDefinition(
                 row.Failed($"Could not set strategic initiative '{name}' to {data.Status}: {transition.Error}");
                 continue;
             }
+
+            var added = await _linkWriter.AddImported(PpmLinkOwners.StrategicInitiative.Key, initiative.Id, links.Value, actor, cancellationToken);
+            if (added.IsFailure)
+                return added;
 
             // Taken within the chunk as well as against the database: a chunk's rows are applied one at a
             // time against a portfolio held in memory, so a repeat would otherwise reach the unique index. A

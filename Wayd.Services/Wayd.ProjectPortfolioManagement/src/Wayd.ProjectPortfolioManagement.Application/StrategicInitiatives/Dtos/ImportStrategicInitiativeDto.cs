@@ -27,7 +27,8 @@ public sealed record ImportStrategicInitiativeDto(
     IReadOnlyList<string> ProjectKeys,
     IReadOnlyList<string> SponsorEmployeeNumbers,
     IReadOnlyList<string> OwnerEmployeeNumbers,
-    IReadOnlyList<ImportStrategicInitiativeKpiDto> Kpis);
+    IReadOnlyList<ImportStrategicInitiativeKpiDto> Kpis,
+    string? Links = null);
 
 public sealed class ImportStrategicInitiativeDtoValidator : CustomValidator<ImportStrategicInitiativeDto>
 {

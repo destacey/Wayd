@@ -45366,16 +45366,25 @@
         ]
       }
     },
-    "/api/links/{objectId}/list": {
+    "/api/links/{ownerType}/{ownerId}": {
       "get": {
         "tags": [
           "Links"
         ],
-        "summary": "Get a list of links for a specific objectId.",
-        "operationId": "Links_GetList",
+        "summary": "Get a record's links.",
+        "description": "`ownerType` names the kind of record — `organization.team`, `planning.planning-interval`, `planning.planning-interval-objective`, `planning.risk`, `ppm.portfolio`, `ppm.program`, `ppm.project`, `ppm.strategic-initiative`, `product.incident` or `work.sprint` — and `ownerId` is the record's UUID, not its key; an `ownerType` that cannot carry links returns 400. Returns 404 when the record does not exist or you cannot read it. Returns the record's links by name, and whether you may change them (`canManage`).",
+        "operationId": "Links_GetLinks",
         "parameters": [
           {
-            "name": "objectId",
+            "name": "ownerType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerId",
             "in": "path",
             "required": true,
             "schema": {
@@ -45390,10 +45399,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/LinkDto"
-                  }
+                  "$ref": "#/components/schemas/RecordLinksDto"
                 }
               }
             }
@@ -45407,6 +45413,121 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Links"
+        ],
+        "summary": "Add a link to a record.",
+        "description": "`ownerType` names the kind of record — `organization.team`, `planning.planning-interval`, `planning.planning-interval-objective`, `planning.risk`, `ppm.portfolio`, `ppm.program`, `ppm.project`, `ppm.strategic-initiative`, `product.incident` or `work.sprint` — and `ownerId` is the record's UUID, not its key; an `ownerType` that cannot carry links returns 400. Returns 404 when the record does not exist or you cannot read it. Returns the new link's id. The address must be a full web address. Needs what editing the record itself needs: its `Update` permission (`Manage` for a planning interval objective); for a project, program or portfolio, delivery leadership as well, and never on an archived portfolio; for a sprint, membership of its team or team of teams, which `Permissions.Iterations.Administer` waives; for an incident, an account linked to an employee. Returns 403 otherwise.",
+        "operationId": "Links_Create",
+        "parameters": [
+          {
+            "name": "ownerType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -45416,16 +45537,34 @@
         ]
       }
     },
-    "/api/links/{id}": {
+    "/api/links/{ownerType}/{ownerId}/{linkId}": {
       "get": {
         "tags": [
           "Links"
         ],
-        "summary": "Get a link by id.",
-        "operationId": "Links_GetById",
+        "summary": "Get one of a record's links.",
+        "description": "`ownerType` names the kind of record — `organization.team`, `planning.planning-interval`, `planning.planning-interval-objective`, `planning.risk`, `ppm.portfolio`, `ppm.program`, `ppm.project`, `ppm.strategic-initiative`, `product.incident` or `work.sprint` — and `ownerId` is the record's UUID, not its key; an `ownerType` that cannot carry links returns 400. Returns 404 when the record does not exist or you cannot read it. Returns 404 too when the link is on another record.",
+        "operationId": "Links_GetLink",
         "parameters": [
           {
-            "name": "id",
+            "name": "ownerType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "linkId",
             "in": "path",
             "required": true,
             "schema": {
@@ -45445,12 +45584,32 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -45466,11 +45625,29 @@
         "tags": [
           "Links"
         ],
-        "summary": "Update a link.",
+        "summary": "Change a link's name and address.",
+        "description": "`ownerType` names the kind of record — `organization.team`, `planning.planning-interval`, `planning.planning-interval-objective`, `planning.risk`, `ppm.portfolio`, `ppm.program`, `ppm.project`, `ppm.strategic-initiative`, `product.incident` or `work.sprint` — and `ownerId` is the record's UUID, not its key; an `ownerType` that cannot carry links returns 400. Returns 404 when the record does not exist or you cannot read it. Send both fields, including the one that stays. A new address must be a full web address. Needs what editing the record itself needs: its `Update` permission (`Manage` for a planning interval objective); for a project, program or portfolio, delivery leadership as well, and never on an archived portfolio; for a sprint, membership of its team or team of teams, which `Permissions.Iterations.Administer` waives; for an incident, an account linked to an employee. Returns 403 otherwise.",
         "operationId": "Links_Update",
         "parameters": [
           {
-            "name": "id",
+            "name": "ownerType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "linkId",
             "in": "path",
             "required": true,
             "schema": {
@@ -45483,25 +45660,38 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateLinkRequest"
+                "$ref": "#/components/schemas/LinkRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LinkDto"
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -45531,11 +45721,29 @@
         "tags": [
           "Links"
         ],
-        "summary": "Delete a link.",
+        "summary": "Remove a link from a record.",
+        "description": "`ownerType` names the kind of record — `organization.team`, `planning.planning-interval`, `planning.planning-interval-objective`, `planning.risk`, `ppm.portfolio`, `ppm.program`, `ppm.project`, `ppm.strategic-initiative`, `product.incident` or `work.sprint` — and `ownerId` is the record's UUID, not its key; an `ownerType` that cannot carry links returns 400. Returns 404 when the record does not exist or you cannot read it. Needs what editing the record itself needs: its `Update` permission (`Manage` for a planning interval objective); for a project, program or portfolio, delivery leadership as well, and never on an archived portfolio; for a sprint, membership of its team or team of teams, which `Permissions.Iterations.Administer` waives; for an incident, an account linked to an employee. Returns 403 otherwise.",
         "operationId": "Links_Delete",
         "parameters": [
           {
-            "name": "id",
+            "name": "ownerType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "linkId",
             "in": "path",
             "required": true,
             "schema": {
@@ -45557,40 +45765,23 @@
                 }
               }
             }
-          }
-        },
-        "security": [
-          {
-            "ApiKey": [ ]
-          }
-        ]
-      }
-    },
-    "/api/links": {
-      "post": {
-        "tags": [
-          "Links"
-        ],
-        "summary": "Create a link.",
-        "operationId": "Links_Create",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateLinkRequest"
-              }
-            }
           },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
+          "403": {
+            "description": "Forbidden",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid"
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -60506,31 +60697,6 @@
         "additionalProperties": false,
         "description": "A tag category to add to the end of the list, with no tags."
       },
-      "CreateLinkRequest": {
-        "required": [
-          "objectId",
-          "name",
-          "url"
-        ],
-        "type": "object",
-        "properties": {
-          "objectId": {
-            "minLength": 1,
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string"
-          },
-          "url": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
       "CreateOidcProviderRequest": {
         "required": [
           "name",
@@ -73570,10 +73736,11 @@
       },
       "LinkDto": {
         "required": [
+          "ownerType",
           "name",
           "url",
           "id",
-          "objectId"
+          "ownerId"
         ],
         "type": "object",
         "properties": {
@@ -73581,7 +73748,10 @@
             "type": "string",
             "format": "uuid"
           },
-          "objectId": {
+          "ownerType": {
+            "type": "string"
+          },
+          "ownerId": {
             "type": "string",
             "format": "uuid"
           },
@@ -73648,6 +73818,25 @@
         },
         "additionalProperties": false,
         "description": "Points a product at the record that owns it in another system, or clears the link."
+      },
+      "LinkRequest": {
+        "required": [
+          "name",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "What the link is called, up to 128 characters."
+          },
+          "url": {
+            "type": "string",
+            "description": "The full web address the link opens, starting with `http://` or `https://`."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A link as it is added to a record or changed."
       },
       "LinkWorkItemRequest": {
         "required": [
@@ -81826,6 +82015,25 @@
         },
         "additionalProperties": false,
         "description": "A request to change a status's category and well-known meaning, which records carry denormalized."
+      },
+      "RecordLinksDto": {
+        "required": [
+          "canManage",
+          "links"
+        ],
+        "type": "object",
+        "properties": {
+          "canManage": {
+            "type": "boolean"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkDto"
+            }
+          }
+        },
+        "additionalProperties": false
       },
       "RecordMuteStatusDto": {
         "required": [
@@ -92792,31 +93000,6 @@
         },
         "additionalProperties": false,
         "description": "A tag's new name and description. Every request carrying the tag reads the new name."
-      },
-      "UpdateLinkRequest": {
-        "required": [
-          "id",
-          "name",
-          "url"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "minLength": 1,
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string"
-          },
-          "url": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
       },
       "UpdateOidcProviderRequest": {
         "required": [

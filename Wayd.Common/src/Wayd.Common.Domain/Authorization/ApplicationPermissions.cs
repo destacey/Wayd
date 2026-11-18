@@ -122,8 +122,6 @@ public static class ApplicationResource
     public const string WorkStatusCategories = nameof(WorkStatusCategories);
     public const string WorkTypes = nameof(WorkTypes);
 
-    public const string Links = nameof(Links);
-
     public const string HealthChecks = nameof(HealthChecks);
 
     public const string FeatureFlags = nameof(FeatureFlags);
@@ -226,15 +224,6 @@ public static class ApplicationPermissions
         new("View Health Checks", ApplicationAction.View, ApplicationResource.HealthChecks, HealthCategory),
         new("Create Health Checks", ApplicationAction.Create, ApplicationResource.HealthChecks, HealthCategory),
         new("Update Health Checks", ApplicationAction.Update, ApplicationResource.HealthChecks, HealthCategory),
-    ];
-
-    private const string LinksCategory = "Links";
-    private static readonly ApplicationPermission[] _links =
-    [
-        new("View Links", ApplicationAction.View, ApplicationResource.Links, LinksCategory),
-        new("Create Links", ApplicationAction.Create, ApplicationResource.Links, LinksCategory),
-        new("Update Links", ApplicationAction.Update, ApplicationResource.Links, LinksCategory),
-        new("Delete Links", ApplicationAction.Delete, ApplicationResource.Links, LinksCategory),
     ];
 
     private const string DemandManagementCategory = "Demand Management";
@@ -505,7 +494,6 @@ public static class ApplicationPermissions
         .Union(_demandManagement)
         .Union(_kpis)
         .Union(_healthChecks)
-        .Union(_links)
         .Union(_organization)
         .Union(_planning)
         .Union(_productManagement)

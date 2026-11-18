@@ -9,9 +9,12 @@ using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Interfaces.Organization;
+using Wayd.Common.Domain.Links;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Infrastructure.Persistence.Context;
+using Wayd.Links;
 using Wayd.Work.Application.Iterations.Commands;
+using Wayd.Work.Domain;
 using Wayd.Work.Domain.Models;
 using Wayd.Work.IntegrationTests.Infrastructure;
 
@@ -28,6 +31,11 @@ public sealed class SyncAzureDevOpsIterationsCommandHandlerTests(SqlServerDbCont
     private static readonly Guid AzdoProjectId = Guid.NewGuid();
 
     private readonly SqlServerDbContextFixture _fixture = fixture;
+
+    static SyncAzureDevOpsIterationsCommandHandlerTests()
+    {
+        WorkLinkOwners.Register();
+    }
 
     [Fact]
     public async Task Handle_WhenASprintWithWorkItemsIsGoneFromTheSource_DeletesItAndClearsTheWorkItems()
@@ -135,12 +143,55 @@ public sealed class SyncAzureDevOpsIterationsCommandHandlerTests(SqlServerDbCont
         saved["2"].Completed.Should().Be(SqlServerDbContextFixture.FixedNow);
     }
 
+    [Fact]
+    public async Task Handle_WhenASprintIsGoneFromTheSource_RemovesItsLinksInTheSameSave()
+    {
+        // Arrange — a link has no foreign key to its sprint, so nothing but the sync would remove it
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        await Sync([External(1, "Sprint 1", IterationType.Sprint), External(2, "Sprint 2", IterationType.Sprint)], ct);
+
+        Guid removedSprintId;
+        Guid keptSprintId;
+        await using (var seed = new WaydDbContextAccessor(_fixture))
+        {
+            var sprints = await seed.Context.Iterations
+                .Where(i => i.OwnershipInfo.SystemId == SystemId)
+                .ToDictionaryAsync(i => i.OwnershipInfo.ExternalId!, i => i.Id, ct);
+            removedSprintId = sprints["1"];
+            keptSprintId = sprints["2"];
+            foreach (var sprintId in sprints.Values)
+            {
+                seed.Context.Links.Add(Link.Create(WorkLinkOwners.Sprint.Key, sprintId, "Sprint goal", "https://example.com/goal",
+                    EventActor.System, SqlServerDbContextFixture.FixedNow).Value);
+            }
+
+            await seed.Context.SaveChangesAsync(ct);
+        }
+
+        // Act
+        await Sync([External(2, "Sprint 2", IterationType.Sprint)], ct);
+
+        // Assert
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        (await verify.Context.Iterations.AnyAsync(i => i.Id == removedSprintId, ct)).Should().BeFalse();
+        (await verify.Context.Links.AnyAsync(l => l.OwnerId == removedSprintId, ct)).Should().BeFalse();
+        (await verify.Context.Links.CountAsync(l => l.OwnerId == keptSprintId, ct)).Should().Be(1);
+        (await verify.Context.ActivityLogs.AsNoTracking()
+            .Where(a => a.AggregateType == "Link" && a.RelatedAggregates.Any(r => r.AggregateType == "Iteration" && r.AggregateId == removedSprintId))
+            .Select(a => a.EventType)
+            // Unordered: the fixed clock stamps both entries with the same instant.
+            .ToListAsync(ct)).Should().BeEquivalentTo("LinkAddedEvent", "LinkRemovedEvent");
+    }
+
     private async Task Sync(List<IExternalIteration<AzdoIterationMetadata>> iterations, CancellationToken ct, Dictionary<Guid, Guid?>? teamMappings = null)
     {
         await using var accessor = new WaydDbContextAccessor(_fixture);
+        var dateTimeProvider = Mock.Of<IDateTimeProvider>(p => p.Now == SqlServerDbContextFixture.FixedNow);
         var handler = new SyncAzureDevOpsIterationsCommandHandler(accessor.Context,
             NullLogger<SyncAzureDevOpsIterationsCommandHandler>.Instance,
-            Mock.Of<IDateTimeProvider>(p => p.Now == SqlServerDbContextFixture.FixedNow));
+            dateTimeProvider,
+            new LinkWriter(accessor.Context, [], dateTimeProvider));
 
         var result = await handler.Handle(new SyncAzureDevOpsIterationsCommand(SystemId, iterations, teamMappings ?? []), ct);
 

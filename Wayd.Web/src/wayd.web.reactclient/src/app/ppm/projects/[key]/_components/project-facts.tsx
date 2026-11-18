@@ -3,6 +3,7 @@
 import { WaydDateRange, WaydTooltip } from '@/src/components/common'
 import { ContentList, LabeledContent } from '@/src/components/common/content'
 import LinksCard from '@/src/components/common/links/links-card'
+import { LinkOwnerTypes } from '@/src/store/features/common/links-api'
 import TimelineProgress from '@/src/components/common/planning/timeline-progress'
 import {
   RecordFactsGroup,
@@ -168,7 +169,11 @@ const ProjectFacts = ({ project }: ProjectFactsProps) => {
 
       <Divider size="small" style={{ margin: 0 }} />
 
-      <LinksCard objectId={project.id} width="100%" />
+      <LinksCard
+        ownerType={LinkOwnerTypes.Project}
+        ownerId={project.id}
+        width="100%"
+      />
     </>
   )
 }

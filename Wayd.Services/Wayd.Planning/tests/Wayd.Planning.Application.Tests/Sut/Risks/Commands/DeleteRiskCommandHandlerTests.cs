@@ -1,3 +1,5 @@
+using Wayd.Common.Application.Links;
+using Wayd.Common.Domain.Events;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
@@ -18,11 +20,12 @@ public sealed class DeleteRiskCommandHandlerTests : IDisposable
     private readonly FakePlanningDbContext _dbContext = new();
     private readonly Mock<ICurrentUser> _currentUser = new();
     private readonly TestingDateTimeProvider _dateTimeProvider = new(new FakeClock(Now));
+    private readonly Mock<ILinkWriter> _linkWriter = new();
     private readonly DeleteRiskCommandHandler _handler;
 
     public DeleteRiskCommandHandlerTests()
     {
-        _handler = new DeleteRiskCommandHandler(_dbContext, _currentUser.Object, _dateTimeProvider, Mock.Of<ILogger<DeleteRiskCommandHandler>>());
+        _handler = new DeleteRiskCommandHandler(_dbContext, _currentUser.Object, _dateTimeProvider, Mock.Of<ILogger<DeleteRiskCommandHandler>>(), _linkWriter.Object);
     }
 
     [Fact]
@@ -43,6 +46,7 @@ public sealed class DeleteRiskCommandHandlerTests : IDisposable
         var deleted = risk.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<RiskDeletedEvent>().Subject;
         deleted.Id.Should().Be(risk.Id);
         deleted.Timestamp.Should().Be(Now);
+        _linkWriter.Verify(w => w.RemoveAll("planning.risk", risk.Id, It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Once);
         _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 

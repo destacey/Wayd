@@ -1,4 +1,5 @@
 using Wayd.Common.Application.Discussions;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Events;
 using Wayd.ProjectPortfolioManagement.Domain;
 
@@ -15,7 +16,7 @@ public sealed class DeleteProjectCommandValidator : AbstractValidator<DeleteProj
     }
 }
 
-public sealed class DeleteProjectCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ICurrentUser currentUser, ILogger<DeleteProjectCommandHandler> logger, IDateTimeProvider dateTimeProvider, IDiscussionWriter discussionWriter) : ICommandHandler<DeleteProjectCommand>
+public sealed class DeleteProjectCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ICurrentUser currentUser, ILogger<DeleteProjectCommandHandler> logger, IDateTimeProvider dateTimeProvider, IDiscussionWriter discussionWriter, ILinkWriter linkWriter) : ICommandHandler<DeleteProjectCommand>
 {
     private const string AppRequestName = nameof(DeleteProjectCommand);
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
@@ -23,6 +24,7 @@ public sealed class DeleteProjectCommandHandler(IProjectPortfolioManagementDbCon
     private readonly ILogger<DeleteProjectCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IDiscussionWriter _discussionWriter = discussionWriter;
+    private readonly ILinkWriter _linkWriter = linkWriter;
 
     public async Task<Result> Handle(DeleteProjectCommand request, CancellationToken cancellationToken)
     {
@@ -67,8 +69,9 @@ public sealed class DeleteProjectCommandHandler(IProjectPortfolioManagementDbCon
                 return Result.Failure(deleteResult.Error);
             }
 
-            // A channel has no foreign key to its record, so its messages would outlive the project.
+            // A channel and a link have no foreign key to their record, so they would outlive the project.
             await _discussionWriter.DeleteChannel(PpmDiscussionChannels.Project.Key, project.Id, actor, cancellationToken);
+            await _linkWriter.RemoveAll(PpmLinkOwners.Project.Key, project.Id, actor, cancellationToken);
             await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Project {ProjectId} deleted. Key: {ProjectKey}, Name: {ProjectName}", project.Id, project.Key.Value, project.Name);

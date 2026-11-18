@@ -1,3 +1,4 @@
+using Wayd.Common.Application.Links;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Wayd.Common.Application.Following.Queries;
@@ -74,7 +75,7 @@ public sealed class PlanningIntervalObjectiveFollowingTests(SqlServerDbContextFi
         await using (var delete = _fixture.CreateContext())
         {
             var handler = new DeletePlanningIntervalObjectiveCommandHandler(delete, SqlServerDbContextFixture.CurrentUser(),
-                SqlServerDbContextFixture.DateTimeProvider(now.Plus(Duration.FromHours(1))), NullLogger<DeletePlanningIntervalObjectiveCommandHandler>.Instance);
+                SqlServerDbContextFixture.DateTimeProvider(now.Plus(Duration.FromHours(1))), NullLogger<DeletePlanningIntervalObjectiveCommandHandler>.Instance, Mock.Of<ILinkWriter>());
             var deleted = await handler.Handle(new DeletePlanningIntervalObjectiveCommand(intervalId, deletedId), ct);
             deleted.IsSuccess.Should().BeTrue(deleted.IsFailure ? deleted.Error : null);
         }

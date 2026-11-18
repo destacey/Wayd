@@ -1,17 +1,24 @@
 'use client'
 
 import { Alert, Button, Card, Flex, Spin } from 'antd'
-import useAuth from '../../contexts/auth'
 import { EditOutlined, EditTwoTone, PlusOutlined } from '@ant-design/icons'
 import { useState } from 'react'
-import CreateLinkForm from './create-link-form'
+import LinkForm from './link-form'
 import LinkItem from './link-item'
 import WaydEmpty from '../wayd-empty'
-import { useGetLinksQuery } from '@/src/store/features/common/links-api'
+import {
+  LinkOwner,
+  LinkOwnerType,
+  useGetLinksQuery,
+} from '@/src/store/features/common/links-api'
 import { LinkDto } from '@/src/services/api/wayd.schemas'
+import { caseInsensitiveCompare } from '../wayd-grid'
 
 export interface LinksCardProps {
-  objectId: string
+  /** The kind of record the links are on, from `LinkOwnerTypes`. */
+  ownerType: LinkOwnerType
+  /** The record's id. */
+  ownerId: string
   width?: number | string
 }
 
@@ -32,26 +39,20 @@ const EditModeButton = ({
 )
 
 interface LinksContentProps {
+  owner: LinkOwner
   isLoading: boolean
-  hasLinks: boolean
-  linksData: LinkDto[]
+  links: LinkDto[]
   editModeEnabled: boolean
-  canUpdateLinks: boolean
-  canDeleteLinks: boolean
   error?: unknown
 }
 
 const LinksContent = ({
+  owner,
   isLoading,
-  hasLinks,
-  linksData,
+  links,
   editModeEnabled,
-  canUpdateLinks,
-  canDeleteLinks,
   error,
 }: LinksContentProps) => {
-  const sortedLinks = [...linksData].sort((a, b) => a.name.localeCompare(b.name))
-
   if (isLoading) {
     return <Spin size="small" />
   }
@@ -60,41 +61,55 @@ const LinksContent = ({
     return <Alert type="error" title="Failed to load links" showIcon />
   }
 
-  if (!hasLinks) {
+  if (links.length === 0) {
     return <WaydEmpty message="No links found" />
   }
+
+  const sortedLinks = [...links].sort((a, b) =>
+    caseInsensitiveCompare(a.name, b.name),
+  )
 
   return (
     <Flex vertical gap="small" style={{ width: '100%' }} role="list">
       {sortedLinks.map((item) => (
         <LinkItem
           key={item.id}
+          owner={owner}
           link={item}
           editModeEnabled={editModeEnabled}
-          canUpdateLinks={canUpdateLinks}
-          canDeleteLinks={canDeleteLinks}
         />
       ))}
     </Flex>
   )
 }
 
-const LinksCard = ({ objectId, width = 300 }: LinksCardProps) => {
+/**
+ * A record's links. Whether the viewer may add, change and remove them is the
+ * server's answer for this record (`canManage`), the same rule that lets them
+ * edit the record itself.
+ */
+const LinksCard = ({ ownerType, ownerId, width = 300 }: LinksCardProps) => {
   const [openCreateLinkForm, setOpenCreateLinkForm] = useState<boolean>(false)
   const [editModeEnabled, setEditModeEnabled] = useState<boolean>(false)
 
-  const {
-    data: linksData,
-    isLoading,
-    error,
-  } = useGetLinksQuery(objectId, { skip: !objectId })
+  const owner: LinkOwner = { ownerType, ownerId }
 
-  const hasLinks = linksData && linksData.length > 0
+  // currentData, not data: while a drawer moves to another record, data still holds the previous record's links and
+  // its canManage.
+  const { currentData, isFetching, error } = useGetLinksQuery(owner, {
+    skip: !ownerId,
+  })
 
-  const { hasPermissionClaim } = useAuth()
-  const canCreateLinks = hasPermissionClaim('Permissions.Links.Create')
-  const canUpdateLinks = hasPermissionClaim('Permissions.Links.Update')
-  const canDeleteLinks = hasPermissionClaim('Permissions.Links.Delete')
+  const links = currentData?.links ?? []
+  const canManage = currentData?.canManage ?? false
+  const isLoading = isFetching && !currentData
+
+  // Edit mode ends when there is nothing left to edit, so a link added afterwards is not shown already in it.
+  if (editModeEnabled && !isLoading && (!canManage || links.length === 0)) {
+    setEditModeEnabled(false)
+  }
+
+  const editing = editModeEnabled && canManage && links.length > 0
 
   return (
     <>
@@ -103,38 +118,36 @@ const LinksCard = ({ objectId, width = 300 }: LinksCardProps) => {
         title="Links"
         style={{ width }}
         extra={
-          <>
-            {canCreateLinks && (
+          canManage && (
+            <>
               <Button
                 type="text"
                 aria-label="Add new link"
                 icon={<PlusOutlined />}
                 onClick={() => setOpenCreateLinkForm(true)}
               />
-            )}
-            {hasLinks && (canUpdateLinks || canDeleteLinks) && (
-              <EditModeButton
-                editModeEnabled={editModeEnabled}
-                setEditModeEnabled={setEditModeEnabled}
-              />
-            )}
-          </>
+              {links.length > 0 && (
+                <EditModeButton
+                  editModeEnabled={editing}
+                  setEditModeEnabled={setEditModeEnabled}
+                />
+              )}
+            </>
+          )
         }
       >
         <LinksContent
+          owner={owner}
           isLoading={isLoading}
-          hasLinks={hasLinks}
-          linksData={linksData || []}
-          editModeEnabled={editModeEnabled}
-          canUpdateLinks={canUpdateLinks}
-          canDeleteLinks={canDeleteLinks}
+          links={links}
+          editModeEnabled={editing}
           error={error}
         />
       </Card>
       {openCreateLinkForm && (
-        <CreateLinkForm
-          objectId={objectId}
-          onFormCreate={() => setOpenCreateLinkForm(false)}
+        <LinkForm
+          owner={owner}
+          onFormComplete={() => setOpenCreateLinkForm(false)}
           onFormCancel={() => setOpenCreateLinkForm(false)}
         />
       )}

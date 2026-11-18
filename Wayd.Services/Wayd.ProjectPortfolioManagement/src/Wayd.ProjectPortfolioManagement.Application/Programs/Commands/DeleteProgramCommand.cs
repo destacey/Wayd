@@ -1,5 +1,7 @@
-﻿using Wayd.Common.Domain.Events;
+﻿using Wayd.Common.Application.Links;
+using Wayd.Common.Domain.Events;
 using Wayd.ProjectPortfolioManagement.Application.Projects;
+using Wayd.ProjectPortfolioManagement.Domain;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
 
@@ -18,10 +20,13 @@ public sealed class DeleteProgramCommandHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ICurrentUser currentUser,
     ILogger<DeleteProgramCommandHandler> logger,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    ILinkWriter linkWriter)
     : ICommandHandler<DeleteProgramCommand>
 {
     private const string AppRequestName = nameof(DeleteProgramCommand);
+
+    private readonly ILinkWriter _linkWriter = linkWriter;
 
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -52,12 +57,16 @@ public sealed class DeleteProgramCommandHandler(
                 return Result.Failure("Portfolio not found.");
             }
 
-            var deleteResult = portfolio.DeleteProgram(program.Id, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+            var actor = EventActor.User(_currentUser.GetUserId());
+            var deleteResult = portfolio.DeleteProgram(program.Id, actor, _dateTimeProvider.Now);
             if (deleteResult.IsFailure)
             {
                 _logger.LogError("Error deleting program {ProgramId}. Error message: {Error}", request.Id, deleteResult.Error);
                 return Result.Failure(deleteResult.Error);
             }
+
+            // A link has no foreign key to its record, so it would outlive the program.
+            await _linkWriter.RemoveAll(PpmLinkOwners.Program.Key, program.Id, actor, cancellationToken);
 
             await _ppmDbContext.SaveChangesAsync(cancellationToken);
 

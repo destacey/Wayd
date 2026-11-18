@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Domain.Events;
+﻿using Wayd.Common.Application.Links;
+using Wayd.Common.Domain.Events;
+using Wayd.ProjectPortfolioManagement.Domain;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
 
@@ -13,9 +15,11 @@ public sealed class DeleteProjectPortfolioCommandValidator : AbstractValidator<D
     }
 }
 
-public sealed class DeleteProjectPortfolioCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ICurrentUser currentUser, ILogger<DeleteProjectPortfolioCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<DeleteProjectPortfolioCommand>
+public sealed class DeleteProjectPortfolioCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ICurrentUser currentUser, ILogger<DeleteProjectPortfolioCommandHandler> logger, IDateTimeProvider dateTimeProvider, ILinkWriter linkWriter) : ICommandHandler<DeleteProjectPortfolioCommand>
 {
     private const string AppRequestName = nameof(DeleteProjectPortfolioCommand);
+
+    private readonly ILinkWriter _linkWriter = linkWriter;
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -35,7 +39,8 @@ public sealed class DeleteProjectPortfolioCommandHandler(IProjectPortfolioManage
                 return Result.Failure("Project Portfolio not found.");
             }
 
-            var deleteResult = portfolio.Delete(EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+            var actor = EventActor.User(_currentUser.GetUserId());
+            var deleteResult = portfolio.Delete(actor, _dateTimeProvider.Now);
             if (deleteResult.IsFailure)
             {
                 _logger.LogInformation("Project Portfolio {ProjectPortfolioId} cannot be deleted. Error message: {Error}", request.Id, deleteResult.Error);
@@ -43,6 +48,9 @@ public sealed class DeleteProjectPortfolioCommandHandler(IProjectPortfolioManage
             }
 
             _projectPortfolioManagementDbContext.Portfolios.Remove(portfolio);
+
+            // A link has no foreign key to its record, so it would outlive the portfolio.
+            await _linkWriter.RemoveAll(PpmLinkOwners.Portfolio.Key, portfolio.Id, actor, cancellationToken);
             await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Project Portfolio {ProjectPortfolioId} deleted.", request.Id);

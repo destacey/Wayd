@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Wayd.Links.Models;
+using Wayd.Common.Domain.Links;
 
 namespace Wayd.Infrastructure.Persistence.Configuration;
 
@@ -12,14 +12,13 @@ public class LinkConfiguration : IEntityTypeConfiguration<Link>
 
         builder.HasKey(o => o.Id);
 
-        builder.HasIndex(o => o.Id)
-            .IncludeProperties(o => new { o.ObjectId, o.Name, o.Url });
-        builder.HasIndex(o => o.ObjectId)
-            .IncludeProperties(o => new { o.Id, o.Name, o.Url });
+        // Every read is one record's links. No foreign key: the owner is any module's record, held by type and id.
+        builder.HasIndex(o => new { o.OwnerType, o.OwnerId });
 
         builder.Property(o => o.Id).ValueGeneratedNever();
-        builder.Property(o => o.ObjectId).IsRequired();
-        builder.Property(o => o.Name).IsRequired().HasMaxLength(128);
+        builder.Property(o => o.OwnerType).IsRequired().HasMaxLength(LinkOwnerTypeDescriptor.KeyMaxLength).IsUnicode(false);
+        builder.Property(o => o.OwnerId).IsRequired();
+        builder.Property(o => o.Name).IsRequired().HasMaxLength(Link.NameMaxLength);
         builder.Property(o => o.Url).IsRequired();
     }
 }

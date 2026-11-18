@@ -2,6 +2,7 @@
 
 import { LabeledContent } from '@/src/components/common/content'
 import LinksCard from '@/src/components/common/links/links-card'
+import { LinkOwnerTypes } from '@/src/store/features/common/links-api'
 import {
   RecordFactsGroup,
   RecordPersonLink,
@@ -181,7 +182,11 @@ const RiskFacts = ({ risk }: RiskFactsProps) => {
 
       <Divider size="small" style={{ margin: 0 }} />
 
-      <LinksCard objectId={risk.id} width="100%" />
+      <LinksCard
+        ownerType={LinkOwnerTypes.Risk}
+        ownerId={risk.id}
+        width="100%"
+      />
     </>
   )
 }

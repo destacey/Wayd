@@ -73,7 +73,7 @@ Wayd/
     Wayd.ProjectPortfolioManagement/  # Portfolios, programs, projects, tasks
     Wayd.StrategicManagement/     # Visions, strategies, themes
     Wayd.AppIntegration/          # Integration configuration
-    Wayd.Links/                   # Cross-entity relationships
+    Wayd.Links/                   # Web links kept on any module's records
   Wayd.Infrastructure/            # EF Core, auth, jobs, logging
   Wayd.Integrations/              # Azure DevOps, Microsoft Graph
   Wayd.Web/

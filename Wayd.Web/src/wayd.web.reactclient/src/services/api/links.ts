@@ -5,9 +5,9 @@
  * OpenAPI spec version: v1
  */
 import type {
-  CreateLinkRequest,
   LinkDto,
-  UpdateLinkRequest
+  LinkRequest,
+  RecordLinksDto
 } from './wayd.schemas';
 
 import { apiFetch } from '../api-fetch';
@@ -33,20 +33,23 @@ const getHeaders = (...sources: (RequestInit['headers'] | Record<string, string 
   return Object.fromEntries(layers.reverse().flat()) as Extract<RequestInit['headers'], Record<string, unknown>>;
 };
 
-export const getLinksGetListUrl = (objectId: string,) => {
+export const getLinksGetLinksUrl = (ownerType: string,
+    ownerId: string,) => {
 
 
 
 
-  return `/api/links/${encodeURIComponent(String(objectId))}/list`
+  return `/api/links/${encodeURIComponent(String(ownerType))}/${encodeURIComponent(String(ownerId))}`
 }
 
 /**
- * @summary Get a list of links for a specific objectId.
+ * `ownerType` names the kind of record — `organization.team`, `planning.planning-interval`, `planning.planning-interval-objective`, `planning.risk`, `ppm.portfolio`, `ppm.program`, `ppm.project`, `ppm.strategic-initiative`, `product.incident` or `work.sprint` — and `ownerId` is the record's UUID, not its key; an `ownerType` that cannot carry links returns 400. Returns 404 when the record does not exist or you cannot read it. Returns the record's links by name, and whether you may change them (`canManage`).
+ * @summary Get a record's links.
  */
-export const linksGetList = async (objectId: string, options?: Parameters<typeof apiFetch>[1]): Promise<LinkDto[]> => {
+export const linksGetLinks = async (ownerType: string,
+    ownerId: string, options?: Parameters<typeof apiFetch>[1]): Promise<RecordLinksDto> => {
 
-  return apiFetch<LinkDto[]>(getLinksGetListUrl(objectId),
+  return apiFetch<RecordLinksDto>(getLinksGetLinksUrl(ownerType,ownerId),
   {
     ...options,
     method: 'GET'
@@ -56,20 +59,52 @@ export const linksGetList = async (objectId: string, options?: Parameters<typeof
 );}
 
 
-export const getLinksGetByIdUrl = (id: string,) => {
+export const getLinksCreateUrl = (ownerType: string,
+    ownerId: string,) => {
 
 
 
 
-  return `/api/links/${encodeURIComponent(String(id))}`
+  return `/api/links/${encodeURIComponent(String(ownerType))}/${encodeURIComponent(String(ownerId))}`
 }
 
 /**
- * @summary Get a link by id.
+ * `ownerType` names the kind of record — `organization.team`, `planning.planning-interval`, `planning.planning-interval-objective`, `planning.risk`, `ppm.portfolio`, `ppm.program`, `ppm.project`, `ppm.strategic-initiative`, `product.incident` or `work.sprint` — and `ownerId` is the record's UUID, not its key; an `ownerType` that cannot carry links returns 400. Returns 404 when the record does not exist or you cannot read it. Returns the new link's id. The address must be a full web address. Needs what editing the record itself needs: its `Update` permission (`Manage` for a planning interval objective); for a project, program or portfolio, delivery leadership as well, and never on an archived portfolio; for a sprint, membership of its team or team of teams, which `Permissions.Iterations.Administer` waives; for an incident, an account linked to an employee. Returns 403 otherwise.
+ * @summary Add a link to a record.
  */
-export const linksGetById = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<LinkDto> => {
+export const linksCreate = async (ownerType: string,
+    ownerId: string,
+    linkRequest: LinkRequest, options?: Parameters<typeof apiFetch>[1]): Promise<string> => {
 
-  return apiFetch<LinkDto>(getLinksGetByIdUrl(id),
+  return apiFetch<string>(getLinksCreateUrl(ownerType,ownerId),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(linkRequest)
+  }
+);}
+
+
+export const getLinksGetLinkUrl = (ownerType: string,
+    ownerId: string,
+    linkId: string,) => {
+
+
+
+
+  return `/api/links/${encodeURIComponent(String(ownerType))}/${encodeURIComponent(String(ownerId))}/${encodeURIComponent(String(linkId))}`
+}
+
+/**
+ * `ownerType` names the kind of record — `organization.team`, `planning.planning-interval`, `planning.planning-interval-objective`, `planning.risk`, `ppm.portfolio`, `ppm.program`, `ppm.project`, `ppm.strategic-initiative`, `product.incident` or `work.sprint` — and `ownerId` is the record's UUID, not its key; an `ownerType` that cannot carry links returns 400. Returns 404 when the record does not exist or you cannot read it. Returns 404 too when the link is on another record.
+ * @summary Get one of a record's links.
+ */
+export const linksGetLink = async (ownerType: string,
+    ownerId: string,
+    linkId: string, options?: Parameters<typeof apiFetch>[1]): Promise<LinkDto> => {
+
+  return apiFetch<LinkDto>(getLinksGetLinkUrl(ownerType,ownerId,linkId),
   {
     ...options,
     method: 'GET'
@@ -79,72 +114,59 @@ export const linksGetById = async (id: string, options?: Parameters<typeof apiFe
 );}
 
 
-export const getLinksUpdateUrl = (id: string,) => {
+export const getLinksUpdateUrl = (ownerType: string,
+    ownerId: string,
+    linkId: string,) => {
 
 
 
 
-  return `/api/links/${encodeURIComponent(String(id))}`
+  return `/api/links/${encodeURIComponent(String(ownerType))}/${encodeURIComponent(String(ownerId))}/${encodeURIComponent(String(linkId))}`
 }
 
 /**
- * @summary Update a link.
+ * `ownerType` names the kind of record — `organization.team`, `planning.planning-interval`, `planning.planning-interval-objective`, `planning.risk`, `ppm.portfolio`, `ppm.program`, `ppm.project`, `ppm.strategic-initiative`, `product.incident` or `work.sprint` — and `ownerId` is the record's UUID, not its key; an `ownerType` that cannot carry links returns 400. Returns 404 when the record does not exist or you cannot read it. Send both fields, including the one that stays. A new address must be a full web address. Needs what editing the record itself needs: its `Update` permission (`Manage` for a planning interval objective); for a project, program or portfolio, delivery leadership as well, and never on an archived portfolio; for a sprint, membership of its team or team of teams, which `Permissions.Iterations.Administer` waives; for an incident, an account linked to an employee. Returns 403 otherwise.
+ * @summary Change a link's name and address.
  */
-export const linksUpdate = async (id: string,
-    updateLinkRequest: UpdateLinkRequest, options?: Parameters<typeof apiFetch>[1]): Promise<LinkDto> => {
+export const linksUpdate = async (ownerType: string,
+    ownerId: string,
+    linkId: string,
+    linkRequest: LinkRequest, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
 
-  return apiFetch<LinkDto>(getLinksUpdateUrl(id),
+  return apiFetch<void>(getLinksUpdateUrl(ownerType,ownerId,linkId),
   {
     ...options,
     method: 'PUT',
     headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
-    body: JSON.stringify(updateLinkRequest)
+    body: JSON.stringify(linkRequest)
   }
 );}
 
 
-export const getLinksDeleteUrl = (id: string,) => {
+export const getLinksDeleteUrl = (ownerType: string,
+    ownerId: string,
+    linkId: string,) => {
 
 
 
 
-  return `/api/links/${encodeURIComponent(String(id))}`
+  return `/api/links/${encodeURIComponent(String(ownerType))}/${encodeURIComponent(String(ownerId))}/${encodeURIComponent(String(linkId))}`
 }
 
 /**
- * @summary Delete a link.
+ * `ownerType` names the kind of record — `organization.team`, `planning.planning-interval`, `planning.planning-interval-objective`, `planning.risk`, `ppm.portfolio`, `ppm.program`, `ppm.project`, `ppm.strategic-initiative`, `product.incident` or `work.sprint` — and `ownerId` is the record's UUID, not its key; an `ownerType` that cannot carry links returns 400. Returns 404 when the record does not exist or you cannot read it. Needs what editing the record itself needs: its `Update` permission (`Manage` for a planning interval objective); for a project, program or portfolio, delivery leadership as well, and never on an archived portfolio; for a sprint, membership of its team or team of teams, which `Permissions.Iterations.Administer` waives; for an incident, an account linked to an employee. Returns 403 otherwise.
+ * @summary Remove a link from a record.
  */
-export const linksDelete = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+export const linksDelete = async (ownerType: string,
+    ownerId: string,
+    linkId: string, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
 
-  return apiFetch<void>(getLinksDeleteUrl(id),
+  return apiFetch<void>(getLinksDeleteUrl(ownerType,ownerId,linkId),
   {
     ...options,
     method: 'DELETE'
 
 
-  }
-);}
-
-
-export const getLinksCreateUrl = () => {
-
-
-
-
-  return `/api/links`
-}
-
-/**
- * @summary Create a link.
- */
-export const linksCreate = async (createLinkRequest: CreateLinkRequest, options?: Parameters<typeof apiFetch>[1]): Promise<string> => {
-
-  return apiFetch<string>(getLinksCreateUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
-    body: JSON.stringify(createLinkRequest)
   }
 );}
 

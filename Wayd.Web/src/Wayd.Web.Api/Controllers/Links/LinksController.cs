@@ -1,166 +1,123 @@
-﻿using Wayd.Links.Commands;
-using Wayd.Work.Application.Persistence;
+﻿using Microsoft.AspNetCore.Authorization;
+using Wayd.Links;
+using Wayd.Links.Commands;
+using Wayd.Common.Domain.Links;
 using Wayd.Links.Models;
 using Wayd.Links.Queries;
-using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.Links;
 
 namespace Wayd.Web.Api.Controllers.Links;
 
-[Route("api/[controller]")]
+/// <summary>
+/// The links on a record — a project, a team, and every kind of record that registers a link owner type.
+/// </summary>
+/// <remarks>
+/// Needs only a signed-in account: every action asks the record's own owner type what the caller may read and change,
+/// from the record as it is now. A record the caller cannot read is 404, never 403.
+/// </remarks>
+[Route("api/links/{ownerType}/{ownerId:guid}")]
 [ApiController]
-public class LinksController : ControllerBase
+[Authorize]
+public class LinksController(IDispatcher dispatcher) : ControllerBase
 {
-    private readonly ILogger<LinksController> _logger;
-    private readonly IDispatcher _dispatcher;
-    private readonly IWorkDbContext _workDbContext;
+    private const string OwnerDocs =
+        "`ownerType` names the kind of record — `organization.team`, `planning.planning-interval`, `planning.planning-interval-objective`, `planning.risk`, `ppm.portfolio`, `ppm.program`, `ppm.project`, `ppm.strategic-initiative`, `product.incident` or `work.sprint` — and `ownerId` is the record's UUID, not its key; an `ownerType` that cannot carry links returns 400. Returns 404 when the record does not exist or you cannot read it.";
 
-    public LinksController(ILogger<LinksController> logger, IDispatcher dispatcher, IWorkDbContext workDbContext)
-    {
-        _logger = logger;
-        _dispatcher = dispatcher;
-        _workDbContext = workDbContext;
-    }
+    private const string ManageDocs =
+        "Needs what editing the record itself needs: its `Update` permission (`Manage` for a planning interval objective); for a project, program or portfolio, delivery leadership as well, and never on an archived portfolio; for a sprint, membership of its team or team of teams, which `Permissions.Iterations.Administer` waives; for an incident, an account linked to an employee. Returns 403 otherwise.";
 
-    [HttpGet("{objectId}/list")]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.Links)]
-    [EndpointSummary("Get a list of links for a specific objectId.")]
+    private readonly IDispatcher _dispatcher = dispatcher;
+
+    [HttpGet]
+    [EndpointSummary("Get a record's links.")]
+    [EndpointDescription($"{OwnerDocs} Returns the record's links by name, and whether you may change them (`canManage`).")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IReadOnlyList<LinkDto>>> GetList(Guid objectId, CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<RecordLinksDto>> GetLinks(string ownerType, Guid ownerId, CancellationToken cancellationToken)
     {
-        var links = await _dispatcher.Send(new GetLinksQuery(objectId), cancellationToken);
-        return Ok(links);
+        var result = await _dispatcher.Send(new GetLinksQuery(ownerType, ownerId), cancellationToken);
+
+        if (result.IsFailure)
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(result.Error, HttpContext));
+
+        return result.Value is not null ? Ok(result.Value) : NotFound();
     }
 
-    [HttpGet("{id}")]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.Links)]
-    [EndpointSummary("Get a link by id.")]
+    [HttpGet("{linkId:guid}")]
+    [EndpointSummary("Get one of a record's links.")]
+    [EndpointDescription($"{OwnerDocs} Returns 404 too when the link is on another record.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<LinkDto>> GetById(Guid id, CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<LinkDto>> GetLink(string ownerType, Guid ownerId, Guid linkId, CancellationToken cancellationToken)
     {
-        var link = await _dispatcher.Send(new GetLinkQuery(id), cancellationToken);
-        return link is not null
-            ? Ok(link)
-            : NotFound();
+        var result = await _dispatcher.Send(new GetLinkQuery(ownerType, ownerId, linkId), cancellationToken);
+
+        if (result.IsFailure)
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(result.Error, HttpContext));
+
+        return result.Value is not null ? Ok(result.Value) : NotFound();
     }
 
     [HttpPost]
-    [MustHavePermission(ApplicationAction.Create, ApplicationResource.Links)]
-    [EndpointSummary("Create a link.")]
-    [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
-    public async Task<ActionResult> Create([FromBody] CreateLinkRequest request, CancellationToken cancellationToken)
-    {
-        await using var unitOfWork = await _workDbContext.BeginUnitOfWork(cancellationToken);
-        var result = await _dispatcher.Send(request.ToCreateLinkCommand(), cancellationToken);
-
-        if (result.IsFailure)
-        {
-            return BadRequest(result.ToBadRequestObject(HttpContext));
-        }
-
-        var recorded = await IncidentTimelineLinkRecording.RecordGenericLinkChangeAsync(
-            _dispatcher,
-            request.ObjectId,
-            IncidentTimelineLinkAction.Added,
-            request.Name,
-            fromLabel: null,
-            toLabel: null,
-            cancellationToken,
-            result.Value);
-
-        if (recorded.IsFailure)
-        {
-            return BadRequest(recorded.ToBadRequestObject(HttpContext));
-        }
-
-        await unitOfWork.CommitAsync(cancellationToken);
-        return CreatedAtAction(nameof(GetById), new { id = result.Value }, result.Value);
-    }
-
-    [HttpPut("{id}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Links)]
-    [EndpointSummary("Update a link.")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [EndpointSummary("Add a link to a record.")]
+    [EndpointDescription($"{OwnerDocs} Returns the new link's id. The address must be a full web address. {ManageDocs}")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult<LinkDto>> Update(Guid id, [FromBody] UpdateLinkRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<Guid>> Create(string ownerType, Guid ownerId, [FromBody] LinkRequest request, CancellationToken cancellationToken)
     {
-        if (id != request.Id)
-            return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
+        var result = await _dispatcher.Send(new CreateLinkCommand(ownerType, ownerId, request.Name, request.Url), cancellationToken);
 
-        var existing = await _dispatcher.Send(new GetLinkQuery(id), cancellationToken);
-        if (existing is null)
-            return NotFound();
-
-        await using var unitOfWork = await _workDbContext.BeginUnitOfWork(cancellationToken);
-        var result = await _dispatcher.Send(request.ToUpdateLinkCommand(), cancellationToken);
-
-        if (result.IsFailure)
-        {
-            return BadRequest(result.ToBadRequestObject(HttpContext));
-        }
-
-        if (!string.Equals(existing.Name, result.Value.Name, StringComparison.Ordinal)
-            || !string.Equals(existing.Url, result.Value.Url, StringComparison.Ordinal))
-        {
-            var recorded = await IncidentTimelineLinkRecording.RecordGenericLinkChangeAsync(
-                _dispatcher,
-                result.Value.ObjectId,
-                IncidentTimelineLinkAction.Updated,
-                $"{existing.Name} → {result.Value.Name}",
-                existing.Name,
-                result.Value.Name,
-                cancellationToken,
-                result.Value.Id);
-
-            if (recorded.IsFailure)
-            {
-                return BadRequest(recorded.ToBadRequestObject(HttpContext));
-            }
-        }
-
-        await unitOfWork.CommitAsync(cancellationToken);
-        return Ok(result.Value);
+        return result.IsSuccess
+            ? CreatedAtAction(nameof(GetLink), new { ownerType, ownerId, linkId = result.Value }, result.Value)
+            : ErrorResult(result.Error);
     }
 
-    [HttpDelete("{id}")]
-    [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Links)]
-    [EndpointSummary("Delete a link.")]
+    [HttpPut("{linkId:guid}")]
+    [EndpointSummary("Change a link's name and address.")]
+    [EndpointDescription($"{OwnerDocs} Send both fields, including the one that stays. A new address must be a full web address. {ManageDocs}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> Update(string ownerType, Guid ownerId, Guid linkId, [FromBody] LinkRequest request, CancellationToken cancellationToken)
     {
-        var link = await _dispatcher.Send(new GetLinkQuery(id), cancellationToken);
-        if (link is null)
+        var result = await _dispatcher.Send(new UpdateLinkCommand(ownerType, ownerId, linkId, request.Name, request.Url), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : ErrorResult(result.Error);
+    }
+
+    [HttpDelete("{linkId:guid}")]
+    [EndpointSummary("Remove a link from a record.")]
+    [EndpointDescription($"{OwnerDocs} {ManageDocs}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> Delete(string ownerType, Guid ownerId, Guid linkId, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new DeleteLinkCommand(ownerType, ownerId, linkId), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : ErrorResult(result.Error);
+    }
+
+    private ActionResult ErrorResult(string error)
+    {
+        if (LinkAccessErrors.IsNotFound(error))
             return NotFound();
 
-        await using var unitOfWork = await _workDbContext.BeginUnitOfWork(cancellationToken);
-        var result = await _dispatcher.Send(new DeleteLinkCommand(id), cancellationToken);
+        if (LinkAccessErrors.IsForbidden(error))
+            return Problem(detail: error, statusCode: StatusCodes.Status403Forbidden);
 
-        if (result.IsFailure)
-        {
-            return BadRequest(result.ToBadRequestObject(HttpContext));
-        }
-
-        var recorded = await IncidentTimelineLinkRecording.RecordGenericLinkChangeAsync(
-            _dispatcher,
-            link.ObjectId,
-            IncidentTimelineLinkAction.Removed,
-            link.Name,
-            fromLabel: null,
-            toLabel: null,
-            cancellationToken,
-            id);
-
-        if (recorded.IsFailure)
-        {
-            return BadRequest(recorded.ToBadRequestObject(HttpContext));
-        }
-
-        await unitOfWork.CommitAsync(cancellationToken);
-        return NoContent();
+        return BadRequest(ProblemDetailsExtensions.ForBadRequest(error, HttpContext));
     }
 }

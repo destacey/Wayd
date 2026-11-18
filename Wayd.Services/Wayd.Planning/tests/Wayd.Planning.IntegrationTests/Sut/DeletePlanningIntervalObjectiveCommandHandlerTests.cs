@@ -1,3 +1,5 @@
+using Moq;
+using Wayd.Common.Application.Links;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -54,7 +56,7 @@ public sealed class DeletePlanningIntervalObjectiveCommandHandlerTests(SqlServer
         await using (var context = _fixture.CreateContext())
         {
             var handler = new DeletePlanningIntervalObjectiveCommandHandler(context, SqlServerDbContextFixture.CurrentUser(),
-                SqlServerDbContextFixture.DateTimeProvider(now.Plus(Duration.FromHours(1))), NullLogger<DeletePlanningIntervalObjectiveCommandHandler>.Instance);
+                SqlServerDbContextFixture.DateTimeProvider(now.Plus(Duration.FromHours(1))), NullLogger<DeletePlanningIntervalObjectiveCommandHandler>.Instance, Mock.Of<ILinkWriter>());
             result = await handler.Handle(new DeletePlanningIntervalObjectiveCommand(intervalId, objectiveId), ct);
         }
 

@@ -23,7 +23,7 @@ using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.Settings;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Infrastructure.Persistence.Context;
-using Wayd.Links.Models;
+using Wayd.Common.Domain.Links;
 using Wayd.Organization.Domain.Models;
 using Wayd.Planning.Domain.Models;
 using Wayd.Planning.Domain.Models.PlanningPoker;
@@ -84,6 +84,7 @@ public partial class EventCoverageTests
         typeof(ExternalIdentityMapping),
         typeof(Kpi),
         typeof(KpiCategory),
+        typeof(Link),
         typeof(OidcProvider),
         typeof(PersonalAccessToken),
         typeof(RecordType),
@@ -256,7 +257,6 @@ public partial class EventCoverageTests
         [typeof(Vision)] = "#951.",
         [typeof(ExpenditureCategory)] = "#952.",
         [typeof(FeatureFlag)] = "#952.",
-        [typeof(Link)] = "#952.",
         [typeof(IncidentSeveritySet)] = "#1184.",
         [typeof(IncidentSeveritySetAssignment)] = "#1184.",
         [typeof(ProductType)] = "#952.",
@@ -312,6 +312,8 @@ public partial class EventCoverageTests
     /// </summary>
     private static readonly Dictionary<string, string> SetBasedWriteMigrations = new()
     {
+        ["20261118015213_Gate-Links-By-Owner.cs"] =
+            "Names each link's owner type from the record it was on, removes links whose record is gone and completes scheme-less addresses, before a link raised any event; the baseline backfill that follows records what remains: #1490.",
         ["20261101202418_Assign-WorkflowSchemes-To-Scopes.cs"] =
             "Points each assignment at an implicit default-only scheme for the workflow it already had; no scope's workflow changed: #1232.",
         ["20260926204406_Store-ReleasePackage-ReleasedAt-As-Instant.cs"] =

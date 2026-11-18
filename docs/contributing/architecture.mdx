@@ -90,7 +90,7 @@ Wayd/
     Wayd.StrategicManagement/   # Visions, strategies, strategic themes
     Wayd.DemandManagement/      # Intake desks, channels and intake requests
     Wayd.AppIntegration/ # Integration configuration and the sync runners
-    Wayd.Links/          # Cross-entity relationships
+    Wayd.Links/          # Web links kept on any module's records
 
   Wayd.Infrastructure/   # EF Core, migrations, auth, messaging, jobs
   Wayd.Integrations/     # External system clients (Azure DevOps, Microsoft Graph, Workday)
@@ -205,6 +205,8 @@ The read side mirrors the same rule as `canManageProject` / `canManageProgram` /
 
 **Intake requests are gated by desk role alone, and read in tiers.** Demand Management follows a different principle from PPM and sprints: a claim says what someone may do anywhere, a role on a container says what they may do in it, and no action needs both. So acting on a request needs only being an Agent or Desk Admin on its desk (`IntakeDeskMember.Role`), and its endpoints need only a signed-in user; the handler decides through `IntakeRequestReader.IsAgentOn` and `IsDeskAdminOn`, which read memberships from the database and treat an inactive employee as a member of nothing. `Permissions.IntakeRequests.View` only widens what a reader browses, and `Administer` is the top role on every desk rather than a waiver beside a resource permission. Submitting, and reading one's own requests, need no claim at all. The motive is administration: a claim that does nothing until its holder is also named on a container has to be kept in step with that container by a different person on a different screen, and drift shows up only as someone who cannot act. Reads are stricter than anywhere else: a request is read in summary, substance and internal tiers, and the desk's visibility decides who holds which. `IntakeRequestReader.CanSeeSummary` and `CanSeeSubstance` are expressions that every query and command applies in SQL, so a private desk's requests are absent from lists and counts rather than redacted, and a command on a request the caller cannot see fails exactly as a missing one does (`IntakeRequestAuthorization.NotFoundError`, 404). The DTOs are one object per tier, and every request event declares its tier (`IIntakeRequestEvent.ReadTier`) so the request's history is filtered by event type before paging. Working one desk grants nothing on another. In-memory fakes cannot prove the expressions translate; `DemandManagementReadTests` and `DemandManagementCommandTests` run them on SQL Server.
 
+**Links, KPIs and discussions take their rule from the record they are on.** None stores who may read or change it: each asks the record's module, through an owner, subject or channel type registered per kind of record, from the record as it is now. See [Links](#links), [KPIs](#kpis) and [Discussions](#discussions).
+
 See [Permissions](../user-guide/settings/permissions.mdx) for the user-facing rule.
 
 ### No Repository Pattern
@@ -226,7 +228,7 @@ Wayd.Services/Wayd.\{ServiceName\}/
     Wayd.\{ServiceName\}.IntegrationTests/   # where the service has Testcontainers tests
 ```
 
-`Wayd.Links` is the one service without the split: it is a single `Wayd.Links` project.
+`Wayd.Links` is the one service without the split: it is a single `Wayd.Links` project holding the link commands and queries. Its aggregate, `Link`, lives in `Wayd.Common.Domain/Links` with the owner type registry, as the KPI and discussion aggregates do.
 
 ### Feature Folders
 
@@ -514,6 +516,44 @@ A KPI (`Common.Domain/Kpis`, schema `Kpis`) is on a **subject** held by a regist
 id, like a discussion channel: modules register their subject types and answer who may read and change a record's KPIs,
 and the core never knows what a team or project is. A **scorecard** is a view of a record's active KPIs, never stored.
 See [KPIs](./kpis.mdx) for the model and the steps to put KPIs on a new kind of record.
+
+### Links
+
+A link (`Common.Domain/Links`, schema `Links`) is a named web address on an **owner**: a registered owner type string
+and the record's id, with no foreign key, like a KPI's subject. The link endpoints (`/api/links/{ownerType}/{ownerId}`)
+carry `[Authorize]` only. Every command and query asks the record's `ILinkOwnerType` first, through
+`LinkOwnerAccessResolver`, which also refuses a read-only token: null means the caller cannot read the record (404),
+and `CanManage` says whether they may change its links (403 otherwise). The list returns `canManage`, which is all the
+client gates on.
+
+**Managing a record's links is editing the record.** An owner type answers by the rule the record's own edit applies,
+never a looser one: the update permission, plus delivery leadership for a project, program or portfolio (with the
+ancestor roles loaded, as any PPM handler must), team membership for a sprint, and whatever state makes the record
+read-only. A record edited by a permission alone derives from `PermissionLinkOwnerType`.
+
+**Every change goes through `ILinkWriter`**, which checks no caller and never saves. A link command resolves access
+and then calls it; a module deleting its own record calls `RemoveAll` in the same save, because nothing else would
+remove the links; an import calls it with no caller to ask. The writer raises the link's events, each filed on the
+owner's Activity as well through `IRelatedAggregateEvent`, and tells the owner type through `OnChanged`, tracked in
+the same unit of work — an incident writes its timeline entry there.
+
+To put links on another kind of record:
+
+1. **Declare the descriptor** in the module's domain project, beside a `Register()` method, like `PpmLinkOwners`. Its
+   key is persisted on every link and must never change; spell it as the record's follow owner type when it has one.
+   Its activity aggregate type must be the one the record's own events are filed under.
+2. **Implement `ILinkOwnerType`** in the module's Application project, public so Wolverine's generated handlers can
+   construct it.
+3. **Register both** in `Wayd.Infrastructure/Links/ConfigureServices.cs`. `LinkRegistrationTests` fails an owner type
+   with no implementation.
+4. **Remove the links where the record is deleted**: call `ILinkWriter.RemoveAll` in the delete handler, before its
+   save.
+5. **Add the owner type to the client**: its key in `LinkOwnerTypes` in `links-api.ts`, and a `LinksCard` on the
+   record's page.
+6. **Update the docs**: the Links table in [Permissions](../user-guide/settings/permissions.mdx#links-the-record-they-are-on),
+   and the `ownerType` list in `LinksController`'s endpoint descriptions.
+
+No migration is needed: every owner type shares the same table.
 
 ## Connector framework
 

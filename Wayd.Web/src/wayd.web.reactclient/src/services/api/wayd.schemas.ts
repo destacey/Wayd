@@ -6063,6 +6063,14 @@ export interface ImportIncidentRequest {
      * @nullable
      */
   recoveredAt?: string | null;
+  /**
+     * Links to add to the incident, separated by semicolons, each written Name|URL — for example
+     * `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;,
+     * and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects
+     * the row.
+     * @nullable
+     */
+  links?: string | null;
 }
 
 /**
@@ -6450,6 +6458,14 @@ export interface ImportPlanningIntervalObjectivesRequest {
      * @nullable
      */
   order?: number | null;
+  /**
+     * Links to add to the objective, separated by semicolons, each written Name|URL — for example
+     * `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;,
+     * and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects
+     * the row.
+     * @nullable
+     */
+  links?: string | null;
 }
 
 /**
@@ -6499,6 +6515,14 @@ export interface ImportPlanningIntervalRequest {
      * @nullable
      */
   teamIds?: string | null;
+  /**
+     * Links to add to the planning interval, separated by semicolons, each written Name|URL — for example
+     * `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;,
+     * and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects
+     * the row.
+     * @nullable
+     */
+  links?: string | null;
 }
 
 /**
@@ -6558,6 +6582,14 @@ export interface ImportPortfolioRequest {
      * @nullable
      */
   managers?: string | null;
+  /**
+     * Links to add to the portfolio, separated by semicolons, each written Name|URL — for example
+     * `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;,
+     * and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects
+     * the row.
+     * @nullable
+     */
+  links?: string | null;
 }
 
 /**
@@ -6927,6 +6959,14 @@ export interface ImportProgramRequest {
      * @nullable
      */
   managers?: string | null;
+  /**
+     * Links to add to the program, separated by semicolons, each written Name|URL — for example
+     * `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;,
+     * and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects
+     * the row.
+     * @nullable
+     */
+  links?: string | null;
 }
 
 /**
@@ -7114,6 +7154,14 @@ export interface ImportProjectRequest {
      * @nullable
      */
   members?: string | null;
+  /**
+     * Links to add to the project, separated by semicolons, each written Name|URL — for example
+     * `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;,
+     * and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects
+     * the row.
+     * @nullable
+     */
+  links?: string | null;
 }
 
 /**
@@ -7442,6 +7490,14 @@ export interface ImportRiskRequest {
      * @nullable
      */
   closedDateUtc?: string & { readonly __brand: 'Instant' } | null;
+  /**
+     * Links to add to the risk, separated by semicolons, each written Name|URL — for example
+     * `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;,
+     * and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects
+     * the row.
+     * @nullable
+     */
+  links?: string | null;
 }
 
 /**
@@ -7553,6 +7609,14 @@ export interface ImportStrategicInitiativeRequest {
      * @nullable
      */
   owners?: string | null;
+  /**
+     * Links to add to the strategic initiative, separated by semicolons, each written Name|URL — for example
+     * `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;,
+     * and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects
+     * the row.
+     * @nullable
+     */
+  links?: string | null;
 }
 
 /**
@@ -7695,6 +7759,14 @@ export interface ImportTeamRequest {
      * @nullable
      */
   inactiveDate?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * Links to add to the team, separated by semicolons, each written Name|URL — for example
+     * `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;,
+     * and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects
+     * the row.
+     * @nullable
+     */
+  links?: string | null;
 }
 
 /**

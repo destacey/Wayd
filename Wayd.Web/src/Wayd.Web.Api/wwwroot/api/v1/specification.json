@@ -67241,6 +67241,14 @@
             ],
             "description": "When service was restored, with its offset. Blank leaves it for the status walk to fill.",
             "x-csv-column": "RecoveredAt"
+          },
+          "links": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Links to add to the incident, separated by semicolons, each written Name|URL — for example\n`Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;,\nand a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects\nthe row.",
+            "x-csv-column": "Links"
           }
         },
         "additionalProperties": false,
@@ -67888,6 +67896,14 @@
             "description": "Display position within the team's objectives.",
             "format": "int32",
             "x-csv-column": "Order"
+          },
+          "links": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Links to add to the objective, separated by semicolons, each written Name|URL — for example\n`Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;,\nand a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects\nthe row.",
+            "x-csv-column": "Links"
           }
         },
         "additionalProperties": false
@@ -67958,6 +67974,14 @@
             ],
             "description": "Semicolon-separated ids of the teams that ran the interval. Blank leaves the new interval with no\nteams; nothing is ever replaced, since this import only creates.",
             "x-csv-column": "TeamIds"
+          },
+          "links": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Links to add to the planning interval, separated by semicolons, each written Name|URL — for example\n`Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;,\nand a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects\nthe row.",
+            "x-csv-column": "Links"
           }
         },
         "additionalProperties": false,
@@ -68043,6 +68067,14 @@
             ],
             "description": "Semicolon-separated employee numbers.",
             "x-csv-column": "Managers"
+          },
+          "links": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Links to add to the portfolio, separated by semicolons, each written Name|URL — for example\n`Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;,\nand a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects\nthe row.",
+            "x-csv-column": "Links"
           }
         },
         "additionalProperties": false,
@@ -68584,6 +68616,14 @@
             ],
             "description": "Semicolon-separated employee numbers.",
             "x-csv-column": "Managers"
+          },
+          "links": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Links to add to the program, separated by semicolons, each written Name|URL — for example\n`Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;,\nand a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects\nthe row.",
+            "x-csv-column": "Links"
           }
         },
         "additionalProperties": false,
@@ -68862,6 +68902,14 @@
             ],
             "description": "Semicolon-separated employee numbers.",
             "x-csv-column": "Members"
+          },
+          "links": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Links to add to the project, separated by semicolons, each written Name|URL — for example\n`Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;,\nand a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects\nthe row.",
+            "x-csv-column": "Links"
           }
         },
         "additionalProperties": false,
@@ -69462,6 +69510,14 @@
             "description": "When the risk closed, in UTC. Required when StatusId is 2 (Closed), and empty otherwise. After ReportedOnUtc and in the past.",
             "format": "date-time",
             "x-csv-column": "ClosedDateUtc"
+          },
+          "links": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Links to add to the risk, separated by semicolons, each written Name|URL — for example\n`Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;,\nand a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects\nthe row.",
+            "x-csv-column": "Links"
           }
         },
         "additionalProperties": false
@@ -69640,6 +69696,14 @@
             ],
             "description": "Semicolon-separated employee numbers.",
             "x-csv-column": "Owners"
+          },
+          "links": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Links to add to the strategic initiative, separated by semicolons, each written Name|URL — for example\n`Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;,\nand a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects\nthe row.",
+            "x-csv-column": "Links"
           }
         },
         "additionalProperties": false,
@@ -69847,6 +69911,14 @@
             "description": "When the team was retired. Required when `IsActive` is `false`; must be after `ActiveDate`.",
             "format": "date",
             "x-csv-column": "InactiveDate"
+          },
+          "links": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Links to add to the team, separated by semicolons, each written Name|URL — for example\n`Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;,\nand a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects\nthe row.",
+            "x-csv-column": "Links"
           }
         },
         "additionalProperties": false,

@@ -7,6 +7,7 @@ using NodaTime;
 using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Enums.ProductManagement;
@@ -15,6 +16,8 @@ using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.Imports;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Common.Domain.Events.Links;
+using Wayd.ProductManagement.Application.Incidents;
 using Wayd.ProductManagement.Application.Incidents.Dtos;
 using Wayd.ProductManagement.Application.Incidents.Imports;
 using Wayd.ProductManagement.Application.Tests.Infrastructure;
@@ -39,6 +42,7 @@ public sealed class IncidentImportDefinitionTests
     private readonly Mock<ICurrentPrincipal> _currentPrincipal = new();
     private readonly Mock<IDateTimeProvider> _dateTimeProvider = new();
     private readonly Mock<IFeatureFlags> _featureFlags = new();
+    private readonly Mock<ILinkWriter> _linkWriter = new();
 
     private readonly Guid _submitterId = Guid.CreateVersion7();
     private readonly Guid _workflowId = Guid.CreateVersion7();
@@ -82,7 +86,12 @@ public sealed class IncidentImportDefinitionTests
             _dateTimeProvider.Object,
             _featureFlags.Object,
             Mock.Of<ILogger<IncidentImportDefinition>>(),
+            _linkWriter.Object,
             new ImportPayloadSerializer());
+
+        _linkWriter
+            .Setup(w => w.Add(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid());
     }
 
     [Fact]
@@ -346,6 +355,78 @@ public sealed class IncidentImportDefinitionTests
                 status.Alias,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(status));
+
+    [Fact]
+    public async Task CreateIncidents_AddsTheRowsLinks_ToTheIncidentItCreated()
+    {
+        // Arrange
+        SeedSelectedLevel("SEV-1");
+        var row = Row() with { Links = "Runbook|https://example.com/runbook; Status page|https://example.com/status" };
+
+        // Act
+        var result = await Run(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeFalse();
+        var incidentId = _dbContext.Incidents.Single().Id;
+
+        _linkWriter.Verify(w => w.Add("product.incident", incidentId, "Runbook", "https://example.com/runbook",
+            It.Is<EventActor>(a => a.Kind == EventActorKind.Import), It.IsAny<CancellationToken>()), Times.Once);
+        _linkWriter.Verify(w => w.Add("product.incident", incidentId, "Status page", "https://example.com/status",
+            It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateIncidents_RejectsARowWithAMalformedLink_CreatingNeitherTheIncidentNorAnyLink()
+    {
+        // Arrange — per row, so the good row beside it is still created
+        SeedSelectedLevel("SEV-1");
+        var bad = Row(importId: "i1") with { Links = "Runbook|https://example.com/runbook; Status page" };
+        var good = Row(importId: "i2", title: "Search degraded");
+
+        // Act
+        var result = await Run(bad, good);
+
+        // Assert
+        var rejected = result.Value.Rows.Single(r => r.ImportId == "i1");
+        rejected.Failed.Should().BeTrue();
+        rejected.Error.Should().Be("Links entry 'Status page' must be written as Name|URL.");
+        _dbContext.Incidents.Should().ContainSingle().Which.Title.Should().Be("Search degraded");
+        _linkWriter.Verify(w => w.Add(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateIncidents_KeepsImportedLinksOffTheTimeline()
+    {
+        // Arrange — the importer has an employee, which a timeline entry would name; the import's actor must not
+        SeedSelectedLevel("SEV-1");
+        EventActor? linkActor = null;
+        _linkWriter
+            .Setup(w => w.Add(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()))
+            .Callback((string _, Guid _, string _, string _, EventActor actor, CancellationToken _) => linkActor = actor)
+            .ReturnsAsync(Guid.NewGuid());
+
+        await Run(Row() with { Links = "Runbook|https://example.com/runbook" });
+        var incident = _dbContext.Incidents.Single();
+        incident.ClearDomainEvents();
+
+        var principal = new Mock<ICurrentPrincipal>();
+        var ownerType = new IncidentLinkOwnerType(_dbContext, principal.Object, _featureFlags.Object);
+        var change = new LinkChange(
+            LinkChangeKind.Added, Guid.CreateVersion7(), incident.Id,
+            new LinkDetails("Runbook", "https://example.com/runbook"), null, linkActor!, Now);
+
+        // Act
+        await ownerType.OnChanged(change, TestContext.Current.CancellationToken);
+
+        // Assert
+        linkActor.Should().NotBeNull();
+        linkActor!.Kind.Should().Be(EventActorKind.Import);
+        linkActor.EmployeeId.Should().BeNull();
+        incident.TimelineLinkEntries.Should().BeEmpty();
+        incident.DomainEvents.Should().BeEmpty();
+    }
 
     private Guid SeedSelectedLevel(string name = "SEV-1")
     {

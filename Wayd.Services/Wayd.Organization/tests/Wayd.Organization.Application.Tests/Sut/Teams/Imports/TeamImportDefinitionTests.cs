@@ -5,7 +5,9 @@ using NodaTime;
 using NodaTime.Testing;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Identity;
@@ -25,6 +27,7 @@ public sealed class TeamImportDefinitionTests : IDisposable
     private const int CreatePass = 0;
 
     private readonly FakeOrganizationDbContext _dbContext = new();
+    private readonly Mock<ILinkWriter> _linkWriter = new();
     private readonly TeamImportDefinition _definition;
 
     public TeamImportDefinitionTests()
@@ -38,7 +41,12 @@ public sealed class TeamImportDefinitionTests : IDisposable
             _dbContext, clock, currentUser.Object,
             Mock.Of<ISettings<SchedulingSettings>>(s => s.Get(It.IsAny<CancellationToken>()) == Task.FromResult(new SchedulingSettings())),
             Mock.Of<ISettings<GeneralSettings>>(s => s.Get(It.IsAny<CancellationToken>()) == Task.FromResult(new GeneralSettings())),
+            _linkWriter.Object,
             new ImportPayloadSerializer());
+
+        _linkWriter
+            .Setup(w => w.Add(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid());
     }
 
     public void Dispose() => _dbContext.Dispose();
@@ -91,6 +99,51 @@ public sealed class TeamImportDefinitionTests : IDisposable
 
         teams.Select(t => t.Code.Value).Should().BeEquivalentTo(["PAY", "PLAT"]);
         teamsOfTeams.Single().Code.Value.Should().Be("PAYG");
+    }
+
+    [Theory]
+    [InlineData(TeamType.Team)]
+    [InlineData(TeamType.TeamOfTeams)]
+    public async Task CreateTeams_AddsTheRowsLinks_ToTheTeamItCreated(TeamType type)
+    {
+        // Arrange
+        var row = Row(type, "Payments Core", "PAY") with
+        {
+            Links = "Charter|https://example.com/charter; Wiki|https://example.com/wiki",
+        };
+
+        // Act
+        var result = await Run(CreatePass, Rows(row));
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeFalse();
+        var teamId = outcome.CreatedEntityId!.Value;
+
+        _linkWriter.Verify(w => w.Add("organization.team", teamId, "Charter", "https://example.com/charter",
+            It.Is<EventActor>(a => a.Kind == EventActorKind.Import && a.UserId == SystemUser.Id), It.IsAny<CancellationToken>()), Times.Once);
+        _linkWriter.Verify(w => w.Add("organization.team", teamId, "Wiki", "https://example.com/wiki",
+            It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateTeams_RejectsARowWithAMalformedLink_CreatingNeitherTheTeamNorAnyLink()
+    {
+        // Arrange
+        var row = Row(TeamType.Team, "Payments Core", "PAY") with
+        {
+            Links = "Charter|https://example.com/charter; Wiki https://example.com/wiki",
+        };
+
+        // Act
+        var result = await Run(CreatePass, Rows(row));
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().Be("Links entry 'Wiki https://example.com/wiki' must be written as Name|URL.");
+        _dbContext.Teams.Should().BeEmpty();
+        _linkWriter.VerifyNoOtherCalls();
     }
 
     [Fact]

@@ -150,4 +150,7 @@ public sealed class IncidentCsvRow
     public required string NoticedAt { get; init; }
     public string? StartedAt { get; init; }
     public string? RecoveredAt { get; init; }
+
+    /// <summary>The record's links, <c>Name|URL</c> entries separated by semicolons. See <see cref="Generation.SeedLinks"/>.</summary>
+    public string? Links { get; init; }
 }

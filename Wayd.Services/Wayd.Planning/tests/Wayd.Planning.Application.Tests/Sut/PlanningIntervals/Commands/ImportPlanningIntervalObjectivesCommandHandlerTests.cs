@@ -26,6 +26,7 @@ public sealed class ImportPlanningIntervalObjectivesCommandHandlerTests : IDispo
             _dbContext,
             Mock.Of<IDateTimeProvider>(),
             Mock.Of<ICurrentUser>(),
+            Mock.Of<Wayd.Common.Application.Links.ILinkWriter>(),
             new ImportPayloadSerializer());
 
         _dispatcher

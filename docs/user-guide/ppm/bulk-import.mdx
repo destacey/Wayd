@@ -193,6 +193,7 @@ in the note below.
 | `Sponsors` | No | Semicolon-separated employee numbers. |
 | `Owners` | No | Semicolon-separated employee numbers. |
 | `Managers` | No | Semicolon-separated employee numbers. |
+| `Links` | No | Links to add to the portfolio: `Name\|URL` entries separated by semicolons. See [Links](#links-column). |
 
 :::note[Closed and archived portfolios]
 A portfolio destined to be `Closed` or `Archived` is imported **active** here (with its start date) and
@@ -222,6 +223,7 @@ reason in the note below.
 | `Sponsors` | No | Semicolon-separated employee numbers. |
 | `Owners` | No | Semicolon-separated employee numbers. |
 | `Managers` | No | Semicolon-separated employee numbers. |
+| `Links` | No | Links to add to the program: `Name\|URL` entries separated by semicolons. See [Links](#links-column). |
 
 :::note[Completed and canceled programs]
 Like portfolios, a program that should end up `Completed` or `Canceled` is imported **active** and closed by
@@ -255,6 +257,7 @@ referenced by id.
 | `ClosedOn` | Conditional | Required for `Completed` and `Canceled` — the status says which it records; not allowed on the rest. |
 | `StrategicThemes` | No | Semicolon-separated theme **ids** (must be active). |
 | `Sponsors` · `Owners` · `Managers` · `Members` | No | Semicolon-separated employee numbers. |
+| `Links` | No | Links to add to the project: `Name\|URL` entries separated by semicolons. See [Links](#links-column). |
 
 Unlike portfolios and programs, a project has nothing beneath it that must close first, so it reaches its
 real final status during the run. Its [status history](./projects.mdx) is dated from these columns rather
@@ -353,6 +356,7 @@ accepts neither new projects nor new KPIs).
 | `End` | Yes | On or after `Start`. |
 | `ProjectKeys` | No | Semicolon-separated project **keys** the initiative delivers through. |
 | `Sponsors` · `Owners` | No | Semicolon-separated employee numbers. |
+| `Links` | No | Links to add to the initiative: `Name\|URL` entries separated by semicolons. See [Links](#links-column). |
 
 **KPIs** (`kpiFile`):
 
@@ -385,6 +389,26 @@ one of its programs is still open.
 | `Id` | Yes | The program or portfolio this row closes, by id, per `Type`. |
 | `Status` | Yes | Programs: `Completed` or `Canceled`. Portfolios: `Closed` or `Archived`. |
 | `EndDate` | Conditional | Required for **portfolio** rows (becomes the portfolio's end date); ignored for program rows. |
+
+## Links column
+
+The portfolio, program, project and strategic initiative imports each take an optional `Links` column, so
+a record arrives with its links already on it.
+The cell holds entries separated by semicolons, each a name and a web address joined by `|`:
+
+```text
+Charter|https://example.com/charter; Team wiki|https://example.com/wiki
+```
+
+- Only the first `|` in an entry separates the name from the address, so an address may contain one; a name
+  cannot contain `|` or `;`.
+- A `;` inside an address is written `%3B`, which is how URLs encode it anyway.
+- Every address must be a full `http://` or `https://` address. An entry without a `|`, without a name, with a
+  name over 128 characters or with any other address rejects its row, and the message names the entry.
+  The rejected record is not created, and neither are any of its links.
+- A record may have the same address twice; the import creates what the file says.
+- The import's own permission covers the links. Imports only create, so this adds links to the records the file
+  creates, never to records already in Wayd.
 
 ## Related
 

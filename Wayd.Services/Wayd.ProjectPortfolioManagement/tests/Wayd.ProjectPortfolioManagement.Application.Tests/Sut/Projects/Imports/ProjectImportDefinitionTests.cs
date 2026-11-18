@@ -3,6 +3,10 @@ using NodaTime;
 using NodaTime.Testing;
 using NodaTime.Extensions;
 using Wayd.Common.Application.Imports;
+using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Identity;
+using Moq;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Imports;
@@ -35,6 +39,7 @@ public sealed class ProjectImportDefinitionTests : IDisposable
 
     private readonly FakeProjectPortfolioManagementDbContext _dbContext = new();
     private readonly TestingDateTimeProvider _dateTimeProvider;
+    private readonly Mock<ILinkWriter> _linkWriter = new();
     private readonly ProjectImportDefinition _definition;
 
     private readonly ProjectPortfolio _portfolio;
@@ -43,7 +48,13 @@ public sealed class ProjectImportDefinitionTests : IDisposable
     public ProjectImportDefinitionTests()
     {
         _dateTimeProvider = new TestingDateTimeProvider(new FakeClock(DateTime.UtcNow.ToInstant()));
-        _definition = new ProjectImportDefinition(_dbContext, new ImportPayloadSerializer());
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
+
+        _definition = new ProjectImportDefinition(_dbContext, currentUser.Object, _linkWriter.Object, new ImportPayloadSerializer());
+        _linkWriter
+            .Setup(w => w.Add(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid());
 
         // A project can only be created inside an active portfolio, so every case starts from one.
         _portfolio = ProjectPortfolio.Create(
@@ -417,4 +428,41 @@ public sealed class ProjectImportDefinitionTests : IDisposable
             [],
             [],
             []);
+
+    [Fact]
+    public async Task CreateProjects_AddsTheRowsLinks_ToTheProjectItCreated()
+    {
+        // Arrange
+        var row = Row("APOLLO", ProjectStatus.Proposed, start: null) with { Links = "Charter|https://example.com/charter; Status page|https://example.com/status" };
+
+        // Act
+        var result = await Run(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeFalse();
+        var ownerId = outcome.CreatedEntityId!.Value;
+
+        _linkWriter.Verify(w => w.Add("ppm.project", ownerId, "Charter", "https://example.com/charter",
+            It.Is<EventActor>(a => a.Kind == EventActorKind.Import && a.UserId == SystemUser.Id), It.IsAny<CancellationToken>()), Times.Once);
+        _linkWriter.Verify(w => w.Add("ppm.project", ownerId, "Status page", "https://example.com/status",
+            It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateProjects_RejectsARowWithAMalformedLink_CreatingNeitherTheProjectNorAnyLink()
+    {
+        // Arrange
+        var row = Row("APOLLO", ProjectStatus.Proposed, start: null) with { Links = "Charter|https://example.com/charter; Board|file:///c:/board.txt" };
+
+        // Act
+        var result = await Run(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().StartWith("Links entry 'Board|file:///c:/board.txt'");
+        _portfolio.Projects.Should().BeEmpty();
+        _linkWriter.Verify(w => w.Add(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }

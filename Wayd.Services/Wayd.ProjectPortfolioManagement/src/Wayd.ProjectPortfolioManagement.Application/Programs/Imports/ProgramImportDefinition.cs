@@ -3,12 +3,14 @@ using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Dtos;
+using Wayd.ProjectPortfolioManagement.Domain;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
@@ -32,6 +34,7 @@ public sealed class ProgramImportDefinition(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser,
+    ILinkWriter linkWriter,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportProgramDto>(serializer)
 {
     public const string ImportKey = "ppm.programs";
@@ -39,6 +42,7 @@ public sealed class ProgramImportDefinition(
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ILinkWriter _linkWriter = linkWriter;
 
     public override string Key => ImportKey;
 
@@ -130,6 +134,13 @@ public sealed class ProgramImportDefinition(
                 continue;
             }
 
+            var links = ImportedLinks.Parse(data.Links);
+            if (links.IsFailure)
+            {
+                row.Failed(links.Error);
+                continue;
+            }
+
             var dateRange = data.Start is null || data.End is null
                 ? null
                 : new LocalDateRange(data.Start.Value, data.End.Value);
@@ -154,6 +165,10 @@ public sealed class ProgramImportDefinition(
                 row.Failed($"Could not set program '{name}' to {data.Status}: {transition.Error}");
                 continue;
             }
+
+            var added = await _linkWriter.AddImported(PpmLinkOwners.Program.Key, created.Value.Id, links.Value, actor, cancellationToken);
+            if (added.IsFailure)
+                return added;
 
             // Taken within the chunk as well as against the database: a chunk's rows are applied before any
             // of them is saved, so a repeat would otherwise only surface at the unique index. A repeat in a

@@ -3,12 +3,15 @@ using Microsoft.EntityFrameworkCore;
 using NodaTime;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
+using Wayd.ProjectPortfolioManagement.Domain;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
@@ -32,11 +35,15 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Imports;
 /// </remarks>
 public sealed class ProjectImportDefinition(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
+    ICurrentUser currentUser,
+    ILinkWriter linkWriter,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportProjectDto>(serializer)
 {
     public const string ImportKey = "ppm.projects";
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
+    private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ILinkWriter _linkWriter = linkWriter;
 
     public override string Key => ImportKey;
 
@@ -90,6 +97,9 @@ public sealed class ProjectImportDefinition(
         // portfolio has to advance as rows are applied — otherwise every imported project is handed the
         // same rank.
         var maxRankByPortfolio = await CurrentMaxRanks(portfoliosById.Keys, cancellationToken);
+
+        // Link events are attributed to the import; the project's own changes run as PpmActor.System below.
+        var actor = EventActor.Import(_currentUser.GetUserId());
 
         foreach (var row in context.Accepted)
         {
@@ -148,6 +158,13 @@ public sealed class ProjectImportDefinition(
                 continue;
             }
 
+            var links = ImportedLinks.Parse(data.Links);
+            if (links.IsFailure)
+            {
+                row.Failed(links.Error);
+                continue;
+            }
+
             var dateRange = data.Start is null || data.End is null
                 ? null
                 : new LocalDateRange(data.Start.Value, data.End.Value);
@@ -193,6 +210,10 @@ public sealed class ProjectImportDefinition(
                 row.Failed($"Could not set project '{key}' to {data.Status}: {transition.Error}");
                 continue;
             }
+
+            var added = await _linkWriter.AddImported(PpmLinkOwners.Project.Key, project.Id, links.Value, actor, cancellationToken);
+            if (added.IsFailure)
+                return added;
 
             // Taken within the chunk as well as against the database: a chunk's rows are applied before any
             // of them is saved, so a repeat would otherwise only surface at the unique index. A repeat in a

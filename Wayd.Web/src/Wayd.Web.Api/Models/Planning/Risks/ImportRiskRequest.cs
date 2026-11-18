@@ -47,13 +47,21 @@ public class ImportRiskRequest
     /// <summary>When the risk closed, in UTC. Required when StatusId is 2 (Closed), and empty otherwise. After ReportedOnUtc and in the past.</summary>
     public DateTime? ClosedDateUtc { get; set; }
 
+    /// <summary>
+    /// Links to add to the risk, separated by semicolons, each written Name|URL — for example
+    /// <c>Charter|https://example.com/charter; Team wiki|https://example.com/wiki</c>. A name cannot contain | or ;,
+    /// and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects
+    /// the row.
+    /// </summary>
+    public string? Links { get; set; }
+
     public ImportRiskDto ToImportRiskDto()
     {
         Instant reportedOn = Instant.FromDateTimeUtc(DateTime.SpecifyKind(ReportedOnUtc, DateTimeKind.Utc));
         Instant? closedDate = ClosedDateUtc.HasValue ? Instant.FromDateTimeUtc(DateTime.SpecifyKind(ClosedDateUtc.Value, DateTimeKind.Utc)) : null;
         LocalDate? followUpDate = FollowUpDate?.ToLocalDate();
 
-        return new ImportRiskDto(Summary, Description, TeamId, reportedOn, ReportedById, (RiskStatus)StatusId, (RiskCategory)CategoryId, (RiskGrade)ImpactId, (RiskGrade)LikelihoodId, AssigneeId, followUpDate, Response, closedDate);
+        return new ImportRiskDto(Summary, Description, TeamId, reportedOn, ReportedById, (RiskStatus)StatusId, (RiskCategory)CategoryId, (RiskGrade)ImpactId, (RiskGrade)LikelihoodId, AssigneeId, followUpDate, Response, closedDate, Links);
     }
 }
 

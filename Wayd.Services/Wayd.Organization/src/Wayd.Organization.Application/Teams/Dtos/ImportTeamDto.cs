@@ -13,6 +13,10 @@ namespace Wayd.Organization.Application.Teams.Dtos;
 /// supplying an <see cref="InactiveDate"/> (useful for migrations and historical test fixtures). The
 /// team is still created active and then deactivated through the domain, so the lifecycle events fire.
 /// </para>
+/// <para>
+/// <see cref="Links"/> is the row's <c>Links</c> cell as written, read by the import so a malformed entry rejects
+/// only its row.
+/// </para>
 /// </summary>
 public sealed record ImportTeamDto(
     TeamType Type,
@@ -21,7 +25,8 @@ public sealed record ImportTeamDto(
     string? Description,
     LocalDate ActiveDate,
     bool IsActive = true,
-    LocalDate? InactiveDate = null);
+    LocalDate? InactiveDate = null,
+    string? Links = null);
 
 public sealed class ImportTeamDtoValidator : CustomValidator<ImportTeamDto>
 {

@@ -4,6 +4,7 @@ using NodaTime;
 using NodaTime.Testing;
 using NodaTime.Extensions;
 using Wayd.Common.Application.Imports;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.Imports;
@@ -33,6 +34,7 @@ public sealed class StrategicInitiativeImportDefinitionTests : IDisposable
 
     private readonly FakeProjectPortfolioManagementDbContext _dbContext = new();
     private readonly TestingDateTimeProvider _dateTimeProvider;
+    private readonly Mock<ILinkWriter> _linkWriter = new();
     private readonly StrategicInitiativeImportDefinition _definition;
 
     private readonly ProjectPortfolio _portfolio;
@@ -45,7 +47,10 @@ public sealed class StrategicInitiativeImportDefinitionTests : IDisposable
         currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
 
         _definition = new StrategicInitiativeImportDefinition(
-            _dbContext, _dateTimeProvider, currentUser.Object, new ImportPayloadSerializer());
+            _dbContext, _dateTimeProvider, currentUser.Object, _linkWriter.Object, new ImportPayloadSerializer());
+        _linkWriter
+            .Setup(w => w.Add(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid());
 
         // Initiatives can only be created inside an active portfolio.
         _portfolio = ProjectPortfolio.Create(
@@ -320,4 +325,41 @@ public sealed class StrategicInitiativeImportDefinitionTests : IDisposable
 
     private static ImportStrategicInitiativeKpiDto Kpi(string name, double targetValue) =>
         new(name, null, targetValue, 0, null, null, KpiTargetDirection.Increase);
+
+    [Fact]
+    public async Task CreateInitiatives_AddsTheRowsLinks_ToTheStrategicinitiativeItCreated()
+    {
+        // Arrange
+        var row = Row("Expand to EU", StrategicInitiativeStatus.Proposed) with { Links = "Business case|https://example.com/case; Status page|https://example.com/status" };
+
+        // Act
+        var result = await Run(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeFalse();
+        var ownerId = outcome.CreatedEntityId!.Value;
+
+        _linkWriter.Verify(w => w.Add("ppm.strategic-initiative", ownerId, "Business case", "https://example.com/case",
+            It.Is<EventActor>(a => a.Kind == EventActorKind.Import && a.UserId == SystemUser.Id), It.IsAny<CancellationToken>()), Times.Once);
+        _linkWriter.Verify(w => w.Add("ppm.strategic-initiative", ownerId, "Status page", "https://example.com/status",
+            It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateInitiatives_RejectsARowWithAMalformedLink_CreatingNeitherTheStrategicinitiativeNorAnyLink()
+    {
+        // Arrange
+        var row = Row("Expand to EU", StrategicInitiativeStatus.Proposed) with { Links = "Business case|https://example.com/case; |https://example.com/orphan" };
+
+        // Act
+        var result = await Run(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().StartWith("Links entry '|https://example.com/orphan'");
+        _portfolio.StrategicInitiatives.Should().BeEmpty();
+        _linkWriter.Verify(w => w.Add(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }

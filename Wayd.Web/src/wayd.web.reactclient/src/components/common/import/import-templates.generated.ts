@@ -646,6 +646,13 @@ export const importTemplates = {
             required: false,
             description: "Display position within the team's objectives.",
           },
+          {
+            name: 'Links',
+            type: 'text',
+            required: false,
+            description:
+              'Links to add to the objective, separated by semicolons, each written Name|URL — for example `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;, and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects the row.',
+          },
         ],
       },
     ],
@@ -713,6 +720,13 @@ export const importTemplates = {
             required: false,
             description:
               'Semicolon-separated ids of the teams that ran the interval. Blank leaves the new interval with no teams; nothing is ever replaced, since this import only creates.',
+          },
+          {
+            name: 'Links',
+            type: 'text',
+            required: false,
+            description:
+              'Links to add to the planning interval, separated by semicolons, each written Name|URL — for example `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;, and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects the row.',
           },
         ],
       },
@@ -810,6 +824,13 @@ export const importTemplates = {
             required: false,
             description:
               'When the risk closed, in UTC. Required when StatusId is 2 (Closed), and empty otherwise. After ReportedOnUtc and in the past.',
+          },
+          {
+            name: 'Links',
+            type: 'text',
+            required: false,
+            description:
+              'Links to add to the risk, separated by semicolons, each written Name|URL — for example `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;, and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects the row.',
           },
         ],
       },
@@ -929,6 +950,13 @@ export const importTemplates = {
             required: false,
             description: 'Semicolon-separated employee numbers.',
           },
+          {
+            name: 'Links',
+            type: 'text',
+            required: false,
+            description:
+              'Links to add to the portfolio, separated by semicolons, each written Name|URL — for example `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;, and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects the row.',
+          },
         ],
       },
     ],
@@ -1022,6 +1050,13 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description: 'Semicolon-separated employee numbers.',
+          },
+          {
+            name: 'Links',
+            type: 'text',
+            required: false,
+            description:
+              'Links to add to the program, separated by semicolons, each written Name|URL — for example `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;, and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects the row.',
           },
         ],
       },
@@ -1420,6 +1455,13 @@ export const importTemplates = {
             required: false,
             description: 'Semicolon-separated employee numbers.',
           },
+          {
+            name: 'Links',
+            type: 'text',
+            required: false,
+            description:
+              'Links to add to the project, separated by semicolons, each written Name|URL — for example `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;, and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects the row.',
+          },
         ],
       },
     ],
@@ -1502,6 +1544,13 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description: 'Semicolon-separated employee numbers.',
+          },
+          {
+            name: 'Links',
+            type: 'text',
+            required: false,
+            description:
+              'Links to add to the strategic initiative, separated by semicolons, each written Name|URL — for example `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;, and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects the row.',
           },
         ],
       },
@@ -1816,6 +1865,13 @@ export const importTemplates = {
             required: false,
             description:
               'When service was restored, with its offset. Blank leaves it for the status walk to fill.',
+          },
+          {
+            name: 'Links',
+            type: 'text',
+            required: false,
+            description:
+              'Links to add to the incident, separated by semicolons, each written Name|URL — for example `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;, and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects the row.',
           },
         ],
       },
@@ -2402,6 +2458,13 @@ export const importTemplates = {
             required: false,
             description:
               'When the team was retired. Required when `IsActive` is `false`; must be after `ActiveDate`.',
+          },
+          {
+            name: 'Links',
+            type: 'text',
+            required: false,
+            description:
+              'Links to add to the team, separated by semicolons, each written Name|URL — for example `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;, and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects the row.',
           },
         ],
       },

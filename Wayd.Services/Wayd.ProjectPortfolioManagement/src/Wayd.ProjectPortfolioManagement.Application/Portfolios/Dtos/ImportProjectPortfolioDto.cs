@@ -29,7 +29,8 @@ public sealed record ImportProjectPortfolioDto(
     LocalDate? ActivatedOn,
     IReadOnlyList<string> SponsorEmployeeNumbers,
     IReadOnlyList<string> OwnerEmployeeNumbers,
-    IReadOnlyList<string> ManagerEmployeeNumbers);
+    IReadOnlyList<string> ManagerEmployeeNumbers,
+    string? Links = null);
 
 public sealed class ImportProjectPortfolioDtoValidator : CustomValidator<ImportProjectPortfolioDto>
 {

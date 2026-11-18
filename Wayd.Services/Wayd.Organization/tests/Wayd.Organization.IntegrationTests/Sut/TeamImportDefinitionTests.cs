@@ -11,7 +11,9 @@ using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Imports;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Settings;
+using Wayd.Links;
 using Wayd.Organization.Application.Teams.Dtos;
+using Wayd.Organization.Domain;
 using Wayd.Organization.Application.Teams.Imports;
 using Wayd.Organization.IntegrationTests.Infrastructure;
 
@@ -47,10 +49,13 @@ public sealed class TeamImportDefinitionTests
         var currentUser = new Mock<ICurrentUser>();
         currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
 
+        OrganizationLinkOwners.Register();
+
         return new TeamImportDefinition(
             context, dateTimeProvider.Object, currentUser.Object,
             Mock.Of<ISettings<SchedulingSettings>>(s => s.Get(It.IsAny<CancellationToken>()) == Task.FromResult(new SchedulingSettings())),
             Mock.Of<ISettings<GeneralSettings>>(s => s.Get(It.IsAny<CancellationToken>()) == Task.FromResult(new GeneralSettings())),
+            new LinkWriter(context, [], dateTimeProvider.Object),
             new ImportPayloadSerializer());
     }
 
@@ -59,6 +64,12 @@ public sealed class TeamImportDefinitionTests
         [.. teams.Select((t, i) => ImportProcessRow.Create(
             $"r{i + 1}", i + 1,
             definition.SerializeRow(new ImportTeamDto(t.Type, t.Name, new TeamCode(t.Code), null, ActiveDate))))];
+
+    private static ImportProcessRow[] RowsWithLinks(
+        TeamImportDefinition definition, params (string Name, string Code, string Links)[] teams) =>
+        [.. teams.Select((t, i) => ImportProcessRow.Create(
+            $"r{i + 1}", i + 1,
+            definition.SerializeRow(new ImportTeamDto(TeamType.Team, t.Name, new TeamCode(t.Code), null, ActiveDate, Links: t.Links))))];
 
     /// <summary>Runs the real runner over a real import process, so both passes run in order with the save between.</summary>
     private async Task<ImportProcess> RunImport(
@@ -110,6 +121,63 @@ public sealed class TeamImportDefinitionTests
         await using var assertContext = _fixture.CreateContext();
         var teams = await assertContext.BaseTeams.CountAsync(cancellationToken);
         teams.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task ARun_CommitsEachTeamWithItsLinks()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await _fixture.ResetOrganizationData(cancellationToken);
+
+        await using var context = _fixture.CreateContext();
+        var definition = CreateDefinition(context);
+        var rows = RowsWithLinks(definition,
+            ("Payments Core", "PAY", "Charter|https://example.com/charter; Wiki|https://example.com/wiki"),
+            ("Platform Enablement", "PLAT", ""));
+
+        // Act
+        var process = await RunImport(context, definition, rows, cancellationToken);
+
+        // Assert
+        process.Status.Should().Be(ImportProcessStatus.Succeeded);
+
+        await using var assertContext = _fixture.CreateContext();
+        var payId = await assertContext.BaseTeams.Where(t => t.Code == new TeamCode("PAY")).Select(t => t.Id).SingleAsync(cancellationToken);
+        var platId = await assertContext.BaseTeams.Where(t => t.Code == new TeamCode("PLAT")).Select(t => t.Id).SingleAsync(cancellationToken);
+
+        var links = await assertContext.Links
+            .Where(l => l.OwnerId == payId || l.OwnerId == platId)
+            .Select(l => new { l.OwnerType, l.OwnerId, l.Name, l.Url })
+            .ToListAsync(cancellationToken);
+        links.Should().BeEquivalentTo([
+            new { OwnerType = "organization.team", OwnerId = payId, Name = "Charter", Url = "https://example.com/charter" },
+            new { OwnerType = "organization.team", OwnerId = payId, Name = "Wiki", Url = "https://example.com/wiki" },
+        ]);
+    }
+
+    [Fact]
+    public async Task ARun_CommitsNoTeamAndNoLink_WhenALinkEntryIsMalformed()
+    {
+        // Arrange — the import is atomic, so the bad row keeps the good row and its links out too
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await _fixture.ResetOrganizationData(cancellationToken);
+
+        await using var context = _fixture.CreateContext();
+        var definition = CreateDefinition(context);
+        var rows = RowsWithLinks(definition,
+            ("Payments Core", "PAY", "Charter|https://example.com/pay-charter"),
+            ("Platform Enablement", "PLAT", "Wiki|ftp://example.com/wiki"));
+
+        // Act
+        var process = await RunImport(context, definition, rows, cancellationToken);
+
+        // Assert
+        process.Status.Should().Be(ImportProcessStatus.Failed);
+
+        await using var assertContext = _fixture.CreateContext();
+        (await assertContext.BaseTeams.CountAsync(cancellationToken)).Should().Be(0);
+        (await assertContext.Links.AnyAsync(l => l.Url == "https://example.com/pay-charter", cancellationToken)).Should().BeFalse();
     }
 
     [Fact]

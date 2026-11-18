@@ -39,7 +39,8 @@ public sealed record ImportProjectDto(
     IReadOnlyList<string> SponsorEmployeeNumbers,
     IReadOnlyList<string> OwnerEmployeeNumbers,
     IReadOnlyList<string> ManagerEmployeeNumbers,
-    IReadOnlyList<string> MemberEmployeeNumbers);
+    IReadOnlyList<string> MemberEmployeeNumbers,
+    string? Links = null);
 
 public sealed class ImportProjectDtoValidator : CustomValidator<ImportProjectDto>
 {

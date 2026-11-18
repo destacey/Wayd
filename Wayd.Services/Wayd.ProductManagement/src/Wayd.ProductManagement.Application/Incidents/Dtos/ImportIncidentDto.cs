@@ -30,7 +30,8 @@ public sealed record ImportIncidentDto(
     IReadOnlyList<Guid> ReleaseIds,
     Instant? NoticedAt,
     Instant? StartedAt,
-    Instant? RecoveredAt);
+    Instant? RecoveredAt,
+    string? Links = null);
 
 /// <summary>
 /// Shape rules for an incident row. The status walk and the reference checks belong to the import pass.

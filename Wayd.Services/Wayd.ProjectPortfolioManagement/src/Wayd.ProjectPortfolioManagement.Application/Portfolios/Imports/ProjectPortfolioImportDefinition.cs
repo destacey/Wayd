@@ -2,10 +2,12 @@
 using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Events;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Dtos;
+using Wayd.ProjectPortfolioManagement.Domain;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
@@ -31,6 +33,7 @@ public sealed class ProjectPortfolioImportDefinition(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser,
+    ILinkWriter linkWriter,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportProjectPortfolioDto>(serializer)
 {
     public const string ImportKey = "ppm.portfolios";
@@ -38,6 +41,7 @@ public sealed class ProjectPortfolioImportDefinition(
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ILinkWriter _linkWriter = linkWriter;
 
     public override string Key => ImportKey;
 
@@ -113,6 +117,13 @@ public sealed class ProjectPortfolioImportDefinition(
                 continue;
             }
 
+            var links = ImportedLinks.Parse(data.Links);
+            if (links.IsFailure)
+            {
+                row.Failed(links.Error);
+                continue;
+            }
+
             var portfolio = ProjectPortfolio.Create(
                 name, data.Description.Trim(), BuildRoles(data, employeeIdsByNumber), actor, timestamp);
 
@@ -122,6 +133,10 @@ public sealed class ProjectPortfolioImportDefinition(
                 row.Failed($"Could not set portfolio '{name}' to {data.Status}: {transition.Error}");
                 continue;
             }
+
+            var added = await _linkWriter.AddImported(PpmLinkOwners.Portfolio.Key, portfolio.Id, links.Value, actor, cancellationToken);
+            if (added.IsFailure)
+                return added;
 
             await _projectPortfolioManagementDbContext.Portfolios.AddAsync(portfolio, cancellationToken);
 

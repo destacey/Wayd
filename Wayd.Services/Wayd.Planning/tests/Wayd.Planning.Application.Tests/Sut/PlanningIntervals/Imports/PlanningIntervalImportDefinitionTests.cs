@@ -2,7 +2,9 @@ using CSharpFunctionalExtensions;
 using FluentAssertions;
 using NodaTime;
 using Wayd.Common.Application.Imports;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Enums.Imports;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Imports;
 using Wayd.Common.Models;
@@ -29,13 +31,17 @@ public sealed class PlanningIntervalImportDefinitionTests : IDisposable
     private static readonly LocalDate End = new(2026, 2, 15);
 
     private readonly FakePlanningDbContext _dbContext = new();
+    private readonly Mock<ILinkWriter> _linkWriter = new();
     private readonly PlanningIntervalImportDefinition _definition;
 
     private readonly PlanningTeam _team;
 
     public PlanningIntervalImportDefinitionTests()
     {
-        _definition = new PlanningIntervalImportDefinition(_dbContext, Mock.Of<IDateTimeProvider>(), Mock.Of<ICurrentUser>(), new ImportPayloadSerializer());
+        _definition = new PlanningIntervalImportDefinition(_dbContext, Mock.Of<IDateTimeProvider>(), Mock.Of<ICurrentUser>(), _linkWriter.Object, new ImportPayloadSerializer());
+        _linkWriter
+            .Setup(w => w.Add(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid());
 
         _team = new PlanningTeamFaker(TeamType.Team).Generate();
         _dbContext.AddPlanningTeam(_team);
@@ -67,6 +73,43 @@ public sealed class PlanningIntervalImportDefinitionTests : IDisposable
         _definition.Atomicity.Should().Be(ImportAtomicity.Atomic);
         _definition.MaxRows.Should().Be(10_000);
         _definition.Passes.Single().Name.Should().Be("CreatePlanningIntervals");
+    }
+
+    [Fact]
+    public async Task CreatePlanningIntervals_AddsTheRowsLinks_ToTheIntervalItCreated()
+    {
+        // Arrange
+        var row = Row() with { Links = "Charter|https://example.com/charter; Board|https://example.com/board" };
+
+        // Act
+        var result = await Run(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeFalse();
+        var intervalId = outcome.CreatedEntityId!.Value;
+
+        _linkWriter.Verify(w => w.Add("planning.planning-interval", intervalId, "Charter", "https://example.com/charter",
+            It.Is<EventActor>(a => a.Kind == EventActorKind.Import), It.IsAny<CancellationToken>()), Times.Once);
+        _linkWriter.Verify(w => w.Add("planning.planning-interval", intervalId, "Board", "https://example.com/board",
+            It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreatePlanningIntervals_RejectsARowWithAMalformedLink_CreatingNeitherTheIntervalNorAnyLink()
+    {
+        // Arrange
+        var row = Row() with { Links = "Charter|https://example.com/charter; Board|board.example.com" };
+
+        // Act
+        var result = await Run(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().StartWith("Links entry 'Board|board.example.com'");
+        _dbContext.PlanningIntervals.Should().BeEmpty();
+        _linkWriter.Verify(w => w.Add(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

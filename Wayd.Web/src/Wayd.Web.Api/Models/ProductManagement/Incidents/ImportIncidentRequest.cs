@@ -83,6 +83,14 @@ public sealed class ImportIncidentRequest
     /// <summary>When service was restored, with its offset. Blank leaves it for the status walk to fill.</summary>
     public string? RecoveredAt { get; set; }
 
+    /// <summary>
+    /// Links to add to the incident, separated by semicolons, each written Name|URL — for example
+    /// <c>Charter|https://example.com/charter; Team wiki|https://example.com/wiki</c>. A name cannot contain | or ;,
+    /// and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects
+    /// the row.
+    /// </summary>
+    public string? Links { get; set; }
+
     public ImportIncidentDto ToImportIncidentDto() =>
         new(ImportId,
             Title,
@@ -97,7 +105,8 @@ public sealed class ImportIncidentRequest
             CsvList.SplitIds(ReleaseIds),
             OffsetTimestamp.Parse(NoticedAt),
             OffsetTimestamp.Parse(StartedAt),
-            OffsetTimestamp.Parse(RecoveredAt));
+            OffsetTimestamp.Parse(RecoveredAt),
+            Links);
 
     /// <summary>
     /// Reads a status alias by name. Null for a blank cell, for <c>Recovered</c>, and for a value the

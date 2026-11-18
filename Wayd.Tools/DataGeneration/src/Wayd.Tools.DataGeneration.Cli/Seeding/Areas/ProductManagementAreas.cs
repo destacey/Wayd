@@ -379,6 +379,7 @@ public sealed class IncidentsArea() : ProductManagementSeedArea(
             NoticedAt = DeploymentCsvRow.Timestamp(incident.NoticedAt),
             StartedAt = incident.StartedAt is { } started ? DeploymentCsvRow.Timestamp(started) : null,
             RecoveredAt = incident.RecoveredAt is { } recovered ? DeploymentCsvRow.Timestamp(recovered) : null,
+            Links = SeedLinks.For(SeedLinkKind.Incident, incident.ImportId),
         });
 
         var run = await context.Client.ImportIncidents(CsvFile.ToBytes(rows), cancellationToken);

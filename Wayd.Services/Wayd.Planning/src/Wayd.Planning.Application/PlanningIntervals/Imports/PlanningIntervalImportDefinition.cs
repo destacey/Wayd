@@ -3,11 +3,13 @@ using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Models;
 using Wayd.Planning.Application.PlanningIntervals.Dtos;
+using Wayd.Planning.Domain;
 using Wayd.Planning.Domain.Models;
 
 namespace Wayd.Planning.Application.PlanningIntervals.Imports;
@@ -28,11 +30,13 @@ public sealed class PlanningIntervalImportDefinition(
     IPlanningDbContext planningDbContext,
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser,
+    ILinkWriter linkWriter,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportPlanningIntervalDto>(serializer)
 {
     public const string ImportKey = "planning.planning-intervals";
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly ILinkWriter _linkWriter = linkWriter;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUser _currentUser = currentUser;
 
@@ -117,6 +121,13 @@ public sealed class PlanningIntervalImportDefinition(
                 continue;
             }
 
+            var links = ImportedLinks.Parse(row.Data.Links);
+            if (links.IsFailure)
+            {
+                row.Failed(links.Error);
+                continue;
+            }
+
             var created = PlanningInterval.Create(
                 name,
                 row.Data.Description,
@@ -140,6 +151,10 @@ public sealed class PlanningIntervalImportDefinition(
                 row.Failed($"The teams could not be assigned to the planning interval: {roster.Error}");
                 continue;
             }
+
+            var added = await _linkWriter.AddImported(PlanningLinkOwners.PlanningInterval.Key, planningInterval.Id, links.Value, actor, cancellationToken);
+            if (added.IsFailure)
+                return added;
 
             await _planningDbContext.PlanningIntervals.AddAsync(planningInterval, cancellationToken);
 

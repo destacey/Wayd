@@ -60,6 +60,14 @@ public sealed class ImportProgramRequest
     /// <summary>Semicolon-separated employee numbers.</summary>
     public string? Managers { get; set; }
 
+    /// <summary>
+    /// Links to add to the program, separated by semicolons, each written Name|URL — for example
+    /// <c>Charter|https://example.com/charter; Team wiki|https://example.com/wiki</c>. A name cannot contain | or ;,
+    /// and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects
+    /// the row.
+    /// </summary>
+    public string? Links { get; set; }
+
     public ImportProgramDto ToImportProgramDto()
     {
         var status = Enum.Parse<ProgramStatus>(Status.Trim(), ignoreCase: true);
@@ -77,7 +85,8 @@ public sealed class ImportProgramRequest
             CsvList.SplitIds(StrategicThemes),
             CsvList.Split(Sponsors),
             CsvList.Split(Owners),
-            CsvList.Split(Managers));
+            CsvList.Split(Managers),
+            Links);
     }
 }
 

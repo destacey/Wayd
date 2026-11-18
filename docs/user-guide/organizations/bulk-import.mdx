@@ -203,6 +203,7 @@ two; both share the same shape. Teams are flat here — the parent/child structu
 | `ActiveDate` | Yes | The date the team became active. |
 | `IsActive` | No | Whether the team is current. Defaults to `true`. |
 | `InactiveDate` | Conditional | Required when `IsActive` is `false`; must be **after** `ActiveDate`. Must be empty when active. |
+| `Links` | No | Links to add to the team: `Name\|URL` entries separated by semicolons. See [Links](#links-column). |
 
 A file that repeats a name or a code fails when it is posted. A row whose name or code already belongs to a
 team is rejected, which fails the whole import. Each team is created with the same default operating model
@@ -302,6 +303,26 @@ having taken them.
 
 Because a team's KPI names are unique, sending the same files again after fixing a failed row imports only
 the rows that failed: every KPI that already imported is rejected as existing, not added a second time.
+
+## Links column
+
+The [teams import](#teams-import) takes an optional `Links` column, so a team arrives with its links
+already on it.
+The cell holds entries separated by semicolons, each a name and a web address joined by `|`:
+
+```text
+Charter|https://example.com/charter; Team wiki|https://example.com/wiki
+```
+
+- Only the first `|` in an entry separates the name from the address, so an address may contain one; a name
+  cannot contain `|` or `;`.
+- A `;` inside an address is written `%3B`, which is how URLs encode it anyway.
+- Every address must be a full `http://` or `https://` address. An entry without a `|`, without a name, with a
+  name over 128 characters or with any other address rejects its row, and the message names the entry.
+  Because the teams import is all or nothing, that fails the whole file.
+- A record may have the same address twice; the import creates what the file says.
+- The import's own permission covers the links. Imports only create, so this adds links to the records the file
+  creates, never to records already in Wayd.
 
 ## Related
 

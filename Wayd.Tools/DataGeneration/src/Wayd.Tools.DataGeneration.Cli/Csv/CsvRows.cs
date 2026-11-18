@@ -49,6 +49,9 @@ public sealed class TeamCsvRow
     public DateOnly ActiveDate { get; init; }
     public bool IsActive { get; init; } = true;
     public DateOnly? InactiveDate { get; init; }
+
+    /// <summary>The record's links, <c>Name|URL</c> entries separated by semicolons. See <see cref="Generation.SeedLinks"/>.</summary>
+    public string? Links { get; init; }
 }
 
 /// <summary>One row of the staffing CSV: one employee on one team in one role, all by natural key.</summary>

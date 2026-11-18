@@ -22,7 +22,8 @@ public sealed record ImportRiskDto(
     Guid? AssigneeId,
     LocalDate? FollowUpDate,
     string? Response,
-    Instant? ClosedDate);
+    Instant? ClosedDate,
+    string? Links = null);
 
 public sealed class ImportRiskDtoValidator : CustomValidator<ImportRiskDto>
 {

@@ -537,6 +537,16 @@ remove the links; an import calls it with no caller to ask. The writer raises th
 owner's Activity as well through `IRelatedAggregateEvent`, and tells the owner type through `OnChanged`, tracked in
 the same unit of work — an incident writes its timeline entry there.
 
+**Links are imported with their record**, as a `Links` column on the record's own import, never through an import of
+their own. Every record import reads the column the same way: the request passes the cell through untouched, and the
+definition calls `ImportedLinks.Parse` (`Common.Application/Links`) with the row's other checks, before it creates
+anything. A malformed entry fails only that row — a request validator would fail the whole file — so the parse
+belongs in the definition, not beside `CsvList`, which also drops repeats a record is allowed to have. Once the record
+is built, `AddImported` hands each link to `ILinkWriter` under an import actor with no employee, so the runner's save
+commits the record and its links together and an incident's links stay off its timeline. A failure there means an
+unregistered owner type, so the definition fails the pass rather than the row: a per-row import saves what a rejected
+row staged, and the links would outlive the record they were for. The import's own permission covers its links.
+
 To put links on another kind of record:
 
 1. **Declare the descriptor** in the module's domain project, beside a `Register()` method, like `PpmLinkOwners`. Its
@@ -550,7 +560,9 @@ To put links on another kind of record:
    save.
 5. **Add the owner type to the client**: its key in `LinkOwnerTypes` in `links-api.ts`, and a `LinksCard` on the
    record's page.
-6. **Update the docs**: the Links table in [Permissions](../user-guide/settings/permissions.mdx#links-the-record-they-are-on),
+6. **Import its links** if the record has an import: a `Links` property on the request and its DTO, parsed and added
+   as above, then the import's template and its `bulk-import.mdx` page.
+7. **Update the docs**: the Links table in [Permissions](../user-guide/settings/permissions.mdx#links-the-record-they-are-on),
    and the `ownerType` list in `LinksController`'s endpoint descriptions.
 
 No migration is needed: every owner type shares the same table.

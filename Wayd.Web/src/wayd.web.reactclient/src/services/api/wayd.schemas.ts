@@ -6270,7 +6270,8 @@ export interface ImportIntakeRequestRequest {
 }
 
 /**
- * A single CSV row for the measurements file: one value of one KPI for one period.
+ * A single CSV row for the measurements file: one value of one KPI, saying when it was taken the one way the KPI's
+ * window takes — `PeriodStart` and `PeriodEnd`, `AsOf`, or `MeasuredAt`.
  */
 export interface ImportKpiMeasurementRequest {
   /**
@@ -6278,14 +6279,32 @@ export interface ImportKpiMeasurementRequest {
      * @minLength 1
      */
   kpiImportId: string;
-  /** The first day the value describes. */
-  periodStart: string & { readonly __brand: 'CalendarDate' };
-  /** The last day the value describes. A KPI's periods cannot overlap. */
-  periodEnd: string & { readonly __brand: 'CalendarDate' };
+  /**
+     * For a `PerPeriod` KPI: the first day the value describes.
+     * @nullable
+     */
+  periodStart?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * For a `PerPeriod` KPI: the last day the value describes. A KPI's periods cannot overlap.
+     * @nullable
+     */
+  periodEnd?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * For a `Cumulative` or `Rolling` KPI: the last day the value covers. One value per day.
+     * @nullable
+     */
+  asOf?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * For a `PointInTime` KPI: the moment the value describes, as ISO 8601 with its offset, such as
+     * `2026-03-06T15:00:00-06:00` or `2026-03-06T21:00:00Z`. A time without an offset is refused, since it names no
+     * single moment. One value per moment.
+     * @nullable
+     */
+  measuredAt?: string | null;
   /** The raw measured value — never a percentage worked out from it. */
   value: number;
   /**
-     * The day the value was taken; the period's last day when blank.
+     * The day the value was taken; the last day it covers when blank.
      * @nullable
      */
   measuredOn?: string & { readonly __brand: 'CalendarDate' } | null;
@@ -6401,6 +6420,33 @@ export interface ImportKpiRequest {
      * @nullable
      */
   isClosed?: boolean | null;
+  /**
+     * What span each measurement covers: `PerPeriod` (each gives its own period), `Cumulative` (from
+     * `WindowAnchorDate` to its as-of day), `Rolling` (`WindowRollingCount` `WindowRollingUnit`s ending on its as-of
+     * day) or `PointInTime` (the state at one moment). `PerPeriod` when blank.
+     * @nullable
+     */
+  windowKind?: string | null;
+  /**
+     * For `Cumulative` only: the first day every measurement covers.
+     * @nullable
+     */
+  windowAnchorDate?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * For `Rolling` only: how many units each measurement covers.
+     * @nullable
+     */
+  windowRollingCount?: number | null;
+  /**
+     * For `Rolling` only: what the count counts — `Days`.
+     * @nullable
+     */
+  windowRollingUnit?: string | null;
+  /**
+     * For `PerPeriod` only: read the KPI as the average of this many latest measurements, 2 to 12. Blank for the latest alone.
+     * @nullable
+     */
+  rollingAverageOf?: number | null;
 }
 
 export interface ImportPlanningIntervalObjectivesRequest {

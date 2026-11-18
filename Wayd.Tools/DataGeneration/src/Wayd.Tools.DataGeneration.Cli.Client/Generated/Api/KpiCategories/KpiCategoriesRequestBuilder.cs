@@ -34,7 +34,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client.Api.KpiCategories
         {
         }
         /// <summary>
-        /// Returns the categories in order, each with how many KPIs have it. Inactive ones are left out unless `includeInactive` is true.
+        /// Returns the categories in order, each with how many KPIs have it. Inactive ones are left out unless `includeInactive` is true. A KPI&apos;s `categoryId` must name an active one.
         /// </summary>
         /// <returns>A List&lt;global::Wayd.Tools.DataGeneration.Cli.Client.Models.KpiCategoryDto&gt;</returns>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
@@ -82,7 +82,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client.Api.KpiCategories
             return await RequestAdapter.SendPrimitiveAsync<Guid?>(requestInfo, errorMapping, cancellationToken).ConfigureAwait(false);
         }
         /// <summary>
-        /// Returns the categories in order, each with how many KPIs have it. Inactive ones are left out unless `includeInactive` is true.
+        /// Returns the categories in order, each with how many KPIs have it. Inactive ones are left out unless `includeInactive` is true. A KPI&apos;s `categoryId` must name an active one.
         /// </summary>
         /// <returns>A <see cref="RequestInformation"/></returns>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
@@ -132,7 +132,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client.Api.KpiCategories
             return new global::Wayd.Tools.DataGeneration.Cli.Client.Api.KpiCategories.KpiCategoriesRequestBuilder(rawUrl, RequestAdapter);
         }
         /// <summary>
-        /// Returns the categories in order, each with how many KPIs have it. Inactive ones are left out unless `includeInactive` is true.
+        /// Returns the categories in order, each with how many KPIs have it. Inactive ones are left out unless `includeInactive` is true. A KPI&apos;s `categoryId` must name an active one.
         /// </summary>
         [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
         public partial class KpiCategoriesRequestBuilderGetQueryParameters 

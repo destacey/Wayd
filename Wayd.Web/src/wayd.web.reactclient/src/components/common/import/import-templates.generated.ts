@@ -370,7 +370,7 @@ export const importTemplates = {
   'kpis.kpis': {
     module: 'kpis',
     description:
-      'Takes two files: one row per KPI, naming the record it goes on by id, and one row per measurement naming the ImportId of its KPI. The measurements file may be empty of rows, but it must be sent with its header. A KPI and its measurements apply together: a period that overlaps another, or a goal the KPI cannot hold, rejects that KPI alone.',
+      "Takes two files: one row per KPI, naming the record it goes on by id, and one row per measurement naming the ImportId of its KPI. A KPI's WindowKind decides how each of its measurements says when it was taken: PeriodStart and PeriodEnd for PerPeriod, AsOf for Cumulative and Rolling, MeasuredAt for PointInTime. The measurements file may be empty of rows, but it must be sent with its header. A KPI and its measurements apply together: a value that clashes with another, one given the wrong way for the window, or a goal the KPI cannot hold, rejects that KPI alone.",
     files: [
       {
         field: 'file',
@@ -504,6 +504,42 @@ export const importTemplates = {
             description:
               '`true` to import the KPI closed, as history only. Open when blank.',
           },
+          {
+            name: 'WindowKind',
+            type: 'text',
+            required: false,
+            description:
+              'What span each measurement covers: `PerPeriod` (each gives its own period), `Cumulative` (from `WindowAnchorDate` to its as-of day), `Rolling` (`WindowRollingCount` `WindowRollingUnit`s ending on its as-of day) or `PointInTime` (the state at one moment). `PerPeriod` when blank.',
+            values: ['PerPeriod', 'Cumulative', 'Rolling', 'PointInTime'],
+          },
+          {
+            name: 'WindowAnchorDate',
+            type: 'date',
+            required: false,
+            description:
+              'For `Cumulative` only: the first day every measurement covers.',
+          },
+          {
+            name: 'WindowRollingCount',
+            type: 'integer',
+            required: false,
+            description:
+              'For `Rolling` only: how many units each measurement covers.',
+          },
+          {
+            name: 'WindowRollingUnit',
+            type: 'text',
+            required: false,
+            description: 'For `Rolling` only: what the count counts — `Days`.',
+            values: ['Days'],
+          },
+          {
+            name: 'RollingAverageOf',
+            type: 'integer',
+            required: false,
+            description:
+              'For `PerPeriod` only: read the KPI as the average of this many latest measurements, 2 to 12. Blank for the latest alone.',
+          },
         ],
       },
       {
@@ -520,15 +556,30 @@ export const importTemplates = {
           {
             name: 'PeriodStart',
             type: 'date',
-            required: true,
-            description: 'The first day the value describes.',
+            required: false,
+            description:
+              'For a `PerPeriod` KPI: the first day the value describes.',
           },
           {
             name: 'PeriodEnd',
             type: 'date',
-            required: true,
+            required: false,
             description:
-              "The last day the value describes. A KPI's periods cannot overlap.",
+              "For a `PerPeriod` KPI: the last day the value describes. A KPI's periods cannot overlap.",
+          },
+          {
+            name: 'AsOf',
+            type: 'date',
+            required: false,
+            description:
+              'For a `Cumulative` or `Rolling` KPI: the last day the value covers. One value per day.',
+          },
+          {
+            name: 'MeasuredAt',
+            type: 'text',
+            required: false,
+            description:
+              'For a `PointInTime` KPI: the moment the value describes, as ISO 8601 with its offset, such as `2026-03-06T15:00:00-06:00` or `2026-03-06T21:00:00Z`. A time without an offset is refused, since it names no single moment. One value per moment.',
           },
           {
             name: 'Value',
@@ -542,7 +593,7 @@ export const importTemplates = {
             type: 'date',
             required: false,
             description:
-              "The day the value was taken; the period's last day when blank.",
+              'The day the value was taken; the last day it covers when blank.',
           },
           {
             name: 'SampleSize',

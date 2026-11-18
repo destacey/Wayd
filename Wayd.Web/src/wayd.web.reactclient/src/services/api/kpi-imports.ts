@@ -29,7 +29,7 @@ export const getKpiImportsImportUrl = (params?: KpiImportsImportParams,) => {
 }
 
 /**
- * Takes two files: one row per KPI, naming the record it goes on by id, and one row per measurement naming the ImportId of its KPI. The measurements file may be empty of rows, but it must be sent with its header. A KPI and its measurements apply together: a period that overlaps another, or a goal the KPI cannot hold, rejects that KPI alone.
+ * Takes two files: one row per KPI, naming the record it goes on by id, and one row per measurement naming the ImportId of its KPI. A KPI's WindowKind decides how each of its measurements says when it was taken: PeriodStart and PeriodEnd for PerPeriod, AsOf for Cumulative and Rolling, MeasuredAt for PointInTime. The measurements file may be empty of rows, but it must be sent with its header. A KPI and its measurements apply together: a value that clashes with another, one given the wrong way for the window, or a goal the KPI cannot hold, rejects that KPI alone.
  * @summary Submit csv files of KPIs and their measurements to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
  */
 export const kpiImportsImport = async (kpiImportsImportBody: KpiImportsImportBody,

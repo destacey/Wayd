@@ -37,13 +37,21 @@ public sealed class ImportTeamRequest
     /// <summary>When the team was retired. Required when <c>IsActive</c> is <c>false</c>; must be after <c>ActiveDate</c>.</summary>
     public DateOnly? InactiveDate { get; set; }
 
+    /// <summary>
+    /// Links to add to the team, separated by semicolons, each written Name|URL — for example
+    /// <c>Charter|https://example.com/charter; Team wiki|https://example.com/wiki</c>. A name cannot contain | or ;,
+    /// and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects
+    /// the row.
+    /// </summary>
+    public string? Links { get; set; }
+
     public ImportTeamDto ToImportTeamDto()
     {
         var teamType = Enum.Parse<TeamType>(Type.Trim(), ignoreCase: true);
         var activeDate = ActiveDate.ToLocalDate();
         var inactiveDate = InactiveDate?.ToLocalDate();
 
-        return new ImportTeamDto(teamType, Name, (TeamCode)Code, Description, activeDate, IsActive, inactiveDate);
+        return new ImportTeamDto(teamType, Name, (TeamCode)Code, Description, activeDate, IsActive, inactiveDate, Links);
     }
 }
 

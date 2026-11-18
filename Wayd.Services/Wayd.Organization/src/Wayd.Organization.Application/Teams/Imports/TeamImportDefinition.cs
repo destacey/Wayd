@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NodaTime;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
@@ -11,6 +12,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Settings;
 using Wayd.Organization.Application.Persistence;
+using Wayd.Organization.Domain;
 using Wayd.Organization.Domain.Models;
 
 namespace Wayd.Organization.Application.Teams.Imports;
@@ -29,11 +31,13 @@ public sealed class TeamImportDefinition(
     ICurrentUser currentUser,
     ISettings<SchedulingSettings> schedulingSettings,
     ISettings<GeneralSettings> generalSettings,
+    ILinkWriter linkWriter,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportTeamDto>(serializer)
 {
     public const string ImportKey = "teams";
 
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
+    private readonly ILinkWriter _linkWriter = linkWriter;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
@@ -116,6 +120,13 @@ public sealed class TeamImportDefinition(
                 continue;
             }
 
+            var links = ImportedLinks.Parse(data.Links);
+            if (links.IsFailure)
+            {
+                row.Failed(links.Error);
+                continue;
+            }
+
             BaseTeam team;
 
             if (data.Type == TeamType.TeamOfTeams)
@@ -150,6 +161,10 @@ public sealed class TeamImportDefinition(
                     continue;
                 }
             }
+
+            var added = await _linkWriter.AddImported(OrganizationLinkOwners.Team.Key, team.Id, links.Value, actor, cancellationToken);
+            if (added.IsFailure)
+                return added;
 
             row.Created(team.Id);
         }

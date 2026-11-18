@@ -403,7 +403,7 @@ anything you can compose in the page, you can also say on a command line.
 | `--skip-demand-management` | off | Skip the Request Desk: its desks, tag categories and intake requests |
 | `--requests-per-month` | `12` | Average intake requests (0..200) the company submits per month across the history |
 | `--skip-kpis` | off | Skip KPIs: their categories, and every team's and ART's KPIs and history |
-| `--kpis-per-team` | `3` | KPIs (0..7) each delivery team carries; its ART carries half as many, at least one |
+| `--kpis-per-team` | `3` | KPIs (0..8) each delivery team carries; its ART carries half as many, at least one |
 | `--random-seed`, `-r` | random | Fixed RNG seed for reproducible output (every area) |
 | `--as-of` | today (UTC) | The date the run treats as today, which the whole timeline is anchored on. Pin it *with* `--random-seed` for byte-identical output |
 | `--out`, `-o` | `./seed` | (`generate` and `ui`) output directory |
@@ -796,12 +796,17 @@ and **People** categories (create-or-get by name, like the expenditure categorie
 `--kpis-per-team` KPIs and every ART half as many, at least one.
 
 - **Which KPIs** — each team draws from a catalogue of throughput, cycle time, escaped defects, change failure
-  rate, sprint predictability, team engagement and unplanned work; each ART from feature lead time, PI
-  predictability and escaped defects. Between them they state every kind of goal: a value to reach and a
+  rate, sprint predictability, team engagement, unplanned work and open bugs; each ART from feature lead time,
+  PI predictability and escaped defects. Between them they state every kind of goal: a value to reach and a
   percentage change, with and without an at-risk line, shown as the value, the change from baseline or the
   progress to target.
-- **History** — one measurement per calendar month, from the later of the history window's start and the
-  team structure's forming to the last whole month. The baseline is the average of the first three months,
+- **Measurement windows** — between them they use every kind: throughput per month read as a rolling
+  average of three, cycle time and feature lead time over a rolling 90 days, unplanned work cumulative from
+  the month after its baseline, open bugs at a point in time, and the rest per month.
+- **History** — one value per calendar month, from the later of the history window's start and the
+  team structure's forming to the last whole month, recorded the way the KPI's window takes it: for the
+  month when per period, as of its last day when rolling or cumulative, and as two readings, on the 1st and
+  the 15th at 15:00 UTC, when point in time. The baseline is the average of the first three months,
   taken over those months, and the target is set against that team's own baseline. Each KPI then moves toward
   its target at its own pace with month-to-month noise — most part of the way, a few past it — so a scorecard
   shows healthy, at-risk and unhealthy KPIs side by side. Rates and averages carry a sample size.

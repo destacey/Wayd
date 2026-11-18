@@ -1,6 +1,6 @@
 ---
 title: Scorecards and KPIs
-description: Setting KPIs on a team or team of teams — baselines, targets, at-risk thresholds — recording measurements, and reading the scorecard.
+description: Setting KPIs on a team or team of teams — baselines, targets, at-risk thresholds, measurement windows and rolling averages — recording measurements, and reading the scorecard.
 sidebar_position: 3
 audience: [user, agent]
 ---
@@ -23,22 +23,45 @@ KPIs need the `kpis` feature flag, which an administrator turns on under **Setti
 | **Target** | Either **a value** to reach ("reach 15 days"), or **a percentage change** from the baseline in the KPI's direction ("improve 25%"). A percentage change needs a baseline. The baseline must be short of the target: a KPI that should go up starts below its target. |
 | **At-risk threshold** | Optional. A line short of the target, stated as a value or as a share of the way from baseline to target. A measurement past it but short of the target is **At Risk** rather than **Unhealthy**. Without one, a KPI is either on target or not. |
 | **Show as** | Which reading the scorecard leads with: the value, the change from baseline, or the progress to target. |
+| **Measurement window** | What span of time each value covers — per period, cumulative, rolling or point in time. See [Measurement windows](#measurement-windows). Fixed once the KPI has measurements. |
+| **Rolling average** | Optional, for a per-period KPI. Reads the KPI as the average of its latest 2 to 12 measurements instead of the latest alone — velocity over the last 7 sprints, say. |
 
 A percentage target follows its baseline: correct the baseline and the target it resolves to moves with it.
 
 ## Measurements
 
-A **measurement** is the raw value of the KPI for a **period** — a sprint, a month, any date range. Each period on a KPI can hold one measurement, and periods never overlap, so the latest value and the trend are never ambiguous.
+A **measurement** is the raw value of the KPI for the span of time its [measurement window](#measurement-windows) says. Every measurement keeps the days it covers, so the latest value and the trend are never ambiguous.
 
 The value is always the raw number, never a percentage worked out from it. Record 14 for a cycle time of 14 days; the change from baseline and the progress to target are worked out from it, so nobody enters a figure Wayd cannot check.
 
 A measurement can also carry a **sample size** — how many items an average or a rate was worked out from — and a note.
 
+### Measurement windows
+
+A KPI's window decides what span each value covers, and so how you say when a value was taken:
+
+| Window | Each value covers | You record it | Use it for |
+|---|---|---|---|
+| **Per period** | Its own period: a sprint, a week, a month. Periods never overlap. | For a period | Values that belong to one period: velocity per sprint, throughput per week. |
+| **Cumulative** | Every day from a fixed **anchor date** to the day it is taken. | As of a day | A number since a start date: "cycle time since February 16, 10% better than last year", recorded every Friday. |
+| **Rolling** | A fixed number of days ending on the day it is taken. | As of a day | A number over a moving window: "cycle time over the last 90 days". |
+| **Point in time** | The state at one moment. | At a moment | Counts that describe a moment, not a span: open bugs, work in progress. Several a day are fine. |
+
+A cumulative or rolling KPI takes one value per day; Wayd works out the days it covers. A point-in-time reading keeps its exact moment, shown in your own time zone, and counts toward the day it falls on in the organization's [system time zone](../settings/index.mdx#general).
+
+The window is chosen when the KPI is added and cannot change once it has measurements: they were recorded under it. To measure differently, close the KPI and add a new one.
+
+### Rolling averages
+
+A per-period KPI whose values add up per period can be read as the **average of its latest measurements**, 2 to 12 of them. A team's velocity, recorded each sprint, read over its last 7 sprints, is the usual case. The average is what the target, health and trend judge, and the card also shows the latest single value. While a KPI has fewer measurements than the average asks for, it averages what it has and says how many.
+
+The average is worked out when read, never stored, so changing how many it covers reads through the whole history at once.
+
 ## Reading the scorecard
 
 Each KPI is a card showing:
 
-- **Its headline** — the latest value, its change from baseline, or its progress to target, as the KPI is set to show.
+- **Its headline** — the latest value (or rolling average), its change from baseline, or its progress to target, as the KPI is set to show.
 - **Health** — **Healthy** once the target is met, **At Risk** past the at-risk threshold, **Unhealthy** otherwise. Nothing until the KPI is first measured.
 - **Trend** — whether the latest value moved the right way from the one before it.
 - **A line of its recent values**, and the baseline and target.
@@ -49,7 +72,7 @@ Open a card for the KPI's full view: its goal, every reading, a chart of its his
 
 From the scorecard, **Add KPI** adds one at the end. From a KPI's view:
 
-- **Record Measurement** adds the value for a period. **Correct** and **Remove** in a measurement's row change one already recorded; who took it stays as recorded.
+- **Record Measurement** adds a value — for a period, as of a day, or at a moment, as the KPI's window takes it. **Correct** and **Remove** in a measurement's row change one already recorded; who took it stays as recorded.
 - **Edit** changes its details, baseline and target in one save, so a baseline and target can move together. Each part that changed is its own entry in the KPI's history.
 - **Close** takes it off the scorecard and keeps its measurements; a closed KPI takes no new measurements until it is **reopened**.
 - **Remove** deletes it and its measurements for good. Close it instead to keep its history.
@@ -72,4 +95,4 @@ A year or more of history per team, from a spreadsheet, is loaded with the [KPI 
 
 ## From an AI assistant
 
-The `kpis` toolset on the [MCP server](../../getting-started/mcp-server.mdx) reads a scorecard and a KPI's history, and records a measurement.
+The `kpis` toolset on the [MCP server](../../getting-started/mcp-server.mdx) does what the scorecard does: it reads a scorecard and a KPI's history, records, corrects and removes measurements, and adds, edits, closes, reopens, reorders and removes KPIs, under the same rules for who may change them.

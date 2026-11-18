@@ -8,6 +8,7 @@ import {
   KpiTargetDirection,
   KpiTargetKind,
   KpiTrend,
+  KpiWindowKind,
 } from '@/src/services/api/wayd.schemas'
 import {
   atRiskLabel,
@@ -34,6 +35,7 @@ const summary = (overrides: Partial<KpiSummaryDto> = {}): KpiSummaryDto => ({
   suffix: 'days',
   source: KpiSource.Manual,
   expressedAs: KpiExpressedAs.Value,
+  window: { kind: KpiWindowKind.PerPeriod },
   status: KpiStatus.Active,
   order: 0,
   goal: goal(),

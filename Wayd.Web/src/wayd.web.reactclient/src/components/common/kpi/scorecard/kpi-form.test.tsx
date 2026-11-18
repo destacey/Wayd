@@ -7,6 +7,7 @@ import {
   KpiTargetDirection,
   KpiTargetKind,
   KpiTrend,
+  KpiWindowKind,
 } from '@/src/services/api/wayd.schemas'
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -60,6 +61,7 @@ const kpi: KpiSummaryDto = {
   suffix: 'items',
   source: KpiSource.Manual,
   expressedAs: KpiExpressedAs.Value,
+  window: { kind: KpiWindowKind.PerPeriod },
   status: KpiStatus.Active,
   order: 0,
   goal: {

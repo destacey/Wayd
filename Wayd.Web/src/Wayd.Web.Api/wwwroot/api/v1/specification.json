@@ -1923,7 +1923,7 @@
           "Kpis"
         ],
         "summary": "Get a record's scorecard.",
-        "description": "`subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. Returns the record's name, whether you may manage its KPIs (`canManage`), and every active KPI ordered by category (uncategorized last), then position. Each KPI carries its `goal` as entered and resolved, its `reading` of the latest value — `changeFromBaseline`, `changeFromBaselinePercent`, `progressToTarget` (1 is the target reached), `health` and `trend` — and up to 12 `recentValues`, oldest first. `expressedAs` says which reading the KPI is shown as.",
+        "description": "`subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. Returns the record's name, whether you may manage its KPIs (`canManage`), and every active KPI ordered by category (uncategorized last), then position. Each KPI carries its `goal` as entered and resolved, its `window`, its `reading` of the latest value — `changeFromBaseline`, `changeFromBaselinePercent`, `progressToTarget` (1 is the target reached), `health` and `trend` — and up to 12 `recentValues`, oldest first. `expressedAs` says which reading the KPI is shown as. When `rollingAverageOf` is set, the reading's `value` is the average of that many latest measurements (`averagedCount` says how many there were) and is what health and trend judge; `latestValue` is always the newest raw measurement.",
         "operationId": "Kpis_GetScorecard",
         "parameters": [
           {
@@ -1997,7 +1997,7 @@
           "Kpis"
         ],
         "summary": "Add a KPI to a record.",
-        "description": "`subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. Adds an active KPI, last on the scorecard, and returns its id and key. The `target` is `Absolute` (a value to reach) or `RelativeChange` (a percentage from the baseline, which then needs a baseline value); the baseline must be short of the target in the KPI's direction. An optional at-risk threshold, `Absolute` or `ProgressToTarget`, must also be short of the target. Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment. Requires your account to be linked to an employee.",
+        "description": "`subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. Adds an active KPI, last on the scorecard, and returns its id and key. The `target` is `Absolute` (a value to reach) or `RelativeChange` (a percentage from the baseline, which then needs a baseline value); the baseline must be short of the target in the KPI's direction. An optional at-risk threshold, `Absolute` or `ProgressToTarget`, must also be short of the target. The KPI's `window` says what span each value covers: `PerPeriod` (each measurement gives its own `periodStart` and `periodEnd`, and periods do not overlap), `Cumulative` (from a fixed `anchorDate` to the measurement's `asOf` day), `Rolling` (`rollingCount` `rollingUnit`s ending on the `asOf` day) or `PointInTime` (the state at the exact moment `measuredAt`, several a day allowed). Leave `window` out for `PerPeriod`. Only a `PerPeriod` KPI may set `rollingAverageOf` (2 to 12), to be read as the average of its latest measurements, as velocity is read over the last 7 sprints. Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment. Requires your account to be linked to an employee.",
         "operationId": "Kpis_AddKpi",
         "parameters": [
           {
@@ -2265,7 +2265,7 @@
           "Kpis"
         ],
         "summary": "Change a KPI's details, baseline and target.",
-        "description": "`subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. Replaces everything about the KPI that is entered rather than measured, in one save: send every field, including the ones that stay. The new goal is checked as a whole, against the same rules as adding a KPI, so a baseline and target may move together. A new category must be active; the one the KPI has may stay. Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.",
+        "description": "`subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. Replaces everything about the KPI that is entered rather than measured, in one save: send every field, including the ones that stay. The new goal is checked as a whole, against the same rules as adding a KPI, so a baseline and target may move together. A new category must be active; the one the KPI has may stay. Leave `window` out to keep it; it can change only while the KPI has no measurements, since they were recorded under it. `rollingAverageOf` is replaced like any other field: leave it out to read the latest value alone. Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.",
         "operationId": "Kpis_UpdateKpi",
         "parameters": [
           {
@@ -2764,7 +2764,7 @@
           "Kpis"
         ],
         "summary": "Record a measurement against a KPI.",
-        "description": "`subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. Records the raw value for a period on an open KPI, taken by you, and returns its id. Periods on one KPI cannot overlap; record each period once. Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment. Requires your account to be linked to an employee.",
+        "description": "`subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. Records the raw value on an open KPI, taken by you, and returns its id. The KPI's `window` says what span each value covers: `PerPeriod` (each measurement gives its own `periodStart` and `periodEnd`, and periods do not overlap), `Cumulative` (from a fixed `anchorDate` to the measurement's `asOf` day), `Rolling` (`rollingCount` `rollingUnit`s ending on the `asOf` day) or `PointInTime` (the state at the exact moment `measuredAt`, several a day allowed). Give exactly the one the KPI's window takes — a period, an `asOf` day or a `measuredAt` moment — or the request is refused with 400; read the KPI first if you do not know its window. A per-period KPI's periods cannot overlap; a cumulative or rolling KPI takes one value per `asOf` day; a point-in-time KPI one per moment. Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment. Requires your account to be linked to an employee.",
         "operationId": "Kpis_RecordMeasurement",
         "parameters": [
           {
@@ -2880,7 +2880,7 @@
           "Kpis"
         ],
         "summary": "Correct a measurement.",
-        "description": "`subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. Replaces the value and period of a measurement on an open KPI; who took it stays as recorded. Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.",
+        "description": "`subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. Replaces the value and time of a measurement on an open KPI, given as recording it takes them; who took it stays as recorded. Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.",
         "operationId": "Kpis_ChangeMeasurement",
         "parameters": [
           {
@@ -73255,7 +73255,7 @@
             "items": {
               "$ref": "#/components/schemas/KpiMeasurementDto"
             },
-            "description": "Every measurement, newest period first."
+            "description": "Every measurement, newest period first, then newest moment."
           }
         },
         "additionalProperties": false,
@@ -73397,7 +73397,7 @@
           },
           "periodEnd": {
             "type": "string",
-            "description": "The last day the value describes.",
+            "description": "The last day the value describes: for a cumulative or rolling KPI, the day it was taken as of.",
             "format": "date"
           },
           "periodRecordKind": {
@@ -73418,6 +73418,14 @@
             ],
             "description": "The sprint, planning interval or release the period covers, if any.",
             "format": "uuid"
+          },
+          "measuredAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The moment a point-in-time value describes, or null for any other window.",
+            "format": "date-time"
           },
           "measuredOn": {
             "type": "string",
@@ -73464,9 +73472,7 @@
       },
       "KpiMeasurementRequest": {
         "required": [
-          "value",
-          "periodStart",
-          "periodEnd"
+          "value"
         ],
         "type": "object",
         "properties": {
@@ -73476,14 +73482,36 @@
             "format": "double"
           },
           "periodStart": {
-            "type": "string",
-            "description": "The first day the value describes, as `YYYY-MM-DD`.",
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "For a `PerPeriod` KPI: the first day the value describes, as `YYYY-MM-DD`.",
             "format": "date"
           },
           "periodEnd": {
-            "type": "string",
-            "description": "The last day the value describes. Periods on one KPI cannot overlap.",
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "For a `PerPeriod` KPI: the last day the value describes. Periods on one KPI cannot overlap.",
             "format": "date"
+          },
+          "asOf": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "For a `Cumulative` or `Rolling` KPI: the last day the value covers, as `YYYY-MM-DD`. Its period is worked out\nfrom the KPI's window; one value per day.",
+            "format": "date"
+          },
+          "measuredAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "For a `PointInTime` KPI: the exact moment the value describes, as an ISO 8601 instant such as\n`2026-03-06T14:30:00Z`. Several a day are allowed, one per moment.",
+            "format": "date-time"
           },
           "periodRecordKind": {
             "oneOf": [
@@ -73494,7 +73522,7 @@
                 "type": "null"
               }
             ],
-            "description": "The kind of record the period covers — `Sprint`, `PlanningInterval` or `Release` — given with `periodRecordId`, or null."
+            "description": "For a `PerPeriod` KPI: the kind of record the period covers — `Sprint`, `PlanningInterval` or `Release` — given with `periodRecordId`, or null."
           },
           "periodRecordId": {
             "type": [
@@ -73509,7 +73537,7 @@
               "null",
               "string"
             ],
-            "description": "The day the value was taken; the period's last day when left out.",
+            "description": "The day the value was taken; when left out, the last day it covers (for a moment, its day in the system time zone).",
             "format": "date"
           },
           "sampleSize": {
@@ -73529,13 +73557,58 @@
           }
         },
         "additionalProperties": false,
-        "description": "A measurement's value and the period it describes."
+        "description": "A measurement's value and when it was taken, given the one way the KPI's window takes it: `periodStart` and\n`periodEnd` for `PerPeriod`, `asOf` for `Cumulative` and `Rolling`, `measuredAt` for `PointInTime`."
       },
       "KpiMeasurementSource": {
         "enum": [
           "Manual"
         ],
         "type": "string"
+      },
+      "KpiMeasurementWindowDto": {
+        "required": [
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/KpiWindowKind"
+              }
+            ],
+            "description": "How the window is formed."
+          },
+          "anchorDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The first day every measurement covers, for a cumulative KPI.",
+            "format": "date"
+          },
+          "rollingCount": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "How many units each measurement covers, for a rolling KPI.",
+            "format": "int32"
+          },
+          "rollingUnit": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/KpiRollingUnit"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What the rolling count counts, for a rolling KPI."
+          }
+        },
+        "additionalProperties": false,
+        "description": "How a KPI's measurements are windowed."
       },
       "KpiPeriodRecordKind": {
         "enum": [
@@ -73567,6 +73640,14 @@
             "type": "number",
             "description": "The raw measured value.",
             "format": "double"
+          },
+          "measuredAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The moment a point-in-time value describes, or null for any other window.",
+            "format": "date-time"
           }
         },
         "additionalProperties": false,
@@ -73628,6 +73709,22 @@
               }
             ],
             "description": "Whether the latest value moved the right way from the one before it."
+          },
+          "latestValue": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The latest raw measurement, which differs from Value only when it is a rolling average.",
+            "format": "double"
+          },
+          "averagedCount": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "How many measurements Value averages, or null when it is the latest alone; fewer than the KPI asks for while it has fewer.",
+            "format": "int32"
           }
         },
         "additionalProperties": false,
@@ -73698,10 +73795,35 @@
               }
             ],
             "description": "What it aims for."
+          },
+          "window": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/KpiWindowRequest"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What span of time each measurement covers. Left out: `PerPeriod` when adding, unchanged when updating. Can change\nonly while the KPI has no measurements."
+          },
+          "rollingAverageOf": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "Read the KPI as the average of this many of its latest measurements, 2 to 12, instead of the latest alone — as\nvelocity is read over the last 7 sprints. Only on a `PerPeriod` KPI. Left out: the latest alone.",
+            "format": "int32"
           }
         },
         "additionalProperties": false,
         "description": "Everything about a KPI that is entered rather than measured: its descriptive fields, where it started and what it\naims for."
+      },
+      "KpiRollingUnit": {
+        "enum": [
+          "Days"
+        ],
+        "type": "string"
       },
       "KpiScorecardDto": {
         "required": [
@@ -73768,6 +73890,7 @@
           "name",
           "source",
           "expressedAs",
+          "window",
           "status",
           "order",
           "goal",
@@ -73837,6 +73960,22 @@
               }
             ],
             "description": "Which reading the scorecard shows."
+          },
+          "window": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/KpiMeasurementWindowDto"
+              }
+            ],
+            "description": "How its measurements are windowed: which span of time each value describes."
+          },
+          "rollingAverageOf": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "How many of the latest measurements the reading averages, or null when it reads the latest alone.",
+            "format": "int32"
           },
           "status": {
             "oneOf": [
@@ -73952,6 +74091,60 @@
           "Stable"
         ],
         "type": "string"
+      },
+      "KpiWindowKind": {
+        "enum": [
+          "PerPeriod",
+          "Cumulative",
+          "Rolling",
+          "PointInTime"
+        ],
+        "type": "string"
+      },
+      "KpiWindowRequest": {
+        "required": [
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/KpiWindowKind"
+              }
+            ],
+            "description": "`PerPeriod` (each measurement gives its own period), `Cumulative` (from `anchorDate` to the day a value is taken\nas of), `Rolling` (`rollingCount` `rollingUnit`s ending on that day) or `PointInTime` (the state at one moment)."
+          },
+          "anchorDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "For `Cumulative` only: the first day every measurement covers, as `YYYY-MM-DD`. Fixed once measured.",
+            "format": "date"
+          },
+          "rollingCount": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "For `Rolling` only: how many units each measurement covers, at least 1.",
+            "format": "int32"
+          },
+          "rollingUnit": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/KpiRollingUnit"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For `Rolling` only: what `rollingCount` counts — `Days`."
+          }
+        },
+        "additionalProperties": false,
+        "description": "What span of time each of a KPI's measurements covers."
       },
       "LifecycleCategory": {
         "enum": [

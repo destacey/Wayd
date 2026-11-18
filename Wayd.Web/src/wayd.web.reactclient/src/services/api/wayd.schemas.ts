@@ -9376,6 +9376,43 @@ export const KpiExpressedAs = {
   ProgressToTarget: 'ProgressToTarget',
 } as const;
 
+export type KpiWindowKind = typeof KpiWindowKind[keyof typeof KpiWindowKind];
+
+
+export const KpiWindowKind = {
+  PerPeriod: 'PerPeriod',
+  Cumulative: 'Cumulative',
+  Rolling: 'Rolling',
+  PointInTime: 'PointInTime',
+} as const;
+
+export type KpiRollingUnit = typeof KpiRollingUnit[keyof typeof KpiRollingUnit];
+
+
+export const KpiRollingUnit = {
+  Days: 'Days',
+} as const;
+
+/**
+ * How a KPI's measurements are windowed.
+ */
+export interface KpiMeasurementWindowDto {
+  /** How the window is formed. */
+  kind: KpiWindowKind;
+  /**
+     * The first day every measurement covers, for a cumulative KPI.
+     * @nullable
+     */
+  anchorDate?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * How many units each measurement covers, for a rolling KPI.
+     * @nullable
+     */
+  rollingCount?: number | null;
+  /** What the rolling count counts, for a rolling KPI. */
+  rollingUnit?: KpiRollingUnit | null;
+}
+
 export type KpiStatus = typeof KpiStatus[keyof typeof KpiStatus];
 
 
@@ -9483,6 +9520,16 @@ export interface KpiReadingDto {
   health?: KpiHealth | null;
   /** Whether the latest value moved the right way from the one before it. */
   trend: KpiTrend;
+  /**
+     * The latest raw measurement, which differs from Value only when it is a rolling average.
+     * @nullable
+     */
+  latestValue?: number | null;
+  /**
+     * How many measurements Value averages, or null when it is the latest alone; fewer than the KPI asks for while it has fewer.
+     * @nullable
+     */
+  averagedCount?: number | null;
 }
 
 /**
@@ -9495,6 +9542,11 @@ export interface KpiPointDto {
   periodEnd: string & { readonly __brand: 'CalendarDate' };
   /** The raw measured value. */
   value: number;
+  /**
+     * The moment a point-in-time value describes, or null for any other window.
+     * @nullable
+     */
+  measuredAt?: string & { readonly __brand: 'Instant' } | null;
 }
 
 /**
@@ -9528,6 +9580,13 @@ export interface KpiSummaryDto {
   source: KpiSource;
   /** Which reading the scorecard shows. */
   expressedAs: KpiExpressedAs;
+  /** How its measurements are windowed: which span of time each value describes. */
+  window: KpiMeasurementWindowDto;
+  /**
+     * How many of the latest measurements the reading averages, or null when it reads the latest alone.
+     * @nullable
+     */
+  rollingAverageOf?: number | null;
   /** Whether it is on the scorecard. */
   status: KpiStatus;
   /** Its position on the scorecard, lowest first. */
@@ -9566,7 +9625,7 @@ export interface KpiMeasurementDto {
   value: number;
   /** The first day the value describes. */
   periodStart: string & { readonly __brand: 'CalendarDate' };
-  /** The last day the value describes. */
+  /** The last day the value describes: for a cumulative or rolling KPI, the day it was taken as of. */
   periodEnd: string & { readonly __brand: 'CalendarDate' };
   /** The kind of record the period covers, if any. */
   periodRecordKind?: KpiPeriodRecordKind | null;
@@ -9575,6 +9634,11 @@ export interface KpiMeasurementDto {
      * @nullable
      */
   periodRecordId?: string | null;
+  /**
+     * The moment a point-in-time value describes, or null for any other window.
+     * @nullable
+     */
+  measuredAt?: string & { readonly __brand: 'Instant' } | null;
   /** The day the value was taken. */
   measuredOn: string & { readonly __brand: 'CalendarDate' };
   /** The employee who took it, when known. */
@@ -9603,21 +9667,40 @@ export interface KpiDetailsDto {
   subjectName: string;
   /** Whether the caller may change the KPI and its measurements. */
   canManage: boolean;
-  /** Every measurement, newest period first. */
+  /** Every measurement, newest period first, then newest moment. */
   measurements: KpiMeasurementDto[];
 }
 
 /**
- * A measurement's value and the period it describes.
+ * A measurement's value and when it was taken, given the one way the KPI's window takes it: `periodStart` and
+ * `periodEnd` for `PerPeriod`, `asOf` for `Cumulative` and `Rolling`, `measuredAt` for `PointInTime`.
  */
 export interface KpiMeasurementRequest {
   /** The raw measured value — never a percentage worked out from it. */
   value: number;
-  /** The first day the value describes, as `YYYY-MM-DD`. */
-  periodStart: string & { readonly __brand: 'CalendarDate' };
-  /** The last day the value describes. Periods on one KPI cannot overlap. */
-  periodEnd: string & { readonly __brand: 'CalendarDate' };
-  /** The kind of record the period covers — `Sprint`, `PlanningInterval` or `Release` — given with `periodRecordId`, or null. */
+  /**
+     * For a `PerPeriod` KPI: the first day the value describes, as `YYYY-MM-DD`.
+     * @nullable
+     */
+  periodStart?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * For a `PerPeriod` KPI: the last day the value describes. Periods on one KPI cannot overlap.
+     * @nullable
+     */
+  periodEnd?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * For a `Cumulative` or `Rolling` KPI: the last day the value covers, as `YYYY-MM-DD`. Its period is worked out
+     * from the KPI's window; one value per day.
+     * @nullable
+     */
+  asOf?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * For a `PointInTime` KPI: the exact moment the value describes, as an ISO 8601 instant such as
+     * `2026-03-06T14:30:00Z`. Several a day are allowed, one per moment.
+     * @nullable
+     */
+  measuredAt?: string & { readonly __brand: 'Instant' } | null;
+  /** For a `PerPeriod` KPI: the kind of record the period covers — `Sprint`, `PlanningInterval` or `Release` — given with `periodRecordId`, or null. */
   periodRecordKind?: KpiPeriodRecordKind | null;
   /**
      * The id of the sprint, planning interval or release the period covers, or null.
@@ -9625,7 +9708,7 @@ export interface KpiMeasurementRequest {
      */
   periodRecordId?: string | null;
   /**
-     * The day the value was taken; the period's last day when left out.
+     * The day the value was taken; when left out, the last day it covers (for a moment, its day in the system time zone).
      * @nullable
      */
   measuredOn?: string & { readonly __brand: 'CalendarDate' } | null;
@@ -9664,6 +9747,29 @@ export interface KpiTargetRequest {
 }
 
 /**
+ * What span of time each of a KPI's measurements covers.
+ */
+export interface KpiWindowRequest {
+  /**
+     * `PerPeriod` (each measurement gives its own period), `Cumulative` (from `anchorDate` to the day a value is taken
+     * as of), `Rolling` (`rollingCount` `rollingUnit`s ending on that day) or `PointInTime` (the state at one moment).
+     */
+  kind: KpiWindowKind;
+  /**
+     * For `Cumulative` only: the first day every measurement covers, as `YYYY-MM-DD`. Fixed once measured.
+     * @nullable
+     */
+  anchorDate?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * For `Rolling` only: how many units each measurement covers, at least 1.
+     * @nullable
+     */
+  rollingCount?: number | null;
+  /** For `Rolling` only: what `rollingCount` counts — `Days`. */
+  rollingUnit?: KpiRollingUnit | null;
+}
+
+/**
  * Everything about a KPI that is entered rather than measured: its descriptive fields, where it started and what it
  * aims for.
  */
@@ -9696,6 +9802,17 @@ export interface KpiRequest {
   baseline: KpiBaselineRequest;
   /** What it aims for. */
   target: KpiTargetRequest;
+  /**
+     * What span of time each measurement covers. Left out: `PerPeriod` when adding, unchanged when updating. Can change
+     * only while the KPI has no measurements.
+     */
+  window?: KpiWindowRequest | null;
+  /**
+     * Read the KPI as the average of this many of its latest measurements, 2 to 12, instead of the latest alone — as
+     * velocity is read over the last 7 sprints. Only on a `PerPeriod` KPI. Left out: the latest alone.
+     * @nullable
+     */
+  rollingAverageOf?: number | null;
 }
 
 /**

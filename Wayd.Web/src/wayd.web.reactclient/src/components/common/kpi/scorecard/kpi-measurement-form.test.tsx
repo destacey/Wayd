@@ -2,9 +2,13 @@ import type { UseModalFormOptions } from '@/src/hooks'
 import {
   KpiMeasurementDto,
   KpiMeasurementSource,
+  KpiMeasurementWindowDto,
   KpiPeriodRecordKind,
+  KpiRollingUnit,
+  KpiWindowKind,
 } from '@/src/services/api/wayd.schemas'
 import { asCalendarDate } from '@/src/utils/calendar-date'
+import { asInstant } from '@/src/utils/instant'
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import KpiMeasurementForm from './kpi-measurement-form'
@@ -63,14 +67,20 @@ const measurement = {
   note: 'Sprint 9',
 } as KpiMeasurementDto
 
-const renderForm = async () => {
+const perPeriod: KpiMeasurementWindowDto = { kind: KpiWindowKind.PerPeriod }
+
+const renderForm = async (
+  measurementWindow: KpiMeasurementWindowDto = perPeriod,
+  toCorrect: KpiMeasurementDto = measurement,
+) => {
   const onFormComplete = vi.fn()
   await act(async () => {
     render(
       <KpiMeasurementForm
         target={target}
+        measurementWindow={measurementWindow}
         suffix="items"
-        measurement={measurement}
+        measurement={toCorrect}
         onFormComplete={onFormComplete}
         onFormCancel={vi.fn()}
       />,
@@ -113,6 +123,61 @@ describe('KpiMeasurementForm', () => {
       },
     })
     expect(onFormComplete).toHaveBeenCalled()
+  })
+
+  it('corrects a rolling KPI by its as-of day, sending no period', async () => {
+    // Arrange
+    const rolling: KpiMeasurementWindowDto = {
+      kind: KpiWindowKind.Rolling,
+      rollingCount: 90,
+      rollingUnit: KpiRollingUnit.Days,
+    }
+    await renderForm(rolling, {
+      ...measurement,
+      periodStart: asCalendarDate('2026-07-17'),
+      periodEnd: asCalendarDate('2026-10-14'),
+      periodRecordKind: undefined,
+      periodRecordId: undefined,
+    })
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    // Assert
+    expect(
+      screen.getByText(/Last 90 days, ending on this day/),
+    ).toBeInTheDocument()
+    const { request } = mockChange.mock.calls[0][0]
+    expect(request.asOf).toBe('2026-10-14')
+    expect(request.periodStart).toBeUndefined()
+    expect(request.periodEnd).toBeUndefined()
+    expect(request.measuredAt).toBeUndefined()
+  })
+
+  it('corrects a point-in-time KPI by its moment, sending no day or period', async () => {
+    // Arrange
+    await renderForm(
+      { kind: KpiWindowKind.PointInTime },
+      {
+        ...measurement,
+        periodStart: asCalendarDate('2026-03-06'),
+        periodEnd: asCalendarDate('2026-03-06'),
+        measuredAt: asInstant('2026-03-06T21:00:00Z'),
+        periodRecordKind: undefined,
+        periodRecordId: undefined,
+      },
+    )
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    // Assert
+    const { request } = mockChange.mock.calls[0][0]
+    expect(new Date(request.measuredAt).toISOString()).toBe(
+      '2026-03-06T21:00:00.000Z',
+    )
+    expect(request.asOf).toBeUndefined()
+    expect(request.periodStart).toBeUndefined()
   })
 
   it('shows a period error the API reports against either end on the period field', async () => {

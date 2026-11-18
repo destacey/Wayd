@@ -3,12 +3,18 @@
 import { Line } from '@/src/components/common/charts'
 import useTheme from '@/src/components/contexts/theme'
 import { useChartRemountOnResize } from '@/src/hooks'
-import { KpiSummaryDto } from '@/src/services/api/wayd.schemas'
+import { KpiSummaryDto, KpiWindowKind } from '@/src/services/api/wayd.schemas'
 import { parseCalendarDate } from '@/src/utils/calendar-date'
+import { instantTime } from '@/src/utils/instant'
 import { Card, Flex, Typography } from 'antd'
 import { FC } from 'react'
 import { KpiHealthTag, KpiTrendTag } from '../kpi-status-tags'
-import { describeTarget, formatKpiValue, kpiHeadline } from './kpi-format'
+import {
+  describeTarget,
+  describeWindow,
+  formatKpiValue,
+  kpiHeadline,
+} from './kpi-format'
 
 const { Text } = Typography
 
@@ -34,7 +40,9 @@ const ScorecardKpiCard: FC<ScorecardKpiCardProps> = ({ kpi, onOpen }) => {
     autoFit: true,
     height: SPARKLINE_HEIGHT,
     data: kpi.recentValues.map((p) => ({
-      at: parseCalendarDate(p.periodEnd).toDate(),
+      at: p.measuredAt
+        ? new Date(instantTime(p.measuredAt))
+        : parseCalendarDate(p.periodEnd).toDate(),
       value: p.value,
     })),
     xField: 'at',
@@ -78,7 +86,9 @@ const ScorecardKpiCard: FC<ScorecardKpiCardProps> = ({ kpi, onOpen }) => {
 
         <Flex vertical gap={0}>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            {headline.label}
+            {kpi.window.kind === KpiWindowKind.PerPeriod
+              ? headline.label
+              : `${headline.label} · ${describeWindow(kpi.window)}`}
           </Text>
           <Flex align="baseline" gap={8} wrap>
             <Text style={{ fontSize: 22, fontWeight: 600, lineHeight: 1.2 }}>

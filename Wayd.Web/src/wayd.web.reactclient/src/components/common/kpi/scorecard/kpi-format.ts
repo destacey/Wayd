@@ -2,10 +2,15 @@ import {
   KpiAtRiskKind,
   KpiExpressedAs,
   KpiGoalDto,
+  KpiMeasurementDto,
+  KpiMeasurementWindowDto,
   KpiSummaryDto,
   KpiTargetDirection,
   KpiTargetKind,
+  KpiWindowKind,
 } from '@/src/services/api/wayd.schemas'
+import { formatCalendarDate } from '@/src/utils/calendar-date'
+import dayjs from 'dayjs'
 
 /**
  * A raw KPI value with its prefix and suffix, to at most two decimals. The sign
@@ -56,7 +61,10 @@ export interface KpiHeadline {
 export function kpiHeadline(kpi: KpiSummaryDto): KpiHeadline {
   const { reading } = kpi
   const value = {
-    label: 'Latest',
+    label:
+      reading.averagedCount != null
+        ? `Average of last ${reading.averagedCount}`
+        : 'Latest',
     text: formatKpiValue(reading.value, kpi.prefix, kpi.suffix),
   }
   if (reading.value == null) return value
@@ -120,6 +128,54 @@ export function atRiskLabel(direction: KpiTargetDirection): string {
   return direction === KpiTargetDirection.Decrease
     ? 'At risk above'
     : 'At risk below'
+}
+
+/**
+ * What span each of a KPI's values covers, such as "Per period", "Since Feb 16,
+ * 2026" or "Last 90 days".
+ */
+export function describeWindow(
+  measurementWindow: KpiMeasurementWindowDto,
+): string {
+  const { kind, anchorDate, rollingCount } = measurementWindow
+  switch (kind) {
+    case KpiWindowKind.Cumulative:
+      return anchorDate
+        ? `Since ${formatCalendarDate(anchorDate)}`
+        : 'Cumulative'
+    case KpiWindowKind.Rolling:
+      return rollingCount != null
+        ? `Last ${rollingCount} ${rollingCount === 1 ? 'day' : 'days'}`
+        : 'Rolling'
+    case KpiWindowKind.PointInTime:
+      return 'Point in time'
+    default:
+      return 'Per period'
+  }
+}
+
+/** The parts of a measurement that say when it was taken. */
+export type KpiMeasurementTiming = Pick<
+  KpiMeasurementDto,
+  'periodStart' | 'periodEnd' | 'measuredAt'
+>
+
+/**
+ * When a value was taken, as its KPI's window reads it: the period, the day it
+ * was taken as of, or the moment in the viewer's own time zone.
+ */
+export function describeMeasurementTime(
+  measurement: KpiMeasurementTiming,
+  measurementWindow: KpiMeasurementWindowDto,
+): string {
+  if (measurement.measuredAt)
+    return dayjs(measurement.measuredAt).format('MMM D, YYYY h:mm A')
+  if (
+    measurementWindow.kind === KpiWindowKind.Cumulative ||
+    measurementWindow.kind === KpiWindowKind.Rolling
+  )
+    return `As of ${formatCalendarDate(measurement.periodEnd)}`
+  return `${formatCalendarDate(measurement.periodStart)} – ${formatCalendarDate(measurement.periodEnd)}`
 }
 
 /** The at-risk threshold as entered, or null when there is none. */

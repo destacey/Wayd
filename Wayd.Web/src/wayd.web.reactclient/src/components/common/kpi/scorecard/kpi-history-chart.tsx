@@ -10,6 +10,7 @@ import {
   formatCalendarDate,
   parseCalendarDate,
 } from '@/src/utils/calendar-date'
+import { instantTime } from '@/src/utils/instant'
 import { FC } from 'react'
 import { formatKpiValue } from './kpi-format'
 
@@ -61,7 +62,7 @@ export interface KpiHistoryChartProps {
 /**
  * A KPI's measurements over time, against its target, at-risk line and
  * baseline drawn flat across the same span. Each value sits at the end of the
- * period it describes.
+ * period it describes, or at its moment for a point-in-time reading.
  */
 const KpiHistoryChart: FC<KpiHistoryChartProps> = ({
   values,
@@ -73,10 +74,11 @@ const KpiHistoryChart: FC<KpiHistoryChartProps> = ({
   const { antDesignChartsTheme, token } = useTheme()
   const { ref, renderKey } = useChartRemountOnResize()
 
-  const ordered = [...values].sort((a, b) =>
-    a.periodEnd.localeCompare(b.periodEnd),
-  )
-  const at = (point: KpiPointDto) => parseCalendarDate(point.periodEnd).toDate()
+  const at = (point: KpiPointDto) =>
+    point.measuredAt
+      ? new Date(instantTime(point.measuredAt))
+      : parseCalendarDate(point.periodEnd).toDate()
+  const ordered = [...values].sort((a, b) => at(a).getTime() - at(b).getTime())
 
   const actual: KpiChartPoint[] = ordered.map((p) => ({
     at: at(p),

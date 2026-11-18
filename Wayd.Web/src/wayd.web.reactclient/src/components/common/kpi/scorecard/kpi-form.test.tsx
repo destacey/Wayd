@@ -9,6 +9,7 @@ import {
   KpiTrend,
   KpiWindowKind,
 } from '@/src/services/api/wayd.schemas'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import KpiForm from './kpi-form'
@@ -129,9 +130,30 @@ describe('KpiForm', () => {
           atRiskKind: undefined,
           atRiskValue: undefined,
         },
+        window: { kind: KpiWindowKind.PerPeriod },
+        rollingAverageOf: undefined,
       },
     })
     expect(onFormComplete).toHaveBeenCalled()
+  })
+
+  it('locks the window of a KPI that has measurements', async () => {
+    // Arrange & Act
+    await renderForm({
+      ...kpi,
+      recentValues: [
+        {
+          periodStart: asCalendarDate('2026-10-01'),
+          periodEnd: asCalendarDate('2026-10-31'),
+          value: 12,
+        },
+      ],
+    })
+
+    // Assert
+    expect(
+      screen.getByText(/Fixed now that the KPI has measurements/),
+    ).toBeInTheDocument()
   })
 
   it('adds a KPI with no baseline and no at-risk threshold', async () => {

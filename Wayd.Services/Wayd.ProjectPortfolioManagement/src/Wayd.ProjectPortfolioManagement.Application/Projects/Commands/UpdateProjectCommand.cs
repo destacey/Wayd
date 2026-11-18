@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Application.Models;
+﻿using Wayd.Common.Application.Attachments;
+using Wayd.Common.Application.Models;
+using Wayd.ProjectPortfolioManagement.Domain;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
@@ -57,7 +59,8 @@ public sealed class UpdateProjectCommandHandler(
     ICurrentPrincipal currentPrincipal,
     ICurrentUser currentUser,
     ILogger<UpdateProjectCommandHandler> logger,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    IMarkdownAttachments markdownAttachments)
     : ICommandHandler<UpdateProjectCommand>
 {
     private const string AppRequestName = nameof(UpdateProjectCommand);
@@ -67,6 +70,7 @@ public sealed class UpdateProjectCommandHandler(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<UpdateProjectCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly IMarkdownAttachments _markdownAttachments = markdownAttachments;
 
     public async Task<Result> Handle(UpdateProjectCommand request, CancellationToken cancellationToken)
     {
@@ -111,13 +115,20 @@ public sealed class UpdateProjectCommandHandler(
 
             var ancestry = project.AncestryRoles();
 
+            // Copies only for someone the update will admit: copying reads every image the text borrows.
+            IReadOnlyList<string?> markdown = [request.Description, request.BusinessCase, request.ExpectedBenefits];
+            if (project.CanManageProject(actor, ancestry))
+            {
+                markdown = await _markdownAttachments.CopyForeign(PpmFollowOwners.Project.Key, project.Id, markdown, cancellationToken);
+            }
+
             var updateResult = project.UpdateDetails(
                 actor,
                 ancestry,
                 request.Name,
-                request.Description,
-                request.BusinessCase,
-                request.ExpectedBenefits,
+                markdown[0]!,
+                markdown[1],
+                markdown[2],
                 request.ExpenditureCategoryId,
                 _dateTimeProvider.Now
             );
@@ -147,6 +158,12 @@ public sealed class UpdateProjectCommandHandler(
             {
                 return await HandleDomainFailure(project, updateRolesResult, cancellationToken);
             }
+
+            await _markdownAttachments.Claim(
+                PpmFollowOwners.Project.Key,
+                project.Id,
+                [project.Description, project.BusinessCase, project.ExpectedBenefits],
+                cancellationToken);
 
             await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
 

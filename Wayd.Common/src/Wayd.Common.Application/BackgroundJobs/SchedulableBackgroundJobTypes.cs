@@ -25,6 +25,7 @@ public static class SchedulableBackgroundJobTypes
         BackgroundJobType.ImportStallRecovery,
         BackgroundJobType.ImportRetentionSweep,
         BackgroundJobType.NotificationRetentionSweep,
+        BackgroundJobType.AttachmentSweep,
     ];
 
     public static bool Contains(BackgroundJobType jobType) => _types.Contains(jobType);

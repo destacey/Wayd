@@ -90,6 +90,8 @@ public sealed class ImportEndpointPermissionTests
     private static IEnumerable<MethodInfo> ImportEndpoints() =>
         typeof(ImportSubmissionResponder).Assembly.GetTypes()
             .Where(t => typeof(ControllerBase).IsAssignableFrom(t))
+            // Images placed in markdown are uploaded as files too, but they are not imports.
+            .Where(t => t != typeof(AttachmentsController))
             .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
             .Where(m => m.GetParameters().Any(p => p.ParameterType == typeof(IFormFile)));
 

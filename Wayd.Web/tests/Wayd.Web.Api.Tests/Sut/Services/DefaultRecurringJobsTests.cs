@@ -66,7 +66,8 @@ public sealed class DefaultRecurringJobsTests
         _added.Select(a => a.JobId).Should().BeEquivalentTo(
             DefaultRecurringJobs.ImportStallRecoveryJobId,
             DefaultRecurringJobs.ImportRetentionSweepJobId,
-            DefaultRecurringJobs.NotificationRetentionSweepJobId);
+            DefaultRecurringJobs.NotificationRetentionSweepJobId,
+            DefaultRecurringJobs.AttachmentSweepJobId);
     }
 
     [Fact]
@@ -96,13 +97,27 @@ public sealed class DefaultRecurringJobsTests
     }
 
     [Fact]
+    public void EnsureDefaultRecurringJobs_RunsTheAttachmentSweepHourly()
+    {
+        // Arrange
+        ScheduledJobsAre();
+
+        // Act
+        CreateServices().EnsureDefaultRecurringJobs();
+
+        // Assert — an abandoned upload is kept 24 hours, so hourly removes it soon after
+        _added.Single(a => a.JobId == DefaultRecurringJobs.AttachmentSweepJobId).Cron.Should().Be("15 * * * *");
+    }
+
+    [Fact]
     public void EnsureDefaultRecurringJobs_LeavesAScheduleAnAdminAlreadyMadeAlone()
     {
         // Arrange — every sweep, scheduled under names of the admin's own
         ScheduledJobsAre(
             new RecurringJobDto { Id = "nightly-import-recovery", Action = nameof(IJobManager.RunImportStallRecovery) },
             new RecurringJobDto { Id = "weekly-import-purge", Action = nameof(IJobManager.RunImportRetentionSweep) },
-            new RecurringJobDto { Id = "weekly-notification-purge", Action = nameof(IJobManager.RunNotificationRetentionSweep) });
+            new RecurringJobDto { Id = "weekly-notification-purge", Action = nameof(IJobManager.RunNotificationRetentionSweep) },
+            new RecurringJobDto { Id = "my-attachment-sweep", Action = nameof(IJobManager.RunAttachmentSweep) });
 
         // Act
         CreateServices().EnsureDefaultRecurringJobs();
@@ -121,6 +136,9 @@ public sealed class DefaultRecurringJobsTests
         CreateServices().EnsureDefaultRecurringJobs();
 
         // Assert
-        _added.Select(a => a.JobId).Should().Equal(DefaultRecurringJobs.ImportRetentionSweepJobId, DefaultRecurringJobs.NotificationRetentionSweepJobId);
+        _added.Select(a => a.JobId).Should().Equal(
+            DefaultRecurringJobs.ImportRetentionSweepJobId,
+            DefaultRecurringJobs.NotificationRetentionSweepJobId,
+            DefaultRecurringJobs.AttachmentSweepJobId);
     }
 }

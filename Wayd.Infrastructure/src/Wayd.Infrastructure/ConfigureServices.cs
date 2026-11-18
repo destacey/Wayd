@@ -13,6 +13,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.DemandManagement.Domain;
+using Wayd.Infrastructure.Attachments;
 using Wayd.Infrastructure.Discussions;
 using Wayd.Infrastructure.Kpis;
 using Wayd.Infrastructure.Links;
@@ -121,6 +122,7 @@ public static class ConfigureServices
 
         services.AddFollowing();
         services.AddDiscussions();
+        services.AddAttachments();
         services.AddKpis();
         services.AddLinks();
         services.AddNotifications();

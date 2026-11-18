@@ -16,6 +16,7 @@ public interface IJobManager
     Task RunImportStallRecovery(CancellationToken cancellationToken);
     Task RunImportRetentionSweep(CancellationToken cancellationToken);
     Task RunNotificationRetentionSweep(CancellationToken cancellationToken);
+    Task RunAttachmentSweep(CancellationToken cancellationToken);
 
     /// <summary>
     /// Repoints work items attributed to one external identity after an admin maps or ignores it.

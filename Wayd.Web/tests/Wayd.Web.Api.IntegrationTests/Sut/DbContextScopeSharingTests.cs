@@ -50,6 +50,8 @@ public sealed class DbContextScopeSharingTests(WaydSqlServerApiFactory factory)
         provider.GetRequiredService<IActivityLogDbContext>().Should().BeSameAs(context);
         provider.GetRequiredService<IDemandManagementDbContext>().Should().BeSameAs(context);
         provider.GetRequiredService<INotificationsDbContext>().Should().BeSameAs(context);
+        // A record's command saves its images through this one alongside its own.
+        provider.GetRequiredService<IAttachmentsDbContext>().Should().BeSameAs(context);
     }
 
     [Fact]

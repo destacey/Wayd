@@ -2,7 +2,9 @@ using CSharpFunctionalExtensions;
 using FluentAssertions;
 using NodaTime;
 using Wayd.Common.Application.Imports;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Enums.Imports;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Imports;
 using Wayd.Planning.Application.PlanningIntervals.Dtos;
@@ -21,6 +23,7 @@ public sealed class PlanningIntervalObjectiveImportDefinitionTests : IDisposable
     private const int CreatePass = 0;
 
     private readonly FakePlanningDbContext _dbContext = new();
+    private readonly Mock<ILinkWriter> _linkWriter = new();
     private readonly PlanningIntervalObjectiveImportDefinition _definition;
 
     private readonly PlanningInterval _interval;
@@ -32,7 +35,11 @@ public sealed class PlanningIntervalObjectiveImportDefinitionTests : IDisposable
             _dbContext,
             Mock.Of<IDateTimeProvider>(),
             Mock.Of<ICurrentUser>(),
+            _linkWriter.Object,
             new ImportPayloadSerializer());
+        _linkWriter
+            .Setup(w => w.Add(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid());
 
         _interval = new PlanningIntervalFaker().Generate();
         _team = new PlanningTeamFaker(TeamType.Team).Generate();
@@ -90,6 +97,41 @@ public sealed class PlanningIntervalObjectiveImportDefinitionTests : IDisposable
         objective.TeamId.Should().Be(_team.Id);
         objective.Type.Should().Be(PlanningIntervalObjectiveType.Team);
         objective.Order.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task CreateObjectives_AddsTheRowsLinks_ToTheObjectiveItCreated()
+    {
+        // Arrange
+        var row = Row() with { Links = "Epic|https://example.com/epic" };
+
+        // Act
+        var result = await Run(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeFalse();
+        var objectiveId = _interval.Objectives.Should().ContainSingle().Subject.Id;
+
+        _linkWriter.Verify(w => w.Add("planning.planning-interval-objective", objectiveId, "Epic", "https://example.com/epic",
+            It.Is<EventActor>(a => a.Kind == EventActorKind.Import), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateObjectives_RejectsARowWithAMalformedLink_CreatingNeitherTheObjectiveNorAnyLink()
+    {
+        // Arrange
+        var row = Row() with { Links = "|https://example.com/epic" };
+
+        // Act
+        var result = await Run(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().StartWith("Links entry '|https://example.com/epic'");
+        _interval.Objectives.Should().BeEmpty();
+        _linkWriter.Verify(w => w.Add(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

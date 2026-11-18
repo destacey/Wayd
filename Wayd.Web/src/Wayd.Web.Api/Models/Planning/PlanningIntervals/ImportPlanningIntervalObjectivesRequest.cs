@@ -42,12 +42,20 @@ public class ImportPlanningIntervalObjectivesRequest
     /// <summary>Display position within the team's objectives.</summary>
     public int? Order { get; set; }
 
+    /// <summary>
+    /// Links to add to the objective, separated by semicolons, each written Name|URL — for example
+    /// <c>Charter|https://example.com/charter; Team wiki|https://example.com/wiki</c>. A name cannot contain | or ;,
+    /// and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects
+    /// the row.
+    /// </summary>
+    public string? Links { get; set; }
+
     public ImportPlanningIntervalObjectiveDto ToImportPlanningIntervalObjectiveDto()
     {
         LocalDate? startDate = StartDate?.ToLocalDate();
         LocalDate? targetDate = TargetDate?.ToLocalDate();
         Instant? closedDateUtc = ClosedDateUtc.HasValue ? Instant.FromDateTimeUtc(DateTime.SpecifyKind(ClosedDateUtc.Value, DateTimeKind.Utc)) : null;
-        return new ImportPlanningIntervalObjectiveDto(PlanningIntervalId, TeamId, Name, Description, (ObjectiveStatus)StatusId, Progress, startDate, targetDate, IsStretch, closedDateUtc, Order);
+        return new ImportPlanningIntervalObjectiveDto(PlanningIntervalId, TeamId, Name, Description, (ObjectiveStatus)StatusId, Progress, startDate, targetDate, IsStretch, closedDateUtc, Order, Links);
     }
 }
 

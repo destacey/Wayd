@@ -22,7 +22,7 @@ public sealed class ImportRisksCommandHandlerTests : IDisposable
 
     public ImportRisksCommandHandlerTests()
     {
-        _definition = new RiskImportDefinition(_dbContext, Mock.Of<IDateTimeProvider>(), Mock.Of<ICurrentUser>(), new ImportPayloadSerializer());
+        _definition = new RiskImportDefinition(_dbContext, Mock.Of<IDateTimeProvider>(), Mock.Of<ICurrentUser>(), Mock.Of<Wayd.Common.Application.Links.ILinkWriter>(), new ImportPayloadSerializer());
 
         _dispatcher
             .Setup(d => d.Send(It.IsAny<SubmitImportCommand>(), It.IsAny<CancellationToken>()))

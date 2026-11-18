@@ -3,10 +3,12 @@ using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Events;
 using Wayd.Planning.Application.Risks.Dtos;
+using Wayd.Planning.Domain;
 
 namespace Wayd.Planning.Application.Risks.Imports;
 
@@ -26,12 +28,14 @@ public sealed class RiskImportDefinition(
     IPlanningDbContext planningDbContext,
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser,
+    ILinkWriter linkWriter,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportRiskDto>(serializer)
 {
     public const string ImportKey = "planning.risks";
 
     // Employees come from the same context: IPlanningDbContext extends IWaydDbContext.
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly ILinkWriter _linkWriter = linkWriter;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUser _currentUser = currentUser;
 
@@ -125,6 +129,13 @@ public sealed class RiskImportDefinition(
                 continue;
             }
 
+            var links = ImportedLinks.Parse(risk.Links);
+            if (links.IsFailure)
+            {
+                row.Failed(links.Error);
+                continue;
+            }
+
             var created = Risk.Import(
                 risk.Summary,
                 risk.Description,
@@ -141,6 +152,10 @@ public sealed class RiskImportDefinition(
                 risk.ClosedDate,
                 actor,
                 timestamp);
+
+            var added = await _linkWriter.AddImported(PlanningLinkOwners.Risk.Key, created.Id, links.Value, actor, cancellationToken);
+            if (added.IsFailure)
+                return added;
 
             await _planningDbContext.Risks.AddAsync(created, cancellationToken);
             row.Created(created.Id);

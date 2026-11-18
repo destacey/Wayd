@@ -20,7 +20,8 @@ public sealed record ImportPlanningIntervalDto(
     LocalDate End,
     int IterationWeeks,
     string? IterationPrefix,
-    IReadOnlyList<Guid> TeamIds);
+    IReadOnlyList<Guid> TeamIds,
+    string? Links = null);
 
 public sealed class ImportPlanningIntervalDtoValidator : CustomValidator<ImportPlanningIntervalDto>
 {

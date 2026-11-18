@@ -3,10 +3,12 @@ using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Events;
 using Wayd.Planning.Application.PlanningIntervals.Dtos;
+using Wayd.Planning.Domain;
 using Wayd.Planning.Domain.Models;
 
 namespace Wayd.Planning.Application.PlanningIntervals.Imports;
@@ -18,11 +20,13 @@ public sealed class PlanningIntervalObjectiveImportDefinition(
     IPlanningDbContext planningDbContext,
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser,
+    ILinkWriter linkWriter,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportPlanningIntervalObjectiveDto>(serializer)
 {
     public const string ImportKey = "planning.planning-interval-objectives";
 
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
+    private readonly ILinkWriter _linkWriter = linkWriter;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUser _currentUser = currentUser;
 
@@ -101,6 +105,13 @@ public sealed class PlanningIntervalObjectiveImportDefinition(
                 continue;
             }
 
+            var links = ImportedLinks.Parse(objective.Links);
+            if (links.IsFailure)
+            {
+                row.Failed(links.Error);
+                continue;
+            }
+
             var created = interval.ImportObjective(
                 team,
                 objective.Name,
@@ -120,6 +131,10 @@ public sealed class PlanningIntervalObjectiveImportDefinition(
                 row.Failed($"The objective could not be added to the planning interval: {created.Error}");
                 continue;
             }
+
+            var added = await _linkWriter.AddImported(PlanningLinkOwners.PlanningIntervalObjective.Key, created.Value.Id, links.Value, actor, cancellationToken);
+            if (added.IsFailure)
+                return added;
 
             row.Created(created.Value.Id);
         }

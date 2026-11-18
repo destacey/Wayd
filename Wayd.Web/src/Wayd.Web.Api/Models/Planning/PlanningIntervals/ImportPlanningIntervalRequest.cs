@@ -45,6 +45,14 @@ public sealed class ImportPlanningIntervalRequest
     /// </summary>
     public string? TeamIds { get; set; }
 
+    /// <summary>
+    /// Links to add to the planning interval, separated by semicolons, each written Name|URL — for example
+    /// <c>Charter|https://example.com/charter; Team wiki|https://example.com/wiki</c>. A name cannot contain | or ;,
+    /// and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects
+    /// the row.
+    /// </summary>
+    public string? Links { get; set; }
+
     public ImportPlanningIntervalDto ToImportPlanningIntervalDto() =>
         new(
             Name,
@@ -54,7 +62,8 @@ public sealed class ImportPlanningIntervalRequest
             End!.Value.ToLocalDate(),
             IterationWeeks,
             IterationPrefix,
-            CsvList.SplitIds(TeamIds));
+            CsvList.SplitIds(TeamIds),
+            Links);
 }
 
 public sealed class ImportPlanningIntervalRequestValidator : CustomValidator<ImportPlanningIntervalRequest>

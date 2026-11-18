@@ -1,7 +1,9 @@
 using FluentAssertions;
 using NodaTime;
 using Wayd.Common.Application.Imports;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Imports;
@@ -23,6 +25,7 @@ public sealed class RiskImportDefinitionTests : IDisposable
     private static readonly Instant ReportedOn = Instant.FromUtc(2026, 6, 1, 9, 0, 0);
 
     private readonly FakePlanningDbContext _dbContext = new();
+    private readonly Mock<ILinkWriter> _linkWriter = new();
     private readonly RiskImportDefinition _definition;
 
     private readonly PlanningTeam _team;
@@ -30,7 +33,10 @@ public sealed class RiskImportDefinitionTests : IDisposable
 
     public RiskImportDefinitionTests()
     {
-        _definition = new RiskImportDefinition(_dbContext, Mock.Of<IDateTimeProvider>(), Mock.Of<ICurrentUser>(), new ImportPayloadSerializer());
+        _definition = new RiskImportDefinition(_dbContext, Mock.Of<IDateTimeProvider>(), Mock.Of<ICurrentUser>(), _linkWriter.Object, new ImportPayloadSerializer());
+        _linkWriter
+            .Setup(w => w.Add(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid());
 
         _team = new PlanningTeamFaker(TeamType.Team).Generate();
         _reporter = new EmployeeFaker().Generate();
@@ -85,6 +91,41 @@ public sealed class RiskImportDefinitionTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         result.Value.Rows.Should().AllSatisfy(r => r.Failed.Should().BeFalse());
         _dbContext.Risks.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task CreateRisks_AddsTheRowsLinks_ToTheRiskItCreated()
+    {
+        // Arrange
+        var row = Row() with { Links = "Mitigation plan|https://example.com/plan" };
+
+        // Act
+        var result = await Run(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeFalse();
+        var riskId = _dbContext.Risks.Single().Id;
+
+        _linkWriter.Verify(w => w.Add("planning.risk", riskId, "Mitigation plan", "https://example.com/plan",
+            It.Is<EventActor>(a => a.Kind == EventActorKind.Import), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateRisks_RejectsARowWithAMalformedLink_CreatingNeitherTheRiskNorAnyLink()
+    {
+        // Arrange
+        var row = Row() with { Links = "Mitigation plan|mailto:owner@example.com" };
+
+        // Act
+        var result = await Run(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().StartWith("Links entry 'Mitigation plan|mailto:owner@example.com'");
+        _dbContext.Risks.Should().BeEmpty();
+        _linkWriter.Verify(w => w.Add(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

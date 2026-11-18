@@ -1,3 +1,4 @@
+using FluentAssertions;
 using FluentValidation.TestHelper;
 using Wayd.Web.Api.Models.Kpis;
 
@@ -71,5 +72,50 @@ public sealed class ImportKpiRequestValidatorTests
 
         // Assert
         result.ShouldHaveValidationErrorFor(r => r.BaselineWindowEnd);
+    }
+
+    [Fact]
+    public void AnUnknownWindowKind_Fails()
+    {
+        // Arrange
+        var request = Request();
+        request.WindowKind = "Weekly";
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(r => r.WindowKind);
+    }
+
+    [Fact]
+    public void ARollingWindow_ConvertsToTheDomainsWindow()
+    {
+        // Arrange
+        var request = Request();
+        request.WindowKind = "rolling";
+        request.WindowRollingCount = 90;
+        request.WindowRollingUnit = "Days";
+
+        // Act
+        var dto = request.ToImportKpiDto([]);
+
+        // Assert
+        _validator.TestValidate(request).ShouldNotHaveAnyValidationErrors();
+        dto.Window.Should().Be(Wayd.Common.Domain.Kpis.KpiMeasurementWindow.Rolling(90, Wayd.Common.Domain.Kpis.KpiRollingUnit.Days));
+    }
+
+    [Fact]
+    public void ARollingAverageOutOfRange_Fails()
+    {
+        // Arrange
+        var request = Request();
+        request.RollingAverageOf = 1;
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(r => r.RollingAverageOf);
     }
 }

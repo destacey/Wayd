@@ -28,17 +28,18 @@ public sealed class KpiImportEndpointTests(WaydSqlServerApiFactory factory)
     private const string ImportRoute = "/api/kpis/import";
 
     private const string KpiHeader =
-        "ImportId,SubjectType,SubjectId,Name,Description,CategoryId,Prefix,Suffix,ExpressedAs,Direction,BaselineValue,BaselineWindowStart,BaselineWindowEnd,TargetKind,TargetValue,AtRiskKind,AtRiskValue,IsClosed";
+        "ImportId,SubjectType,SubjectId,Name,Description,CategoryId,Prefix,Suffix,ExpressedAs,Direction,BaselineValue,BaselineWindowStart,BaselineWindowEnd,TargetKind,TargetValue,AtRiskKind,AtRiskValue,IsClosed,WindowKind,WindowAnchorDate,WindowRollingCount,WindowRollingUnit,RollingAverageOf";
 
-    private const string MeasurementHeader = "KpiImportId,PeriodStart,PeriodEnd,Value,MeasuredOn,SampleSize,Note";
+    private const string MeasurementHeader = "KpiImportId,PeriodStart,PeriodEnd,AsOf,MeasuredAt,Value,MeasuredOn,SampleSize,Note";
 
     private static readonly string _administerPermission =
         ApplicationPermission.NameFor(ApplicationAction.Administer, ApplicationResource.Kpis);
 
     private readonly WaydSqlServerApiFactory _factory = factory;
 
-    private static string KpiRow(string importId, Guid teamId, string name) =>
-        $"{importId},organization.team,{teamId},{name},,,,days,Value,Decrease,20,,,Absolute,10,,,false";
+    /// <param name="window">The four window cells: kind, anchor date, rolling count, rolling unit.</param>
+    private static string KpiRow(string importId, Guid teamId, string name, string window = ",,,") =>
+        $"{importId},organization.team,{teamId},{name},,,,days,Value,Decrease,20,,,Absolute,10,,,false,{window},";
 
     private static MultipartFormDataContent Files(string kpis, string measurements)
     {
@@ -102,7 +103,7 @@ public sealed class KpiImportEndpointTests(WaydSqlServerApiFactory factory)
         var teamId = await PrepareTeam();
         var user = await _factory.CreateAuthenticatedClient(_administerPermission);
         var kpis = $"{KpiHeader}\n{KpiRow("cycle", teamId, "Cycle time")}\n{KpiRow("", teamId, "Lead time")}\n";
-        var measurements = $"{MeasurementHeader}\ncycle,2026-01-01,2026-01-31,18,,,\n2,2026-01-01,2026-01-31,30,,,\n2,2026-02-01,2026-02-28,28,,,\n";
+        var measurements = $"{MeasurementHeader}\ncycle,2026-01-01,2026-01-31,,,18,,,\n2,2026-01-01,2026-01-31,,,30,,,\n2,2026-02-01,2026-02-28,,,28,,,\n";
 
         // Act
         var response = await user.Client.PostAsync(ImportRoute, Files(kpis, measurements), TestContext.Current.CancellationToken);
@@ -130,13 +131,49 @@ public sealed class KpiImportEndpointTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
+    public async Task Import_ReadsPointInTimeMomentsWithTheirOffsets()
+    {
+        // Arrange — the same afternoon written once in UTC and once with Chicago's offset, a morning reading beside it
+        var teamId = await PrepareTeam();
+        var user = await _factory.CreateAuthenticatedClient(_administerPermission);
+        var kpis = $"{KpiHeader}\n{KpiRow("bugs", teamId, "Open bugs", "PointInTime,,,")}\n";
+        var measurements = $"{MeasurementHeader}\nbugs,,,,2026-03-06T09:00:00-06:00,45,,,\nbugs,,,,2026-03-06T21:00:00Z,42,,,\n";
+
+        // Act
+        var response = await user.Client.PostAsync(ImportRoute, Files(kpis, measurements), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(nameof(ImportProcessStatus.Succeeded), (await ReadBody(response)).GetProperty("status").GetString());
+        Assert.Equal([("Open bugs", 2)], await KpisOn(teamId));
+    }
+
+    [Fact]
+    public async Task Import_RefusesAMomentWithoutAnOffset()
+    {
+        // Arrange
+        var teamId = await PrepareTeam();
+        var user = await _factory.CreateAuthenticatedClient(_administerPermission);
+        var kpis = $"{KpiHeader}\n{KpiRow("bugs", teamId, "Open bugs", "PointInTime,,,")}\n";
+        var measurements = $"{MeasurementHeader}\nbugs,,,,2026-03-06T15:00:00,42,,,\n";
+
+        // Act
+        var response = await user.Client.PostAsync(ImportRoute, Files(kpis, measurements), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Contains("MeasuredAt", (await ReadBody(response)).GetRawText());
+        Assert.Empty(await KpisOn(teamId));
+    }
+
+    [Fact]
     public async Task Import_RefusesTheSubmission_WhenAMeasurementNamesAKpiNotInTheFile()
     {
         // Arrange
         var teamId = await PrepareTeam();
         var user = await _factory.CreateAuthenticatedClient(_administerPermission);
         var kpis = $"{KpiHeader}\n{KpiRow("cycle", teamId, "Cycle time")}\n";
-        var measurements = $"{MeasurementHeader}\ncycel,2026-01-01,2026-01-31,18,,,\n";
+        var measurements = $"{MeasurementHeader}\ncycel,2026-01-01,2026-01-31,,,18,,,\n";
 
         // Act
         var response = await user.Client.PostAsync(ImportRoute, Files(kpis, measurements), TestContext.Current.CancellationToken);

@@ -135,7 +135,8 @@ public sealed class KpiImportDefinition(
             var order = nextOrder.GetValueOrDefault(data.SubjectId);
             var goal = new KpiGoal(data.Direction, data.Baseline, data.Target, data.AtRisk);
             var definition = new KpiDefinition(
-                data.Name, data.Description, data.CategoryId, data.Prefix, data.Suffix, data.ExpressedAs, goal);
+                data.Name, data.Description, data.CategoryId, data.Prefix, data.Suffix, data.ExpressedAs, goal,
+                data.Window, data.RollingAverageOf);
 
             var created = Kpi.Create(descriptor.Value.Key, data.SubjectId, definition, order, actor, timestamp);
             if (created.IsFailure)
@@ -165,25 +166,23 @@ public sealed class KpiImportDefinition(
     }
 
     /// <summary>
-    /// Records the history oldest first, so an overlap is reported against the later of the two periods.
+    /// Records the history oldest first, so a clash is reported against the later of the two values. Whether each
+    /// value says when it was taken the way the KPI's window takes is the KPI's to decide.
     /// </summary>
     private static Result AddHistory(
         Kpi kpi, IReadOnlyList<ImportKpiMeasurementDto> measurements, DateTimeZone zone, EventActor actor, Instant timestamp)
     {
-        foreach (var m in measurements.OrderBy(m => m.PeriodStart))
+        foreach (var m in measurements.OrderBy(m => m.PeriodStart ?? m.LastDay(zone)).ThenBy(m => m.MeasuredAt))
         {
-            var period = KpiPeriod.Create(m.PeriodStart, m.PeriodEnd);
-            if (period.IsFailure)
-                return Result.Failure(period.Error);
+            if (m.LastDay(zone) is not { } lastDay)
+                return Result.Failure("A measurement needs a period, an as-of date or a moment.");
 
             var input = new KpiMeasurementInput(
-                m.Value, KpiMeasurementTime.ForPeriod(period.Value), null, null, m.MeasuredOn ?? m.PeriodEnd, null,
-                KpiMeasurementSource.Manual, m.SampleSize, m.Note);
+                m.Value, m.Time(), null, null, m.MeasuredOn ?? lastDay, null, KpiMeasurementSource.Manual, m.SampleSize, m.Note);
 
             var added = kpi.AddMeasurement(input, zone, actor, timestamp);
             if (added.IsFailure)
-                return Result.Failure(
-                    $"{added.Error} ({m.PeriodStart.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)} to {m.PeriodEnd.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)})");
+                return Result.Failure($"{added.Error} ({m.Describe()})");
         }
 
         return Result.Success();

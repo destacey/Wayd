@@ -101,6 +101,91 @@ public sealed class KpiImportDefinitionTests
     }
 
     [Fact]
+    public async Task CreateKpis_ImportsACumulativeKpi_WorkingOutEachPeriodFromItsAsOfDay()
+    {
+        // Arrange
+        var anchor = new LocalDate(2026, 2, 16);
+        var row = Row(1, Dto(measurements:
+        [
+            new(9.2, null, null, null, null, null, AsOf: new LocalDate(2026, 2, 27)),
+            new(9.6, null, null, null, null, null, AsOf: new LocalDate(2026, 2, 20)),
+        ]) with { Window = KpiMeasurementWindow.Cumulative(anchor) });
+
+        // Act
+        var result = await RunPass(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeFalse(outcome.Error);
+        var created = _harness.DbContext.Kpis.Single(k => k.Id == outcome.CreatedEntityId);
+        created.Window.Should().Be(KpiMeasurementWindow.Cumulative(anchor));
+        created.Measurements.Select(m => m.Period).Should().BeEquivalentTo(
+        [
+            new KpiPeriod(anchor, new LocalDate(2026, 2, 20)),
+            new KpiPeriod(anchor, new LocalDate(2026, 2, 27)),
+        ]);
+        created.Measurements.Should().AllSatisfy(m => m.MeasuredOn.Should().Be(m.PeriodEnd));
+    }
+
+    [Fact]
+    public async Task CreateKpis_ImportsSeveralPointInTimeReadingsOnOneDay_OnTheirDayInTheSystemTimeZone()
+    {
+        // Arrange
+        var morning = Instant.FromUtc(2026, 3, 6, 15, 0);
+        var lateEvening = Instant.FromUtc(2026, 3, 7, 3, 0);
+        var row = Row(1, Dto(measurements:
+        [
+            new(45, null, null, null, null, null, MeasuredAt: morning),
+            new(42, null, null, null, null, null, MeasuredAt: lateEvening),
+        ]) with { Window = KpiMeasurementWindow.PointInTime });
+
+        // Act
+        var result = await RunPass(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeFalse(outcome.Error);
+        var created = _harness.DbContext.Kpis.Single(k => k.Id == outcome.CreatedEntityId);
+        var march6 = new LocalDate(2026, 3, 6);
+        created.Measurements.Should().HaveCount(2).And.AllSatisfy(m =>
+        {
+            m.Period.Should().Be(new KpiPeriod(march6, march6));
+            m.MeasuredOn.Should().Be(march6);
+        });
+        created.LatestMeasurement()!.Value.Should().Be(42);
+    }
+
+    [Fact]
+    public async Task CreateKpis_RejectsTheKpi_WhenAMeasurementIsNotGivenTheWayItsWindowTakes()
+    {
+        // Arrange
+        var row = Row(1, Dto(measurements: [Month(0, 12)]) with { Window = KpiMeasurementWindow.Rolling(90, KpiRollingUnit.Days) });
+
+        // Act
+        var result = await RunPass(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().Contain(KpiErrors.AsOfDateRequired);
+        _harness.DbContext.Kpis.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CreateKpis_ImportsARollingAverage()
+    {
+        // Arrange
+        var row = Row(1, Dto(measurements: [Month(0, 12)]) with { RollingAverageOf = 7 });
+
+        // Act
+        var result = await RunPass(row);
+
+        // Assert
+        var created = _harness.DbContext.Kpis.Single(k => k.Id == result.Value.Rows.Single().CreatedEntityId);
+        created.RollingAverageOf.Should().Be(7);
+    }
+
+    [Fact]
     public async Task CreateKpis_RejectsANameTheRecordAlreadyHas_SoAResubmittedFileAddsNothingTwice()
     {
         // Arrange

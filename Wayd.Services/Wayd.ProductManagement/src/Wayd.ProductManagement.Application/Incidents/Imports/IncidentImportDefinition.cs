@@ -1,6 +1,7 @@
 using System.Globalization;
 using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Imports;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Enums.ProductManagement;
@@ -33,6 +34,7 @@ public sealed class IncidentImportDefinition(
     IDateTimeProvider dateTimeProvider,
     IFeatureFlags featureFlags,
     ILogger<IncidentImportDefinition> logger,
+    ILinkWriter linkWriter,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportIncidentDto>(serializer)
 {
     public const string ImportKey = "product-management.incidents";
@@ -44,6 +46,7 @@ public sealed class IncidentImportDefinition(
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IFeatureFlags _featureFlags = featureFlags;
     private readonly ILogger<IncidentImportDefinition> _logger = logger;
+    private readonly ILinkWriter _linkWriter = linkWriter;
 
     public override string Key => ImportKey;
 
@@ -93,6 +96,9 @@ public sealed class IncidentImportDefinition(
         }
 
         var now = _dateTimeProvider.Now;
+
+        // No employee on the actor, though the importer has one: the import did the work, and the incident's link
+        // owner type writes a timeline entry only for a change a person made, so imported links stay off it.
         var actor = EventActor.Import(_currentUser.GetUserId());
 
         var statuses = await ResolveStatuses(cancellationToken);
@@ -157,6 +163,13 @@ public sealed class IncidentImportDefinition(
                 continue;
             }
 
+            var links = ImportedLinks.Parse(data.Links);
+            if (links.IsFailure)
+            {
+                row.Failed(links.Error);
+                continue;
+            }
+
             var commander = data.CommanderEmployeeId is null || data.CommanderEmployeeId == Guid.Empty
                 ? null
                 : data.CommanderEmployeeId;
@@ -193,6 +206,13 @@ public sealed class IncidentImportDefinition(
             {
                 row.Failed(walked.Error);
                 continue;
+            }
+
+            var added = await _linkWriter.AddImported(
+                ProductManagementLinkOwners.Incident.Key, created.Value.Id, links.Value, actor, cancellationToken);
+            if (added.IsFailure)
+            {
+                return added;
             }
 
             await _productManagementDbContext.Incidents.AddAsync(created.Value, cancellationToken);

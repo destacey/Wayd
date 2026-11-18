@@ -48,28 +48,90 @@
   </ItemGroup>
 
   <!--
-    Regenerate the client before compiling, but only when the document, this project (which holds the path
-    list) or the pinned Kiota version is newer than the last generation, so ordinary builds stay fast. The
-    lock file Kiota writes stands for the whole generated tree.
+    Rewrites CRLF line endings as LF, byte for byte, leaving encoding and any byte-order mark alone. Kiota
+    writes the platform's line ending, while .gitattributes commits the generated tree as LF; without this a
+    regeneration on Windows shows every generated file as modified.
   -->
-  <Target Name="GenerateWaydApiClient" BeforeTargets="BeforeCompile"
-          Inputs="$(WaydApiDocument);$(MSBuildProjectFullPath);../../../../.config/dotnet-tools.json"
-          Outputs="Generated/kiota-lock.json">
-    <Exec ConsoleToMSBuild="true" ContinueOnError="true" WorkingDirectory="$(ProjectDir)" IgnoreStandardErrorWarningFormat="true" StandardOutputImportance="low"
+  <UsingTask TaskName="ConvertToLf" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        foreach (var file in Files)
+        {
+            var path = file.GetMetadata("FullPath");
+            var bytes = File.ReadAllBytes(path);
+            var lf = new MemoryStream(bytes.Length);
+            for (var i = 0; i < bytes.Length; i++)
+            {
+                if (bytes[i] == (byte)'\r' && i + 1 < bytes.Length && bytes[i + 1] == (byte)'\n')
+                {
+                    continue;
+                }
+
+                lf.WriteByte(bytes[i]);
+            }
+
+            if (lf.Length != bytes.Length)
+            {
+                File.WriteAllBytes(path, lf.ToArray());
+            }
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <!--
+    Regenerate the client before compiling, but only when the document, this project (which holds the path
+    list) or the pinned Kiota version has changed since the last generation here, so ordinary builds stay
+    fast. The comparison is by content, against a stamp under obj/: git stamps every file it writes with the
+    time of the checkout, so file times say nothing about whether the committed client is current. A missing
+    lock file also regenerates, which is how CI forces a generation. An editor's design-time build never
+    generates: it runs alongside a real build, and two Kiota runs over one folder fail on each other's files.
+  -->
+  <Target Name="GenerateWaydApiClient" BeforeTargets="BeforeCompile" Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <_WaydClientStampFile>$(BaseIntermediateOutputPath)wayd-api-client.inputs</_WaydClientStampFile>
+      <!-- Properties outlive the target when a build host reuses the project, so start each run clean. -->
+      <_WaydClientStamp />
+      <_WaydClientIsStale>false</_WaydClientIsStale>
+    </PropertyGroup>
+    <GetFileHash Files="$(WaydApiDocument);$(MSBuildProjectFullPath);../../../../.config/dotnet-tools.json">
+      <Output TaskParameter="Items" ItemName="_WaydClientInput" />
+    </GetFileHash>
+    <ReadLinesFromFile File="$(_WaydClientStampFile)" Condition="Exists('$(_WaydClientStampFile)')">
+      <Output TaskParameter="Lines" PropertyName="_WaydClientStamp" />
+    </ReadLinesFromFile>
+    <PropertyGroup>
+      <_WaydClientInputsHash>@(_WaydClientInput->'%(FileHash)', '-')</_WaydClientInputsHash>
+      <_WaydClientIsStale Condition="'$(_WaydClientInputsHash)' != '$(_WaydClientStamp)' Or !Exists('Generated/kiota-lock.json')">true</_WaydClientIsStale>
+    </PropertyGroup>
+
+    <Exec Condition="'$(_WaydClientIsStale)' == 'true'"
+          ConsoleToMSBuild="true" ContinueOnError="true" WorkingDirectory="$(ProjectDir)" IgnoreStandardErrorWarningFormat="true" StandardOutputImportance="low"
           EnvironmentVariables="KIOTA_TUTORIAL_ENABLED=false;KIOTA_OFFLINE_ENABLED=true"
           Command="dotnet kiota generate --language CSharp --openapi &quot;$(WaydApiDocument)&quot; --output Generated --class-name WaydApiClient --namespace-name Wayd.Tools.DataGeneration.Cli.Client --exclude-backward-compatible --clean-output @(KiotaIncludePath->'--include-path &quot;%(Identity)&quot;', ' ')">
       <Output TaskParameter="ExitCode" PropertyName="KiotaExitCode" />
       <Output TaskParameter="ConsoleOutput" PropertyName="KiotaOutput" />
     </Exec>
-    <Message Text="$(KiotaOutput)" Condition="'$(KiotaExitCode)' == '0'" Importance="low" />
-    <Error Text="Kiota could not generate the client. Run 'dotnet tool restore' from the repository root if the tool is missing.%0A$(KiotaOutput)" Condition="'$(KiotaExitCode)' != '0'" />
+    <Message Text="$(KiotaOutput)" Condition="'$(_WaydClientIsStale)' == 'true' And '$(KiotaExitCode)' == '0'" Importance="low" />
+    <Error Text="Kiota could not generate the client. Run 'dotnet tool restore' from the repository root if the tool is missing.%0A$(KiotaOutput)" Condition="'$(_WaydClientIsStale)' == 'true' And '$(KiotaExitCode)' != '0'" />
+
+    <ItemGroup Condition="'$(_WaydClientIsStale)' == 'true'">
+      <_WaydGeneratedFile Include="Generated/**/*" Exclude="Generated/.kiota.log" />
+    </ItemGroup>
+    <ConvertToLf Files="@(_WaydGeneratedFile)" Condition="'$(_WaydClientIsStale)' == 'true'" />
+    <WriteLinesToFile File="$(_WaydClientStampFile)" Lines="$(_WaydClientInputsHash)" Overwrite="true" Condition="'$(_WaydClientIsStale)' == 'true'" />
 
     <!--
       Compile items were globbed before generation ran; pick up files it added and drop ones it removed. The
       old items are removed by name: a wildcard Remove inside a target matches only files still on disk, so
       it would leave the ones Kiota deleted for the compiler to miss.
     -->
-    <ItemGroup>
+    <ItemGroup Condition="'$(_WaydClientIsStale)' == 'true'">
       <_WaydGeneratedCompile Include="@(Compile)" Condition="$([System.String]::Copy('%(Compile.Identity)').Replace('\', '/').StartsWith('Generated/'))" />
       <Compile Remove="@(_WaydGeneratedCompile)" />
       <Compile Include="Generated/**/*.cs" />

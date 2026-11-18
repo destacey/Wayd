@@ -3596,7 +3596,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("UserRefreshTokens", "Identity");
                 });
 
-            modelBuilder.Entity("Wayd.Links.Models.Link", b =>
+            modelBuilder.Entity("Wayd.Common.Domain.Links.Link", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
@@ -3606,8 +3606,14 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
-                    b.Property<Guid>("ObjectId")
+                    b.Property<Guid>("OwnerId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OwnerType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
 
                     b.Property<string>("Url")
                         .IsRequired()
@@ -3615,13 +3621,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Id");
-
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Id"), new[] { "ObjectId", "Name", "Url" });
-
-                    b.HasIndex("ObjectId");
-
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ObjectId"), new[] { "Id", "Name", "Url" });
+                    b.HasIndex("OwnerType", "OwnerId");
 
                     b.ToTable("Links", "Links");
                 });

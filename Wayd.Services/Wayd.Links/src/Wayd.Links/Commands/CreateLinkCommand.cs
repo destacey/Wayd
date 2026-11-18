@@ -1,62 +1,59 @@
 ﻿using CSharpFunctionalExtensions;
 using FluentValidation;
-using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Application.Validation;
-using Wayd.Links.Models;
+using Wayd.Common.Domain.Links;
 
 namespace Wayd.Links.Commands;
 
-public sealed record CreateLinkCommand(Guid ObjectId, string Name, string Url) : ICommand<Guid>;
+/// <summary>
+/// Adds a link to a record. Only someone who may edit the record.
+/// </summary>
+/// <param name="OwnerType">The record's registered owner type.</param>
+/// <param name="OwnerId">The record's id.</param>
+/// <param name="Name">What the link is called.</param>
+/// <param name="Url">The web address the link opens.</param>
+public sealed record CreateLinkCommand(string OwnerType, Guid OwnerId, string Name, string Url) : ICommand<Guid>;
 
+/// <summary>Rejects malformed input before the record is resolved.</summary>
 public sealed class CreateLinkCommandValidator : CustomValidator<CreateLinkCommand>
 {
     public CreateLinkCommandValidator()
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
-        RuleFor(l => l.ObjectId)
-            .NotEmpty();
-
-        RuleFor(l => l.Name)
-            .NotEmpty()
-            .MaximumLength(128);
-
-        RuleFor(l => l.Url)
-            .NotEmpty();
+        RuleFor(c => c.OwnerType).NotEmpty().MaximumLength(LinkOwnerTypeDescriptor.KeyMaxLength);
+        RuleFor(c => c.OwnerId).NotEmpty();
+        RuleFor(c => c.Name).NotEmpty().MaximumLength(Link.NameMaxLength);
+        RuleFor(c => c.Url).NotEmpty().Must(Link.IsWebAddress).WithMessage(LinkErrors.UrlNotWebAddress);
     }
 }
 
-public sealed class CreateLinkCommandHandler : ICommandHandler<CreateLinkCommand, Guid>
+/// <summary>Adds the link after the record's owner type allows it, and saves.</summary>
+public sealed class CreateLinkCommandHandler(
+    LinkOwnerAccessResolver accessResolver,
+    ILinkWriter linkWriter,
+    ILinksDbContext linksDbContext) : ICommandHandler<CreateLinkCommand, Guid>
 {
-    private readonly ILinksDbContext _linksDbContext;
-    private readonly ILogger<CreateLinkCommandHandler> _logger;
-
-    public CreateLinkCommandHandler(ILinksDbContext linksDbContext, ILogger<CreateLinkCommandHandler> logger)
-    {
-        _linksDbContext = linksDbContext;
-        _logger = logger;
-    }
+    private readonly LinkOwnerAccessResolver _accessResolver = accessResolver;
+    private readonly ILinkWriter _linkWriter = linkWriter;
+    private readonly ILinksDbContext _linksDbContext = linksDbContext;
 
     public async Task<Result<Guid>> Handle(CreateLinkCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var link = Link.Create(request.ObjectId, request.Name, request.Url);
+        var owner = await _accessResolver.ForManaging(request.OwnerType, request.OwnerId, cancellationToken);
+        if (owner.IsFailure)
+            return Result.Failure<Guid>(owner.Error);
 
-            await _linksDbContext.Links.AddAsync(link, cancellationToken);
+        var actor = await _accessResolver.ResolveActor(cancellationToken);
 
-            await _linksDbContext.SaveChangesAsync(cancellationToken);
+        var added = await _linkWriter.Add(owner.Value.OwnerType, request.OwnerId, request.Name, request.Url, actor, cancellationToken);
+        if (added.IsFailure)
+            return added;
 
-            return Result.Success(link.Id);
-        }
-        catch (Exception ex)
-        {
-            var requestName = request.GetType().Name;
+        await _linksDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {requestName}");
-        }
+        return added;
     }
 }

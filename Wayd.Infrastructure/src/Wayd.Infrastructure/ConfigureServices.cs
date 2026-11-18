@@ -15,6 +15,7 @@ using Wayd.Common.Application.StatusWorkflows;
 using Wayd.DemandManagement.Domain;
 using Wayd.Infrastructure.Discussions;
 using Wayd.Infrastructure.Kpis;
+using Wayd.Infrastructure.Links;
 using Wayd.Infrastructure.Following;
 using Wayd.Infrastructure.Notifications;
 using Wayd.Infrastructure.ConnectorModules;
@@ -121,6 +122,7 @@ public static class ConfigureServices
         services.AddFollowing();
         services.AddDiscussions();
         services.AddKpis();
+        services.AddLinks();
         services.AddNotifications();
 
         // Data protection (at-rest secret encryption) must initialize before

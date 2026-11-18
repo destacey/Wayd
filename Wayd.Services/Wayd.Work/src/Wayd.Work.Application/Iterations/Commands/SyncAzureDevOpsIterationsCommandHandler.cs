@@ -1,5 +1,7 @@
 ﻿using Wayd.Common.Application.Interfaces.ExternalWork;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Application.Models;
+using Wayd.Work.Domain;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Enums.Organization;
@@ -13,7 +15,7 @@ using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.Iterations.Commands;
 
-public sealed class SyncAzureDevOpsIterationsCommandHandler(IWorkDbContext workDbContext, ILogger<SyncAzureDevOpsIterationsCommandHandler> logger, IDateTimeProvider dateTimeProvider)
+public sealed class SyncAzureDevOpsIterationsCommandHandler(IWorkDbContext workDbContext, ILogger<SyncAzureDevOpsIterationsCommandHandler> logger, IDateTimeProvider dateTimeProvider, ILinkWriter linkWriter)
  : ICommandHandler<SyncAzureDevOpsIterationsCommand>
 {
     private const string AppRequestName = nameof(SyncAzureDevOpsIterationsCommand);
@@ -21,6 +23,7 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IWorkDbContext workD
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly ILogger<SyncAzureDevOpsIterationsCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ILinkWriter _linkWriter = linkWriter;
 
     public async Task<Result> Handle(SyncAzureDevOpsIterationsCommand request, CancellationToken cancellationToken)
     {
@@ -106,9 +109,14 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IWorkDbContext workD
             return;
 
         var timestamp = _dateTimeProvider.Now;
+        var actor = EventActor.Sync(null);
         foreach (var iteration in iterationsToDelete)
         {
-            iteration.Delete(EventActor.Sync(null), timestamp);
+            iteration.Delete(actor, timestamp);
+
+            // A link has no foreign key to its record, so it would outlive the sprint.
+            if (iteration.Type == IterationType.Sprint)
+                await _linkWriter.RemoveAll(WorkLinkOwners.Sprint.Key, iteration.Id, actor, cancellationToken);
         }
 
         _workDbContext.Iterations.RemoveRange(iterationsToDelete);

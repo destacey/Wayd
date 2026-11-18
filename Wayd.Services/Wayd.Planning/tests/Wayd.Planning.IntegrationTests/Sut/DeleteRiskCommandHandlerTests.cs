@@ -1,3 +1,7 @@
+using Wayd.Common.Domain.Events.Links;
+using Wayd.Links;
+using Wayd.Common.Domain.Links;
+using Wayd.Planning.Domain;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -14,7 +18,7 @@ using Wayd.Planning.IntegrationTests.Infrastructure;
 namespace Wayd.Planning.IntegrationTests.Sut;
 
 /// <summary>
-/// Proves a risk's deletion soft deletes the row and is recorded against the risk by the same save.
+/// Proves a risk's deletion soft deletes the row, removes its links, and is recorded against the risk by the same save.
 /// </summary>
 /// <remarks>
 /// The soft delete turns the removal into an update, so only a real save shows the event is still drained from
@@ -31,6 +35,7 @@ public sealed class DeleteRiskCommandHandlerTests(SqlServerDbContextFixture fixt
         // Arrange
         var ct = TestContext.Current.CancellationToken;
         var now = SqlServerDbContextFixture.FixedNow;
+        PlanningLinkOwners.Register();
 
         Guid riskId;
         int riskKey;
@@ -47,6 +52,9 @@ public sealed class DeleteRiskCommandHandlerTests(SqlServerDbContextFixture fixt
             seed.Risks.Add(risk);
             await seed.SaveChangesAsync(ct);
 
+            seed.Links.Add(Link.Create(PlanningLinkOwners.Risk.Key, risk.Id, "Vendor contract", "https://example.com/contract", EventActor.System, now).Value);
+            await seed.SaveChangesAsync(ct);
+
             riskId = risk.Id;
             riskKey = risk.Key;
         }
@@ -55,8 +63,9 @@ public sealed class DeleteRiskCommandHandlerTests(SqlServerDbContextFixture fixt
         CSharpFunctionalExtensions.Result result;
         await using (var context = _fixture.CreateContext())
         {
+            var dateTimeProvider = SqlServerDbContextFixture.DateTimeProvider(now.Plus(Duration.FromHours(1)));
             var handler = new DeleteRiskCommandHandler(context, SqlServerDbContextFixture.CurrentUser(),
-                SqlServerDbContextFixture.DateTimeProvider(now.Plus(Duration.FromHours(1))), NullLogger<DeleteRiskCommandHandler>.Instance);
+                dateTimeProvider, NullLogger<DeleteRiskCommandHandler>.Instance, new LinkWriter(context, [], dateTimeProvider));
             result = await handler.Handle(new DeleteRiskCommand(riskId), ct);
         }
 
@@ -69,6 +78,13 @@ public sealed class DeleteRiskCommandHandlerTests(SqlServerDbContextFixture fixt
             .Where(r => r.Id == riskId)
             .Select(r => r.IsDeleted)
             .SingleAsync(ct)).Should().BeTrue();
+
+        (await verify.Links.AnyAsync(l => l.OwnerId == riskId, ct)).Should().BeFalse();
+        (await verify.ActivityLogs.AsNoTracking()
+            .Where(a => a.AggregateType == "Link" && a.RelatedAggregates.Any(r => r.AggregateType == "Risk" && r.AggregateId == riskId))
+            .OrderBy(a => a.Timestamp).ThenBy(a => a.Ordinal)
+            .Select(a => a.EventType)
+            .ToListAsync(ct)).Should().Equal(nameof(LinkAddedEvent), nameof(LinkRemovedEvent));
 
         var entries = await verify.ActivityLogs.AsNoTracking()
             .Where(a => a.AggregateId == riskId)

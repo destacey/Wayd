@@ -17,7 +17,7 @@ using Wayd.Common.Domain.Notifications;
 using Wayd.Common.Domain.Settings;
 using Wayd.Infrastructure.Common.Services;
 using Wayd.Links;
-using Wayd.Links.Models;
+using Wayd.Common.Domain.Links;
 using Wayd.Planning.Application.Persistence;
 using Wayd.Planning.Domain.Models;
 using Wayd.Planning.Domain.Models.PlanningPoker;

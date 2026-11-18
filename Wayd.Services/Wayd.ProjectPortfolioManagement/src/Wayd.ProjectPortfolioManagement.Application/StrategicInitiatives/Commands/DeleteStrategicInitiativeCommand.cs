@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Domain.Events;
+﻿using Wayd.Common.Application.Links;
+using Wayd.Common.Domain.Events;
+using Wayd.ProjectPortfolioManagement.Domain;
 
 namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands;
 
@@ -17,10 +19,12 @@ public sealed class DeleteStrategicInitiativeCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ICurrentUser currentUser,
     ILogger<DeleteStrategicInitiativeCommandHandler> logger,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    ILinkWriter linkWriter)
     : ICommandHandler<DeleteStrategicInitiativeCommand>
 {
     private const string AppRequestName = nameof(DeleteStrategicInitiativeCommand);
+    private readonly ILinkWriter _linkWriter = linkWriter;
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<DeleteStrategicInitiativeCommandHandler> _logger = logger;
@@ -54,15 +58,19 @@ public sealed class DeleteStrategicInitiativeCommandHandler(
                 return Result.Failure("Portfolio not found.");
             }
 
+            var actor = EventActor.User(_currentUser.GetUserId());
             var deleteResult = portfolio.DeleteStrategicInitiative(
                 strategicInitiative.Id,
-                EventActor.User(_currentUser.GetUserId()),
+                actor,
                 _dateTimeProvider.Now);
             if (deleteResult.IsFailure)
             {
                 _logger.LogError("Error deleting Strategic Initiative {StrategicInitiativeId}. Error message: {Error}", request.Id, deleteResult.Error);
                 return Result.Failure(deleteResult.Error);
             }
+
+            // A link has no foreign key to its record, so it would outlive the initiative.
+            await _linkWriter.RemoveAll(PpmLinkOwners.StrategicInitiative.Key, strategicInitiative.Id, actor, cancellationToken);
 
             await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
 

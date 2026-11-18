@@ -1,48 +1,55 @@
 ﻿using CSharpFunctionalExtensions;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Links;
+using Wayd.Common.Application.Validation;
+using Wayd.Common.Domain.Links;
+using FluentValidation;
 
 namespace Wayd.Links.Commands;
 
-public sealed record DeleteLinkCommand(Guid LinkId) : ICommand;
+/// <summary>
+/// Removes a link from a record. Only someone who may edit the record.
+/// </summary>
+/// <param name="OwnerType">The record's registered owner type.</param>
+/// <param name="OwnerId">The record's id.</param>
+/// <param name="LinkId">The link's id.</param>
+public sealed record DeleteLinkCommand(string OwnerType, Guid OwnerId, Guid LinkId) : ICommand;
 
-public sealed class DeleteLinkCommandHandler : ICommandHandler<DeleteLinkCommand>
+/// <summary>Rejects malformed input before the record is resolved.</summary>
+public sealed class DeleteLinkCommandValidator : CustomValidator<DeleteLinkCommand>
 {
-    private readonly ILinksDbContext _linksDbContext;
-    private readonly ILogger<DeleteLinkCommandHandler> _logger;
-
-    public DeleteLinkCommandHandler(ILinksDbContext linksDbContext, ILogger<DeleteLinkCommandHandler> logger)
+    public DeleteLinkCommandValidator()
     {
-        _linksDbContext = linksDbContext;
-        _logger = logger;
+        RuleFor(c => c.OwnerType).NotEmpty().MaximumLength(LinkOwnerTypeDescriptor.KeyMaxLength);
+        RuleFor(c => c.OwnerId).NotEmpty();
+        RuleFor(c => c.LinkId).NotEmpty();
     }
+}
+
+/// <summary>Removes the link after the record's owner type allows it, and saves.</summary>
+public sealed class DeleteLinkCommandHandler(
+    LinkOwnerAccessResolver accessResolver,
+    ILinkWriter linkWriter,
+    ILinksDbContext linksDbContext) : ICommandHandler<DeleteLinkCommand>
+{
+    private readonly LinkOwnerAccessResolver _accessResolver = accessResolver;
+    private readonly ILinkWriter _linkWriter = linkWriter;
+    private readonly ILinksDbContext _linksDbContext = linksDbContext;
 
     public async Task<Result> Handle(DeleteLinkCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var link = await _linksDbContext.Links
-                .FirstOrDefaultAsync(l => l.Id == request.LinkId, cancellationToken);
-            if (link is null)
-            {
-                _logger.LogError("Unable to delete link. Link with id {LinkId} not found.", request.LinkId);
-                return Result.Failure($"Link with id {request.LinkId} not found.");
-            }
+        var owner = await _accessResolver.ForManaging(request.OwnerType, request.OwnerId, cancellationToken);
+        if (owner.IsFailure)
+            return owner;
 
-            _linksDbContext.Links.Remove(link);
+        var actor = await _accessResolver.ResolveActor(cancellationToken);
 
-            await _linksDbContext.SaveChangesAsync(cancellationToken);
+        var removed = await _linkWriter.Remove(owner.Value.OwnerType, request.OwnerId, request.LinkId, actor, cancellationToken);
+        if (removed.IsFailure)
+            return removed;
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            var requestName = request.GetType().Name;
+        await _linksDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success();
     }
 }

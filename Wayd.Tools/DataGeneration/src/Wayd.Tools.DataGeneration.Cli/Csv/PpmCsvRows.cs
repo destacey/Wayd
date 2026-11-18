@@ -34,6 +34,9 @@ public sealed class PortfolioCsvRow
     public string? Sponsors { get; init; }
     public string? Owners { get; init; }
     public string? Managers { get; init; }
+
+    /// <summary>The record's links, <c>Name|URL</c> entries separated by semicolons. See <see cref="Generation.SeedLinks"/>.</summary>
+    public string? Links { get; init; }
 }
 
 /// <summary>One row of the programs CSV.</summary>
@@ -59,6 +62,9 @@ public sealed class ProgramCsvRow
     public string? Sponsors { get; init; }
     public string? Owners { get; init; }
     public string? Managers { get; init; }
+
+    /// <summary>The record's links, <c>Name|URL</c> entries separated by semicolons. See <see cref="Generation.SeedLinks"/>.</summary>
+    public string? Links { get; init; }
 }
 
 /// <summary>One row of the projects CSV. Key is the project's natural key, which tasks and initiatives use.</summary>
@@ -94,6 +100,9 @@ public sealed class ProjectCsvRow
     public string? Owners { get; init; }
     public string? Managers { get; init; }
     public string? Members { get; init; }
+
+    /// <summary>The record's links, <c>Name|URL</c> entries separated by semicolons. See <see cref="Generation.SeedLinks"/>.</summary>
+    public string? Links { get; init; }
 }
 
 /// <summary>
@@ -175,6 +184,9 @@ public sealed class StrategicInitiativeCsvRow
     public string? ProjectKeys { get; init; }
     public string? Sponsors { get; init; }
     public string? Owners { get; init; }
+
+    /// <summary>The record's links, <c>Name|URL</c> entries separated by semicolons. See <see cref="Generation.SeedLinks"/>.</summary>
+    public string? Links { get; init; }
 }
 
 /// <summary>One row of the strategic initiative KPIs CSV, attached to its initiative row by that row's ImportId.</summary>

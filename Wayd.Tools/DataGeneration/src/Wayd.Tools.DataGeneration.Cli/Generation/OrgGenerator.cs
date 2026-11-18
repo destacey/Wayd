@@ -625,6 +625,7 @@ public sealed class OrgGenerator
             ActiveDate = activeDate,
             IsActive = true,
             InactiveDate = null,
+            Links = SeedLinks.For(SeedLinkKind.Team, code),
         });
         return new TeamNodeRef { Code = code, Name = name, ActiveDate = activeDate };
     }
@@ -643,6 +644,7 @@ public sealed class OrgGenerator
             ActiveDate = activeDate,
             IsActive = true,
             InactiveDate = null,
+            Links = SeedLinks.For(SeedLinkKind.Team, code),
         });
         return new TeamNodeRef { Code = code, Name = name, ActiveDate = activeDate };
     }

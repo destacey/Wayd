@@ -109,6 +109,7 @@ public sealed class PortfoliosArea() : PpmSeedArea(PpmArea.Portfolios, Organizat
             Sponsors = p.Sponsors,
             Owners = p.Owners,
             Managers = p.Managers,
+            Links = SeedLinks.For(SeedLinkKind.Portfolio, p.Name),
         });
 
         var run = await context.Client.ImportPortfolios(CsvFile.ToBytes(rows), cancellationToken);
@@ -142,6 +143,7 @@ public sealed class ProgramsArea() : PpmSeedArea(
             Sponsors = p.Sponsors,
             Owners = p.Owners,
             Managers = p.Managers,
+            Links = SeedLinks.For(SeedLinkKind.Program, p.Name),
         });
 
         var run = await context.Client.ImportPrograms(CsvFile.ToBytes(rows), cancellationToken);
@@ -191,6 +193,7 @@ public sealed class ProjectsArea() : PpmSeedArea(
             Owners = p.Owners,
             Managers = p.Managers,
             Members = p.Members,
+            Links = SeedLinks.For(SeedLinkKind.Project, p.Key),
         }).ToList();
 
         // One row is one project, which is also the unit the import applies by, so the grouping only keeps
@@ -381,6 +384,7 @@ public sealed class StrategicInitiativesArea() : PpmSeedArea(
             ProjectKeys = i.ProjectKeys,
             Sponsors = i.Sponsors,
             Owners = i.Owners,
+            Links = SeedLinks.For(SeedLinkKind.StrategicInitiative, i.Name),
         });
 
         // The KPI file names its initiative by that row's import id, which the seed sets to the initiative

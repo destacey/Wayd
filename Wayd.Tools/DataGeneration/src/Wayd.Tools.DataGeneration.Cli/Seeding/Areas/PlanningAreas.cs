@@ -48,6 +48,7 @@ public sealed class PlanningIntervalsArea() : PlanningSeedArea(
             IterationWeeks = p.IterationWeeks,
             IterationPrefix = p.IterationPrefix,
             TeamIds = string.Join(';', context.Ids(OrganizationArea.Teams, p.TeamCodes.Split(';'))),
+            Links = SeedLinks.For(SeedLinkKind.PlanningInterval, p.Name),
         }).ToList();
 
         var batches = Batch(context, rows, r => r.ImportId);
@@ -86,6 +87,7 @@ public sealed class PlanningIntervalObjectivesArea() : PlanningSeedArea(
             IsStretch = o.IsStretch,
             ClosedDateUtc = o.ClosedAt is { } closed ? PlanningCsv.Timestamp(closed) : null,
             Order = o.Order,
+            Links = SeedLinks.For(SeedLinkKind.Objective, o.ImportId),
         }).ToList();
 
         var batches = Batch(context, rows, r => r.PlanningIntervalId);
@@ -126,6 +128,7 @@ public sealed class RisksArea() : PlanningSeedArea(
             FollowUpDate = r.FollowUpDate,
             Response = r.Response,
             ClosedDateUtc = r.ClosedAt is { } closed ? PlanningCsv.Timestamp(closed) : null,
+            Links = SeedLinks.For(SeedLinkKind.Risk, r.Handle),
         }).ToList();
 
         var batches = Batch(context, rows, r => r.TeamId);

@@ -708,6 +708,18 @@ Objective health checks are not generated. There is no import for them, and the 
 records the signed-in user's employee as the reporter and stamps the real time rather than a date in the
 history.
 
+### Links
+
+Teams, planning intervals, objectives, risks, portfolios, programs, projects, strategic initiatives and
+incidents are imported with their links, in the `Links` column of their own file. About a third of each kind
+get none, a third one link and a third two, named for the kind of record (a team's wiki and board, a
+project's charter and status report, an incident's runbook and postmortem) on `example.com` addresses.
+
+`SeedLinks` picks them from a hash of the record's natural key — a team's code, a project's key, a planning
+interval's name — rather than from the random source, so adding links changed no other generated value and a
+record gets the same links on every run. Imported links are attributed to the import, so an incident's links
+do not appear on its timeline.
+
 ## Reproducibility
 
 Every run resolves a concrete seed (random when `--random-seed` is omitted) and prints it:

@@ -19,6 +19,9 @@ public sealed class PlanningIntervalCsvRow
 
     /// <summary>Semicolon-separated team ids.</summary>
     public string? TeamIds { get; init; }
+
+    /// <summary>The record's links, <c>Name|URL</c> entries separated by semicolons. See <see cref="Generation.SeedLinks"/>.</summary>
+    public string? Links { get; init; }
 }
 
 /// <summary>One row of the objectives CSV. Each row names its own planning interval.</summary>
@@ -36,6 +39,9 @@ public sealed class PlanningIntervalObjectiveCsvRow
     public required bool IsStretch { get; init; }
     public string? ClosedDateUtc { get; init; }
     public int? Order { get; init; }
+
+    /// <summary>The record's links, <c>Name|URL</c> entries separated by semicolons. See <see cref="Generation.SeedLinks"/>.</summary>
+    public string? Links { get; init; }
 }
 
 /// <summary>One row of the risks CSV. People are employee ids.</summary>
@@ -55,6 +61,9 @@ public sealed class RiskCsvRow
     public DateOnly? FollowUpDate { get; init; }
     public string? Response { get; init; }
     public string? ClosedDateUtc { get; init; }
+
+    /// <summary>The record's links, <c>Name|URL</c> entries separated by semicolons. See <see cref="Generation.SeedLinks"/>.</summary>
+    public string? Links { get; init; }
 }
 
 public static class PlanningCsv

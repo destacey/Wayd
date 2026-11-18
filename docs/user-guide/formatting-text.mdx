@@ -48,7 +48,12 @@ In a project's **Description**, **Business Case** and **Expected Benefits**, you
 - Until you save the record, only you can see the image. If you close the form without saving, it is deleted after a day.
 - Once saved, an image can be seen by everyone who can see the record, and by no one else. Removing it from the text and saving deletes it; so does deleting the record.
 - Pasting cells copied from a spreadsheet pastes the table, not a picture of it.
-- In the **Markdown source** view, a pasted or dropped image is written as `![](/api/attachments/…)` once it has uploaded. If you switch back to the document before then, it is added at the end of the document. Copying that text into another project gives that project its own copy of the image, if you can see the original.
+- Text pasted with images in it, from a document, an email or a web page, keeps the images where they sat:
+  - an image that came with the text itself is uploaded, as a pasted screenshot is;
+  - an image on a web page stays a link to that page's copy, so it shows only while that site keeps it and lets you see it;
+  - an image copied from Wayd keeps pointing at the original, and saving gives the record its own copy if you can see the original;
+  - an image Wayd cannot reach from what was pasted is left out, and the editor tells you how many. Word and Outlook on the desktop paste images this way when they come with text. Copy and paste each of those images on its own: a single picture copied by itself is taken.
+- In the **Markdown source** view, a pasted or dropped image is written as `![](/api/attachments/…)` once it has uploaded. Text pasted with images in it pastes as plain text, and the images that came with it are written after it; images from web pages are not kept there. If you switch back to the document before then, it is added at the end of the document. Copying that text into another project gives that project its own copy of the image, if you can see the original.
 - An import does not take images into the projects it creates: an imported description that refers to an uploaded image shows it only to people who can see the record it was uploaded into.
 
 ## Editing the markdown

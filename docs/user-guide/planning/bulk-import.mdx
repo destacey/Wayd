@@ -130,6 +130,7 @@ history brings dozens of them — one row each, with no second file for the team
 | `IterationWeeks` | Yes | Length of each generated iteration, in whole weeks. Greater than `0`. |
 | `IterationPrefix` | No | Prefixes each generated iteration's name. Max 32 chars. |
 | `TeamIds` | No | Semicolon-separated GUIDs of the teams that ran the interval. See below — blank means no teams. |
+| `Links` | No | Links to add to the planning interval: `Name\|URL` entries separated by semicolons. See [Links](#links-column). |
 
 ### This import only creates, so `TeamIds` never replaces a roster
 
@@ -183,6 +184,7 @@ whose objectives are locked, rejects the whole file — including the rows for e
 | `IsStretch` | Yes | `true` or `false`. |
 | `ClosedDateUtc` | Conditional | UTC instant. **Required** when the status is Completed, Canceled or Missed, and **must be empty** otherwise. |
 | `Order` | No | Display position within the team's objectives. |
+| `Links` | No | Links to add to the objective: `Name\|URL` entries separated by semicolons. See [Links](#links-column). |
 
 ## Risks import
 
@@ -206,6 +208,27 @@ Loads [risks](./risks.mdx). A row naming a team, reporter or assignee that Wayd 
 | `FollowUpDate` | No | `yyyy-MM-dd`. |
 | `Response` | No | Max 1024 chars. |
 | `ClosedDateUtc` | Conditional | **Required** when `StatusId` is `2` (Closed), and **must be empty** otherwise. Must be after `ReportedOnUtc` and in the past. |
+| `Links` | No | Links to add to the risk: `Name\|URL` entries separated by semicolons. See [Links](#links-column). |
+
+## Links column
+
+The planning interval, objective and risk imports each take an optional `Links` column, so a record
+arrives with its links already on it.
+The cell holds entries separated by semicolons, each a name and a web address joined by `|`:
+
+```text
+Charter|https://example.com/charter; Team wiki|https://example.com/wiki
+```
+
+- Only the first `|` in an entry separates the name from the address, so an address may contain one; a name
+  cannot contain `|` or `;`.
+- A `;` inside an address is written `%3B`, which is how URLs encode it anyway.
+- Every address must be a full `http://` or `https://` address. An entry without a `|`, without a name, with a
+  name over 128 characters or with any other address rejects its row, and the message names the entry.
+  Because these imports are all or nothing, that fails the whole file.
+- A record may have the same address twice; the import creates what the file says.
+- The import's own permission covers the links. Imports only create, so this adds links to the records the file
+  creates, never to records already in Wayd.
 
 ## Related
 

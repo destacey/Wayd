@@ -699,6 +699,7 @@ Management → Incident Severity Sets**, and import the [products](#products-imp
 | `NoticedAt` | No | When it was noticed. An ISO-8601 timestamp **with its offset**. Blank records the time of the import. |
 | `StartedAt` | No | When response started, with its offset. See [the walk](#the-status-decides-the-walk). |
 | `RecoveredAt` | No | When service was restored, with its offset. See [the walk](#the-status-decides-the-walk). |
+| `Links` | No | Links to add to the incident: `Name\|URL` entries separated by semicolons. See [Links](#links-column). |
 
 Who submitted the incident is the account that imports the file, and that account must be linked to an
 employee. There is no column for it, and a file cannot set a cancel reason, a Teams link, a timeline
@@ -731,6 +732,29 @@ of that row is saved. One rejected row keeps out only itself.
 An incident has no natural key, and `ImportId` is not stored on it. Submitting the same file again
 creates another incident for every row. After a partially succeeded run, fix and resubmit **only the
 rejected rows**.
+
+## Links column
+
+The [incidents import](#incidents-import) takes an optional `Links` column, so an incident arrives with its
+links already on it.
+The cell holds entries separated by semicolons, each a name and a web address joined by `|`:
+
+```text
+Charter|https://example.com/charter; Team wiki|https://example.com/wiki
+```
+
+- Only the first `|` in an entry separates the name from the address, so an address may contain one; a name
+  cannot contain `|` or `;`.
+- A `;` inside an address is written `%3B`, which is how URLs encode it anyway.
+- Every address must be a full `http://` or `https://` address. An entry without a `|`, without a name, with a
+  name over 128 characters or with any other address rejects its row, and the message names the entry.
+  The rejected incident is not created, and the other rows still are.
+- A record may have the same address twice; the import creates what the file says.
+- The import's own permission covers the links. Imports only create, so this adds links to the records the file
+  creates, never to records already in Wayd.
+
+Links imported with an incident do not appear on its timeline: the timeline records what people did during the
+incident, and the import is not one of them.
 
 ## Related
 

@@ -411,6 +411,73 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("ExternalIdentityMappings", "AppIntegrations");
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.Attachments.Attachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ClaimedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("OwnerId")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OwnerType")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasColumnType("char(64)");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("UploadedBy")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("UploadedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UploadedOn")
+                        .HasDatabaseName("IX_Attachments_Pending")
+                        .HasFilter("[OwnerId] IS NULL");
+
+                    b.HasIndex("OwnerType", "OwnerId");
+
+                    b.ToTable("Attachments", "App");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Attachments.AttachmentContent", b =>
+                {
+                    b.Property<Guid>("AttachmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("Data")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.HasKey("AttachmentId");
+
+                    b.ToTable("AttachmentContents", "App");
+                });
+
             modelBuilder.Entity("Wayd.Common.Domain.Discussions.DiscussionChannel", b =>
                 {
                     b.Property<Guid>("Id")
@@ -10001,6 +10068,15 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Attachments.AttachmentContent", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Attachments.Attachment", null)
+                        .WithOne()
+                        .HasForeignKey("Wayd.Common.Domain.Attachments.AttachmentContent", "AttachmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Wayd.Common.Domain.Discussions.DiscussionChannel", b =>

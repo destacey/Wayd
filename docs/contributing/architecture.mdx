@@ -555,6 +555,41 @@ To put links on another kind of record:
 
 No migration is needed: every owner type shares the same table.
 
+### Images in markdown
+
+An image pasted or dropped into a markdown field is an **attachment** (`Common.Domain/Attachments`, tables
+`App.Attachments` and `App.AttachmentContents`). The markdown holds only a reference, `![alt](/api/attachments/{id})`,
+so field lengths stay as they are. `POST /api/attachments` re-encodes the upload through `IImageSanitizer` — the
+format detected from the bytes (PNG, JPEG, GIF, WebP; never SVG), the size checked from the header before decoding,
+the image turned upright, and only its pixels and colour space written out again, so no EXIF, XMP or text chunk
+survives; a GIF is stored as a PNG of its first frame — and stores it **pending**: only its uploader can
+read it, and `PurgeAbandonedAttachmentsCommand` (the hourly **Attachment Sweep** job) deletes one no save claims
+within 24 hours.
+
+**Access follows exactly one record.** A claimed attachment is readable by whoever its owner type's `IRecordReadRule`
+admits, asked on every read from the record as it is now; anyone else gets 404, so a response never confirms that an
+image exists. An owner type with no read rule cannot hold attachments. A record whose text refers to another
+record's image gets a copy of its own rather than a share, so access never follows a second record.
+
+Bytes go through `IAttachmentStore`. `DatabaseAttachmentStore` keeps them in `App.AttachmentContents`, written and
+deleted by the same save as the row; a blob store would implement the same interface. Images are decoded and
+encoded by SkiaSharp (MIT; Skia is BSD-3-Clause), reached only through `SkiaImageSanitizer`. Linux hosts load its
+native library from `SkiaSharp.NativeAssets.Linux.NoDependencies`, which needs no system packages. Not ImageSharp:
+from 3.2 its package fails every Release build that has no paid Six Labors license key, a self-hoster's included.
+
+Letting a record hold images is three calls through `IMarkdownAttachments`, passing **every** markdown field of the
+record together, in the command's own unit of work:
+
+1. `CopyForeign(ownerType, ownerId, markdown)` before the text reaches the aggregate — it may rewrite references —
+   with `ownerId` null while the record is being created.
+2. `Claim(ownerType, ownerId, markdown)` once the id is known and before the save. It gives the record the caller's
+   pending uploads the text refers to and deletes the record's images the text no longer refers to.
+3. `RemoveAll(ownerType, ownerId)` when the record is deleted: attachments have no foreign key to their owner.
+
+The owner type is the record's read rule owner type (`PpmFollowOwners.Project.Key`). Then pass `imageUploads` to each
+of the form's `MarkdownEditor`s; a field without it keeps the editor's own handling, since an upload it made would
+never be claimed. Projects are the first owner type (create, update and delete).
+
 ## Connector framework
 
 Customer-configured integrations (Azure DevOps, Entra, Workday, Azure OpenAI, future Jira / GitHub connectors) plug into a shared framework in the `Wayd.AppIntegration` service, the `Wayd.Integrations.*` projects, and a frontend registry pair. The goal is that adding a connector is *additive* — drop in new files, register them, no edits to the generic plumbing.

@@ -1,6 +1,7 @@
 using Hangfire;
 using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.AppIntegration.Domain.Models;
+using Wayd.Common.Application.Attachments.Commands;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Imports.Commands;
@@ -322,5 +323,22 @@ public class JobManager(
 
         _logger.LogInformation(
             "Completed {BackgroundJob} job ({Count} notifications deleted)", nameof(RunNotificationRetentionSweep), result.Value);
+    }
+
+    [DisableConcurrentExecution(60 * 60)]
+    [AutomaticRetry(Attempts = 0)]
+    public async Task RunAttachmentSweep(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Running {BackgroundJob} job", nameof(RunAttachmentSweep));
+
+        var result = await _dispatcher.Send(new PurgeAbandonedAttachmentsCommand(), cancellationToken);
+        if (result.IsFailure)
+        {
+            _logger.LogError("Failed to sweep abandoned attachments: {Error}", result.Error);
+            return;
+        }
+
+        _logger.LogInformation(
+            "Completed {BackgroundJob} job ({Count} attachments deleted)", nameof(RunAttachmentSweep), result.Value);
     }
 }

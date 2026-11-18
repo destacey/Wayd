@@ -58,6 +58,9 @@ export const isApiResponseError = (error: unknown): error is ApiResponseError =>
   (error as { kind?: unknown }).kind === 'api-response'
 
 const readBody = async (response: Response): Promise<unknown> => {
+  // An image (an attachment) is bytes; reading it as text would corrupt it.
+  if (response.ok && response.headers.get('content-type')?.startsWith('image/'))
+    return response.blob()
   const text = await response.text()
   if (!text) return undefined
   const contentType = response.headers.get('content-type') ?? ''

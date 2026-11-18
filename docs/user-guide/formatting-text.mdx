@@ -33,11 +33,23 @@ On a Mac, use ⌘ in place of Ctrl. In the toolbar, Tab reaches the button you l
 
 A link must be a web address (`https://…`), an email link (`mailto:…`) or a path in Wayd (`/…`). Typing `wayd.dev` adds `https://` for you, while a file name such as `report.pdf` is kept as a relative link; other kinds of address are refused, and a typed `[text](address)` with one stays as text.
 
-Pasting from Word, Outlook, a web page or Azure DevOps keeps headings, bold, italic, lists, links and tables, and drops fonts, colors and spacing. Images are kept only when they come from a web address; an image pasted from a file on your computer is left out.
+Pasting from Word, Outlook, a web page or Azure DevOps keeps headings, bold, italic, lists, links and tables, and drops fonts, colors and spacing. Images in that content are kept only when they come from a web address. To add a screenshot or an image file, see [Images](#images).
 
 Pasting markdown as plain text — from an AI assistant, a README, or another field's **Markdown source** — formats it: headings, lists, bold, links, code and tables arrive formatted rather than as their symbols. Text that reads as ordinary prose is pasted as it is. To paste markdown symbols as text, use Ctrl+Shift+V (paste without formatting), or paste into the **Markdown source** view.
 
 The count under the editor is the length of the stored markdown, which is a little longer than the text you see. An edit that would take it past the field's limit is refused whole, with a message under the editor saying how long the text would have been; a paste that would cross the limit inserts nothing. Once you edit a record, the editor writes all of it in its own style, which can make it slightly longer (tables are padded to even columns), so a record close to its limit may need trimming before it takes more text.
+
+## Images
+
+In a project's **Description**, **Business Case** and **Expected Benefits**, you can paste a screenshot or drop an image file into the text. It is uploaded and appears where you put it; in the document, **Uploading image…** holds its place meanwhile. Pasting over selected text replaces it. Other long-text fields do not take images yet, and an uploaded image pasted into one is left out.
+
+- PNG, JPEG, GIF and WebP images of up to 5 MB are accepted. A GIF is kept as a still image of its first frame.
+- Each image is re-saved on upload: a photo is turned the right way up, and everything stored with it apart from the picture is removed, including the location a phone camera records.
+- Until you save the record, only you can see the image. If you close the form without saving, it is deleted after a day.
+- Once saved, an image can be seen by everyone who can see the record, and by no one else. Removing it from the text and saving deletes it; so does deleting the record.
+- Pasting cells copied from a spreadsheet pastes the table, not a picture of it.
+- In the **Markdown source** view, a pasted or dropped image is written as `![](/api/attachments/…)` once it has uploaded. If you switch back to the document before then, it is added at the end of the document. Copying that text into another project gives that project its own copy of the image, if you can see the original.
+- An import does not take images into the projects it creates: an imported description that refers to an uploaded image shows it only to people who can see the record it was uploaded into.
 
 ## Editing the markdown
 
@@ -54,4 +66,4 @@ Opening a record's edit form and saving it without changing the text keeps the t
 
 ## Formatting the editor cannot keep
 
-A few kinds of markdown display on detail pages but have no equivalent in the document editor: footnotes, HTML comments, HTML elements such as `<details>`, `<kbd>` and `<div>`, images whose address is not a web address, and special characters written as HTML entities (`&nbsp;`). When a field holds any of them, a warning above the document names what it found, and stays while you edit. Editing the document removes them. To keep them, choose **Edit in Markdown** in the warning, or the **Markdown source** button, and edit the markdown instead: it keeps everything you do not change. Once you have edited the document, the warning says so instead: undo your edits, or close the form without saving.
+A few kinds of markdown display on detail pages but have no equivalent in the document editor: footnotes, HTML comments, HTML elements such as `<details>`, `<kbd>` and `<div>`, images whose address is not a web address or an uploaded image, and special characters written as HTML entities (`&nbsp;`). When a field holds any of them, a warning above the document names what it found, and stays while you edit. Editing the document removes them. To keep them, choose **Edit in Markdown** in the warning, or the **Markdown source** button, and edit the markdown instead: it keeps everything you do not change. Once you have edited the document, the warning says so instead: undo your edits, or close the form without saving.

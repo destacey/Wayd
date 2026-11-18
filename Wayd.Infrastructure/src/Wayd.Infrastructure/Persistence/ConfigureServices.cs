@@ -139,6 +139,7 @@ internal static class ConfigureServices
         services.AddScoped<IStatusWorkflowDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<INotificationsDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<IDiscussionsDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
+        services.AddScoped<IAttachmentsDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<IKpisDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<IActivityLogDbContext>(sp => sp.GetRequiredService<WaydDbContext>());
         services.AddScoped<IProjectPortfolioManagementDbContext>(sp => sp.GetRequiredService<WaydDbContext>());

@@ -46,6 +46,9 @@ describe('isSafeImageSrc', () => {
     ['file:///C:/image.png', false],
     ['javascript:alert(1)', false],
     ['/relative.png', false],
+    ['/api/attachments/0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b', true],
+    ['/api/attachments/not-an-id', false],
+    ['/api/attachments/0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b/../../x', false],
     [null, false],
   ])('%p is %p', (src, expected) => {
     // Arrange / Act / Assert

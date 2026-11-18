@@ -1,5 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using FluentAssertions;
+using Wayd.Common.Domain.Attachments;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Mono.Cecil;
@@ -252,6 +253,9 @@ public partial class EventCoverageTests
         [typeof(RecordMute)] = "One person's choice to hear nothing more about a record; it changes nothing about the record.",
         [typeof(ReasonMute)] = "One person's choice to stop being told for a reason; it changes no record.",
 
+        // Part of a record's text, which the record's own events already record.
+        [typeof(Attachment)] = "An image inside a record's markdown; the record's own events record the text that refers to it.",
+
         // Not yet evented: each awaits the issue it names.
         [typeof(Strategy)] = "#951.",
         [typeof(Vision)] = "#951.",
@@ -278,6 +282,7 @@ public partial class EventCoverageTests
         [typeof(EmployeeTimeAway)] = typeof(EmployeeCapacity),
         [typeof(EstimationScaleVersion)] = typeof(EstimationScale),
         [typeof(ImportProcessRow)] = typeof(ImportProcess),
+        [typeof(AttachmentContent)] = typeof(Attachment),
         [typeof(KpiMeasurement)] = typeof(Kpi),
         [typeof(PlanningIntervalIterationSprint)] = typeof(PlanningInterval),
         [typeof(PlanningIntervalObjectiveHealthCheck)] = typeof(PlanningIntervalObjective),

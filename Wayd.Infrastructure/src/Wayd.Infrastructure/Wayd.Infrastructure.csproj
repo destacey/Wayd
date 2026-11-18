@@ -64,6 +64,8 @@
         <PackageReference Include="Serilog.Sinks.File" />
         <PackageReference Include="Serilog.Sinks.OpenTelemetry" />
         <PackageReference Include="Serilog.Sinks.Seq" />
+        <PackageReference Include="SkiaSharp" />
+        <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" />
         <PackageReference Include="SimplerSoftware.EntityFrameworkCore.SqlServer.NodaTime" />
         <PackageReference Include="System.Security.Cryptography.Xml" />
         <PackageReference Include="WolverineFx" />

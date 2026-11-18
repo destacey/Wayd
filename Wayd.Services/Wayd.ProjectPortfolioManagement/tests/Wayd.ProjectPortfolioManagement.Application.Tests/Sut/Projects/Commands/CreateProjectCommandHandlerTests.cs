@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Wayd.Common.Application.Attachments;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
@@ -19,6 +20,7 @@ public class CreateProjectCommandHandlerTests : IDisposable
     private readonly Mock<ILogger<CreateProjectCommandHandler>> _mockLogger;
     private readonly TestingDateTimeProvider _dateTimeProvider;
     private readonly Mock<ICurrentUser> _mockCurrentUser;
+    private readonly Mock<IMarkdownAttachments> _markdownAttachments = new();
     private readonly string _actorUserId = Guid.NewGuid().ToString();
     private readonly Guid _actorEmployeeId = Guid.NewGuid();
 
@@ -32,7 +34,12 @@ public class CreateProjectCommandHandlerTests : IDisposable
         _mockCurrentUser.Setup(u => u.GetUserId()).Returns(_actorUserId);
         _mockCurrentUser.Setup(u => u.GetEmployeeId()).Returns(_actorEmployeeId);
 
-        _handler = new CreateProjectCommandHandler(_dbContext, _mockLogger.Object, _dateTimeProvider, _mockCurrentUser.Object);
+        // Passes the text through unchanged unless a test says otherwise.
+        _markdownAttachments
+            .Setup(a => a.CopyForeign(It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<IReadOnlyList<string?>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string _, Guid? _, IReadOnlyList<string?> markdown, CancellationToken _) => markdown);
+
+        _handler = new CreateProjectCommandHandler(_dbContext, _mockLogger.Object, _dateTimeProvider, _mockCurrentUser.Object, _markdownAttachments.Object);
     }
 
     [Fact]
@@ -117,6 +124,68 @@ public class CreateProjectCommandHandlerTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         result.Value.Key.Should().NotBeNull();
         _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldCreateTheProjectWithCopiedImages_AndClaimThemForIt()
+    {
+        // Arrange — the project does not exist yet, so copies are made with no owner and claimed once it does.
+        var portfolio = new ProjectPortfolioFaker().AsActive(_dateTimeProvider);
+        var expenditureCategory = new ExpenditureCategoryFaker().GenerateActive();
+        _dbContext.AddPortfolio(portfolio);
+        _dbContext.AddExpenditureCategory(expenditureCategory);
+        _markdownAttachments
+            .Setup(a => a.CopyForeign("ppm.project", null, It.Is<IReadOnlyList<string?>>(m => m.SequenceEqual(new[] { "Description", "Case", null })), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(["![](/api/attachments/copy)", "Case", null]);
+        var claimedBeforeSave = false;
+        _markdownAttachments
+            .Setup(a => a.Claim(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<IReadOnlyList<string?>>(), It.IsAny<CancellationToken>()))
+            .Callback(() => claimedBeforeSave = _dbContext.SaveChangesCallCount == 0)
+            .Returns(Task.CompletedTask);
+
+        var command = new CreateProjectCommand(
+            "Test Project", "Description", "Case", null, new ProjectKey("TEST"), expenditureCategory.Id,
+            null, portfolio.Id, null, null, null, null, null, null, null);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var project = portfolio.Projects.Single();
+        project.Description.Should().Be("![](/api/attachments/copy)");
+        _markdownAttachments.Verify(a => a.Claim(
+            "ppm.project",
+            result.Value.Id,
+            It.Is<IReadOnlyList<string?>>(m => m.SequenceEqual(new[] { "![](/api/attachments/copy)", "Case", null })),
+            It.IsAny<CancellationToken>()), Times.Once);
+        claimedBeforeSave.Should().BeTrue();
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFailWithTheImageConflict_WhenAnImageChangedDuringTheSave()
+    {
+        // Arrange
+        var portfolio = new ProjectPortfolioFaker().AsActive(_dateTimeProvider);
+        var expenditureCategory = new ExpenditureCategoryFaker().GenerateActive();
+        _dbContext.AddPortfolio(portfolio);
+        _dbContext.AddExpenditureCategory(expenditureCategory);
+        _markdownAttachments
+            .Setup(a => a.Claim(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<IReadOnlyList<string?>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException("claimed elsewhere"));
+
+        var command = new CreateProjectCommand(
+            "Test Project", "Description", null, null, new ProjectKey("TEST"), expenditureCategory.Id,
+            null, portfolio.Id, null, null, null, null, null, null, null);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(CreateProjectCommandHandler.ImageConflictError);
+        _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 
     [Fact]

@@ -24,6 +24,138 @@
         ]
       }
     },
+    "/api/attachments": {
+      "post": {
+        "tags": [
+          "Attachments"
+        ],
+        "summary": "Upload an image to place in a markdown field.",
+        "description": "Takes one PNG, JPEG, GIF or WebP file of at most 5 MB, detected from its bytes. The image is re-encoded, which turns it upright and removes its metadata, including any location. Returns its `path`, to write in the markdown as `![description](path)`. Until a record whose markdown refers to it is saved, only you can see it, and it is deleted after 24 hours. Returns 400 when the file is not an accepted image or is too large.",
+        "operationId": "Attachments_Upload",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/attachments/{id}": {
+      "get": {
+        "tags": [
+          "Attachments"
+        ],
+        "summary": "Get an image placed in a markdown field.",
+        "description": "Returns the image's bytes with its media type. Returns 404 when it does not exist or you cannot read the record it belongs to. Responses carry an entity tag and may be cached privately: an image never changes.",
+        "operationId": "Attachments_GetContent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              },
+              "image/gif": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/discussions/{channelType}/{ownerId}": {
       "get": {
         "tags": [
@@ -57961,6 +58093,49 @@
         "additionalProperties": false,
         "description": "A request to point a scope at another workflow scheme and move the records whose workflow changes."
       },
+      "AttachmentDto": {
+        "required": [
+          "id",
+          "path",
+          "contentType",
+          "size",
+          "width",
+          "height"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The attachment's id.",
+            "format": "uuid"
+          },
+          "path": {
+            "type": "string",
+            "description": "The path to use as the markdown image destination: `/api/attachments/{id}`."
+          },
+          "contentType": {
+            "type": "string",
+            "description": "The image's media type, as detected from its bytes."
+          },
+          "size": {
+            "type": "integer",
+            "description": "The stored image's size in bytes, after re-encoding.",
+            "format": "int64"
+          },
+          "width": {
+            "type": "integer",
+            "description": "The image's width in pixels.",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "description": "The image's height in pixels.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "An uploaded image, and the path to write in markdown to show it."
+      },
       "AttentionStatus": {
         "enum": [
           "OnTrack",
@@ -66619,6 +66794,10 @@
         ],
         "type": "string",
         "description": "What an admin decided about one external identity."
+      },
+      "IFormFile": {
+        "type": "string",
+        "format": "binary"
       },
       "ImportAtomicity": {
         "enum": [
@@ -88976,6 +89155,10 @@
           }
         ]
       },
+      "Stream": {
+        "type": "string",
+        "format": "binary"
+      },
       "SubmitVoteRequest": {
         "required": [
           "value"
@@ -98804,6 +98987,9 @@
     }
   },
   "tags": [
+    {
+      "name": "Attachments"
+    },
     {
       "name": "Discussions"
     },

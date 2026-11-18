@@ -300,7 +300,7 @@ const CreateProjectForm = ({
             { max: 4096 },
           ]}
         >
-          <MarkdownEditor maxLength={4096} />
+          <MarkdownEditor maxLength={4096} imageUploads />
         </Item>
         <Item
           name="businessCase"
@@ -308,7 +308,7 @@ const CreateProjectForm = ({
           extra={projectHelpText.businessCase}
           rules={[{ max: 4096 }]}
         >
-          <MarkdownEditor maxLength={4096} />
+          <MarkdownEditor maxLength={4096} imageUploads />
         </Item>
         <Item
           name="expectedBenefits"
@@ -316,7 +316,7 @@ const CreateProjectForm = ({
           extra={projectHelpText.expectedBenefits}
           rules={[{ max: 4096 }]}
         >
-          <MarkdownEditor maxLength={4096} />
+          <MarkdownEditor maxLength={4096} imageUploads />
         </Item>
         <Item
           name="expenditureCategoryId"

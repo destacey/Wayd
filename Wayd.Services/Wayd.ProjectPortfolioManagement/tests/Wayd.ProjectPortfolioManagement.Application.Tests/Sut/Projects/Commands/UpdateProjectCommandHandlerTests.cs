@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime.Extensions;
 using NodaTime.Testing;
+using Wayd.Common.Application.Attachments;
 using Wayd.Common.Application.Interfaces;
 using Wayd.ProjectPortfolioManagement.Application.Common;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
@@ -22,6 +23,7 @@ public class UpdateProjectCommandHandlerTests : IDisposable
     private readonly Mock<ILogger<UpdateProjectCommandHandler>> _mockLogger = new();
     private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal = new();
     private readonly Mock<ICurrentUser> _mockCurrentUser = new();
+    private readonly Mock<IMarkdownAttachments> _markdownAttachments = new();
     private readonly TestingDateTimeProvider _dateTimeProvider;
     private readonly Guid _actorEmployeeId = Guid.NewGuid();
 
@@ -41,11 +43,14 @@ public class UpdateProjectCommandHandlerTests : IDisposable
             .ReturnsAsync(false);
 
         _mockCurrentUser.Setup(u => u.GetUserId()).Returns(Guid.NewGuid().ToString());
-
+        // Passes the text through unchanged unless a test says otherwise.
+        _markdownAttachments
+            .Setup(a => a.CopyForeign(It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<IReadOnlyList<string?>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string _, Guid? _, IReadOnlyList<string?> markdown, CancellationToken _) => markdown);
 
         _handler = new UpdateProjectCommandHandler(
             _dbContext, _mockCurrentPrincipal.Object,
-            _mockCurrentUser.Object, _mockLogger.Object, _dateTimeProvider);
+            _mockCurrentUser.Object, _mockLogger.Object, _dateTimeProvider, _markdownAttachments.Object);
     }
 
     /// <summary>
@@ -112,6 +117,54 @@ public class UpdateProjectCommandHandlerTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         project.Name.Should().Be("Renamed");
         _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldSaveTheTextWithCopiedImages_AndClaimThemForTheProject()
+    {
+        // Arrange — the description refers to another record's image, which the project gets its own copy of.
+        var project = ProjectWithPortfolio(ProjectRole.Owner);
+        _dbContext.AddProject(project);
+        var command = CommandFor(project) with { BusinessCase = "Case", ExpectedBenefits = "Benefits" };
+        _markdownAttachments
+            .Setup(a => a.CopyForeign("ppm.project", project.Id, It.Is<IReadOnlyList<string?>>(m => m.SequenceEqual(new[] { "New description", "Case", "Benefits" })), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(["![](/api/attachments/copy)", "Case", "Benefits"]);
+        var claimedBeforeSave = false;
+        _markdownAttachments
+            .Setup(a => a.Claim(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<IReadOnlyList<string?>>(), It.IsAny<CancellationToken>()))
+            .Callback(() => claimedBeforeSave = _dbContext.SaveChangesCallCount == 0)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.Description.Should().Be("![](/api/attachments/copy)");
+        _markdownAttachments.Verify(a => a.Claim(
+            "ppm.project",
+            project.Id,
+            It.Is<IReadOnlyList<string?>>(m => m.SequenceEqual(new[] { "![](/api/attachments/copy)", "Case", "Benefits" })),
+            It.IsAny<CancellationToken>()), Times.Once);
+        claimedBeforeSave.Should().BeTrue();
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldClaimNothing_WhenTheUpdateIsRefused()
+    {
+        // Arrange
+        var project = ProjectWithPortfolio();
+        _dbContext.AddProject(project);
+
+        // Act
+        var result = await _handler.Handle(CommandFor(project), TestContext.Current.CancellationToken);
+
+        // Assert — nor copied: copying reads every borrowed image, for an edit that was never going to be allowed.
+        result.IsFailure.Should().BeTrue();
+        _markdownAttachments.Verify(a => a.CopyForeign(It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<IReadOnlyList<string?>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _markdownAttachments.Verify(a => a.Claim(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<IReadOnlyList<string?>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 
     [Fact]

@@ -168,6 +168,16 @@
   max-width: 100%;
 }
 
+/* Where a pasted or dropped image will appear once it has uploaded. */
+.content :global(.markdown-image-uploading) {
+  display: inline-block;
+  padding: 0 var(--ant-padding-xs);
+  border: 1px dashed var(--ant-color-border);
+  border-radius: var(--ant-border-radius-sm);
+  color: var(--ant-color-text-tertiary);
+  font-size: var(--ant-font-size-sm);
+}
+
 .content :global(.tableWrapper) {
   margin: 0 0 var(--ant-margin-xs);
   overflow-x: auto;

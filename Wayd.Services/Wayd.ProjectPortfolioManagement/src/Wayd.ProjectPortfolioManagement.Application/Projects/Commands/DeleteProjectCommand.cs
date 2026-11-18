@@ -1,3 +1,4 @@
+using Wayd.Common.Application.Attachments;
 using Wayd.Common.Application.Discussions;
 using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Events;
@@ -16,7 +17,7 @@ public sealed class DeleteProjectCommandValidator : AbstractValidator<DeleteProj
     }
 }
 
-public sealed class DeleteProjectCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ICurrentUser currentUser, ILogger<DeleteProjectCommandHandler> logger, IDateTimeProvider dateTimeProvider, IDiscussionWriter discussionWriter, ILinkWriter linkWriter) : ICommandHandler<DeleteProjectCommand>
+public sealed class DeleteProjectCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ICurrentUser currentUser, ILogger<DeleteProjectCommandHandler> logger, IDateTimeProvider dateTimeProvider, IDiscussionWriter discussionWriter, ILinkWriter linkWriter, IMarkdownAttachments markdownAttachments) : ICommandHandler<DeleteProjectCommand>
 {
     private const string AppRequestName = nameof(DeleteProjectCommand);
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
@@ -25,6 +26,7 @@ public sealed class DeleteProjectCommandHandler(IProjectPortfolioManagementDbCon
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IDiscussionWriter _discussionWriter = discussionWriter;
     private readonly ILinkWriter _linkWriter = linkWriter;
+    private readonly IMarkdownAttachments _markdownAttachments = markdownAttachments;
 
     public async Task<Result> Handle(DeleteProjectCommand request, CancellationToken cancellationToken)
     {
@@ -69,9 +71,10 @@ public sealed class DeleteProjectCommandHandler(IProjectPortfolioManagementDbCon
                 return Result.Failure(deleteResult.Error);
             }
 
-            // A channel and a link have no foreign key to their record, so they would outlive the project.
+            // Channels, links and images have no foreign key to their record, so they would outlive the project.
             await _discussionWriter.DeleteChannel(PpmDiscussionChannels.Project.Key, project.Id, actor, cancellationToken);
             await _linkWriter.RemoveAll(PpmLinkOwners.Project.Key, project.Id, actor, cancellationToken);
+            await _markdownAttachments.RemoveAll(PpmFollowOwners.Project.Key, project.Id, cancellationToken);
             await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Project {ProjectId} deleted. Key: {ProjectKey}, Name: {ProjectName}", project.Id, project.Key.Value, project.Name);

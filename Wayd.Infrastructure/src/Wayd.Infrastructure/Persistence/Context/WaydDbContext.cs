@@ -7,6 +7,7 @@ using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.AppIntegration.Domain.Models.Teams;
 using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Domain.AppIntegrations;
+using Wayd.Common.Domain.Attachments;
 using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Kpis;
@@ -50,7 +51,7 @@ using Wayd.Common.Domain.Imports;
 
 namespace Wayd.Infrastructure.Persistence.Context;
 
-public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandManagementDbContext, IFeatureManagementDbContext, ILinksDbContext, IOrganizationDbContext, IPlanningDbContext, IProductManagementDbContext, IImportDbContext, IStatusWorkflowDbContext, INotificationsDbContext, IDiscussionsDbContext, IKpisDbContext, IActivityLogDbContext, IProjectPortfolioManagementDbContext, IStrategicManagementDbContext, IWorkDbContext
+public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandManagementDbContext, IFeatureManagementDbContext, ILinksDbContext, IOrganizationDbContext, IPlanningDbContext, IProductManagementDbContext, IImportDbContext, IStatusWorkflowDbContext, INotificationsDbContext, IDiscussionsDbContext, IAttachmentsDbContext, IKpisDbContext, IActivityLogDbContext, IProjectPortfolioManagementDbContext, IStrategicManagementDbContext, IWorkDbContext
 {
     private static readonly ConcurrentDictionary<string, bool> _ftsAvailabilityCache = new();
 
@@ -170,6 +171,15 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<DiscussionSettings> DiscussionSettings => Set<DiscussionSettings>();
 
     #endregion Discussions
+
+    #region Attachments
+
+    public DbSet<Attachment> Attachments => Set<Attachment>();
+
+    /// <summary>The bytes of every attachment; reached only through <c>DatabaseAttachmentStore</c>.</summary>
+    public DbSet<AttachmentContent> AttachmentContents => Set<AttachmentContent>();
+
+    #endregion Attachments
 
     #region Kpis
 

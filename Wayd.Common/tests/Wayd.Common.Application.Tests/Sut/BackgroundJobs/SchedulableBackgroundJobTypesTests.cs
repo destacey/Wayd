@@ -19,6 +19,7 @@ public sealed class SchedulableBackgroundJobTypesTests
         BackgroundJobType.ImportStallRecovery,
         BackgroundJobType.ImportRetentionSweep,
         BackgroundJobType.NotificationRetentionSweep,
+        BackgroundJobType.AttachmentSweep,
     ];
 
     [Fact]

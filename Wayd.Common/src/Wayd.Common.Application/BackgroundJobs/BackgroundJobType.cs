@@ -50,4 +50,7 @@ public enum BackgroundJobType
 
     [Display(Name = "Notification Retention Sweep", Description = "Delete notifications about changes more than 90 days old, read or not. The activity log keeps what happened.", Order = 2004, GroupName = "Maintenance Jobs")]
     NotificationRetentionSweep = 2003,
+
+    [Display(Name = "Attachment Sweep", Description = "Delete images uploaded into a markdown field more than 24 hours ago that no saved record refers to, such as those pasted into a form that was then cancelled.", Order = 2005, GroupName = "Maintenance Jobs")]
+    AttachmentSweep = 2004,
 }

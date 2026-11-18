@@ -10,8 +10,9 @@ namespace Wayd.Web.Api.Services;
 /// exists. Today that is the import stall sweep — the only thing that ends a run whose worker died before
 /// it could record the failure, and the only thing that republishes a run whose message never arrived —
 /// the import retention sweep, the only thing that discards the copy of each uploaded file once its
-/// run is old enough that nobody will retry it, and the notification retention sweep, the only thing that
-/// keeps notifications from growing without end.
+/// run is old enough that nobody will retry it, the notification retention sweep, the only thing that
+/// keeps notifications from growing without end, and the attachment sweep, the only thing that deletes
+/// images uploaded into a form that was never saved.
 /// </summary>
 /// <remarks>
 /// Each is added only when absent, and matched on the method rather than an id, so a schedule an admin
@@ -27,6 +28,7 @@ public static class DefaultRecurringJobs
     public const string ImportStallRecoveryJobId = "import-stall-recovery";
     public const string ImportRetentionSweepJobId = "import-retention-sweep";
     public const string NotificationRetentionSweepJobId = "notification-retention-sweep";
+    public const string AttachmentSweepJobId = "attachment-sweep";
 
     // Its grace periods are 15 and 30 minutes, so checking every five keeps the wait close to them.
     private const string ImportStallRecoveryCron = "*/5 * * * *";
@@ -37,6 +39,9 @@ public static class DefaultRecurringJobs
 
     // The window is 90 days; nightly, half an hour after the import sweep to stagger the two.
     private const string NotificationRetentionSweepCron = "30 3 * * *";
+
+    // Uploads are kept 24 hours unclaimed; hourly keeps an abandoned one from lingering much past that.
+    private const string AttachmentSweepCron = "15 * * * *";
 
     // Methods removed from IJobManager that a deployment may still have scheduled. An entry can be dropped
     // once every deployment has started at least once with it in place.
@@ -53,6 +58,8 @@ public static class DefaultRecurringJobs
             jobManager => () => jobManager.RunImportRetentionSweep(CancellationToken.None)),
         (NotificationRetentionSweepJobId, nameof(IJobManager.RunNotificationRetentionSweep), NotificationRetentionSweepCron,
             jobManager => () => jobManager.RunNotificationRetentionSweep(CancellationToken.None)),
+        (AttachmentSweepJobId, nameof(IJobManager.RunAttachmentSweep), AttachmentSweepCron,
+            jobManager => () => jobManager.RunAttachmentSweep(CancellationToken.None)),
     ];
 
     public static void EnsureDefaultRecurringJobs(this IServiceProvider services)

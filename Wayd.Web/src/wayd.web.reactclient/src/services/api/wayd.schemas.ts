@@ -597,6 +597,24 @@ export interface AssignWorkflowSchemeRequest {
   decisions: StatusRemapDecisionRequest[];
 }
 
+/**
+ * An uploaded image, and the path to write in markdown to show it.
+ */
+export interface AttachmentDto {
+  /** The attachment's id. */
+  id: string;
+  /** The path to use as the markdown image destination: `/api/attachments/{id}`. */
+  path: string;
+  /** The image's media type, as detected from its bytes. */
+  contentType: string;
+  /** The stored image's size in bytes, after re-encoding. */
+  size: number;
+  /** The image's width in pixels. */
+  width: number;
+  /** The image's height in pixels. */
+  height: number;
+}
+
 export type AttentionStatus = typeof AttentionStatus[keyof typeof AttentionStatus];
 
 
@@ -5738,6 +5756,8 @@ export const IdentityMappingAction = {
   Ignore: 'Ignore',
   Clear: 'Clear',
 } as const;
+
+export type IFormFile = Blob;
 
 export type ImportAtomicity = typeof ImportAtomicity[keyof typeof ImportAtomicity];
 
@@ -15908,6 +15928,8 @@ export interface StrategyListDto {
 
 export type StrategyStatusDto = CommonEnumDtoOfStrategyStatus;
 
+export type Stream = Blob;
+
 export interface SubmitVoteRequest {
   /**
      * @minLength 1
@@ -20179,6 +20201,10 @@ export interface WorkTypeTierDto {
   description?: string | null;
   order: number;
 }
+
+export type AttachmentsUploadBody = {
+  file: Blob | File;
+};
 
 export type DiscussionsGetEntriesParams = {
   before?: string;

@@ -1,7 +1,9 @@
+using Wayd.Common.Application.Attachments;
 using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Models;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Validators;
+using Wayd.ProjectPortfolioManagement.Domain;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
@@ -72,15 +74,20 @@ public sealed class CreateProjectCommandHandler(
     IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext,
     ILogger<CreateProjectCommandHandler> logger,
     IDateTimeProvider dateTimeProvider,
-    ICurrentUser currentUser)
+    ICurrentUser currentUser,
+    IMarkdownAttachments markdownAttachments)
     : ICommandHandler<CreateProjectCommand, ProjectIdAndKey>
 {
     private const string AppRequestName = nameof(CreateProjectCommand);
+
+    /// <summary>The failure when an image in the text changed while the project was being saved.</summary>
+    public const string ImageConflictError = "An image in the text changed while the project was being saved. Save again.";
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<CreateProjectCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly IMarkdownAttachments _markdownAttachments = markdownAttachments;
 
     public async Task<Result<ProjectIdAndKey>> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
     {
@@ -136,15 +143,21 @@ public sealed class CreateProjectCommandHandler(
                 .Where(p => p.PortfolioId == request.PortfolioId)
                 .MaxAsync(p => (double?)p.Rank, cancellationToken);
 
+            var markdown = await _markdownAttachments.CopyForeign(
+                PpmFollowOwners.Project.Key,
+                null,
+                [request.Description, request.BusinessCase, request.ExpectedBenefits],
+                cancellationToken);
+
             var createResult = portfolio.CreateProject(
                 request.Name,
-                request.Description,
+                markdown[0]!,
                 projectKey,
                 request.ExpenditureCategoryId,
                 request.DateRange,
                 request.ProgramId,
-                request.BusinessCase,
-                request.ExpectedBenefits,
+                markdown[1],
+                markdown[2],
                 roles,
                 [.. strategicThemes.Select(st => st.Id)],
                 _dateTimeProvider.Now,
@@ -157,9 +170,14 @@ public sealed class CreateProjectCommandHandler(
                 return Result.Failure<ProjectIdAndKey>(createResult.Error);
             }
 
-            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
-
             var project = createResult.Value;
+            await _markdownAttachments.Claim(
+                PpmFollowOwners.Project.Key,
+                project.Id,
+                [project.Description, project.BusinessCase, project.ExpectedBenefits],
+                cancellationToken);
+
+            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
 
             if (request.ProjectLifecycleId.HasValue)
             {
@@ -188,6 +206,11 @@ public sealed class CreateProjectCommandHandler(
             _logger.LogInformation("Project {ProjectId} created with Key {ProjectKey}.", project.Id, project.Key.Value);
 
             return Result.Success(new ProjectIdAndKey(project.Id, project.Key));
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Only an image can conflict on a new project: another save claimed it, or the sweep deleted it.
+            return Result.Failure<ProjectIdAndKey>(ImageConflictError);
         }
         catch (Exception ex)
         {

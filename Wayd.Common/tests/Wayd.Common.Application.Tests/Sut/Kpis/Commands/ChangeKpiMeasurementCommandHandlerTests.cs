@@ -22,7 +22,7 @@ public sealed class ChangeKpiMeasurementCommandHandlerTests
         // Arrange
         var kpi = _harness.AddKpi();
         var takenBy = Guid.NewGuid();
-        var measurement = kpi.AddMeasurement(KpiTestHarness.Measurement(12, Jan1, Jan31, takenBy), EventActor.System, _harness.DateTimeProvider.Now).Value;
+        var measurement = kpi.AddMeasurement(KpiTestHarness.Measurement(12, Jan1, Jan31, takenBy), KpiTestHarness.Zone, EventActor.System, _harness.DateTimeProvider.Now).Value;
         var command = new ChangeKpiMeasurementCommand(KpiTestHarness.Gadget.Key, _harness.SubjectId, kpi.Id, measurement.Id,
             new KpiMeasurementValuesInput(13, Jan1, Jan31, null, null, null, null, "Recounted"));
 
@@ -43,7 +43,7 @@ public sealed class ChangeKpiMeasurementCommandHandlerTests
         // Arrange
         var kpi = _harness.AddKpi();
         var other = _harness.AddKpi("Other");
-        var measurement = other.AddMeasurement(KpiTestHarness.Measurement(12, Jan1, Jan31), EventActor.System, _harness.DateTimeProvider.Now).Value;
+        var measurement = other.AddMeasurement(KpiTestHarness.Measurement(12, Jan1, Jan31), KpiTestHarness.Zone, EventActor.System, _harness.DateTimeProvider.Now).Value;
         var command = new ChangeKpiMeasurementCommand(KpiTestHarness.Gadget.Key, _harness.SubjectId, kpi.Id, measurement.Id,
             new KpiMeasurementValuesInput(13, Jan1, Jan31, null, null, null, null, null));
 

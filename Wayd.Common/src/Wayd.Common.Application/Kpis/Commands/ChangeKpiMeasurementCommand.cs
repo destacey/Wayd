@@ -47,11 +47,12 @@ public sealed class ChangeKpiMeasurementCommandHandler(KpiCommandScope scope) : 
             return Result.Failure(KpiAccessErrors.NotFound);
 
         // Who took the value stays; who corrected it is the event's actor.
-        var input = command.Measurement.ToInput(existing.MeasuredById);
+        var zone = await _scope.SystemZone(cancellationToken);
+        var input = command.Measurement.ToInput(existing.MeasuredById, zone);
         if (input.IsFailure)
             return input;
 
-        var changed = kpi.Value.ChangeMeasurement(command.MeasurementId, input.Value, _scope.Actor, _scope.Now);
+        var changed = kpi.Value.ChangeMeasurement(command.MeasurementId, input.Value, zone, _scope.Actor, _scope.Now);
 
         return changed.IsSuccess ? await _scope.SaveMeasurements(kpi.Value, cancellationToken) : changed;
     }

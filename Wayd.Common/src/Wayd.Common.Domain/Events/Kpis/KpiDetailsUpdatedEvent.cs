@@ -4,7 +4,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.Kpis;
 
 /// <summary>
-/// A KPI's name, description, category, prefix, suffix or reading changed.
+/// A KPI's name, description, category, prefix, suffix, reading or rolling average changed.
 /// </summary>
 public sealed record KpiDetailsUpdatedEvent : DomainEvent<KpiDetailsUpdatedEvent>, IDomainEventDescriptor, IKpiEvent
 {
@@ -20,7 +20,7 @@ public sealed record KpiDetailsUpdatedEvent : DomainEvent<KpiDetailsUpdatedEvent
         KpiDetails previous,
         EventActor actor,
         Instant timestamp)
-        : base(actor, "1.0")
+        : base(actor, "1.1")
     {
         Id = id;
         Key = key;

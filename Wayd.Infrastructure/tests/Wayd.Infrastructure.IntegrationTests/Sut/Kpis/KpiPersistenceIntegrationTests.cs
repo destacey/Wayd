@@ -10,9 +10,9 @@ using Wayd.Infrastructure.Persistence.Context;
 namespace Wayd.Infrastructure.IntegrationTests.Sut.Kpis;
 
 /// <summary>
-/// The KPI tables against real SQL Server: what the in-memory fakes cannot see — the goal's flattened columns read
-/// back into its records, the measurements loaded through the field-backed navigation, the period index, the cascade
-/// from a KPI to its measurements, and the category key that refuses a delete in use.
+/// The KPI tables against real SQL Server: what the in-memory fakes cannot see — the goal's and window's flattened
+/// columns read back into their records, the measurements loaded through the field-backed navigation, the period
+/// index, the cascade from a KPI to its measurements, and the category key that refuses a delete in use.
 /// </summary>
 [Collection(nameof(SqlServerTestCollection))]
 public sealed class KpiPersistenceIntegrationTests(SqlServerDbContextFixture fixture)
@@ -22,6 +22,7 @@ public sealed class KpiPersistenceIntegrationTests(SqlServerDbContextFixture fix
     private static readonly Instant Timestamp = Instant.FromUtc(2026, 11, 16, 9, 30);
     private static readonly EventActor Actor = EventActor.System;
     private static readonly LocalDate Jan1 = new(2026, 1, 1);
+    private static readonly DateTimeZone Zone = DateTimeZoneProviders.Tzdb["America/Chicago"];
 
     static KpiPersistenceIntegrationTests()
     {
@@ -51,7 +52,7 @@ public sealed class KpiPersistenceIntegrationTests(SqlServerDbContextFixture fix
                 PeriodRecordId = Guid.CreateVersion7(),
                 SampleSize = 9,
                 Note = "January",
-            }, Actor, Timestamp);
+            }, Zone, Actor, Timestamp);
             context.Kpis.Add(kpi);
             kpiId = kpi.Id;
 
@@ -101,7 +102,7 @@ public sealed class KpiPersistenceIntegrationTests(SqlServerDbContextFixture fix
     }
 
     [Fact]
-    public async Task Save_ShouldRefuseTwoMeasurementsStartingTheSameDay_FromConcurrentSaves()
+    public async Task Save_ShouldRefuseTwoMeasurementsEndingTheSameDay_FromConcurrentSaves()
     {
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -110,8 +111,8 @@ public sealed class KpiPersistenceIntegrationTests(SqlServerDbContextFixture fix
         await using var second = fixture.CreateContext();
         var firstKpi = await first.Kpis.Include(k => k.Measurements).SingleAsync(k => k.Id == kpiId, cancellationToken);
         var secondKpi = await second.Kpis.Include(k => k.Measurements).SingleAsync(k => k.Id == kpiId, cancellationToken);
-        firstKpi.AddMeasurement(Measurement(14, Jan1, new LocalDate(2026, 1, 31), null), Actor, Timestamp).IsSuccess.Should().BeTrue();
-        secondKpi.AddMeasurement(Measurement(15, Jan1, new LocalDate(2026, 1, 15), null), Actor, Timestamp).IsSuccess.Should().BeTrue();
+        firstKpi.AddMeasurement(Measurement(14, Jan1, new LocalDate(2026, 1, 31), null), Zone, Actor, Timestamp).IsSuccess.Should().BeTrue();
+        secondKpi.AddMeasurement(Measurement(15, new LocalDate(2026, 1, 15), new LocalDate(2026, 1, 31), null), Zone, Actor, Timestamp).IsSuccess.Should().BeTrue();
         await first.SaveChangesAsync(cancellationToken);
 
         // Act
@@ -131,8 +132,8 @@ public sealed class KpiPersistenceIntegrationTests(SqlServerDbContextFixture fix
         await using var second = fixture.CreateContext();
         var firstKpi = await first.Kpis.Include(k => k.Measurements).SingleAsync(k => k.Id == kpiId, cancellationToken);
         var secondKpi = await second.Kpis.Include(k => k.Measurements).SingleAsync(k => k.Id == kpiId, cancellationToken);
-        firstKpi.AddMeasurement(Measurement(14, Jan1, new LocalDate(2026, 1, 31), null), Actor, Timestamp).IsSuccess.Should().BeTrue();
-        secondKpi.AddMeasurement(Measurement(15, new LocalDate(2026, 1, 15), new LocalDate(2026, 2, 14), null), Actor, Timestamp).IsSuccess.Should().BeTrue();
+        firstKpi.AddMeasurement(Measurement(14, Jan1, new LocalDate(2026, 1, 31), null), Zone, Actor, Timestamp).IsSuccess.Should().BeTrue();
+        secondKpi.AddMeasurement(Measurement(15, new LocalDate(2026, 1, 15), new LocalDate(2026, 2, 14), null), Zone, Actor, Timestamp).IsSuccess.Should().BeTrue();
         first.TouchKpi(firstKpi);
         second.TouchKpi(secondKpi);
         await first.SaveChangesAsync(cancellationToken);
@@ -142,6 +143,84 @@ public sealed class KpiPersistenceIntegrationTests(SqlServerDbContextFixture fix
 
         // Assert
         await act.Should().ThrowAsync<DbUpdateConcurrencyException>();
+    }
+
+    [Fact]
+    public async Task Save_ShouldKeepTheWindowAndRollingAverage()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var cumulative = KpiMeasurementWindow.Cumulative(new LocalDate(2026, 2, 16));
+        var rolling = KpiMeasurementWindow.Rolling(90, KpiRollingUnit.Days);
+        Guid cumulativeId, rollingId, averagedId;
+        await using (var context = fixture.CreateContext())
+        {
+            var cumulativeKpi = Kpi.Create(GadgetType, Guid.CreateVersion7(), Definition(DefaultGoal, null, cumulative), 0, Actor, Timestamp).Value;
+            var rollingKpi = Kpi.Create(GadgetType, Guid.CreateVersion7(), Definition(DefaultGoal, null, rolling), 0, Actor, Timestamp).Value;
+            var averagedKpi = Kpi.Create(GadgetType, Guid.CreateVersion7(), Definition(DefaultGoal, null, rollingAverageOf: 7), 0, Actor, Timestamp).Value;
+            context.Kpis.AddRange(cumulativeKpi, rollingKpi, averagedKpi);
+            (cumulativeId, rollingId, averagedId) = (cumulativeKpi.Id, rollingKpi.Id, averagedKpi.Id);
+
+            // Act
+            await context.SaveChangesAsync(cancellationToken);
+        }
+
+        // Assert
+        await using var reader = fixture.CreateContext();
+        (await reader.Kpis.SingleAsync(k => k.Id == cumulativeId, cancellationToken)).Window.Should().Be(cumulative);
+        (await reader.Kpis.SingleAsync(k => k.Id == rollingId, cancellationToken)).Window.Should().Be(rolling);
+        var averaged = await reader.Kpis.SingleAsync(k => k.Id == averagedId, cancellationToken);
+        averaged.Window.Should().Be(KpiMeasurementWindow.PerPeriod);
+        averaged.RollingAverageOf.Should().Be(7);
+    }
+
+    [Fact]
+    public async Task Save_ShouldKeepSeveralPointInTimeReadingsOnOneDay_ByTheirMoments()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var morning = Instant.FromUtc(2026, 3, 6, 15, 0);
+        var evening = Instant.FromUtc(2026, 3, 6, 23, 0);
+        Guid kpiId;
+        await using (var context = fixture.CreateContext())
+        {
+            var kpi = Kpi.Create(GadgetType, Guid.CreateVersion7(), Definition(DefaultGoal, null, KpiMeasurementWindow.PointInTime), 0, Actor, Timestamp).Value;
+            kpi.AddMeasurement(AtMoment(40, morning), Zone, Actor, Timestamp).IsSuccess.Should().BeTrue();
+            kpi.AddMeasurement(AtMoment(42, evening), Zone, Actor, Timestamp).IsSuccess.Should().BeTrue();
+            context.Kpis.Add(kpi);
+            kpiId = kpi.Id;
+
+            // Act
+            await context.SaveChangesAsync(cancellationToken);
+        }
+
+        // Assert
+        await using var reader = fixture.CreateContext();
+        var stored = await reader.Kpis.Include(k => k.Measurements).SingleAsync(k => k.Id == kpiId, cancellationToken);
+        stored.Measurements.Select(m => m.MeasuredAt).Should().BeEquivalentTo(new Instant?[] { morning, evening });
+        stored.LatestMeasurement()!.Value.Should().Be(42);
+    }
+
+    [Fact]
+    public async Task Save_ShouldRefuseTwoCumulativeValuesAsOfTheSameDay_FromConcurrentSaves()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var kpiId = await SeedKpi(window: KpiMeasurementWindow.Cumulative(Jan1));
+        await using var first = fixture.CreateContext();
+        await using var second = fixture.CreateContext();
+        var firstKpi = await first.Kpis.Include(k => k.Measurements).SingleAsync(k => k.Id == kpiId, cancellationToken);
+        var secondKpi = await second.Kpis.Include(k => k.Measurements).SingleAsync(k => k.Id == kpiId, cancellationToken);
+        var asOf = new LocalDate(2026, 2, 6);
+        firstKpi.AddMeasurement(AsOf(14, asOf), Zone, Actor, Timestamp).IsSuccess.Should().BeTrue();
+        secondKpi.AddMeasurement(AsOf(15, asOf), Zone, Actor, Timestamp).IsSuccess.Should().BeTrue();
+        await first.SaveChangesAsync(cancellationToken);
+
+        // Act
+        var act = () => second.SaveChangesAsync(cancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<DbUpdateException>();
     }
 
     [Fact]
@@ -209,17 +288,23 @@ public sealed class KpiPersistenceIntegrationTests(SqlServerDbContextFixture fix
     private static readonly KpiGoal DefaultGoal =
         new(KpiTargetDirection.Increase, new KpiBaseline(10, null), KpiTarget.Absolute(20), null);
 
-    private static KpiDefinition Definition(KpiGoal goal, Guid? categoryId) =>
-        new("Throughput", null, categoryId, null, "items", KpiExpressedAs.Value, goal);
+    private static KpiDefinition Definition(KpiGoal goal, Guid? categoryId, KpiMeasurementWindow? window = null, int? rollingAverageOf = null) =>
+        new("Throughput", null, categoryId, null, "items", KpiExpressedAs.Value, goal, window, rollingAverageOf);
 
     private static KpiMeasurementInput Measurement(double value, LocalDate start, LocalDate end, Guid? measuredById) =>
-        new(value, new KpiPeriod(start, end), null, null, end, measuredById, KpiMeasurementSource.Manual, null, null);
+        new(value, KpiMeasurementTime.ForPeriod(new KpiPeriod(start, end)), null, null, end, measuredById, KpiMeasurementSource.Manual, null, null);
 
-    private async Task<Guid> SeedKpi(bool withMeasurement = false)
+    private static KpiMeasurementInput AsOf(double value, LocalDate asOf) =>
+        new(value, KpiMeasurementTime.AsOfDate(asOf), null, null, asOf, null, KpiMeasurementSource.Manual, null, null);
+
+    private static KpiMeasurementInput AtMoment(double value, Instant at) =>
+        new(value, KpiMeasurementTime.AtMoment(at), null, null, at.InZone(Zone).Date, null, KpiMeasurementSource.Manual, null, null);
+
+    private async Task<Guid> SeedKpi(bool withMeasurement = false, KpiMeasurementWindow? window = null)
     {
-        var kpi = Kpi.Create(GadgetType, Guid.CreateVersion7(), Definition(DefaultGoal, null), 0, Actor, Timestamp).Value;
+        var kpi = Kpi.Create(GadgetType, Guid.CreateVersion7(), Definition(DefaultGoal, null, window), 0, Actor, Timestamp).Value;
         if (withMeasurement)
-            kpi.AddMeasurement(Measurement(12, Jan1, new LocalDate(2026, 1, 31), null), Actor, Timestamp);
+            kpi.AddMeasurement(Measurement(12, Jan1, new LocalDate(2026, 1, 31), null), Zone, Actor, Timestamp);
 
         await using WaydDbContext context = fixture.CreateContext();
         context.Kpis.Add(kpi);

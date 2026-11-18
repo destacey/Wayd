@@ -12,19 +12,30 @@ public sealed class KpiTests
     private static readonly EventActor Actor = EventActor.User("user-1", Guid.NewGuid());
     private static readonly LocalDate Jan1 = new(2026, 1, 1);
 
+    // Six hours behind UTC in winter, so a moment early in the UTC day falls on the day before.
+    private static readonly DateTimeZone Zone = DateTimeZoneProviders.Tzdb["America/Chicago"];
+
     private readonly KpiFaker _faker = new();
 
-    private static KpiDefinition Definition(KpiGoal? goal = null) => new(
+    private static KpiDefinition Definition(KpiGoal? goal = null, KpiMeasurementWindow? window = null, int? rollingAverageOf = null) => new(
         " Cycle time ",
         "Days from start to done.",
         null,
         null,
         " days ",
         KpiExpressedAs.Value,
-        goal ?? new KpiGoal(KpiTargetDirection.Decrease, new KpiBaseline(20, null), KpiTarget.RelativeChange(25), null));
+        goal ?? new KpiGoal(KpiTargetDirection.Decrease, new KpiBaseline(20, null), KpiTarget.RelativeChange(25), null),
+        window,
+        rollingAverageOf);
 
     private static KpiMeasurementInput Measurement(double value, LocalDate start, LocalDate end) =>
-        new(value, new KpiPeriod(start, end), null, null, end, Guid.NewGuid(), KpiMeasurementSource.Manual, null, null);
+        Taken(value, KpiMeasurementTime.ForPeriod(new KpiPeriod(start, end)), end);
+
+    private static KpiMeasurementInput Taken(double value, KpiMeasurementTime time, LocalDate measuredOn) =>
+        new(value, time, null, null, measuredOn, Guid.NewGuid(), KpiMeasurementSource.Manual, null, null);
+
+    private static Kpi WithWindow(KpiMeasurementWindow window) =>
+        Kpi.Create(KpiFaker.TestSubject.Key, Guid.NewGuid(), Definition(window: window), 0, Actor, Now).Value;
 
     [Fact]
     public void Create_ShouldAddAnActiveManualKpiUnderTheRegisteredKey_AndRaiseAddedOnceKeyed()
@@ -66,7 +77,7 @@ public sealed class KpiTests
         var kpi = Kpi.Create(KpiFaker.TestSubject.Key, Guid.NewGuid(), Definition(), 0, Actor, Now).Value;
 
         // Act
-        kpi.AddMeasurement(Measurement(14, Jan1, new LocalDate(2026, 1, 31)), Actor, Now);
+        kpi.AddMeasurement(Measurement(14, Jan1, new LocalDate(2026, 1, 31)), Zone, Actor, Now);
         kpi.Close(Actor, Now);
 
         // Assert
@@ -353,7 +364,7 @@ public sealed class KpiTests
         var input = Measurement(14, Jan1, new LocalDate(2026, 1, 31)) with { SampleSize = 12, Note = " January " };
 
         // Act
-        var result = kpi.AddMeasurement(input, Actor, Now);
+        var result = kpi.AddMeasurement(input, Zone, Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
@@ -361,7 +372,7 @@ public sealed class KpiTests
         result.Value.Note.Should().Be("January");
         var added = kpi.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<KpiMeasurementAddedEvent>().Subject;
         added.Measurement.Should().Be(new KpiMeasurementValues(
-            result.Value.Id, 14, input.Period, null, null, input.MeasuredOn, input.MeasuredById, KpiMeasurementSource.Manual, 12, "January"));
+            result.Value.Id, 14, input.Time.Period!, null, null, input.MeasuredOn, input.MeasuredById, KpiMeasurementSource.Manual, 12, "January"));
     }
 
     [Theory]
@@ -372,11 +383,11 @@ public sealed class KpiTests
     {
         // Arrange
         var kpi = _faker.Generate();
-        kpi.AddMeasurement(Measurement(14, Jan1, new LocalDate(2026, 1, 31)), Actor, Now);
+        kpi.AddMeasurement(Measurement(14, Jan1, new LocalDate(2026, 1, 31)), Zone, Actor, Now);
         kpi.ClearDomainEvents();
 
         // Act
-        var result = kpi.AddMeasurement(Measurement(15, new LocalDate(sy, sm, sd), new LocalDate(ey, em, ed)), Actor, Now);
+        var result = kpi.AddMeasurement(Measurement(15, new LocalDate(sy, sm, sd), new LocalDate(ey, em, ed)), Zone, Actor, Now);
 
         // Assert
         result.Error.Should().Be(KpiErrors.PeriodOverlaps);
@@ -389,10 +400,10 @@ public sealed class KpiTests
     {
         // Arrange
         var kpi = _faker.Generate();
-        kpi.AddMeasurement(Measurement(14, Jan1, new LocalDate(2026, 1, 31)), Actor, Now);
+        kpi.AddMeasurement(Measurement(14, Jan1, new LocalDate(2026, 1, 31)), Zone, Actor, Now);
 
         // Act
-        var result = kpi.AddMeasurement(Measurement(15, new LocalDate(2026, 2, 1), new LocalDate(2026, 2, 28)), Actor, Now);
+        var result = kpi.AddMeasurement(Measurement(15, new LocalDate(2026, 2, 1), new LocalDate(2026, 2, 28)), Zone, Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
@@ -406,7 +417,7 @@ public sealed class KpiTests
         var kpi = _faker.WithStatus(KpiStatus.Closed).Generate();
 
         // Act
-        var result = kpi.AddMeasurement(Measurement(14, Jan1, Jan1), Actor, Now);
+        var result = kpi.AddMeasurement(Measurement(14, Jan1, Jan1), Zone, Actor, Now);
 
         // Assert
         result.Error.Should().Be(KpiErrors.KpiClosed);
@@ -421,7 +432,7 @@ public sealed class KpiTests
         var input = Measurement(14, Jan1, Jan1) with { PeriodRecordKind = KpiPeriodRecordKind.Sprint };
 
         // Act
-        var result = kpi.AddMeasurement(input, Actor, Now);
+        var result = kpi.AddMeasurement(input, Zone, Actor, Now);
 
         // Assert
         result.Error.Should().Be(KpiErrors.PeriodRecordIncomplete);
@@ -432,14 +443,14 @@ public sealed class KpiTests
     {
         // Arrange
         var kpi = _faker.Generate();
-        var measurement = kpi.AddMeasurement(Measurement(14, Jan1, new LocalDate(2026, 1, 31)), Actor, Now).Value;
+        var measurement = kpi.AddMeasurement(Measurement(14, Jan1, new LocalDate(2026, 1, 31)), Zone, Actor, Now).Value;
         var previous = new KpiMeasurementValues(measurement.Id, measurement.Value, measurement.Period, null, null,
             measurement.MeasuredOn, measurement.MeasuredById, measurement.Source, null, null);
         kpi.ClearDomainEvents();
         var input = Measurement(13, Jan1, new LocalDate(2026, 1, 31)) with { MeasuredById = measurement.MeasuredById };
 
         // Act
-        var result = kpi.ChangeMeasurement(measurement.Id, input, Actor, Now);
+        var result = kpi.ChangeMeasurement(measurement.Id, input, Zone, Actor, Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
@@ -454,12 +465,12 @@ public sealed class KpiTests
     {
         // Arrange
         var kpi = _faker.Generate();
-        var january = kpi.AddMeasurement(Measurement(14, Jan1, new LocalDate(2026, 1, 31)), Actor, Now).Value;
-        kpi.AddMeasurement(Measurement(15, new LocalDate(2026, 2, 1), new LocalDate(2026, 2, 28)), Actor, Now);
+        var january = kpi.AddMeasurement(Measurement(14, Jan1, new LocalDate(2026, 1, 31)), Zone, Actor, Now).Value;
+        kpi.AddMeasurement(Measurement(15, new LocalDate(2026, 2, 1), new LocalDate(2026, 2, 28)), Zone, Actor, Now);
         kpi.ClearDomainEvents();
 
         // Act
-        var result = kpi.ChangeMeasurement(january.Id, Measurement(14, Jan1, new LocalDate(2026, 2, 1)), Actor, Now);
+        var result = kpi.ChangeMeasurement(january.Id, Measurement(14, Jan1, new LocalDate(2026, 2, 1)), Zone, Actor, Now);
 
         // Assert
         result.Error.Should().Be(KpiErrors.PeriodOverlaps);
@@ -472,7 +483,7 @@ public sealed class KpiTests
     {
         // Arrange
         var kpi = _faker.Generate();
-        var measurement = kpi.AddMeasurement(Measurement(14, Jan1, Jan1), Actor, Now).Value;
+        var measurement = kpi.AddMeasurement(Measurement(14, Jan1, Jan1), Zone, Actor, Now).Value;
         kpi.ClearDomainEvents();
 
         // Act
@@ -503,13 +514,298 @@ public sealed class KpiTests
     {
         // Arrange
         var kpi = _faker.Generate();
-        kpi.AddMeasurement(Measurement(15, new LocalDate(2026, 3, 1), new LocalDate(2026, 3, 31)), Actor, Now);
-        kpi.AddMeasurement(Measurement(14, Jan1, new LocalDate(2026, 1, 31)), Actor, Now);
+        kpi.AddMeasurement(Measurement(15, new LocalDate(2026, 3, 1), new LocalDate(2026, 3, 31)), Zone, Actor, Now);
+        kpi.AddMeasurement(Measurement(14, Jan1, new LocalDate(2026, 1, 31)), Zone, Actor, Now);
 
         // Act
         var latest = kpi.LatestMeasurement();
 
         // Assert
         latest!.Value.Should().Be(15);
+    }
+
+    [Fact]
+    public void Create_ShouldDefaultToPerPeriod_AndCarryTheWindowOnAdded()
+    {
+        // Arrange
+        var window = KpiMeasurementWindow.Cumulative(new LocalDate(2026, 2, 16));
+
+        // Act
+        var perPeriod = Kpi.Create(KpiFaker.TestSubject.Key, Guid.NewGuid(), Definition(), 0, Actor, Now).Value;
+        var cumulative = Kpi.Create(KpiFaker.TestSubject.Key, Guid.NewGuid(), Definition(window: window), 0, Actor, Now).Value;
+
+        // Assert
+        perPeriod.Window.Should().Be(KpiMeasurementWindow.PerPeriod);
+        cumulative.Window.Should().Be(window);
+        cumulative.ExecutePostPersistenceActions();
+        cumulative.DomainEvents.OfType<KpiAddedEvent>().Single().Window.Should().Be(window);
+    }
+
+    [Theory]
+    [MemberData(nameof(InvalidWindows))]
+    public void Create_ShouldFail_ForAWindowThatDoesNotHoldTogether(KpiMeasurementWindow window, string error)
+    {
+        // Act
+        var result = Kpi.Create(KpiFaker.TestSubject.Key, Guid.NewGuid(), Definition(window: window), 0, Actor, Now);
+
+        // Assert
+        result.Error.Should().Be(error);
+    }
+
+    public static TheoryData<KpiMeasurementWindow, string> InvalidWindows() => new()
+    {
+        { new KpiMeasurementWindow(KpiWindowKind.Cumulative, null, null, null), KpiErrors.CumulativeAnchorRequired },
+        { new KpiMeasurementWindow(KpiWindowKind.PerPeriod, Jan1, null, null), KpiErrors.AnchorOnlyForCumulative },
+        { new KpiMeasurementWindow(KpiWindowKind.Rolling, null, 90, null), KpiErrors.RollingLengthRequired },
+        { KpiMeasurementWindow.Rolling(0, KpiRollingUnit.Days), KpiErrors.RollingCountOutOfRange },
+        { KpiMeasurementWindow.Rolling(KpiMeasurementWindow.MaxRollingDays + 1, KpiRollingUnit.Days), KpiErrors.RollingCountOutOfRange },
+        { new KpiMeasurementWindow(KpiWindowKind.PointInTime, null, 7, KpiRollingUnit.Days), KpiErrors.RollingLengthOnlyForRolling },
+    };
+
+    [Fact]
+    public void Create_ShouldFail_ForARollingAverageOnAWindowThatIsNotPerPeriod()
+    {
+        // Act
+        var result = Kpi.Create(KpiFaker.TestSubject.Key, Guid.NewGuid(),
+            Definition(window: KpiMeasurementWindow.Rolling(90, KpiRollingUnit.Days), rollingAverageOf: 7), 0, Actor, Now);
+
+        // Assert
+        result.Error.Should().Be(KpiErrors.RollingAverageOnlyPerPeriod);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(Kpi.MaxRollingAverageOf + 1)]
+    public void Create_ShouldFail_ForARollingAverageOutOfRange(int count)
+    {
+        // Act
+        var result = Kpi.Create(KpiFaker.TestSubject.Key, Guid.NewGuid(), Definition(rollingAverageOf: count), 0, Actor, Now);
+
+        // Assert
+        result.Error.Should().Be(KpiErrors.RollingAverageOutOfRange);
+    }
+
+    [Fact]
+    public void AddMeasurement_ShouldCoverTheAnchorToTheAsOfDay_OnACumulativeKpi()
+    {
+        // Arrange
+        var anchor = new LocalDate(2026, 2, 16);
+        var kpi = WithWindow(KpiMeasurementWindow.Cumulative(anchor));
+        var friday = new LocalDate(2026, 2, 20);
+
+        // Act
+        var first = kpi.AddMeasurement(Taken(9, KpiMeasurementTime.AsOfDate(friday), friday), Zone, Actor, Now);
+        var second = kpi.AddMeasurement(Taken(8, KpiMeasurementTime.AsOfDate(friday.PlusWeeks(1)), friday.PlusWeeks(1)), Zone, Actor, Now);
+
+        // Assert
+        first.IsSuccess.Should().BeTrue(first.IsFailure ? first.Error : null);
+        second.IsSuccess.Should().BeTrue(second.IsFailure ? second.Error : null);
+        first.Value.Period.Should().Be(new KpiPeriod(anchor, friday));
+        second.Value.Period.Should().Be(new KpiPeriod(anchor, friday.PlusWeeks(1)));
+        kpi.LatestMeasurement()!.Value.Should().Be(8);
+    }
+
+    [Fact]
+    public void AddMeasurement_ShouldFail_BeforeACumulativeKpisAnchor()
+    {
+        // Arrange
+        var anchor = new LocalDate(2026, 2, 16);
+        var kpi = WithWindow(KpiMeasurementWindow.Cumulative(anchor));
+
+        // Act
+        var result = kpi.AddMeasurement(Taken(9, KpiMeasurementTime.AsOfDate(anchor.PlusDays(-1)), anchor), Zone, Actor, Now);
+
+        // Assert
+        result.Error.Should().Be(KpiErrors.AsOfBeforeAnchor);
+    }
+
+    [Fact]
+    public void AddMeasurement_ShouldCoverTheRollingDaysEndingOnTheAsOfDay()
+    {
+        // Arrange
+        var kpi = WithWindow(KpiMeasurementWindow.Rolling(90, KpiRollingUnit.Days));
+        var asOf = new LocalDate(2026, 3, 31);
+
+        // Act
+        var result = kpi.AddMeasurement(Taken(6, KpiMeasurementTime.AsOfDate(asOf), asOf), Zone, Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.Period.Should().Be(new KpiPeriod(asOf.PlusDays(-89), asOf));
+    }
+
+    [Fact]
+    public void AddMeasurement_ShouldFail_ForASecondValueAsOfTheSameDay()
+    {
+        // Arrange
+        var kpi = WithWindow(KpiMeasurementWindow.Rolling(90, KpiRollingUnit.Days));
+        var asOf = new LocalDate(2026, 3, 31);
+        kpi.AddMeasurement(Taken(6, KpiMeasurementTime.AsOfDate(asOf), asOf), Zone, Actor, Now);
+
+        // Act
+        var result = kpi.AddMeasurement(Taken(7, KpiMeasurementTime.AsOfDate(asOf), asOf), Zone, Actor, Now);
+
+        // Assert
+        result.Error.Should().Be(KpiErrors.AsOfTaken);
+        kpi.Measurements.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void AddMeasurement_ShouldTakeSeveralPointInTimeReadingsADay_OnTheirDayInTheZone()
+    {
+        // Arrange
+        var kpi = WithWindow(KpiMeasurementWindow.PointInTime);
+        var morning = Instant.FromUtc(2026, 3, 6, 15, 0);
+        var evening = Instant.FromUtc(2026, 3, 6, 23, 0);
+        var earlyUtc = Instant.FromUtc(2026, 3, 7, 3, 0);
+
+        // Act
+        var first = kpi.AddMeasurement(Taken(40, KpiMeasurementTime.AtMoment(morning), Jan1), Zone, Actor, Now);
+        var second = kpi.AddMeasurement(Taken(42, KpiMeasurementTime.AtMoment(evening), Jan1), Zone, Actor, Now);
+        var third = kpi.AddMeasurement(Taken(41, KpiMeasurementTime.AtMoment(earlyUtc), Jan1), Zone, Actor, Now);
+
+        // Assert
+        first.IsSuccess.Should().BeTrue(first.IsFailure ? first.Error : null);
+        second.IsSuccess.Should().BeTrue(second.IsFailure ? second.Error : null);
+        third.IsSuccess.Should().BeTrue(third.IsFailure ? third.Error : null);
+        var march6 = new LocalDate(2026, 3, 6);
+        first.Value.Period.Should().Be(new KpiPeriod(march6, march6));
+        third.Value.Period.Should().Be(new KpiPeriod(march6, march6), "9pm in Chicago is still the 6th there");
+        third.Value.MeasuredAt.Should().Be(earlyUtc);
+        kpi.LatestMeasurement()!.Value.Should().Be(41);
+    }
+
+    [Fact]
+    public void AddMeasurement_ShouldFail_ForASecondPointInTimeReadingAtTheSameMoment()
+    {
+        // Arrange
+        var kpi = WithWindow(KpiMeasurementWindow.PointInTime);
+        var at = Instant.FromUtc(2026, 3, 6, 15, 0);
+        kpi.AddMeasurement(Taken(40, KpiMeasurementTime.AtMoment(at), Jan1), Zone, Actor, Now);
+
+        // Act
+        var result = kpi.AddMeasurement(Taken(41, KpiMeasurementTime.AtMoment(at), Jan1), Zone, Actor, Now);
+
+        // Assert
+        result.Error.Should().Be(KpiErrors.MomentTaken);
+    }
+
+    [Theory]
+    [MemberData(nameof(MismatchedTimes))]
+    public void AddMeasurement_ShouldFail_WhenTheTimeIsNotTheOneTheWindowTakes(KpiMeasurementWindow window, KpiMeasurementTime time, string error)
+    {
+        // Arrange
+        var kpi = WithWindow(window);
+
+        // Act
+        var result = kpi.AddMeasurement(Taken(1, time, Jan1), Zone, Actor, Now);
+
+        // Assert
+        result.Error.Should().Be(error);
+    }
+
+    public static TheoryData<KpiMeasurementWindow, KpiMeasurementTime, string> MismatchedTimes() => new()
+    {
+        { KpiMeasurementWindow.PerPeriod, KpiMeasurementTime.AsOfDate(Jan1), KpiErrors.PeriodRequired },
+        { KpiMeasurementWindow.Cumulative(Jan1), KpiMeasurementTime.ForPeriod(new KpiPeriod(Jan1, Jan1)), KpiErrors.AsOfDateRequired },
+        { KpiMeasurementWindow.Rolling(7, KpiRollingUnit.Days), KpiMeasurementTime.AtMoment(Now), KpiErrors.AsOfDateRequired },
+        { KpiMeasurementWindow.PointInTime, KpiMeasurementTime.AsOfDate(Jan1), KpiErrors.MomentRequired },
+        { KpiMeasurementWindow.PointInTime, new KpiMeasurementTime(null, Jan1, Now), KpiErrors.MomentRequired },
+    };
+
+    [Fact]
+    public void AddMeasurement_ShouldFail_ForAPeriodRecordOnAWindowThatIsNotPerPeriod()
+    {
+        // Arrange
+        var kpi = WithWindow(KpiMeasurementWindow.Cumulative(Jan1));
+        var input = Taken(1, KpiMeasurementTime.AsOfDate(Jan1), Jan1) with { PeriodRecordKind = KpiPeriodRecordKind.Sprint, PeriodRecordId = Guid.NewGuid() };
+
+        // Act
+        var result = kpi.AddMeasurement(input, Zone, Actor, Now);
+
+        // Assert
+        result.Error.Should().Be(KpiErrors.PeriodRecordOnlyPerPeriod);
+    }
+
+    [Fact]
+    public void ChangeMeasurementWindow_ShouldChangeIt_AndRaiseBothEnds_WhileTheKpiHasNoMeasurements()
+    {
+        // Arrange
+        var kpi = _faker.Generate();
+        var window = KpiMeasurementWindow.Rolling(90, KpiRollingUnit.Days);
+
+        // Act
+        var result = kpi.ChangeMeasurementWindow(window, Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        kpi.Window.Should().Be(window);
+        var changed = kpi.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<KpiMeasurementWindowChangedEvent>().Subject;
+        changed.Window.Should().Be(window);
+        changed.Previous.Should().Be(KpiMeasurementWindow.PerPeriod);
+    }
+
+    [Fact]
+    public void ChangeMeasurementWindow_ShouldRaiseNothing_WhenTheWindowIsTheSame()
+    {
+        // Arrange
+        var kpi = _faker.Generate();
+
+        // Act
+        var result = kpi.ChangeMeasurementWindow(KpiMeasurementWindow.PerPeriod, Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        kpi.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeMeasurementWindow_ShouldFail_OnceTheKpiHasMeasurements()
+    {
+        // Arrange
+        var kpi = _faker.Generate();
+        kpi.AddMeasurement(Measurement(14, Jan1, Jan1), Zone, Actor, Now);
+        kpi.ClearDomainEvents();
+
+        // Act
+        var result = kpi.ChangeMeasurementWindow(KpiMeasurementWindow.PointInTime, Actor, Now);
+
+        // Assert
+        result.Error.Should().Be(KpiErrors.WindowLockedByMeasurements);
+        kpi.Window.Should().Be(KpiMeasurementWindow.PerPeriod);
+        kpi.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeMeasurementWindow_ShouldFail_AwayFromPerPeriod_WhileTheKpiReadsARollingAverage()
+    {
+        // Arrange
+        var kpi = Kpi.Create(KpiFaker.TestSubject.Key, Guid.NewGuid(), Definition(rollingAverageOf: 7), 0, Actor, Now).Value;
+
+        // Act
+        var result = kpi.ChangeMeasurementWindow(KpiMeasurementWindow.PointInTime, Actor, Now);
+
+        // Assert
+        result.Error.Should().Be(KpiErrors.RollingAverageOnlyPerPeriod);
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldSetARollingAverage_AndRaiseDetailsUpdated()
+    {
+        // Arrange
+        var kpi = _faker.Generate();
+        var details = kpi.Details;
+
+        // Act
+        var result = kpi.UpdateDetails(
+            new KpiDetailsInput(details.Name, details.Description, details.CategoryId, details.Prefix, details.Suffix, details.ExpressedAs, 7),
+            Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        kpi.RollingAverageOf.Should().Be(7);
+        var updated = kpi.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<KpiDetailsUpdatedEvent>().Subject;
+        updated.Details.RollingAverageOf.Should().Be(7);
+        updated.Previous.RollingAverageOf.Should().BeNull();
     }
 }

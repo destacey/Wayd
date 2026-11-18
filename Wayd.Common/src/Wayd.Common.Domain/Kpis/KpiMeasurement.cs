@@ -22,10 +22,10 @@ public sealed class KpiMeasurement : BaseAuditableEntity
 
     private KpiMeasurement() { }
 
-    internal KpiMeasurement(Guid kpiId, KpiMeasurementInput input)
+    internal KpiMeasurement(Guid kpiId, KpiMeasurementInput input, KpiPeriod period)
     {
         KpiId = kpiId;
-        Apply(input);
+        Apply(input, period);
     }
 
     /// <summary>The KPI this measurement belongs to.</summary>
@@ -34,7 +34,9 @@ public sealed class KpiMeasurement : BaseAuditableEntity
     /// <summary>The raw measured value.</summary>
     public double Value { get; private set; }
 
-    /// <summary>The days the value describes. No two measurements on one KPI share a day.</summary>
+    /// <summary>
+    /// The days the value describes, as given for a per-period KPI or worked out from the KPI's window for any other.
+    /// </summary>
     public KpiPeriod Period => new(PeriodStart, PeriodEnd);
 
     /// <summary>The first day of <see cref="Period"/>, mapped so a query can filter on it.</summary>
@@ -48,6 +50,12 @@ public sealed class KpiMeasurement : BaseAuditableEntity
 
     /// <summary>The sprint, planning interval or release the period covers. Not a foreign key: it points at a different table per kind.</summary>
     public Guid? PeriodRecordId { get; private set; }
+
+    /// <summary>
+    /// The moment a point-in-time value describes, or null for any other window. What orders, and tells apart, two
+    /// readings on one day.
+    /// </summary>
+    public Instant? MeasuredAt { get; private set; }
 
     /// <summary>The day the value was taken, which may be after the period ends.</summary>
     public LocalDate MeasuredOn { get; private set; }
@@ -68,11 +76,13 @@ public sealed class KpiMeasurement : BaseAuditableEntity
         private set => _note = value.NullIfWhiteSpacePlusTrim();
     }
 
-    internal void Apply(KpiMeasurementInput input)
+    /// <summary>Takes the caller's values, with the period the KPI's window worked out for them.</summary>
+    internal void Apply(KpiMeasurementInput input, KpiPeriod period)
     {
         Value = input.Value;
-        PeriodStart = input.Period.Start;
-        PeriodEnd = input.Period.End;
+        PeriodStart = period.Start;
+        PeriodEnd = period.End;
+        MeasuredAt = input.Time.At;
         PeriodRecordKind = input.PeriodRecordKind;
         PeriodRecordId = input.PeriodRecordId;
         MeasuredOn = input.MeasuredOn;
@@ -83,14 +93,14 @@ public sealed class KpiMeasurement : BaseAuditableEntity
     }
 
     internal KpiMeasurementValues ToValues() =>
-        new(Id, Value, Period, PeriodRecordKind, PeriodRecordId, MeasuredOn, MeasuredById, Source, SampleSize, Note);
+        new(Id, Value, Period, PeriodRecordKind, PeriodRecordId, MeasuredOn, MeasuredById, Source, SampleSize, Note, MeasuredAt);
 }
 
 /// <summary>
 /// What a caller supplies to record or change a measurement.
 /// </summary>
 /// <param name="Value">The raw measured value.</param>
-/// <param name="Period">The days the value describes.</param>
+/// <param name="Time">When it was taken: a period, an as-of day or a moment, as the KPI's window takes it.</param>
 /// <param name="PeriodRecordKind">The kind of record the period covers, if any; requires <paramref name="PeriodRecordId"/>.</param>
 /// <param name="PeriodRecordId">The record the period covers, if any; requires <paramref name="PeriodRecordKind"/>.</param>
 /// <param name="MeasuredOn">The day the value was taken.</param>
@@ -100,7 +110,7 @@ public sealed class KpiMeasurement : BaseAuditableEntity
 /// <param name="Note">Context for the value.</param>
 public sealed record KpiMeasurementInput(
     double Value,
-    KpiPeriod Period,
+    KpiMeasurementTime Time,
     KpiPeriodRecordKind? PeriodRecordKind,
     Guid? PeriodRecordId,
     LocalDate MeasuredOn,
@@ -115,8 +125,8 @@ public sealed record KpiMeasurementInput(
         if (!double.IsFinite(Value))
             return KpiErrors.NotAFiniteNumber("measured value");
 
-        if (Period is null)
-            return KpiErrors.PeriodEndsBeforeStart;
+        if (Time is null)
+            return KpiErrors.PeriodRequired;
 
         if (PeriodRecordKind.HasValue != PeriodRecordId.HasValue || PeriodRecordId == Guid.Empty)
             return KpiErrors.PeriodRecordIncomplete;

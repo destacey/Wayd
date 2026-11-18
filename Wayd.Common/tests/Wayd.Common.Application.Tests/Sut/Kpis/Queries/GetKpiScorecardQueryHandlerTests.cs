@@ -53,7 +53,7 @@ public sealed class GetKpiScorecardQueryHandlerTests
         for (var month = 1; month <= 14; month++)
         {
             var start = new LocalDate(2025, 1, 1).PlusMonths(month - 1);
-            kpi.AddMeasurement(KpiTestHarness.Measurement(10 + month * 0.5, start, start.PlusMonths(1).PlusDays(-1)), EventActor.System, now);
+            kpi.AddMeasurement(KpiTestHarness.Measurement(10 + month * 0.5, start, start.PlusMonths(1).PlusDays(-1)), KpiTestHarness.Zone, EventActor.System, now);
         }
 
         // Act
@@ -69,6 +69,31 @@ public sealed class GetKpiScorecardQueryHandlerTests
         summary.Reading.Trend.Should().Be(KpiTrend.Improving);
         summary.Reading.ProgressToTarget.Should().BeApproximately(0.7, 1e-9);
         summary.Goal.ResolvedAtRiskValue.Should().Be(16);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReadARollingAverage_OverTheLatestMeasurements()
+    {
+        // Arrange
+        var kpi = _harness.AddKpi(rollingAverageOf: 3);
+        var now = _harness.DateTimeProvider.Now;
+        for (var month = 1; month <= 14; month++)
+        {
+            var start = new LocalDate(2025, 1, 1).PlusMonths(month - 1);
+            kpi.AddMeasurement(KpiTestHarness.Measurement(10 + month * 0.5, start, start.PlusMonths(1).PlusDays(-1)), KpiTestHarness.Zone, EventActor.System, now);
+        }
+
+        // Act
+        var result = await CreateHandler().Handle(Query(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var summary = result.Value!.Kpis.Should().ContainSingle().Subject;
+        summary.RollingAverageOf.Should().Be(3);
+        summary.Window.Kind.Should().Be(KpiWindowKind.PerPeriod);
+        summary.Reading.Value.Should().BeApproximately(16.5, 1e-9);
+        summary.Reading.LatestValue.Should().Be(17);
+        summary.Reading.AveragedCount.Should().Be(3);
+        summary.RecentValues.Should().HaveCount(12);
     }
 
     [Fact]

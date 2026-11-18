@@ -2,10 +2,12 @@ using System.Globalization;
 using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Persistence;
+using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.Kpis;
+using Wayd.Common.Domain.Settings;
 
 namespace Wayd.Common.Application.Kpis.Imports;
 
@@ -28,6 +30,7 @@ public sealed class KpiImportDefinition(
     IFeatureFlags featureFlags,
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser,
+    ISettings<GeneralSettings> generalSettings,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportKpiDto>(serializer)
 {
     public const string ImportKey = "kpis.kpis";
@@ -37,6 +40,7 @@ public sealed class KpiImportDefinition(
     private readonly IFeatureFlags _featureFlags = featureFlags;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
 
     public override string Key => ImportKey;
     public override string DisplayName => "KPIs";
@@ -89,6 +93,7 @@ public sealed class KpiImportDefinition(
     {
         var timestamp = _dateTimeProvider.Now;
         var actor = EventActor.Import(_currentUser.GetUserId());
+        var zone = (await _generalSettings.Get(cancellationToken)).Zone();
 
         var subjects = await ResolveSubjects(context, cancellationToken);
         var categories = await ResolveCategories(context, cancellationToken);
@@ -140,7 +145,7 @@ public sealed class KpiImportDefinition(
             }
 
             var kpi = created.Value;
-            var history = AddHistory(kpi, data.Measurements, actor, timestamp);
+            var history = AddHistory(kpi, data.Measurements, zone, actor, timestamp);
             if (history.IsFailure)
             {
                 row.Failed($"Could not add the history of KPI '{data.Name}': {history.Error}");
@@ -162,7 +167,8 @@ public sealed class KpiImportDefinition(
     /// <summary>
     /// Records the history oldest first, so an overlap is reported against the later of the two periods.
     /// </summary>
-    private static Result AddHistory(Kpi kpi, IReadOnlyList<ImportKpiMeasurementDto> measurements, EventActor actor, Instant timestamp)
+    private static Result AddHistory(
+        Kpi kpi, IReadOnlyList<ImportKpiMeasurementDto> measurements, DateTimeZone zone, EventActor actor, Instant timestamp)
     {
         foreach (var m in measurements.OrderBy(m => m.PeriodStart))
         {
@@ -171,9 +177,10 @@ public sealed class KpiImportDefinition(
                 return Result.Failure(period.Error);
 
             var input = new KpiMeasurementInput(
-                m.Value, period.Value, null, null, m.MeasuredOn ?? m.PeriodEnd, null, KpiMeasurementSource.Manual, m.SampleSize, m.Note);
+                m.Value, KpiMeasurementTime.ForPeriod(period.Value), null, null, m.MeasuredOn ?? m.PeriodEnd, null,
+                KpiMeasurementSource.Manual, m.SampleSize, m.Note);
 
-            var added = kpi.AddMeasurement(input, actor, timestamp);
+            var added = kpi.AddMeasurement(input, zone, actor, timestamp);
             if (added.IsFailure)
                 return Result.Failure(
                     $"{added.Error} ({m.PeriodStart.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)} to {m.PeriodEnd.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)})");

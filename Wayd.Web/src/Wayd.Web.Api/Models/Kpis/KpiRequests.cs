@@ -78,29 +78,78 @@ public sealed record KpiRequest
 
     /// <summary>What it aims for.</summary>
     public required KpiTargetRequest Target { get; set; }
+
+    /// <summary>
+    /// What span of time each measurement covers. Left out: `PerPeriod` when adding, unchanged when updating. Can change
+    /// only while the KPI has no measurements.
+    /// </summary>
+    public KpiWindowRequest? Window { get; set; }
+
+    /// <summary>
+    /// Read the KPI as the average of this many of its latest measurements, 2 to 12, instead of the latest alone — as
+    /// velocity is read over the last 7 sprints. Only on a `PerPeriod` KPI. Left out: the latest alone.
+    /// </summary>
+    public int? RollingAverageOf { get; set; }
 }
 
 /// <summary>
-/// A measurement's value and the period it describes.
+/// What span of time each of a KPI's measurements covers.
+/// </summary>
+public sealed record KpiWindowRequest
+{
+    /// <summary>
+    /// `PerPeriod` (each measurement gives its own period), `Cumulative` (from `anchorDate` to the day a value is taken
+    /// as of), `Rolling` (`rollingCount` `rollingUnit`s ending on that day) or `PointInTime` (the state at one moment).
+    /// </summary>
+    public required KpiWindowKind Kind { get; set; }
+
+    /// <summary>For `Cumulative` only: the first day every measurement covers, as `YYYY-MM-DD`. Fixed once measured.</summary>
+    public LocalDate? AnchorDate { get; set; }
+
+    /// <summary>For `Rolling` only: how many units each measurement covers, at least 1.</summary>
+    public int? RollingCount { get; set; }
+
+    /// <summary>For `Rolling` only: what `rollingCount` counts — `Days`.</summary>
+    public KpiRollingUnit? RollingUnit { get; set; }
+
+    /// <summary>The window as the commands take it.</summary>
+    public KpiWindowInput ToInput() => new(Kind, AnchorDate, RollingCount, RollingUnit);
+}
+
+/// <summary>
+/// A measurement's value and when it was taken, given the one way the KPI's window takes it: `periodStart` and
+/// `periodEnd` for `PerPeriod`, `asOf` for `Cumulative` and `Rolling`, `measuredAt` for `PointInTime`.
 /// </summary>
 public sealed record KpiMeasurementRequest
 {
     /// <summary>The raw measured value — never a percentage worked out from it.</summary>
     public required double Value { get; set; }
 
-    /// <summary>The first day the value describes, as `YYYY-MM-DD`.</summary>
-    public required LocalDate PeriodStart { get; set; }
+    /// <summary>For a `PerPeriod` KPI: the first day the value describes, as `YYYY-MM-DD`.</summary>
+    public LocalDate? PeriodStart { get; set; }
 
-    /// <summary>The last day the value describes. Periods on one KPI cannot overlap.</summary>
-    public required LocalDate PeriodEnd { get; set; }
+    /// <summary>For a `PerPeriod` KPI: the last day the value describes. Periods on one KPI cannot overlap.</summary>
+    public LocalDate? PeriodEnd { get; set; }
 
-    /// <summary>The kind of record the period covers — `Sprint`, `PlanningInterval` or `Release` — given with `periodRecordId`, or null.</summary>
+    /// <summary>
+    /// For a `Cumulative` or `Rolling` KPI: the last day the value covers, as `YYYY-MM-DD`. Its period is worked out
+    /// from the KPI's window; one value per day.
+    /// </summary>
+    public LocalDate? AsOf { get; set; }
+
+    /// <summary>
+    /// For a `PointInTime` KPI: the exact moment the value describes, as an ISO 8601 instant such as
+    /// `2026-03-06T14:30:00Z`. Several a day are allowed, one per moment.
+    /// </summary>
+    public Instant? MeasuredAt { get; set; }
+
+    /// <summary>For a `PerPeriod` KPI: the kind of record the period covers — `Sprint`, `PlanningInterval` or `Release` — given with `periodRecordId`, or null.</summary>
     public KpiPeriodRecordKind? PeriodRecordKind { get; set; }
 
     /// <summary>The id of the sprint, planning interval or release the period covers, or null.</summary>
     public Guid? PeriodRecordId { get; set; }
 
-    /// <summary>The day the value was taken; the period's last day when left out.</summary>
+    /// <summary>The day the value was taken; when left out, the last day it covers (for a moment, its day in the system time zone).</summary>
     public LocalDate? MeasuredOn { get; set; }
 
     /// <summary>How many items the value was computed over, when known.</summary>
@@ -111,7 +160,7 @@ public sealed record KpiMeasurementRequest
 
     /// <summary>The measurement as the commands take it.</summary>
     public KpiMeasurementValuesInput ToInput() =>
-        new(Value, PeriodStart, PeriodEnd, PeriodRecordKind, PeriodRecordId, MeasuredOn, SampleSize, Note);
+        new(Value, PeriodStart, PeriodEnd, PeriodRecordKind, PeriodRecordId, MeasuredOn, SampleSize, Note, AsOf, MeasuredAt);
 }
 
 /// <summary>A new order for a record's KPIs.</summary>

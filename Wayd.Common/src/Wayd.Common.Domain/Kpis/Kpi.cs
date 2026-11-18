@@ -36,6 +36,15 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
     /// <summary>The longest prefix or suffix a KPI holds.</summary>
     public const int AffixMaxLength = 16;
 
+    /// <summary>The fewest measurements a rolling average is taken over; one is the latest value itself.</summary>
+    public const int MinRollingAverageOf = 2;
+
+    /// <summary>
+    /// The most measurements a rolling average is taken over: a year of monthly values, or a long run of sprints. A
+    /// scorecard reads this many plus one per KPI, to show the average and the one before it.
+    /// </summary>
+    public const int MaxRollingAverageOf = 12;
+
     private readonly List<KpiMeasurement> _measurements = [];
 
     private string _name = default!;
@@ -53,12 +62,19 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
     private KpiAtRiskKind? _atRiskKind;
     private double? _atRiskValue;
 
+    // The window's parts as columns, for the same reason as the goal's.
+    private KpiWindowKind _windowKind = KpiWindowKind.PerPeriod;
+    private LocalDate? _windowAnchorDate;
+    private int? _windowRollingCount;
+    private KpiRollingUnit? _windowRollingUnit;
+
     private Kpi() { }
 
     private Kpi(string subjectType, Guid subjectId, KpiDefinition definition, int order)
     {
         SubjectType = subjectType;
         SubjectId = subjectId;
+        ApplyWindow(definition.WindowOrDefault);
         ApplyDetails(definition);
         ApplyGoal(definition.Goal);
         Source = KpiSource.Manual;
@@ -83,7 +99,7 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
         Guard.Against.Null(definition, nameof(definition));
         Guard.Against.Null(actor, nameof(actor));
 
-        var error = definition.Validate();
+        var error = definition.Validate() ?? CheckRollingAverage(definition.RollingAverageOf, definition.WindowOrDefault);
         if (error is not null)
             return Result.Failure<Kpi>(error);
 
@@ -94,8 +110,9 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
         var details = kpi.Details;
         var goal = kpi.Goal;
         var source = kpi.Source;
+        var window = kpi.Window;
         var type = kpi.SubjectType;
-        kpi.AddKeyedDomainEvent(() => new KpiAddedEvent(id, kpi.Key, type, subjectId, details, goal, source, order, actor, timestamp));
+        kpi.AddKeyedDomainEvent(() => new KpiAddedEvent(id, kpi.Key, type, subjectId, details, goal, source, order, actor, timestamp, window));
 
         return kpi;
     }
@@ -159,6 +176,18 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
     /// <summary>Which reading of the raw value the scorecard shows.</summary>
     public KpiExpressedAs ExpressedAs { get; private set; }
 
+    /// <summary>
+    /// How many of the latest measurements the reading averages, or null to read the latest alone. Only on a per-period
+    /// KPI, for values that add up per period, such as velocity read over the last 7 sprints.
+    /// </summary>
+    /// <remarks>
+    /// A reading, never stored on a measurement, so changing it reads through the whole history at once.
+    /// </remarks>
+    public int? RollingAverageOf { get; private set; }
+
+    /// <summary>How its measurements are windowed: which span of time each value describes.</summary>
+    public KpiMeasurementWindow Window => new(_windowKind, _windowAnchorDate, _windowRollingCount, _windowRollingUnit);
+
     /// <summary>Whether it is on the scorecard.</summary>
     public KpiStatus Status { get; private set; }
 
@@ -172,17 +201,17 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
     public KpiGoal Goal => new(Direction, Baseline, Target, AtRisk);
 
     /// <summary>The descriptive fields, taken together.</summary>
-    public KpiDetails Details => new(Name, Description, CategoryId, Prefix, Suffix, ExpressedAs);
+    public KpiDetails Details => new(Name, Description, CategoryId, Prefix, Suffix, ExpressedAs, RollingAverageOf);
 
     /// <summary>
-    /// Changes the name, description, category, prefix, suffix and the reading shown. Raises nothing when nothing
-    /// changed.
+    /// Changes the name, description, category, prefix, suffix, the reading shown and its rolling average. Raises
+    /// nothing when nothing changed.
     /// </summary>
     public Result UpdateDetails(KpiDetailsInput input, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(input, nameof(input));
 
-        var error = input.Validate();
+        var error = input.Validate() ?? CheckRollingAverage(input.RollingAverageOf, Window);
         if (error is not null)
             return Result.Failure(error);
 
@@ -225,6 +254,40 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
 
         if (current with { Baseline = previous.Baseline } != previous)
             AddKeyedDomainEvent(() => new KpiTargetChangedEvent(Id, Key, SubjectType, SubjectId, current, previous, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Changes how the KPI's measurements are windowed, failing once it has any: they were recorded under the old
+    /// window, and a stored period must keep meaning what it meant. Raises nothing when nothing changed.
+    /// </summary>
+    /// <remarks>
+    /// Reads <see cref="Measurements"/>, so the KPI must be loaded with them; loaded without, it would let a window
+    /// change that should have been refused.
+    /// </remarks>
+    public Result ChangeMeasurementWindow(KpiMeasurementWindow window, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(window, nameof(window));
+
+        var error = window.Validate();
+        if (error is not null)
+            return Result.Failure(error);
+
+        var previous = Window;
+        if (window == previous)
+            return Result.Success();
+
+        if (_measurements.Count > 0)
+            return Result.Failure(KpiErrors.WindowLockedByMeasurements);
+
+        error = CheckRollingAverage(RollingAverageOf, window);
+        if (error is not null)
+            return Result.Failure(error);
+
+        ApplyWindow(window);
+        var current = Window;
+        AddKeyedDomainEvent(() => new KpiMeasurementWindowChangedEvent(Id, Key, SubjectType, SubjectId, current, previous, actor, timestamp));
 
         return Result.Success();
     }
@@ -302,17 +365,22 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Records a measurement, failing when the KPI is closed or the period overlaps another measurement's.
+    /// Records a measurement, failing when the KPI is closed, the time given does not fit its window, or it clashes
+    /// with another measurement: an overlapping period, the same as-of day or the same moment.
     /// </summary>
-    public Result<KpiMeasurement> AddMeasurement(KpiMeasurementInput input, EventActor actor, Instant timestamp)
+    /// <param name="input">The value and when it was taken.</param>
+    /// <param name="zone">The system time zone, which a point-in-time moment's calendar day is read in.</param>
+    /// <param name="actor">Who recorded it.</param>
+    /// <param name="timestamp">When.</param>
+    public Result<KpiMeasurement> AddMeasurement(KpiMeasurementInput input, DateTimeZone zone, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(input, nameof(input));
 
-        var error = CheckMeasurement(input, exceptId: null);
-        if (error is not null)
-            return Result.Failure<KpiMeasurement>(error);
+        var period = CheckMeasurement(input, zone, exceptId: null);
+        if (period.IsFailure)
+            return Result.Failure<KpiMeasurement>(period.Error);
 
-        var measurement = new KpiMeasurement(Id, input);
+        var measurement = new KpiMeasurement(Id, input, period.Value);
         _measurements.Add(measurement);
         var values = measurement.ToValues();
         AddKeyedDomainEvent(() => new KpiMeasurementAddedEvent(Id, Key, SubjectType, SubjectId, values, actor, timestamp));
@@ -321,10 +389,9 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Changes a measurement, failing when the KPI is closed or the new period overlaps another measurement's. Raises
-    /// nothing when nothing changed.
+    /// Changes a measurement, failing as <see cref="AddMeasurement"/> does. Raises nothing when nothing changed.
     /// </summary>
-    public Result ChangeMeasurement(Guid measurementId, KpiMeasurementInput input, EventActor actor, Instant timestamp)
+    public Result ChangeMeasurement(Guid measurementId, KpiMeasurementInput input, DateTimeZone zone, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(input, nameof(input));
 
@@ -332,12 +399,12 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
         if (measurement is null)
             return Result.Failure(KpiErrors.MeasurementNotFound);
 
-        var error = CheckMeasurement(input, exceptId: measurementId);
-        if (error is not null)
-            return Result.Failure(error);
+        var period = CheckMeasurement(input, zone, exceptId: measurementId);
+        if (period.IsFailure)
+            return Result.Failure(period.Error);
 
         var previous = measurement.ToValues();
-        measurement.Apply(input);
+        measurement.Apply(input, period.Value);
         var current = measurement.ToValues();
 
         if (current != previous)
@@ -364,23 +431,53 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// The latest measurement, by the end of its period, or null when there is none. Periods never overlap, so the
-    /// order is unambiguous.
+    /// The latest measurement — by the end of its period, then by its moment for point-in-time readings on one day —
+    /// or null when there is none. Each window keeps that order unambiguous.
     /// </summary>
-    public KpiMeasurement? LatestMeasurement() => _measurements.MaxBy(m => m.Period.End);
+    public KpiMeasurement? LatestMeasurement() =>
+        _measurements.OrderByDescending(m => m.PeriodEnd).ThenByDescending(m => m.MeasuredAt).FirstOrDefault();
 
-    private string? CheckMeasurement(KpiMeasurementInput input, Guid? exceptId)
+    /// <summary>The period the input covers under the KPI's window, or why it cannot be recorded.</summary>
+    private Result<KpiPeriod> CheckMeasurement(KpiMeasurementInput input, DateTimeZone zone, Guid? exceptId)
     {
         if (Status == KpiStatus.Closed)
-            return KpiErrors.KpiClosed;
+            return Result.Failure<KpiPeriod>(KpiErrors.KpiClosed);
 
         var error = input.Validate();
         if (error is not null)
-            return error;
+            return Result.Failure<KpiPeriod>(error);
 
-        return _measurements.Any(m => m.Id != exceptId && m.Period.Overlaps(input.Period))
-            ? KpiErrors.PeriodOverlaps
+        var window = Window;
+        if (input.PeriodRecordKind is not null && window.Kind != KpiWindowKind.PerPeriod)
+            return Result.Failure<KpiPeriod>(KpiErrors.PeriodRecordOnlyPerPeriod);
+
+        var period = window.PeriodFor(input.Time, zone);
+        if (period.IsFailure)
+            return period;
+
+        var others = _measurements.Where(m => m.Id != exceptId);
+        var clash = window.Kind switch
+        {
+            KpiWindowKind.PerPeriod => others.Any(m => m.Period.Overlaps(period.Value)) ? KpiErrors.PeriodOverlaps : null,
+            KpiWindowKind.PointInTime => others.Any(m => m.MeasuredAt == input.Time.At) ? KpiErrors.MomentTaken : null,
+            _ => others.Any(m => m.PeriodEnd == period.Value.End) ? KpiErrors.AsOfTaken : null,
+        };
+
+        return clash is null ? period : Result.Failure<KpiPeriod>(clash);
+    }
+
+    /// <summary>Why a rolling average cannot be read on a KPI with this window, or null when it can.</summary>
+    private static string? CheckRollingAverage(int? rollingAverageOf, KpiMeasurementWindow window) =>
+        rollingAverageOf is not null && window.Kind != KpiWindowKind.PerPeriod
+            ? KpiErrors.RollingAverageOnlyPerPeriod
             : null;
+
+    private void ApplyWindow(KpiMeasurementWindow window)
+    {
+        _windowKind = window.Kind;
+        _windowAnchorDate = window.AnchorDate;
+        _windowRollingCount = window.RollingCount;
+        _windowRollingUnit = window.RollingUnit;
     }
 
     private void ApplyDetails(KpiDetailsInput input)
@@ -391,6 +488,7 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
         Prefix = input.Prefix;
         Suffix = input.Suffix;
         ExpressedAs = input.ExpressedAs;
+        RollingAverageOf = input.RollingAverageOf;
     }
 
     private void ApplyGoal(KpiGoal goal)
@@ -434,7 +532,15 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
 /// <param name="Prefix">A symbol shown before a value.</param>
 /// <param name="Suffix">A unit shown after a value.</param>
 /// <param name="ExpressedAs">Which reading the scorecard shows.</param>
-public record KpiDetailsInput(string Name, string? Description, Guid? CategoryId, string? Prefix, string? Suffix, KpiExpressedAs ExpressedAs)
+/// <param name="RollingAverageOf">How many of the latest measurements the reading averages, or null for the latest alone.</param>
+public record KpiDetailsInput(
+    string Name,
+    string? Description,
+    Guid? CategoryId,
+    string? Prefix,
+    string? Suffix,
+    KpiExpressedAs ExpressedAs,
+    int? RollingAverageOf = null)
 {
     /// <summary>Why these details cannot be held, or null when they can.</summary>
     internal string? Validate()
@@ -451,14 +557,18 @@ public record KpiDetailsInput(string Name, string? Description, Guid? CategoryId
             return "A category id cannot be empty.";
         if (!Enum.IsDefined(ExpressedAs))
             return $"Unsupported reading: {ExpressedAs}.";
+        if (RollingAverageOf is < Kpi.MinRollingAverageOf or > Kpi.MaxRollingAverageOf)
+            return KpiErrors.RollingAverageOutOfRange;
 
         return null;
     }
 }
 
 /// <summary>
-/// What a caller supplies to add a KPI: its descriptive fields and what it is measured against.
+/// What a caller supplies to add a KPI: its descriptive fields, what it is measured against and how its measurements
+/// are windowed.
 /// </summary>
+/// <param name="Window">How its measurements are windowed; per period when not given.</param>
 public sealed record KpiDefinition(
     string Name,
     string? Description,
@@ -466,9 +576,17 @@ public sealed record KpiDefinition(
     string? Prefix,
     string? Suffix,
     KpiExpressedAs ExpressedAs,
-    KpiGoal Goal)
-    : KpiDetailsInput(Name, Description, CategoryId, Prefix, Suffix, ExpressedAs)
+    KpiGoal Goal,
+    KpiMeasurementWindow? Window = null,
+    int? RollingAverageOf = null)
+    : KpiDetailsInput(Name, Description, CategoryId, Prefix, Suffix, ExpressedAs, RollingAverageOf)
 {
+    /// <summary>The window given, or per period.</summary>
+    internal KpiMeasurementWindow WindowOrDefault => Window ?? KpiMeasurementWindow.PerPeriod;
+
     /// <summary>Why this definition cannot be held, or null when it can.</summary>
-    internal new string? Validate() => base.Validate() ?? (Goal is null ? "A KPI needs a goal." : Goal.Validate());
+    internal new string? Validate() =>
+        base.Validate()
+        ?? (Goal is null ? "A KPI needs a goal." : Goal.Validate())
+        ?? WindowOrDefault.Validate();
 }

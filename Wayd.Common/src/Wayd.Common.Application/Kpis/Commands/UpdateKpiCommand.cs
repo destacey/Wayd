@@ -17,6 +17,10 @@ namespace Wayd.Common.Application.Kpis.Commands;
 /// <param name="ExpressedAs">Which reading the scorecard shows.</param>
 /// <param name="Baseline">Where the KPI started.</param>
 /// <param name="Target">What it aims for.</param>
+/// <param name="Window">
+/// How its measurements are windowed, or null to leave it as it is. Can change only while the KPI has no measurements.
+/// </param>
+/// <param name="RollingAverageOf">How many of the latest measurements the reading averages, or null for the latest alone.</param>
 public sealed record UpdateKpiCommand(
     string SubjectType,
     Guid SubjectId,
@@ -28,7 +32,9 @@ public sealed record UpdateKpiCommand(
     string? Suffix,
     KpiExpressedAs ExpressedAs,
     KpiBaselineInput Baseline,
-    KpiTargetInput Target)
+    KpiTargetInput Target,
+    KpiWindowInput? Window = null,
+    int? RollingAverageOf = null)
     : ICommand, IRequireLinkedEmployee;
 
 /// <summary>Rejects malformed input before the record is resolved.</summary>
@@ -48,6 +54,8 @@ public sealed class UpdateKpiCommandValidator : CustomValidator<UpdateKpiCommand
         RuleFor(c => c.Target).NotNull();
         RuleFor(c => c.Target.Direction).IsInEnum().When(c => c.Target is not null);
         RuleFor(c => c.Target.TargetKind).IsInEnum().When(c => c.Target is not null);
+        RuleFor(c => c.Window!.Kind).IsInEnum().When(c => c.Window is not null);
+        RuleFor(c => c.RollingAverageOf).InclusiveBetween(Kpi.MinRollingAverageOf, Kpi.MaxRollingAverageOf).When(c => c.RollingAverageOf is not null);
     }
 }
 
@@ -61,7 +69,9 @@ public sealed class UpdateKpiCommandHandler(KpiCommandScope scope) : ICommandHan
 
     public async Task<Result> Handle(UpdateKpiCommand command, CancellationToken cancellationToken)
     {
-        var kpi = await _scope.KpiForManaging(command.SubjectType, command.SubjectId, command.KpiId, withMeasurements: false, cancellationToken);
+        // A window change is refused once the KPI has measurements, which only a load with them can tell.
+        var kpi = await _scope.KpiForManaging(
+            command.SubjectType, command.SubjectId, command.KpiId, withMeasurements: command.Window is not null, cancellationToken);
         if (kpi.IsFailure)
             return kpi;
 
@@ -77,16 +87,25 @@ public sealed class UpdateKpiCommandHandler(KpiCommandScope scope) : ICommandHan
         if (atRisk.IsFailure)
             return atRisk;
 
-        var updated = kpi.Value.UpdateDetails(
-            new KpiDetailsInput(command.Name, command.Description, command.CategoryId, command.Prefix, command.Suffix, command.ExpressedAs),
-            _scope.Actor,
-            _scope.Now);
-        if (updated.IsFailure)
-            return updated;
+        // A rolling average needs a per-period window, and each method checks against the other's current value. Setting
+        // one moves the window first, so it is per period by the time the details are checked; clearing it updates the
+        // details first, so the old average is gone before a window that refuses one arrives.
+        var details = new KpiDetailsInput(
+            command.Name, command.Description, command.CategoryId, command.Prefix, command.Suffix, command.ExpressedAs, command.RollingAverageOf);
+        var window = command.Window?.ToWindow();
+
+        var configured = command.RollingAverageOf is null
+            ? kpi.Value.UpdateDetails(details, _scope.Actor, _scope.Now).Bind(() => ChangeWindow(kpi.Value, window))
+            : ChangeWindow(kpi.Value, window).Bind(() => kpi.Value.UpdateDetails(details, _scope.Actor, _scope.Now));
+        if (configured.IsFailure)
+            return configured;
 
         var goal = new KpiGoal(command.Target.Direction, baseline.Value, command.Target.ToTarget(), atRisk.Value);
         var changed = kpi.Value.ChangeGoal(goal, _scope.Actor, _scope.Now);
 
         return changed.IsSuccess ? await _scope.Save(cancellationToken) : changed;
     }
+
+    private Result ChangeWindow(Kpi kpi, KpiMeasurementWindow? window) =>
+        window is null ? Result.Success() : kpi.ChangeMeasurementWindow(window, _scope.Actor, _scope.Now);
 }

@@ -30,6 +30,9 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     private const string SubjectDocs =
         "`subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it.";
 
+    private const string WindowDocs =
+        "The KPI's `window` says what span each value covers: `PerPeriod` (each measurement gives its own `periodStart` and `periodEnd`, and periods do not overlap), `Cumulative` (from a fixed `anchorDate` to the measurement's `asOf` day), `Rolling` (`rollingCount` `rollingUnit`s ending on the `asOf` day) or `PointInTime` (the state at the exact moment `measuredAt`, several a day allowed).";
+
     private const string ManageDocs =
         "Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.";
 
@@ -39,7 +42,7 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     [McpTool("Kpis_GetScorecard", "Get a scorecard")]
     [EndpointSummary("Get a record's scorecard.")]
     [EndpointDescription(
-        $"{SubjectDocs} Returns the record's name, whether you may manage its KPIs (`canManage`), and every active KPI ordered by category (uncategorized last), then position. Each KPI carries its `goal` as entered and resolved, its `reading` of the latest value — `changeFromBaseline`, `changeFromBaselinePercent`, `progressToTarget` (1 is the target reached), `health` and `trend` — and up to 12 `recentValues`, oldest first. `expressedAs` says which reading the KPI is shown as.")]
+        $"{SubjectDocs} Returns the record's name, whether you may manage its KPIs (`canManage`), and every active KPI ordered by category (uncategorized last), then position. Each KPI carries its `goal` as entered and resolved, its `window`, its `reading` of the latest value — `changeFromBaseline`, `changeFromBaselinePercent`, `progressToTarget` (1 is the target reached), `health` and `trend` — and up to 12 `recentValues`, oldest first. `expressedAs` says which reading the KPI is shown as. When `rollingAverageOf` is set, the reading's `value` is the average of that many latest measurements (`averagedCount` says how many there were) and is what health and trend judge; `latestValue` is always the newest raw measurement.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -93,7 +96,7 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     [HttpPost]
     [EndpointSummary("Add a KPI to a record.")]
     [EndpointDescription(
-        $"{SubjectDocs} Adds an active KPI, last on the scorecard, and returns its id and key. The `target` is `Absolute` (a value to reach) or `RelativeChange` (a percentage from the baseline, which then needs a baseline value); the baseline must be short of the target in the KPI's direction. An optional at-risk threshold, `Absolute` or `ProgressToTarget`, must also be short of the target. {ManageDocs} Requires your account to be linked to an employee.")]
+        $"{SubjectDocs} Adds an active KPI, last on the scorecard, and returns its id and key. The `target` is `Absolute` (a value to reach) or `RelativeChange` (a percentage from the baseline, which then needs a baseline value); the baseline must be short of the target in the KPI's direction. An optional at-risk threshold, `Absolute` or `ProgressToTarget`, must also be short of the target. {WindowDocs} Leave `window` out for `PerPeriod`. Only a `PerPeriod` KPI may set `rollingAverageOf` (2 to 12), to be read as the average of its latest measurements, as velocity is read over the last 7 sprints. {ManageDocs} Requires your account to be linked to an employee.")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -104,7 +107,8 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     {
         var result = await _dispatcher.Send(
             new AddKpiCommand(subjectType, subjectId, request.Name, request.Description, request.CategoryId, request.Prefix,
-                request.Suffix, request.ExpressedAs, request.Baseline.ToInput(), request.Target.ToInput()),
+                request.Suffix, request.ExpressedAs, request.Baseline.ToInput(), request.Target.ToInput(), request.Window?.ToInput(),
+                request.RollingAverageOf),
             cancellationToken);
 
         return result.IsSuccess
@@ -115,7 +119,7 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     [HttpPut("{kpiId:guid}")]
     [EndpointSummary("Change a KPI's details, baseline and target.")]
     [EndpointDescription(
-        $"{SubjectDocs} Replaces everything about the KPI that is entered rather than measured, in one save: send every field, including the ones that stay. The new goal is checked as a whole, against the same rules as adding a KPI, so a baseline and target may move together. A new category must be active; the one the KPI has may stay. {ManageDocs}")]
+        $"{SubjectDocs} Replaces everything about the KPI that is entered rather than measured, in one save: send every field, including the ones that stay. The new goal is checked as a whole, against the same rules as adding a KPI, so a baseline and target may move together. A new category must be active; the one the KPI has may stay. Leave `window` out to keep it; it can change only while the KPI has no measurements, since they were recorded under it. `rollingAverageOf` is replaced like any other field: leave it out to read the latest value alone. {ManageDocs}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -126,7 +130,8 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     {
         var result = await _dispatcher.Send(
             new UpdateKpiCommand(subjectType, subjectId, kpiId, request.Name, request.Description, request.CategoryId,
-                request.Prefix, request.Suffix, request.ExpressedAs, request.Baseline.ToInput(), request.Target.ToInput()),
+                request.Prefix, request.Suffix, request.ExpressedAs, request.Baseline.ToInput(), request.Target.ToInput(),
+                request.Window?.ToInput(), request.RollingAverageOf),
             cancellationToken);
 
         return result.IsSuccess ? NoContent() : ErrorResult(result.Error);
@@ -200,7 +205,7 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     [McpTool("Kpis_RecordMeasurement", "Record a KPI measurement", Destructive = false)]
     [EndpointSummary("Record a measurement against a KPI.")]
     [EndpointDescription(
-        $"{SubjectDocs} Records the raw value for a period on an open KPI, taken by you, and returns its id. Periods on one KPI cannot overlap; record each period once. {ManageDocs} Requires your account to be linked to an employee.")]
+        $"{SubjectDocs} Records the raw value on an open KPI, taken by you, and returns its id. {WindowDocs} Give exactly the one the KPI's window takes — a period, an `asOf` day or a `measuredAt` moment — or the request is refused with 400; read the KPI first if you do not know its window. A per-period KPI's periods cannot overlap; a cumulative or rolling KPI takes one value per `asOf` day; a point-in-time KPI one per moment. {ManageDocs} Requires your account to be linked to an employee.")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -218,7 +223,7 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
 
     [HttpPut("{kpiId:guid}/measurements/{measurementId:guid}")]
     [EndpointSummary("Correct a measurement.")]
-    [EndpointDescription($"{SubjectDocs} Replaces the value and period of a measurement on an open KPI; who took it stays as recorded. {ManageDocs}")]
+    [EndpointDescription($"{SubjectDocs} Replaces the value and time of a measurement on an open KPI, given as recording it takes them; who took it stays as recorded. {ManageDocs}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]

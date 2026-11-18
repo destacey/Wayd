@@ -43,6 +43,7 @@ import {
   projectsImportStages,
   projectsImportTasks,
 } from '@/src/services/api/projects'
+import { kpiImportsImport } from '@/src/services/api/kpi-imports'
 import { releasePackagesImport } from '@/src/services/api/release-packages'
 import { releasesImport } from '@/src/services/api/releases'
 import { risksImport } from '@/src/services/api/risks'
@@ -140,6 +141,13 @@ const IMPORTED_RECORD_TAGS: Record<ImportKey, ImportedRecordTag[]> = {
   'demand-management.intake-requests': [
     { type: QueryTags.IntakeRequest, id: 'LIST' },
     QueryTags.IntakeRequestScore,
+  ],
+  // Every scorecard and KPI drawer: the rows name records across the organization.
+  // The categories list counts the KPIs in each category.
+  'kpis.kpis': [
+    QueryTags.KpiScorecard,
+    QueryTags.Kpi,
+    { type: QueryTags.KpiCategory, id: 'LIST' },
   ],
   // Outcomes show on each request and on the project and work item lists, which all share this type.
   'demand-management.intake-request-outcomes': [QueryTags.IntakeRequest],
@@ -262,6 +270,11 @@ const SUBMITTERS: Record<
     deploymentsImport({ file: required(file) }, { validateOnly: validateOnly }),
   'product-management.incidents': ({ file }, validateOnly) =>
     incidentsImport({ file: required(file) }, { validateOnly: validateOnly }),
+  'kpis.kpis': ({ file, measurementsFile }, validateOnly) =>
+    kpiImportsImport(
+      { file: required(file), measurementsFile: required(measurementsFile) },
+      { validateOnly: validateOnly },
+    ),
   'demand-management.intake-requests': ({ file }, validateOnly) =>
     intakeRequestsImport(
       { file: required(file) },

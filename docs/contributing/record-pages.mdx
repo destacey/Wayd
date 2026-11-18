@@ -462,7 +462,7 @@ Not every grid is a data-exploration surface. A section showing a record's four 
 | Toolbar | Hidden | Search, row count, refresh, clear, export, help |
 | Column filters | Off | Popup + floating filter row |
 | Column menu (sort/pin/autosize) | On | On |
-| Height | Fits its rows | Fills the remaining viewport |
+| Height | Fits its rows, never less than `minHeight` when given | Fills the remaining viewport |
 | Layout persistence | Don't set `persistStateKey` | Opt-in via `persistStateKey` |
 | Row virtualization | On | On |
 | Typical size | Under ~25 rows | Unbounded |

@@ -6,7 +6,7 @@ using Moq;
 using Moq.AutoMock;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
-using Wayd.Common.Domain.Models.KeyPerformanceIndicators;
+using Wayd.Common.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands.Kpis;
 using Wayd.Web.Api.Controllers.Ppm;
 using Wayd.Web.Api.Models.Ppm.StrategicInitiatives;

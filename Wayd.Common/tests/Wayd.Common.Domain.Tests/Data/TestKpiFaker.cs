@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Models.KeyPerformanceIndicators;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Tests.Data.Models;
 using Wayd.Tests.Shared.Data;
 using Wayd.TestData.Core;

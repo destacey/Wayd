@@ -31,6 +31,10 @@ This glossary defines the key terms and concepts used throughout Wayd. It is des
 | **Employee** | An individual in the organization. Can be a member of multiple teams. May be synced from a people connector (Microsoft Entra ID via Graph, or Workday). |
 | **Work Email** | One of the email addresses an employee is known by. Exactly one is the primary (mirroring `Employee.Email`); the rest are other work addresses the same person uses or used to use — typically ones left behind by a tenant or domain migration. Only work addresses are recorded; home and personal addresses are filtered out at the connector. Owned by the active people connector and fully replaced on each sync. Used to match people against systems that still reference an older address, such as Azure DevOps work items. |
 | **Functional Organization Chart** | A visualization of the complete team hierarchy as of a specific date. |
+| **KPI** | A key performance indicator on a record — today a team or team of teams — with a direction, a baseline (a value and the dates it was taken over), a target stated as a value or a percentage change from the baseline, an optional at-risk threshold, and measurements over time. Active or Closed; a closed KPI keeps its measurements. Changed by members of the team or of any team of teams above it, or a KPI administrator. Behind the `kpis` feature flag. Not a strategic initiative KPI, which belongs to an initiative and has a checkpoint plan. |
+| **KPI Measurement** | The raw value of a KPI for one period (a date range, optionally naming the sprint, planning interval or release it covers), with an optional sample size. One per period; a KPI's periods never overlap. Change from baseline and progress to target are worked out from it and never stored. |
+| **Scorecard** | Every active KPI on a record, grouped by KPI category. A view, never stored; one per record. |
+| **KPI Category** | An organization-defined grouping for KPIs, such as Flow, Quality or People, in the order every scorecard groups by. Deactivated rather than deleted once a KPI uses it. |
 
 ## Planning
 

@@ -58,6 +58,9 @@ public sealed class Recipe
 
     /// <summary>The Request Desk: the desks that review demand, and the intake requests the company submits to them.</summary>
     public DemandManagementRecipe? DemandManagement { get; init; }
+
+    /// <summary>The KPIs every team and ART is measured on, each with a monthly history.</summary>
+    public KpisRecipe? Kpis { get; init; }
 }
 
 /// <summary>An area that can be switched off wholesale rather than tuned.</summary>
@@ -207,4 +210,11 @@ public sealed class DemandManagementRecipe : AreaRecipe
 {
     /// <summary>Average number of intake requests the company submits per month.</summary>
     public int? RequestsPerMonth { get; init; }
+}
+
+/// <summary>The KPIs layered over the organization: some on every delivery team, a couple on every ART.</summary>
+public sealed class KpisRecipe : AreaRecipe
+{
+    /// <summary>How many KPIs each delivery team carries. Its ART carries half as many, at least one.</summary>
+    public int? KpisPerTeam { get; init; }
 }

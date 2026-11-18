@@ -28,6 +28,7 @@ public static class ConfigureServices
         // registry takes instead of a service provider, so Wolverine's codegen can inline it.
         services.AddScoped<IImportPayloadSerializer, ImportPayloadSerializer>();
         services.AddScoped<IImportDefinition, EmployeeImportDefinition>();
+        services.AddScoped<IImportDefinition, Kpis.Imports.KpiImportDefinition>();
         services.AddScoped<IImportDefinitionRegistry, ImportDefinitionRegistry>();
         services.AddScoped<IActivityLogReader, ActivityLogReader>();
         services.AddScoped(typeof(ISettings<>), typeof(StoredSettings<>));

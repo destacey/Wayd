@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.Models.KeyPerformanceIndicators;
+using Wayd.Common.Domain.Enums;
 using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;

@@ -142,7 +142,8 @@ public class RecipeBoundsTests
               "ppm": { "functionPortfolios": -9, "concurrentProjectsPerArt": -9, "concurrentProgramsPerPortfolio": -9, "deliverablesPerProject": -9 },
               "productManagement": { "versionIntervalDays": -9, "changeFailureRate": 99, "packagedArtFraction": 99, "componentsPerTeam": -9, "dependenciesPerComponent": -9, "hardDependencyFraction": 99, "platformServices": -9 },
               "planning": { "iterationWeeks": -9,"objectivesPerTeam": -9, "risksPerTeam": 99 },
-              "demandManagement": { "requestsPerMonth": -9 }
+              "demandManagement": { "requestsPerMonth": -9 },
+              "kpis": { "kpisPerTeam": -9 }
             }
             """)!;
 

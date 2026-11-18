@@ -17,7 +17,8 @@ public sealed record GeneratedDataset(
     GeneratedPpm? Ppm,
     GeneratedProductManagement? ProductManagement,
     GeneratedPlanning? Planning,
-    GeneratedDemandManagement? DemandManagement)
+    GeneratedDemandManagement? DemandManagement,
+    GeneratedKpis? Kpis = null)
 {
     /// <summary>Runs the generators for a resolved recipe.</summary>
     public static GeneratedDataset From(ResolvedRecipe resolved)
@@ -51,7 +52,11 @@ public sealed record GeneratedDataset(
             };
         }
 
-        return new GeneratedDataset(org, ppm, productManagement, planning, demandManagement);
+        var kpis = resolved.GenerateKpis
+            ? new KpiGenerator(org.Structure, resolved.Kpis, resolved.Context).Generate()
+            : null;
+
+        return new GeneratedDataset(org, ppm, productManagement, planning, demandManagement, kpis);
     }
 
     /// <summary>
@@ -103,6 +108,12 @@ public sealed record GeneratedDataset(
             CsvFile.Write(Path.Combine(directory, "planning-intervals.csv"), planning.PlanningIntervals);
             CsvFile.Write(Path.Combine(directory, "planning-interval-objectives.csv"), planning.Objectives);
             CsvFile.Write(Path.Combine(directory, "risks.csv"), planning.Risks);
+        }
+
+        if (Kpis is { } kpis)
+        {
+            CsvFile.Write(Path.Combine(directory, "kpis.csv"), kpis.Kpis);
+            CsvFile.Write(Path.Combine(directory, "kpi-measurements.csv"), kpis.Measurements);
         }
 
         if (DemandManagement is { } demandManagement)
@@ -177,6 +188,9 @@ public sealed record GeneratedDataset(
             yield return $"Generated {planning.PlanningIntervals.Count} planning intervals, {planning.Objectives.Count} objectives, "
                 + $"{planning.Risks.Count} risks.";
         }
+
+        if (Kpis is { } kpis)
+            yield return $"Generated {kpis.Kpis.Count} KPIs with {kpis.Measurements.Count} monthly measurements.";
 
         if (DemandManagement is { } demandManagement)
             yield return $"Generated {demandManagement.Desks.Count} intake desks, {demandManagement.Requests.Count} intake requests "

@@ -6253,6 +6253,140 @@ export interface ImportIntakeRequestRequest {
   estimate?: string | null;
 }
 
+/**
+ * A single CSV row for the measurements file: one value of one KPI for one period.
+ */
+export interface ImportKpiMeasurementRequest {
+  /**
+     * The `ImportId` of the KPI row this value belongs to.
+     * @minLength 1
+     */
+  kpiImportId: string;
+  /** The first day the value describes. */
+  periodStart: string & { readonly __brand: 'CalendarDate' };
+  /** The last day the value describes. A KPI's periods cannot overlap. */
+  periodEnd: string & { readonly __brand: 'CalendarDate' };
+  /** The raw measured value — never a percentage worked out from it. */
+  value: number;
+  /**
+     * The day the value was taken; the period's last day when blank.
+     * @nullable
+     */
+  measuredOn?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * How many items the value was computed over, when known.
+     * @nullable
+     */
+  sampleSize?: number | null;
+  /**
+     * Context for the value, up to 1,024 characters.
+     * @maxLength 1024
+     * @nullable
+     */
+  note?: string | null;
+}
+
+/**
+ * A single CSV row for the KPI import — one KPI on an existing record, without its history. Measurements arrive
+ * in a second file and point back here by this row's `ImportId`.
+ */
+export interface ImportKpiRequest {
+  /**
+     * The caller's own key for this row, unique within the file (case-insensitively). Results are reported against
+     * it, and the measurements file names it to say which KPI a value belongs to. Leave a cell blank and the row is
+     * known by its position instead, but the column itself must be in the file.
+     * @nullable
+     */
+  importId?: string | null;
+  /**
+     * The kind of record the KPI goes on: `organization.team` for a team or a team of teams.
+     * @minLength 1
+     * @maxLength 64
+     */
+  subjectType: string;
+  /**
+     * The record the KPI goes on, by id.
+     * @minLength 1
+     */
+  subjectId: string;
+  /**
+     * What the KPI is called, up to 128 characters.
+     * @minLength 1
+     * @maxLength 128
+     */
+  name: string;
+  /**
+     * What it measures and why, up to 1,024 characters.
+     * @maxLength 1024
+     * @nullable
+     */
+  description?: string | null;
+  /**
+     * An active KPI category, by id, or blank for none.
+     * @nullable
+     */
+  categoryId?: string | null;
+  /**
+     * A symbol shown before a value, such as `$`.
+     * @maxLength 16
+     * @nullable
+     */
+  prefix?: string | null;
+  /**
+     * A unit shown after a value, such as `days`.
+     * @maxLength 16
+     * @nullable
+     */
+  suffix?: string | null;
+  /**
+     * Which reading the scorecard shows. `Value` when blank.
+     * @nullable
+     */
+  expressedAs?: string | null;
+  /**
+     * Whether the KPI should go up or down: `Increase` or `Decrease`.
+     * @minLength 1
+     */
+  direction: string;
+  /**
+     * Where it started. Required for a `RelativeChange` target.
+     * @nullable
+     */
+  baselineValue?: number | null;
+  /**
+     * The first day the baseline was taken over. Give both ends of the window or neither.
+     * @nullable
+     */
+  baselineWindowStart?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * The last day the baseline was taken over.
+     * @nullable
+     */
+  baselineWindowEnd?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * `Absolute` for a value to reach, or `RelativeChange` for a percentage change from the baseline. `Absolute` when blank.
+     * @nullable
+     */
+  targetKind?: string | null;
+  /** The value to reach, or the percentage change — 25 for 25%. */
+  targetValue: number;
+  /**
+     * How an at-risk threshold is stated: `Absolute` or `ProgressToTarget`. Blank for none.
+     * @nullable
+     */
+  atRiskKind?: string | null;
+  /**
+     * The threshold value, or the percentage of the way to the target.
+     * @nullable
+     */
+  atRiskValue?: number | null;
+  /**
+     * `true` to import the KPI closed, as history only. Open when blank.
+     * @nullable
+     */
+  isClosed?: boolean | null;
+}
+
 export interface ImportPlanningIntervalObjectivesRequest {
   /**
      * The caller's own key for this row, unique within the file (case-insensitively). Results are
@@ -9048,6 +9182,81 @@ export type JsonPatchDocumentOfUpdateProjectTaskRequest = JsonPatchOperation[];
 
 export type JsonPatchDocumentOfUpdateRoadmapItemRequest = JsonPatchOperation[];
 
+export type KpiAtRiskKind = typeof KpiAtRiskKind[keyof typeof KpiAtRiskKind];
+
+
+export const KpiAtRiskKind = {
+  Absolute: 'Absolute',
+  ProgressToTarget: 'ProgressToTarget',
+} as const;
+
+/**
+ * Where a KPI started.
+ */
+export interface KpiBaselineRequest {
+  /**
+     * The baseline value, or null when the KPI has not been measured yet. Required for a `RelativeChange` target.
+     * @nullable
+     */
+  value?: number | null;
+  /**
+     * The first day the baseline was taken over, as `YYYY-MM-DD`. Give both ends of the window or neither.
+     * @nullable
+     */
+  windowStart?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * The last day the baseline was taken over, as `YYYY-MM-DD`.
+     * @nullable
+     */
+  windowEnd?: string & { readonly __brand: 'CalendarDate' } | null;
+}
+
+/**
+ * A KPI category as the settings list shows it.
+ */
+export interface KpiCategoryDto {
+  /** The category's id. */
+  id: string;
+  /** What it is called. */
+  name: string;
+  /**
+     * What kind of KPI belongs in it.
+     * @nullable
+     */
+  description?: string | null;
+  /** Its position, lowest first. */
+  order: number;
+  /** Whether it is offered for new KPIs. */
+  isActive: boolean;
+  /** How many KPIs, open and closed, have it; one with any cannot be deleted. */
+  kpiCount: number;
+}
+
+/**
+ * A KPI category as a KPI names it.
+ */
+export interface KpiCategoryRefDto {
+  /** The category's id. */
+  id: string;
+  /** What it is called. */
+  name: string;
+  /** Its position, lowest first, which a scorecard groups by. */
+  order: number;
+}
+
+/**
+ * A KPI category's name and description.
+ */
+export interface KpiCategoryRequest {
+  /** What the category is called, up to 64 characters; unique, ignoring case. */
+  name: string;
+  /**
+     * What kind of KPI belongs in it, up to 512 characters.
+     * @nullable
+     */
+  description?: string | null;
+}
+
 export interface KpiCheckpointPlanItemRequest {
   /**
      * The ID of an existing checkpoint to update. Null for new checkpoints.
@@ -9071,6 +9280,82 @@ export interface KpiCheckpointPlanItemRequest {
   dateLabel: string;
 }
 
+export type KpiSource = typeof KpiSource[keyof typeof KpiSource];
+
+
+export const KpiSource = {
+  Manual: 'Manual',
+} as const;
+
+export type KpiExpressedAs = typeof KpiExpressedAs[keyof typeof KpiExpressedAs];
+
+
+export const KpiExpressedAs = {
+  Value: 'Value',
+  ChangeFromBaseline: 'ChangeFromBaseline',
+  ProgressToTarget: 'ProgressToTarget',
+} as const;
+
+export type KpiStatus = typeof KpiStatus[keyof typeof KpiStatus];
+
+
+export const KpiStatus = {
+  Active: 'Active',
+  Closed: 'Closed',
+} as const;
+
+export type KpiTargetKind = typeof KpiTargetKind[keyof typeof KpiTargetKind];
+
+
+export const KpiTargetKind = {
+  Absolute: 'Absolute',
+  RelativeChange: 'RelativeChange',
+} as const;
+
+/**
+ * What a KPI is measured against, as entered and as it resolves today.
+ */
+export interface KpiGoalDto {
+  /** Whether the KPI should go up or down. */
+  direction: KpiTargetDirection;
+  /**
+     * Where it started, or null when it has not been measured yet.
+     * @nullable
+     */
+  baselineValue?: number | null;
+  /**
+     * The first day the baseline was taken over, when known.
+     * @nullable
+     */
+  baselineWindowStart?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * The last day the baseline was taken over, when known.
+     * @nullable
+     */
+  baselineWindowEnd?: string & { readonly __brand: 'CalendarDate' } | null;
+  /** How the target is stated. */
+  targetKind: KpiTargetKind;
+  /** The value to reach, or the percentage change from the baseline. */
+  targetValue: number;
+  /** How the at-risk threshold is stated, or null when there is none. */
+  atRiskKind?: KpiAtRiskKind | null;
+  /**
+     * The threshold value, or the percentage of the way to the target.
+     * @nullable
+     */
+  atRiskValue?: number | null;
+  /**
+     * The value the target comes to, or null when it is relative and there is no baseline.
+     * @nullable
+     */
+  resolvedTargetValue?: number | null;
+  /**
+     * The value the threshold comes to, or null when there is none.
+     * @nullable
+     */
+  resolvedAtRiskValue?: number | null;
+}
+
 export type KpiHealth = typeof KpiHealth[keyof typeof KpiHealth];
 
 
@@ -9089,6 +9374,270 @@ export const KpiTrend = {
   Worsening: 'Worsening',
   Stable: 'Stable',
 } as const;
+
+/**
+ * What a KPI's latest value means against its goal, worked out when read.
+ */
+export interface KpiReadingDto {
+  /**
+     * The latest raw value, or null when nothing has been measured.
+     * @nullable
+     */
+  value?: number | null;
+  /**
+     * The latest value less the baseline, or null without both.
+     * @nullable
+     */
+  changeFromBaseline?: number | null;
+  /**
+     * That change as a percentage of the baseline's magnitude; null without both or from a baseline of zero.
+     * @nullable
+     */
+  changeFromBaselinePercent?: number | null;
+  /**
+     * How far the value has moved from the baseline toward the target, where 1 is the target reached; null without a baseline.
+     * @nullable
+     */
+  progressToTarget?: number | null;
+  /** Whether the value meets the target, is at risk, or neither; null when nothing has been measured. */
+  health?: KpiHealth | null;
+  /** Whether the latest value moved the right way from the one before it. */
+  trend: KpiTrend;
+}
+
+/**
+ * One value in a KPI's history, for a trend line.
+ */
+export interface KpiPointDto {
+  /** The first day the value describes. */
+  periodStart: string & { readonly __brand: 'CalendarDate' };
+  /** The last day the value describes. */
+  periodEnd: string & { readonly __brand: 'CalendarDate' };
+  /** The raw measured value. */
+  value: number;
+}
+
+/**
+ * One KPI as a scorecard lists it: what it is, its goal, its latest reading and its recent values.
+ */
+export interface KpiSummaryDto {
+  /** The KPI's id. */
+  id: string;
+  /** The KPI's key. */
+  key: number;
+  /** What it is called. */
+  name: string;
+  /**
+     * What it measures and why.
+     * @nullable
+     */
+  description?: string | null;
+  /** The category it is grouped under, or null when uncategorized. */
+  category?: KpiCategoryRefDto | null;
+  /**
+     * A symbol shown before a value.
+     * @nullable
+     */
+  prefix?: string | null;
+  /**
+     * A unit shown after a value.
+     * @nullable
+     */
+  suffix?: string | null;
+  /** Where its measurements come from. */
+  source: KpiSource;
+  /** Which reading the scorecard shows. */
+  expressedAs: KpiExpressedAs;
+  /** Whether it is on the scorecard. */
+  status: KpiStatus;
+  /** Its position on the scorecard, lowest first. */
+  order: number;
+  /** What it is measured against. */
+  goal: KpiGoalDto;
+  /** What its latest value means against the goal. */
+  reading: KpiReadingDto;
+  /** Its most recent values, oldest first, for a trend line. */
+  recentValues: KpiPointDto[];
+}
+
+export type KpiPeriodRecordKind = typeof KpiPeriodRecordKind[keyof typeof KpiPeriodRecordKind];
+
+
+export const KpiPeriodRecordKind = {
+  Sprint: 'Sprint',
+  PlanningInterval: 'PlanningInterval',
+  Release: 'Release',
+} as const;
+
+export type KpiMeasurementSource = typeof KpiMeasurementSource[keyof typeof KpiMeasurementSource];
+
+
+export const KpiMeasurementSource = {
+  Manual: 'Manual',
+} as const;
+
+/**
+ * One measurement as a KPI's history lists it.
+ */
+export interface KpiMeasurementDto {
+  /** The measurement's id. */
+  id: string;
+  /** The raw measured value. */
+  value: number;
+  /** The first day the value describes. */
+  periodStart: string & { readonly __brand: 'CalendarDate' };
+  /** The last day the value describes. */
+  periodEnd: string & { readonly __brand: 'CalendarDate' };
+  /** The kind of record the period covers, if any. */
+  periodRecordKind?: KpiPeriodRecordKind | null;
+  /**
+     * The sprint, planning interval or release the period covers, if any.
+     * @nullable
+     */
+  periodRecordId?: string | null;
+  /** The day the value was taken. */
+  measuredOn: string & { readonly __brand: 'CalendarDate' };
+  /** The employee who took it, when known. */
+  measuredBy?: EmployeeNavigationDto | null;
+  /** How the value was arrived at. */
+  source: KpiMeasurementSource;
+  /**
+     * How many items the value was computed over, when known.
+     * @nullable
+     */
+  sampleSize?: number | null;
+  /**
+     * Context the person recording it added.
+     * @nullable
+     */
+  note?: string | null;
+}
+
+/**
+ * One KPI with every measurement taken, newest first, and what the caller may do with it.
+ */
+export interface KpiDetailsDto {
+  /** The KPI as a scorecard lists it. */
+  kpi: KpiSummaryDto;
+  /** The record's name. */
+  subjectName: string;
+  /** Whether the caller may change the KPI and its measurements. */
+  canManage: boolean;
+  /** Every measurement, newest period first. */
+  measurements: KpiMeasurementDto[];
+}
+
+/**
+ * A measurement's value and the period it describes.
+ */
+export interface KpiMeasurementRequest {
+  /** The raw measured value — never a percentage worked out from it. */
+  value: number;
+  /** The first day the value describes, as `YYYY-MM-DD`. */
+  periodStart: string & { readonly __brand: 'CalendarDate' };
+  /** The last day the value describes. Periods on one KPI cannot overlap. */
+  periodEnd: string & { readonly __brand: 'CalendarDate' };
+  /** The kind of record the period covers — `Sprint`, `PlanningInterval` or `Release` — given with `periodRecordId`, or null. */
+  periodRecordKind?: KpiPeriodRecordKind | null;
+  /**
+     * The id of the sprint, planning interval or release the period covers, or null.
+     * @nullable
+     */
+  periodRecordId?: string | null;
+  /**
+     * The day the value was taken; the period's last day when left out.
+     * @nullable
+     */
+  measuredOn?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * How many items the value was computed over, when known.
+     * @nullable
+     */
+  sampleSize?: number | null;
+  /**
+     * Context for the value, up to 1,024 characters.
+     * @nullable
+     */
+  note?: string | null;
+}
+
+/**
+ * What a KPI aims for.
+ */
+export interface KpiTargetRequest {
+  /** Whether the KPI should go up (`Increase`) or down (`Decrease`). */
+  direction: KpiTargetDirection;
+  /** `Absolute` for a value to reach, or `RelativeChange` for a percentage change from the baseline in the KPI's direction. */
+  kind: KpiTargetKind;
+  /** The value to reach, or the percentage change — 25 for 25% — for `RelativeChange`. */
+  value: number;
+  /**
+     * How the optional at-risk threshold is stated: `Absolute` for a value, or `ProgressToTarget` for a percentage of
+     * the way from the baseline to the target. Leave it and `atRiskValue` out for no threshold.
+     */
+  atRiskKind?: KpiAtRiskKind | null;
+  /**
+     * The threshold value, or the percentage of the way to the target. A value past it but short of the target is at risk.
+     * @nullable
+     */
+  atRiskValue?: number | null;
+}
+
+/**
+ * Everything about a KPI that is entered rather than measured: its descriptive fields, where it started and what it
+ * aims for.
+ */
+export interface KpiRequest {
+  /** What the KPI is called, up to 128 characters. */
+  name: string;
+  /**
+     * What it measures and why, up to 1,024 characters.
+     * @nullable
+     */
+  description?: string | null;
+  /**
+     * An active KPI category to group it under, or null for none.
+     * @nullable
+     */
+  categoryId?: string | null;
+  /**
+     * A symbol shown before a value, such as `$`, up to 16 characters.
+     * @nullable
+     */
+  prefix?: string | null;
+  /**
+     * A unit shown after a value, such as `days`, up to 16 characters.
+     * @nullable
+     */
+  suffix?: string | null;
+  /** Which reading the scorecard shows: `Value`, `ChangeFromBaseline` or `ProgressToTarget`. */
+  expressedAs: KpiExpressedAs;
+  /** Where the KPI started. */
+  baseline: KpiBaselineRequest;
+  /** What it aims for. */
+  target: KpiTargetRequest;
+}
+
+/**
+ * Every active KPI on one record, and what the caller may do with them.
+ */
+export interface KpiScorecardDto {
+  /** The record's registered subject type. */
+  subjectType: string;
+  /** The record's id. */
+  subjectId: string;
+  /** The record's name. */
+  subjectName: string;
+  /**
+     * The record's short code, when it has one.
+     * @nullable
+     */
+  subjectCode?: string | null;
+  /** Whether the caller may add, change and remove the record's KPIs and their measurements. */
+  canManage: boolean;
+  /** The active KPIs, by category order (uncategorized last), then position, then key. */
+  kpis: KpiSummaryDto[];
+}
 
 export interface LifecycleNavigationDto {
   id: number;
@@ -12834,6 +13383,22 @@ export interface ReorderIntakeRequestTagCategoriesRequest {
      * @minItems 1
      */
   orderedCategoryIds: string[];
+}
+
+/**
+ * A new order for the organization's KPI categories.
+ */
+export interface ReorderKpiCategoriesRequest {
+  /** Every category, active and inactive, each once, in their new order. */
+  categoryIds: string[];
+}
+
+/**
+ * A new order for a record's KPIs.
+ */
+export interface ReorderKpisRequest {
+  /** Every KPI on the record, open and closed, each once, in their new order. */
+  kpiIds: string[];
 }
 
 export interface ReorderPersonaRequest {
@@ -19636,6 +20201,20 @@ export type DiscussionSettingsGetSettingsParams = {
 
 export type DiscussionSettingsSaveSettingsParams = {
   scopeId?: string;
+};
+
+export type KpiCategoriesGetCategoriesParams = {
+  includeInactive?: boolean;
+};
+
+export type KpiImportsImportParams = {
+  submissionGroupId?: string;
+  validateOnly?: boolean;
+};
+
+export type KpiImportsImportBody = {
+  file: Blob | File;
+  measurementsFile: Blob | File;
 };
 
 export type MeGetWorkItemsParams = {

@@ -1,5 +1,5 @@
 using Wayd.Common.Extensions;
-using Wayd.Common.Domain.Models.KeyPerformanceIndicators;
+using Wayd.Common.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 

@@ -135,6 +135,7 @@ type ImportModule = (typeof importTemplates)[ImportKey]['module']
  */
 const IMPORT_GROUPS: Record<ImportModule, string> = {
   'demand-management': 'Demand Management',
+  kpis: 'KPIs',
   organization: 'Organization',
   planning: 'Planning',
   ppm: 'Project Portfolio Management',

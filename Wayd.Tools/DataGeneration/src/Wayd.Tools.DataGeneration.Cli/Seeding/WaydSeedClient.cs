@@ -242,6 +242,63 @@ public sealed class WaydSeedClient : IDisposable
     public Task<ImportRun> ImportRisks(byte[] csv, CancellationToken cancellationToken) =>
         Import("api/planning/risks/import", csv, "risks.csv", "risks", cancellationToken);
 
+    // ---- KPIs ---------------------------------------------------------------------------------
+
+    public Task<ImportRun> ImportKpis(byte[] kpisCsv, byte[] measurementsCsv, CancellationToken cancellationToken) =>
+        Import("api/kpis/import", kpisCsv, "kpis.csv", "KPIs", cancellationToken,
+            secondFieldName: "measurementsFile", secondCsv: measurementsCsv, secondFileName: "kpi-measurements.csv");
+
+    /// <summary>
+    /// Ensures each KPI category exists, creating the missing ones at the end of the list, and answers with every
+    /// category's id by name.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<string, Guid>> EnsureKpiCategories(
+        IEnumerable<(string Name, string Description)> categories, CancellationToken cancellationToken)
+    {
+        var kpiCategories = _api.Api.KpiCategories;
+        var existing = await kpiCategories.GetAsync(
+            q => q.QueryParameters.IncludeInactive = true, cancellationToken) ?? [];
+
+        var wanted = categories.ToList();
+        var ids = MatchKpiCategories(wanted.Select(c => c.Name), existing);
+
+        foreach (var (name, description) in wanted.Where(c => !ids.ContainsKey(c.Name)))
+        {
+            ids[name] = Created(await kpiCategories.PostAsync(
+                new KpiCategoryRequest { Name = name, Description = description },
+                cancellationToken: cancellationToken), $"KPI category '{name}'");
+        }
+
+        return ids;
+    }
+
+    /// <summary>
+    /// The ids of the wanted KPI categories that already exist, by name, ignoring case. A wanted category that exists
+    /// but is inactive stops the seed: the import takes only active categories, so every KPI in it would fail, and a
+    /// seed never reactivates what someone switched off.
+    /// </summary>
+    internal static Dictionary<string, Guid> MatchKpiCategories(IEnumerable<string> wanted, IEnumerable<KpiCategoryDto> existing)
+    {
+        var byName = existing
+            .Where(c => c.Name is not null && c.Id is not null)
+            .ToDictionary(c => c.Name!, StringComparer.OrdinalIgnoreCase);
+        var ids = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var name in wanted)
+        {
+            if (!byName.TryGetValue(name, out var found))
+                continue;
+
+            if (found.IsActive == false)
+                throw new SeedException(
+                    $"KPI category '{found.Name}' exists but is inactive. Activate it in Settings → KPI Categories, then seed again.");
+
+            ids[name] = found.Id!.Value;
+        }
+
+        return ids;
+    }
+
     // ---- Request Desk -------------------------------------------------------------------------
 
     public Task<ImportRun> ImportIntakeRequests(byte[] csv, CancellationToken cancellationToken) =>

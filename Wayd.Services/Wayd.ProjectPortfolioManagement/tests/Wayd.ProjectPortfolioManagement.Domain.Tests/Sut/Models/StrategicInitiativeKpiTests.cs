@@ -2,7 +2,7 @@
 using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.Testing;
-using Wayd.Common.Domain.Models.KeyPerformanceIndicators;
+using Wayd.Common.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions;

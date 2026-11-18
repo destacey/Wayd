@@ -33,7 +33,7 @@ jobs:
             - name: Restore dependencies
               run: dotnet restore
 
-            # Kiota, which builds the data-generation tool's client whenever the OpenAPI document is newer.
+            # Kiota, which generates the data-generation tool's client in the check below.
             - name: Restore local tools
               run: dotnet tool restore
 
@@ -42,7 +42,7 @@ jobs:
 
             # The generated client is committed; fails when it no longer matches the committed
             # specification.json, the project's path list, or the pinned Kiota version. Removing the lock
-            # file forces the generation that the build's timestamp check would otherwise skip.
+            # file forces the generation whatever an earlier build of the project left under obj/.
             - name: Check generated data-generation client
               working-directory: Wayd.Tools/DataGeneration/src/Wayd.Tools.DataGeneration.Cli.Client
               run: |

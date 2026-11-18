@@ -91,4 +91,31 @@ public class WaydSeedClientTests
         notEstimating.Should().BeEmpty();
         notOffered.Should().BeEmpty();
     }
+
+    [Fact]
+    public void MatchKpiCategories_AnswersTheIdsOfActiveCategoriesByNameIgnoringCase_AndLeavesTheMissingOnesOut()
+    {
+        // Arrange
+        var flowId = Guid.NewGuid();
+        KpiCategoryDto[] existing = [new() { Id = flowId, Name = "Flow", IsActive = true }];
+
+        // Act
+        var ids = WaydSeedClient.MatchKpiCategories(["flow", "Quality"], existing);
+
+        // Assert
+        ids.Should().ContainSingle().Which.Should().Be(new KeyValuePair<string, Guid>("flow", flowId));
+    }
+
+    [Fact]
+    public void MatchKpiCategories_StopsTheSeed_WhenAWantedCategoryIsInactive()
+    {
+        // Arrange
+        KpiCategoryDto[] existing = [new() { Id = Guid.NewGuid(), Name = "Flow", IsActive = false }];
+
+        // Act
+        var match = () => WaydSeedClient.MatchKpiCategories(["Flow"], existing);
+
+        // Assert
+        match.Should().Throw<SeedException>().WithMessage("*'Flow'*inactive*");
+    }
 }

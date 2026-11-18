@@ -58,19 +58,21 @@ public class GeneratedDatasetTests : IDisposable
             "product-dependencies.csv",
             "planning-intervals.csv", "planning-interval-objectives.csv", "risks.csv",
             "intake-desks.csv", "intake-requests.csv", "intake-request-outcomes.csv",
+            "kpis.csv", "kpi-measurements.csv",
         ]);
     }
 
     [Fact]
     public void WriteTo_WritesOnlyTheOrganizationWhenTheOtherAreasAreDisabled()
     {
-        // Arrange — the org-only shape, which has no PPM, Product Management, Planning or Request Desk model to write at all
+        // Arrange — the org-only shape, which has no PPM, Product Management, Planning, Request Desk or KPI model to write at all
         var recipe = new Recipe
         {
             Ppm = new PpmRecipe { Enabled = false },
             ProductManagement = new ProductManagementRecipe { Enabled = false },
             Planning = new PlanningRecipe { Enabled = false },
             DemandManagement = new DemandManagementRecipe { Enabled = false },
+            Kpis = new KpisRecipe { Enabled = false },
         };
 
         // Act

@@ -1,6 +1,7 @@
 ﻿using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Data;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Extensions;
 
 namespace Wayd.Common.Domain.Models.KeyPerformanceIndicators;

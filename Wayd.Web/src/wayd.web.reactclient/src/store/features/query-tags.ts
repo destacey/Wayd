@@ -30,6 +30,9 @@ export enum QueryTags {
 
   // COMMON
   ActivityLog = 'Common.ActivityLog',
+  Kpi = 'Kpis.Kpi',
+  KpiCategory = 'Kpis.Category',
+  KpiScorecard = 'Kpis.Scorecard',
   Links = 'Common.Links',
   FollowStatus = 'Common.FollowStatus',
   MyFollows = 'Common.MyFollows',

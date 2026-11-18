@@ -49,5 +49,9 @@
   "demandManagement": {
     "enabled": true,
     "requestsPerMonth": 12
+  },
+  "kpis": {
+    "enabled": true,
+    "kpisPerTeam": 3
   }
 }

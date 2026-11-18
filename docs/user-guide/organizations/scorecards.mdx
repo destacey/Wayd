@@ -1,0 +1,75 @@
+---
+title: Scorecards and KPIs
+description: Setting KPIs on a team or team of teams — baselines, targets, at-risk thresholds — recording measurements, and reading the scorecard.
+sidebar_position: 3
+audience: [user, agent]
+---
+
+# Scorecards and KPIs
+
+A **KPI** (key performance indicator) says what a team is aiming for and keeps what its number was at each point in time: where it started, where it is trying to get to, and a measurement for each period since. A team's **scorecard** is every active KPI on it, grouped by category.
+
+KPIs need the `kpis` feature flag, which an administrator turns on under **Settings → System → Feature Flags**. With it on, every team and team of teams has a **Scorecard** section, right after Overview.
+
+## What a KPI holds
+
+| Part | What it is |
+|---|---|
+| **Name and description** | What is measured and why it matters. |
+| **Category** | The group the scorecard shows it under, such as Flow, Quality or People. Categories are the organization's own list (see [Categories](#categories)). A KPI may have none; uncategorized KPIs are listed last. |
+| **Prefix and suffix** | A symbol before the value (`$`) and a unit after it (`days`, `%`, `items`). |
+| **Direction** | Whether higher or lower is better. |
+| **Baseline** | Where the KPI started, and optionally the dates that value was taken over — "an average of 20 days over the last quarter". A KPI can start without one and have it added later. |
+| **Target** | Either **a value** to reach ("reach 15 days"), or **a percentage change** from the baseline in the KPI's direction ("improve 25%"). A percentage change needs a baseline. The baseline must be short of the target: a KPI that should go up starts below its target. |
+| **At-risk threshold** | Optional. A line short of the target, stated as a value or as a share of the way from baseline to target. A measurement past it but short of the target is **At Risk** rather than **Unhealthy**. Without one, a KPI is either on target or not. |
+| **Show as** | Which reading the scorecard leads with: the value, the change from baseline, or the progress to target. |
+
+A percentage target follows its baseline: correct the baseline and the target it resolves to moves with it.
+
+## Measurements
+
+A **measurement** is the raw value of the KPI for a **period** — a sprint, a month, any date range. Each period on a KPI can hold one measurement, and periods never overlap, so the latest value and the trend are never ambiguous.
+
+The value is always the raw number, never a percentage worked out from it. Record 14 for a cycle time of 14 days; the change from baseline and the progress to target are worked out from it, so nobody enters a figure Wayd cannot check.
+
+A measurement can also carry a **sample size** — how many items an average or a rate was worked out from — and a note.
+
+## Reading the scorecard
+
+Each KPI is a card showing:
+
+- **Its headline** — the latest value, its change from baseline, or its progress to target, as the KPI is set to show.
+- **Health** — **Healthy** once the target is met, **At Risk** past the at-risk threshold, **Unhealthy** otherwise. Nothing until the KPI is first measured.
+- **Trend** — whether the latest value moved the right way from the one before it.
+- **A line of its recent values**, and the baseline and target.
+
+Open a card for the KPI's full view: its goal, every reading, a chart of its history against the target, at-risk and baseline lines, and every measurement. **Show closed KPIs** lists the KPIs taken off the scorecard.
+
+## Changing KPIs
+
+From the scorecard, **Add KPI** adds one at the end. From a KPI's view:
+
+- **Record Measurement** adds the value for a period. **Correct** and **Remove** in a measurement's row change one already recorded; who took it stays as recorded.
+- **Edit** changes its details, baseline and target in one save, so a baseline and target can move together. Each part that changed is its own entry in the KPI's history.
+- **Close** takes it off the scorecard and keeps its measurements; a closed KPI takes no new measurements until it is **reopened**.
+- **Remove** deletes it and its measurements for good. Close it instead to keep its history.
+
+Every change is recorded in the KPI's history and in the team's **Activity**.
+
+### Who can change a team's KPIs
+
+Members of the team, in any role, and members of **any** team of teams above it in the hierarchy as it stands today. A team of teams' own KPIs are changed by its members and those of the teams of teams above it. Viewing a team's KPIs needs only permission to view teams.
+
+The **Administer KPIs** permission changes any team's KPIs and manages the categories. See [KPIs: team membership](../settings/permissions.mdx#kpis-team-membership).
+
+## Categories
+
+**Settings → Organization → KPI Categories** holds the organization's categories, in the order every scorecard groups by. Drag a row to reorder. A category can be renamed, and deactivated to stop it being offered for new KPIs — KPIs that have it keep it. A category no KPI uses, open or closed, can be deleted. Managing categories needs **Administer KPIs**.
+
+## Bringing in history
+
+A year or more of history per team, from a spreadsheet, is loaded with the [KPI import](./bulk-import.mdx#kpi-import): one file of KPIs and one of their measurements.
+
+## From an AI assistant
+
+The `kpis` toolset on the [MCP server](../../getting-started/mcp-server.mdx) reads a scorecard and a KPI's history, and records a measurement.

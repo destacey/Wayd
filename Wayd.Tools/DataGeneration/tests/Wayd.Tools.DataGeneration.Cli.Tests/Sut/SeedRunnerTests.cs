@@ -201,6 +201,7 @@ public class SeedRunnerTests
             PlanningArea.Risks,
             DemandManagementArea.IntakeRequests,
             DemandManagementArea.IntakeRequestOutcomes,
+            KpiArea.Kpis,
         ]);
     }
 

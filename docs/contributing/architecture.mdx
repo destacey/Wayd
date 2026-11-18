@@ -508,6 +508,13 @@ notification handler (`IntakeRequestNotificationEventHandler`, `ProjectNotificat
 readers see internal notes, map `MessagePosted` and `InternalNotePosted` to the tiers its `VisibleNotifications`
 uses; a project holds no notes, so its handler never tells one and its read rule passes notifications through.
 
+### KPIs
+
+A KPI (`Common.Domain/Kpis`, schema `Kpis`) is on a **subject** held by a registered subject type string and the record's
+id, like a discussion channel: modules register their subject types and answer who may read and change a record's KPIs,
+and the core never knows what a team or project is. A **scorecard** is a view of a record's active KPIs, never stored.
+See [KPIs](./kpis.mdx) for the model and the steps to put KPIs on a new kind of record.
+
 ## Connector framework
 
 Customer-configured integrations (Azure DevOps, Entra, Workday, Azure OpenAI, future Jira / GitHub connectors) plug into a shared framework in the `Wayd.AppIntegration` service, the `Wayd.Integrations.*` projects, and a frontend registry pair. The goal is that adding a connector is *additive* — drop in new files, register them, no edits to the generic plumbing.

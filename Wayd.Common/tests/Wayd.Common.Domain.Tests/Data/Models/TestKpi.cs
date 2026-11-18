@@ -1,4 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Models.KeyPerformanceIndicators;
 
 namespace Wayd.Common.Domain.Tests.Data.Models;

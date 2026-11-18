@@ -9,7 +9,7 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Imports;
-using Wayd.Common.Domain.Models.KeyPerformanceIndicators;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Tests.Data;
 using Wayd.Common.Models;

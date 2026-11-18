@@ -19,6 +19,7 @@ import {
   importsResume,
   importsRetryFailed,
 } from '@/src/services/api/imports'
+import { incidentsImport } from '@/src/services/api/incidents'
 import {
   intakeRequestsImport,
   intakeRequestsImportOutcomes,
@@ -136,6 +137,7 @@ const IMPORTED_RECORD_TAGS: Record<ImportKey, ImportedRecordTag[]> = {
     { type: QueryTags.Deployment, id: 'LIST' },
     { type: QueryTags.DeliveryMetrics, id: 'LIST' },
   ],
+  'product-management.incidents': [{ type: QueryTags.Incident, id: 'LIST' }],
   'demand-management.intake-requests': [
     { type: QueryTags.IntakeRequest, id: 'LIST' },
     QueryTags.IntakeRequestScore,
@@ -266,6 +268,8 @@ const SUBMITTERS: Record<
     ),
   'product-management.deployments': ({ file }, validateOnly) =>
     deploymentsImport({ file: required(file) }, { validateOnly: validateOnly }),
+  'product-management.incidents': ({ file }, validateOnly) =>
+    incidentsImport({ file: required(file) }, { validateOnly: validateOnly }),
   'kpis.kpis': ({ file, measurementsFile }, validateOnly) =>
     kpiImportsImport(
       { file: required(file), measurementsFile: required(measurementsFile) },

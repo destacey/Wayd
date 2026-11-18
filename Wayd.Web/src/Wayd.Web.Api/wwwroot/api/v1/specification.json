@@ -13162,6 +13162,113 @@
         ]
       }
     },
+    "/api/product-management/incidents/import": {
+      "post": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Submit a csv file of incidents to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
+        "description": "Each row is created open and then walked to its Status alias: Open, Responding, Resolved, Closed, or Canceled. Severity is a level name in the selected severity set. Products, releases, and employees are ids. Who submitted the incident is the importer's linked employee. A second submission of the same file creates another incident for every row.",
+        "operationId": "Incidents_Import",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ],
+        "x-wayd-import": {
+          "key": "product-management.incidents",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportIncidentRequest",
+              "required": true
+            }
+          ]
+        }
+      }
+    },
     "/api/product-management/incidents/{id}": {
       "put": {
         "tags": [
@@ -66670,6 +66777,130 @@
         "additionalProperties": false,
         "description": "A single CSV row for the employee import. References the row's manager by employee number so an entire\nmanagement tree can be imported at once; linkage is resolved server-side after all rows are created."
       },
+      "ImportIncidentRequest": {
+        "required": [
+          "title",
+          "severity",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "importId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Required: a blank cell fails the row, and the row is not numbered by its\nposition instead. Never stored on the incident.",
+            "x-csv-column": "ImportId"
+          },
+          "title": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string",
+            "description": "What happened, in a line a responder can scan. Max 256 characters.",
+            "x-csv-column": "Title"
+          },
+          "symptoms": {
+            "maxLength": 4096,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What responders are seeing, in Markdown. Max 4096 characters. Blank records none.",
+            "x-csv-column": "Symptoms"
+          },
+          "rootCause": {
+            "maxLength": 4096,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why it happened, in Markdown. Max 4096 characters. Blank records none.",
+            "x-csv-column": "RootCause"
+          },
+          "remediation": {
+            "maxLength": 4096,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What was done about it, in Markdown. Max 4096 characters. Blank records none.",
+            "x-csv-column": "Remediation"
+          },
+          "severity": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The severity level's name in the organization's selected severity set, such as `SEV-1`.\nA name from a set that is not selected fails the row. Matched case-insensitively.",
+            "x-csv-column": "Severity"
+          },
+          "status": {
+            "minLength": 1,
+            "type": "string",
+            "description": "`Open`, `Responding`, `Resolved`, `Closed`, or `Canceled`,\ncase-insensitively. `Recovered` is the screen name of `Resolved` and is not a value here.\nThe incident is created open and then walked to this alias.",
+            "x-csv-column": "Status"
+          },
+          "commanderEmployeeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The commander, by employee id. Blank leaves the incident without one.",
+            "format": "uuid",
+            "x-csv-column": "CommanderEmployeeId"
+          },
+          "reportedByEmployeeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Who reported it, by employee id. Blank uses the importer's linked employee, who is always\nrecorded as who submitted it.",
+            "format": "uuid",
+            "x-csv-column": "ReportedByEmployeeId"
+          },
+          "productIds": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The products the incident points at, as a semicolon-separated list of ids. An unknown id fails\nthe row. Blank records none.",
+            "x-csv-column": "ProductIds"
+          },
+          "releaseIds": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The releases the incident points at, as a semicolon-separated list of ids. An unknown id fails\nthe row. Blank records none.",
+            "x-csv-column": "ReleaseIds"
+          },
+          "noticedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the incident was noticed, with its offset. Blank records the time of the import, and a\nclosed walk then stamps response and recovery at that same time unless those columns are filled.",
+            "x-csv-column": "NoticedAt"
+          },
+          "startedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When response started, with its offset. Blank leaves it empty on an open incident. A later status\nfills it from this cell, or from `RecoveredAt` when that is set and this is not, or from the\ntime of the import when both are blank.",
+            "x-csv-column": "StartedAt"
+          },
+          "recoveredAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When service was restored, with its offset. Blank leaves it for the status walk to fill.",
+            "x-csv-column": "RecoveredAt"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A single CSV row for the incident import."
+      },
       "ImportIntakeRequestOutcomeRequest": {
         "required": [
           "requestId",
@@ -68553,7 +68784,8 @@
           "ReleasePackage",
           "Deployment",
           "DeploymentEnvironment",
-          "IntakeRequest"
+          "IntakeRequest",
+          "Incident"
         ],
         "type": "string"
       },

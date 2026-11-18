@@ -9,6 +9,7 @@ import type {
   ApplyIncidentWorkflowActionRequest,
   CreateIncidentRequest,
   CreateIncidentTeamsChatRequest,
+  ImportProcessDto,
   IncidentDto,
   IncidentFiguresDto,
   IncidentTimelineLinkEntryDto,
@@ -16,6 +17,8 @@ import type {
   IncidentWorkflowActionDto,
   IncidentsGetIncidentFiguresParams,
   IncidentsGetIncidentsParams,
+  IncidentsImportBody,
+  IncidentsImportParams,
   LinkIncidentTeamsChatRequest,
   ManageIncidentWorkItemsRequest,
   ObjectIdAndKey,
@@ -191,6 +194,40 @@ export const incidentsGetStatusWorkflow = async (idOrKey: string, options?: Para
     method: 'GET'
 
 
+  }
+);}
+
+
+export const getIncidentsImportUrl = (params?: IncidentsImportParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/product-management/incidents/import?${stringifiedParams}` : `/api/product-management/incidents/import`
+}
+
+/**
+ * Each row is created open and then walked to its Status alias: Open, Responding, Resolved, Closed, or Canceled. Severity is a level name in the selected severity set. Products, releases, and employees are ids. Who submitted the incident is the importer's linked employee. A second submission of the same file creates another incident for every row.
+ * @summary Submit a csv file of incidents to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+ */
+export const incidentsImport = async (incidentsImportBody: IncidentsImportBody,
+    params?: IncidentsImportParams, options?: Parameters<typeof apiFetch>[1]): Promise<ImportProcessDto> => {
+    const formData = new FormData();
+formData.append(`file`, incidentsImportBody.file);
+
+  return apiFetch<ImportProcessDto>(getIncidentsImportUrl(params),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
   }
 );}
 

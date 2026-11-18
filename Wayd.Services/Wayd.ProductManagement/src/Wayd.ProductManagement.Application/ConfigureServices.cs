@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Application.Imports;
 using Wayd.ProductManagement.Application.DeploymentEnvironments.Imports;
 using Wayd.ProductManagement.Application.Deployments.Imports;
+using Wayd.ProductManagement.Application.Incidents.Imports;
 using Wayd.ProductManagement.Application.Products.Imports;
 using Wayd.ProductManagement.Application.ReleasePackages.Imports;
 using Wayd.ProductManagement.Application.Releases.Imports;
@@ -25,6 +26,7 @@ public static class ConfigureServices
         services.AddScoped<IImportDefinition, ReleasePackageImportDefinition>();
         services.AddScoped<IImportDefinition, DeploymentEnvironmentImportDefinition>();
         services.AddScoped<IImportDefinition, DeploymentImportDefinition>();
+        services.AddScoped<IImportDefinition, IncidentImportDefinition>();
 
         TypeAdapterConfig.GlobalSettings.Scan(assembly);
         TypeAdapterConfig.GlobalSettings.ScanInheritedTypes(assembly);

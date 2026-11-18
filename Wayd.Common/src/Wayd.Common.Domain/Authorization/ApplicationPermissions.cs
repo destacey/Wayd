@@ -492,6 +492,7 @@ public static class ApplicationPermissions
         new ("View Incidents", ApplicationAction.View, ApplicationResource.Incidents, ProductManagementCategory),
         new ("Create Incidents", ApplicationAction.Create, ApplicationResource.Incidents, ProductManagementCategory),
         new ("Update Incidents", ApplicationAction.Update, ApplicationResource.Incidents, ProductManagementCategory),
+        new ("Import Incidents", ApplicationAction.Import, ApplicationResource.Incidents, ProductManagementCategory),
     ];
 
     private static readonly ApplicationPermission[] _all = [.. _common

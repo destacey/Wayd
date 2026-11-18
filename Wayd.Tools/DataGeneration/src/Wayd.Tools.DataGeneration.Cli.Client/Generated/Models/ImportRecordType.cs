@@ -80,5 +80,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client.Models
         #pragma warning disable CS1591
         IntakeRequest,
         #pragma warning restore CS1591
+        [EnumMember(Value = "Incident")]
+        #pragma warning disable CS1591
+        Incident,
+        #pragma warning restore CS1591
     }
 }

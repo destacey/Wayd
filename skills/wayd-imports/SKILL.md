@@ -58,7 +58,7 @@ A file refused outright — a missing header, a cell that is the wrong type, too
 
 What the definitions do not say:
 
-- **Deployments and products have no natural key.** After a partial run, resubmit **only the rejected rows** (for products, the rejected trees); the whole file again records everything that already went in a second time.
+- **Deployments, products, and incidents have no natural key.** After a partial run, resubmit **only the rejected rows** (for products, the rejected trees); the whole file again records everything that already went in a second time.
 - **Project tasks and project stages group by the project**, not the row: one bad task keeps out that project's whole breakdown and leaves every other project alone.
 - **A row refused with `Not applied: …` was not wrong itself.** It was kept out by another row in its group, which the message names by import id — fix that row.
 
@@ -71,7 +71,7 @@ Records reference each other, so files go in dependency order, and **each must b
 - **Organization**: employees → teams → team hierarchy (`team-memberships`) → team staffing (`team-members`). Team member roles must exist first.
 - **Planning**: teams → planning intervals → objectives and risks.
 - **PPM**: expenditure categories and lifecycles (in Settings, not imported) → strategic themes → portfolios → programs → projects → project tasks → project stage statuses → strategic initiatives with KPIs → finalizations. Programs and portfolios that should end up closed are imported active, and `ppm.finalizations` closes them once their contents are in.
-- **Product Management**: product types and tags (in Settings) → products → versions → release packages → releases. Environments → deployments, after versions and packages. Product dependencies after products; terms that changed (strength or interaction styles) are two rows on the same pair, the first ending the day before the second starts.
+- **Product Management**: product types and tags (in Settings) → products → versions → release packages → releases → incidents. Incidents are per row and have no natural key; they name employees, products, and releases that already exist, and a severity level in the selected set. Environments → deployments, after versions and packages. Product dependencies after products; terms that changed (strength or interaction styles) are two rows on the same pair, the first ending the day before the second starts.
 
 To show files as one batch in Settings → Imports, pass the same `submissionGroupId` (a GUID you choose) on each preflight and apply. It is a label only and changes nothing about ordering.
 

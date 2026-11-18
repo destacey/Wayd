@@ -1706,6 +1706,121 @@ export const importTemplates = {
       },
     ],
   },
+  'product-management.incidents': {
+    module: 'product-management',
+    description:
+      "Each row is created open and then walked to its Status alias: Open, Responding, Resolved, Closed, or Canceled. Severity is a level name in the selected severity set. Products, releases, and employees are ids. Who submitted the incident is the importer's linked employee. A second submission of the same file creates another incident for every row.",
+    files: [
+      {
+        field: 'file',
+        required: true,
+        columns: [
+          {
+            name: 'ImportId',
+            type: 'text',
+            required: false,
+            description:
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Required: a blank cell fails the row, and the row is not numbered by its position instead. Never stored on the incident.",
+          },
+          {
+            name: 'Title',
+            type: 'text',
+            required: true,
+            description:
+              'What happened, in a line a responder can scan. Max 256 characters.',
+            maxLength: 256,
+          },
+          {
+            name: 'Symptoms',
+            type: 'text',
+            required: false,
+            description:
+              'What responders are seeing, in Markdown. Max 4096 characters. Blank records none.',
+            maxLength: 4096,
+          },
+          {
+            name: 'RootCause',
+            type: 'text',
+            required: false,
+            description:
+              'Why it happened, in Markdown. Max 4096 characters. Blank records none.',
+            maxLength: 4096,
+          },
+          {
+            name: 'Remediation',
+            type: 'text',
+            required: false,
+            description:
+              'What was done about it, in Markdown. Max 4096 characters. Blank records none.',
+            maxLength: 4096,
+          },
+          {
+            name: 'Severity',
+            type: 'text',
+            required: true,
+            description:
+              "The severity level's name in the organization's selected severity set, such as `SEV-1`. A name from a set that is not selected fails the row. Matched case-insensitively.",
+          },
+          {
+            name: 'Status',
+            type: 'text',
+            required: true,
+            description:
+              '`Open`, `Responding`, `Resolved`, `Closed`, or `Canceled`, case-insensitively. `Recovered` is the screen name of `Resolved` and is not a value here. The incident is created open and then walked to this alias.',
+          },
+          {
+            name: 'CommanderEmployeeId',
+            type: 'id',
+            required: false,
+            description:
+              'The commander, by employee id. Blank leaves the incident without one.',
+          },
+          {
+            name: 'ReportedByEmployeeId',
+            type: 'id',
+            required: false,
+            description:
+              "Who reported it, by employee id. Blank uses the importer's linked employee, who is always recorded as who submitted it.",
+          },
+          {
+            name: 'ProductIds',
+            type: 'text',
+            required: false,
+            description:
+              'The products the incident points at, as a semicolon-separated list of ids. An unknown id fails the row. Blank records none.',
+          },
+          {
+            name: 'ReleaseIds',
+            type: 'text',
+            required: false,
+            description:
+              'The releases the incident points at, as a semicolon-separated list of ids. An unknown id fails the row. Blank records none.',
+          },
+          {
+            name: 'NoticedAt',
+            type: 'text',
+            required: false,
+            description:
+              'When the incident was noticed, with its offset. Blank records the time of the import, and a closed walk then stamps response and recovery at that same time unless those columns are filled.',
+          },
+          {
+            name: 'StartedAt',
+            type: 'text',
+            required: false,
+            description:
+              'When response started, with its offset. Blank leaves it empty on an open incident. A later status fills it from this cell, or from `RecoveredAt` when that is set and this is not, or from the time of the import when both are blank.',
+          },
+          {
+            name: 'RecoveredAt',
+            type: 'text',
+            required: false,
+            description:
+              'When service was restored, with its offset. Blank leaves it for the status walk to fill.',
+          },
+        ],
+      },
+    ],
+  },
   'product-management.product-dependencies': {
     module: 'product-management',
     files: [

@@ -139,6 +139,13 @@ public class SeedRunnerTests
         ShouldDependOn(ProductManagementArea.ReleasePackages, ProductManagementArea.Products, ProductManagementArea.Versions);
         ShouldDependOn(ProductManagementArea.Releases, ProductManagementArea.Products, ProductManagementArea.Versions, ProductManagementArea.ReleasePackages);
         ShouldDependOn(ProductManagementArea.Deployments, ProductManagementArea.Environments, ProductManagementArea.Versions, ProductManagementArea.ReleasePackages);
+        ShouldDependOn(ProductManagementArea.IncidentFeatureFlag, ProductManagementArea.FeatureFlag);
+        ShouldDependOn(
+            ProductManagementArea.Incidents,
+            ProductManagementArea.IncidentFeatureFlag,
+            ProductManagementArea.Products,
+            ProductManagementArea.Releases,
+            OrganizationArea.Employees);
     }
 
     [Fact]

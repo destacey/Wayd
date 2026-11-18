@@ -55,7 +55,7 @@ public class GeneratedDatasetTests : IDisposable
             "strategic-initiative-kpis.csv", "ppm-finalizations.csv",
             "deployment-environments.csv", "products.csv", "versions.csv", "release-packages.csv",
             "release-package-components.csv", "releases.csv", "release-contents.csv", "deployments.csv",
-            "product-dependencies.csv",
+            "product-dependencies.csv", "incidents.csv",
             "planning-intervals.csv", "planning-interval-objectives.csv", "risks.csv",
             "intake-desks.csv", "intake-requests.csv", "intake-request-outcomes.csv",
             "kpis.csv", "kpi-measurements.csv",
@@ -109,6 +109,7 @@ public class GeneratedDatasetTests : IDisposable
         dataset.Counts.ReleasePackages.Should().Be(0);
         dataset.Counts.Releases.Should().Be(0);
         dataset.Counts.Deployments.Should().Be(0);
+        dataset.Counts.Incidents.Should().Be(0);
     }
 
     [Fact]

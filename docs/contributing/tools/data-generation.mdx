@@ -68,8 +68,9 @@ and `members.csv` for the organization; `strategic-themes.csv`, `portfolios.csv`
 `projects.csv`, `project-tasks.csv`, `project-stages.csv`, `project-deliverables.csv`, `strategic-initiatives.csv`,
 `strategic-initiative-kpis.csv` and `ppm-finalizations.csv` for PPM; `deployment-environments.csv`,
 `products.csv`, `product-dependencies.csv`, `versions.csv`, `release-packages.csv`,
-`release-package-components.csv`, `releases.csv`, `release-contents.csv` and `deployments.csv` for Product
-Management; `planning-intervals.csv`, `planning-interval-objectives.csv` and `risks.csv` for Planning; and
+`release-package-components.csv`, `releases.csv`, `release-contents.csv`, `deployments.csv` and
+`incidents.csv` for Product Management; `planning-intervals.csv`,
+`planning-interval-objectives.csv` and `risks.csv` for Planning; and
 `intake-desks.csv`, `intake-requests.csv` and `intake-request-outcomes.csv` for the Request Desk. The desks
 file is for reading only: desks and tag categories are created through the API at seed time. An area that is switched off writes none of its files. Roles and accounts are created through the API at
 seed time and have no file.
@@ -648,6 +649,18 @@ description says so, and the teams that work on each product are linked to it.
   nothing at the default, so a seed pinned before the knob existed generates the same catalog; picking the
   hubs renames a few services, so a pinned run that generates dependencies names those differently from one
   that does not.
+- **Incidents** — twenty of them, one for every status (`Open`, `Responding`, `Resolved`, `Closed`,
+  `Canceled`) at every level of the system SEV set (`SEV-1` through `SEV-4`). That set is the one a new
+  database selects, and a row whose severity is not in the selected set fails. They are not spread across
+  the catalog. Each product line contributes its newest released release that still contains a staffed
+  component, and one of those components. The commander is a current member of a team on that component.
+  Noticed, response and recovery times differ per incident and follow the status: an open or canceled
+  incident has only a noticed time, a responding one has also started, and a resolved or closed one has
+  recovered after it started, never before it was noticed. The rows are chosen after the catalog is built
+  and draw nothing from its random stream, so the catalog and its history are unchanged by them.
+  `generate` writes the names (`incidents.csv`); `seed` substitutes the ids the earlier imports created
+  and posts the file to the incident import. That import records the token's account as who submitted
+  each incident, so the account has to be linked to an employee.
 
 What that is for is the [delivery metrics](../../user-guide/product-management/delivery.mdx#delivery-metrics)
 page: deployment frequency climbs toward today and change failure rate falls, rather than both sitting flat.
@@ -657,7 +670,8 @@ deployment follows its version's cut.
 :::note[The feature flag]
 Product Management is seeded **disabled**, and every one of its endpoints — the imports included — answers
 404 until it is enabled. When the area runs, `seed` switches the `product-management` flag on first and
-says so in the log.
+says so in the log. Incidents are gated on `incident-management` as well, which is also seeded disabled,
+so the same run switches that flag on before it posts the incident file.
 :::
 
 ### The Planning dataset

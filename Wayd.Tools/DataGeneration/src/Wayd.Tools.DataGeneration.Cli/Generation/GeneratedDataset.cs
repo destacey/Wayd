@@ -101,6 +101,7 @@ public sealed record GeneratedDataset(
             CsvFile.Write(Path.Combine(directory, "release-contents.csv"), pm.ReleaseContents);
             CsvFile.Write(Path.Combine(directory, "deployments.csv"), pm.Deployments);
             CsvFile.Write(Path.Combine(directory, "product-dependencies.csv"), pm.Dependencies);
+            CsvFile.Write(Path.Combine(directory, "incidents.csv"), pm.Incidents);
         }
 
         if (Planning is { } planning)
@@ -180,7 +181,7 @@ public sealed record GeneratedDataset(
             yield return $"Generated {pm.Products.Count} products, {pm.Versions.Count} versions, "
                 + $"{pm.ReleasePackages.Count} release packages, {pm.Releases.Count} releases, "
                 + $"{pm.Deployments.Count} deployments across {pm.Environments.Count} environments, "
-                + $"{pm.Dependencies.Count} dependencies.";
+                + $"{pm.Dependencies.Count} dependencies, {pm.Incidents.Count} incidents.";
         }
 
         if (Planning is { } planning)
@@ -214,6 +215,7 @@ public sealed record GeneratedDataset(
         ProductManagement?.ReleasePackages.Count ?? 0,
         ProductManagement?.Releases.Count ?? 0,
         ProductManagement?.Deployments.Count ?? 0,
+        ProductManagement?.Incidents.Count ?? 0,
         Planning?.PlanningIntervals.Count ?? 0,
         Planning?.Objectives.Count ?? 0,
         Planning?.Risks.Count ?? 0,
@@ -238,6 +240,7 @@ public sealed record DatasetCounts(
     int ReleasePackages,
     int Releases,
     int Deployments,
+    int Incidents,
     int PlanningIntervals,
     int Objectives,
     int Risks,

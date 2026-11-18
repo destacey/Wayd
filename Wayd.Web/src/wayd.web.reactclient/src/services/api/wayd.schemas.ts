@@ -2378,18 +2378,6 @@ export interface CreateIntakeRequestTagCategoryRequest {
   allowsMany: boolean;
 }
 
-export interface CreateLinkRequest {
-  /** @minLength 1 */
-  objectId: string;
-  /**
-     * @minLength 1
-     * @maxLength 128
-     */
-  name: string;
-  /** @minLength 1 */
-  url: string;
-}
-
 export type OidcProviderType = typeof OidcProviderType[keyof typeof OidcProviderType];
 
 
@@ -9649,7 +9637,8 @@ export interface LifecycleNavigationDto {
 
 export interface LinkDto {
   id: string;
-  objectId: string;
+  ownerType: string;
+  ownerId: string;
   name: string;
   url: string;
 }
@@ -9691,6 +9680,16 @@ export interface LinkProductExternallyRequest {
      * @nullable
      */
   externalId?: string | null;
+}
+
+/**
+ * A link as it is added to a record or changed.
+ */
+export interface LinkRequest {
+  /** What the link is called, up to 128 characters. */
+  name: string;
+  /** The full web address the link opens, starting with `http://` or `https://`. */
+  url: string;
 }
 
 export interface LinkWorkItemRequest {
@@ -13057,6 +13056,11 @@ export interface ReclassifyWorkflowStatusRequest {
   category: StatusCategory;
   /** The well-known meaning the status carries within its owner type, or zero for none. */
   alias: number;
+}
+
+export interface RecordLinksDto {
+  canManage: boolean;
+  links: LinkDto[];
 }
 
 /**
@@ -17942,18 +17946,6 @@ export interface UpdateIntakeRequestTagRequest {
      * @nullable
      */
   description?: string | null;
-}
-
-export interface UpdateLinkRequest {
-  /** @minLength 1 */
-  id: string;
-  /**
-     * @minLength 1
-     * @maxLength 128
-     */
-  name: string;
-  /** @minLength 1 */
-  url: string;
 }
 
 export interface UpdateOidcProviderRequest {

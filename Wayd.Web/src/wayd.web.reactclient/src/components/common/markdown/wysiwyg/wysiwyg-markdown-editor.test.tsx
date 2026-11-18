@@ -1121,6 +1121,94 @@ describe('WysiwygMarkdownEditor', () => {
       )
     })
 
+    it('writes an image embedded in HTML pasted into the source view after the pasted text', async () => {
+      // Arrange
+      const path = '/api/attachments/0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5e'
+      vi.mocked(attachmentsUpload).mockResolvedValue({
+        id: '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5e',
+        path,
+        contentType: 'image/png',
+        size: 300,
+        width: 1,
+        height: 1,
+      })
+      URL.createObjectURL = vi.fn(() => 'blob:local')
+      const onChange = vi.fn()
+      render(
+        <WysiwygMarkdownEditor
+          value="before after"
+          onChange={onChange}
+          maxLength={200}
+          imageUploads
+        />,
+      )
+      await findEditable()
+      await toggleSource()
+      const data = `data:image/png;base64,${btoa('x'.repeat(300))}`
+
+      // Act — the textarea takes the plain text itself; the test stands in for it.
+      pasteHtml(sourceBox(), `<p>one <img src="${data}" alt="chart"> two</p>`)
+      replaceSource('before one two after')
+      sourceBox().setSelectionRange(14, 14)
+
+      // Assert
+      await waitFor(() =>
+        expect(onChange).toHaveBeenLastCalledWith(
+          `before one two![chart](${path}) after`,
+        ),
+      )
+    })
+
+    it('says when images in HTML pasted into the source view could not be added', async () => {
+      // Arrange
+      render(
+        <WysiwygMarkdownEditor value="text" maxLength={200} imageUploads />,
+      )
+      await findEditable()
+      await toggleSource()
+
+      // Act
+      pasteHtml(sourceBox(), '<p>one <img src="file:///C:/a.png"> two</p>')
+
+      // Assert
+      expect(
+        await screen.findByText(
+          'An image in the pasted text could not be added. Copy and paste each image on its own.',
+        ),
+      ).toBeInTheDocument()
+      expect(attachmentsUpload).not.toHaveBeenCalled()
+    })
+
+    it('takes the image file of a single picture copied from Word into the source view', async () => {
+      // Arrange
+      vi.mocked(attachmentsUpload).mockReturnValue(new Promise(() => {}))
+      render(
+        <WysiwygMarkdownEditor value="text" maxLength={200} imageUploads />,
+      )
+      await findEditable()
+      await toggleSource()
+      const file = new File([new Uint8Array(10)], 'image001.png', {
+        type: 'image/png',
+      })
+      const clipboardData = {
+        files: [file],
+        types: ['text/html', 'Files'],
+        getData: (type: string) =>
+          type === 'text/html' ? '<p><img src="file:///C:/a.png"></p>' : '',
+      }
+      const event = new Event('paste', { bubbles: true, cancelable: true })
+      Object.defineProperty(event, 'clipboardData', { value: clipboardData })
+
+      // Act
+      act(() => {
+        sourceBox().dispatchEvent(event)
+      })
+
+      // Assert
+      expect(event.defaultPrevented).toBe(true)
+      expect(attachmentsUpload).toHaveBeenCalledWith({ file })
+    })
+
     it('leaves an image pasted into the source view to the textarea while uploads are off', async () => {
       // Arrange
       render(<WysiwygMarkdownEditor value="text" maxLength={100} />)

@@ -24,7 +24,13 @@ import {
   restoreRefusedInput,
   setMarkdownLengthLimit,
 } from './markdown-length-limit'
-import { setMarkdownImageUpload } from './markdown-image-upload'
+import {
+  type EmbeddedImage,
+  holdsOnlyUnreachableImages,
+  joinProblems,
+  setMarkdownImageUpload,
+  takeImagesFromHtml,
+} from './markdown-image-upload'
 import MarkdownToolbar from './markdown-toolbar'
 import {
   type MarkdownView,
@@ -262,16 +268,20 @@ const WysiwygMarkdownEditor = ({
     applySourceText(text)
   }
 
-  // An image pasted or dropped as markdown source is uploaded, then written as `![](path)` where it
-  // was placed, wherever later edits have moved that place. One that answers after a switch to the
-  // document goes at the document's end, so it is never lost. As in the document view, a paste
-  // that also carries HTML is left to the textarea.
-  const uploadIntoSource = (files: File[], offset: number) => {
-    setImageError(null)
-    for (const file of files) {
+  // An image pasted or dropped as markdown source is uploaded, then written as `![alt](path)` where
+  // it was placed, wherever later edits have moved that place. One that answers after a switch to
+  // the document goes at the document's end, so it is never lost. `problems` are reasons the paste
+  // already left images out, shown with any of these images' own.
+  const uploadIntoSource = (
+    images: EmbeddedImage[],
+    offset: number,
+    problems: string[] = [],
+  ) => {
+    const refusals: string[] = []
+    for (const { file, alt } of images) {
       const problem = imageUploadProblem(file)
       if (problem) {
-        setImageError(problem)
+        refusals.push(problem)
         continue
       }
       const pending = { offset }
@@ -283,11 +293,11 @@ const WysiwygMarkdownEditor = ({
           pendingSourceImagesRef.current = pendingImages.filter(
             (p) => p !== pending,
           )
-          const image = `![](${path})`
+          const image = `![${alt.replace(/[\\[\]]/g, '\\$&')}](${path})`
           if (viewRef.current !== 'source') {
             editor?.commands.insertContentAt(editor.state.doc.content.size, {
               type: 'paragraph',
-              content: [{ type: 'image', attrs: { src: path, alt: '' } }],
+              content: [{ type: 'image', attrs: { src: path, alt } }],
             })
             return
           }
@@ -309,21 +319,45 @@ const WysiwygMarkdownEditor = ({
         },
       )
     }
+    setImageError(joinProblems([...refusals, ...problems]))
   }
 
+  const asImages = (files: File[]): EmbeddedImage[] =>
+    files.map((file) => ({ file, alt: '' }))
+
+  // A paste with HTML is left to the textarea, which takes its plain text; the images embedded in
+  // that HTML are uploaded and written after the text, once it is in. The textarea has no other way
+  // to keep them, so web images in such a paste are not kept here.
   const onSourcePaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
-    const files = imageFilesIn(event.clipboardData)
-    if (!imageUploads || files.length === 0) return
-    if (event.clipboardData.types.includes('text/html')) return
+    if (!imageUploads) return
+    const data = event.clipboardData
+    const files = imageFilesIn(data)
+    const textarea = event.currentTarget
+    if (data.types.includes('text/html')) {
+      const html = data.getData('text/html')
+      if (files.length === 0 || !holdsOnlyUnreachableImages(html)) {
+        const taken = takeImagesFromHtml(html)
+        if (taken)
+          setTimeout(() =>
+            uploadIntoSource(
+              taken.images.embedded,
+              textarea.selectionEnd,
+              taken.images.problems,
+            ),
+          )
+        return
+      }
+    }
+    if (files.length === 0) return
     event.preventDefault()
-    uploadIntoSource(files, event.currentTarget.selectionStart)
+    uploadIntoSource(asImages(files), textarea.selectionStart)
   }
 
   const onSourceDrop = (event: DragEvent<HTMLTextAreaElement>) => {
     const files = imageFilesIn(event.dataTransfer)
     if (!imageUploads || files.length === 0) return
     event.preventDefault()
-    uploadIntoSource(files, event.currentTarget.selectionStart)
+    uploadIntoSource(asImages(files), event.currentTarget.selectionStart)
   }
 
   // Moves each pending upload's place past an edit before it, so the image lands where it was put.

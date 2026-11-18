@@ -9,6 +9,7 @@ import { TableKit } from '@tiptap/extension-table'
 import { Markdown } from '@tiptap/markdown'
 import StarterKit from '@tiptap/starter-kit'
 import {
+  ATTACHMENT_SRC_ATTRIBUTE,
   attachmentIdFrom,
   isAttachmentPath,
   loadAttachmentUrl,
@@ -100,9 +101,6 @@ const plainText = (tokens: MarkdownToken[]): string =>
  * taken from pasted HTML or typed as `![alt](address)`. The address is written as `MarkdownLink`
  * writes one.
  */
-/** Where an uploaded image's address is written when the image is rendered as HTML. */
-const ATTACHMENT_SRC_ATTRIBUTE = 'data-attachment-src'
-
 const MarkdownImage = Image.extend({
   addInputRules() {
     const { editor } = this

@@ -56,7 +56,6 @@ Every permission Wayd defines, as **Settings → Access → Roles** groups them.
 | Integrations | `Connections` | `View`, `Create`, `Update`, `Delete` |
 | Integrations | `Connectors` | `View` |
 | Health | `HealthChecks` | `View`, `Create`, `Update` |
-| Links | `Links` | `View`, `Create`, `Update`, `Delete` |
 | Demand Management | `IntakeRequests` | `View`, `Administer` (see [Demand Management: desk roles](#demand-management-desk-roles)) |
 | KPIs | `Kpis` | `Administer` (see [KPIs: team membership](#kpis-team-membership)) |
 | Organization | `Employees` | `View`, `Create`, `Update`, `Delete`, `Import` |
@@ -245,6 +244,23 @@ Reading a team's KPIs needs only `Permissions.Teams.View`.
 
 `Permissions.Kpis.Administer` waives the membership for every record's KPIs and manages the organization's KPI categories. The seeded **Admin** role includes it. A read-only token changes nothing, whatever the person holds.
 
+## Links: the record they are on
+
+The web links kept on a record have no permissions of their own. Whoever can see the record sees its links, and whoever can edit the record can add, change and remove them:
+
+| Links on | Changing them needs |
+|---|---|
+| A team or team of teams | `Permissions.Teams.Update` |
+| A planning interval | `Permissions.PlanningIntervals.Update` |
+| A planning interval objective | `Permissions.PlanningIntervalObjectives.Manage` |
+| A risk | `Permissions.Risks.Update` |
+| A project, program or portfolio | Its `Update` permission **and** [delivery leadership](#delivery-leadership-in-ppm) of it. An archived portfolio's links cannot be changed |
+| A strategic initiative | `Permissions.StrategicInitiatives.Update` |
+| An incident | `Permissions.Incidents.Update`, with an account linked to an employee |
+| A sprint | `Permissions.Iterations.Update` **and** [membership of its team or its team of teams](#sprint-lifecycle-team-membership); `Permissions.Iterations.Administer` waives the membership, never the `Update` permission. A sprint whose team is not mapped to a Wayd team takes no changes, as with every other sprint change |
+
+A read-only token changes nothing, whatever the person holds. Deleting a record removes its links.
+
 ## Time away: the person and their managers
 
 Recording, changing and removing a person's [time away](../organizations/index.mdx#time-away-and-holiday-calendars) needs **no permission**. It is allowed for:
@@ -307,6 +323,8 @@ When a PPM or sprint action is missing from a menu or rejected on submit, it is 
 | A domain rule blocks it | The action may be invalid for the record's current state — for example, a portfolio cannot close while it still contains open projects |
 
 ## Upgrading to this version
+
+**Links follow the record they are on.** `Permissions.Links.View`, `.Create`, `.Update` and `.Delete` are removed, and the upgrade deletes them from every role; roles that held them are given nothing in their place. A record's links are now seen by whoever can see the record and changed by whoever can edit it — see [Links](#links-the-record-they-are-on). Someone who could change links everywhere may find they no longer can on a project, program or portfolio they do not lead, or a sprint whose team they are not on. The upgrade also removes links whose record has since been deleted. A link address saved with no scheme, such as `example.com/page`, is completed with `https://`, which is how it was already opened; an address saved with another scheme, such as `ftp://`, is left as it was and still opens. New and changed addresses must start with `http://` or `https://`.
 
 **Role management is one permission.** `Permissions.Roles.Create`, `.Update` and `.Delete` and `Permissions.RoleClaims.Update` are replaced by `Permissions.Roles.Manage`, and `Permissions.RoleClaims.View` by `Permissions.Roles.View`. The upgrade gives `Roles.Manage` only to roles that held `RoleClaims.Update`, which could already choose what roles grant; roles that held only `Roles.Create`, `.Update` or `.Delete` lose them, since alone they could not change what any role grants. `Permissions.Users.Search`, `.Delete` and `.Export` are removed: no endpoint ever checked them. To let someone manage roles again, grant them `Permissions.Roles.Manage`.
 

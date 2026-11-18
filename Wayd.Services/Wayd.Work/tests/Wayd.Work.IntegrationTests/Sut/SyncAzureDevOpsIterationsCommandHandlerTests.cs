@@ -179,9 +179,9 @@ public sealed class SyncAzureDevOpsIterationsCommandHandlerTests(SqlServerDbCont
         (await verify.Context.Links.CountAsync(l => l.OwnerId == keptSprintId, ct)).Should().Be(1);
         (await verify.Context.ActivityLogs.AsNoTracking()
             .Where(a => a.AggregateType == "Link" && a.RelatedAggregates.Any(r => r.AggregateType == "Iteration" && r.AggregateId == removedSprintId))
-            .OrderBy(a => a.Timestamp).ThenBy(a => a.Ordinal)
             .Select(a => a.EventType)
-            .ToListAsync(ct)).Should().Equal("LinkAddedEvent", "LinkRemovedEvent");
+            // Unordered: the fixed clock stamps both entries with the same instant.
+            .ToListAsync(ct)).Should().BeEquivalentTo("LinkAddedEvent", "LinkRemovedEvent");
     }
 
     private async Task Sync(List<IExternalIteration<AzdoIterationMetadata>> iterations, CancellationToken ct, Dictionary<Guid, Guid?>? teamMappings = null)

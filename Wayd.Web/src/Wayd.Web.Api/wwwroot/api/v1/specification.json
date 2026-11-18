@@ -1327,7 +1327,7 @@
           "KpiCategories"
         ],
         "summary": "Get the KPI categories.",
-        "description": "Returns the categories in order, each with how many KPIs have it. Inactive ones are left out unless `includeInactive` is true.",
+        "description": "Returns the categories in order, each with how many KPIs have it. Inactive ones are left out unless `includeInactive` is true. A KPI's `categoryId` must name an active one.",
         "operationId": "KpiCategories_GetCategories",
         "parameters": [
           {

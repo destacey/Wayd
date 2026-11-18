@@ -94,6 +94,7 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPost]
+    [McpTool("Kpis_AddKpi", "Add a KPI", Destructive = false)]
     [EndpointSummary("Add a KPI to a record.")]
     [EndpointDescription(
         $"{SubjectDocs} Adds an active KPI, last on the scorecard, and returns its id and key. The `target` is `Absolute` (a value to reach) or `RelativeChange` (a percentage from the baseline, which then needs a baseline value); the baseline must be short of the target in the KPI's direction. An optional at-risk threshold, `Absolute` or `ProgressToTarget`, must also be short of the target. {WindowDocs} Leave `window` out for `PerPeriod`. Only a `PerPeriod` KPI may set `rollingAverageOf` (2 to 12), to be read as the average of its latest measurements, as velocity is read over the last 7 sprints. {ManageDocs} Requires your account to be linked to an employee.")]
@@ -117,6 +118,7 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{kpiId:guid}")]
+    [McpTool("Kpis_UpdateKpi", "Update a KPI")]
     [EndpointSummary("Change a KPI's details, baseline and target.")]
     [EndpointDescription(
         $"{SubjectDocs} Replaces everything about the KPI that is entered rather than measured, in one save: send every field, including the ones that stay. The new goal is checked as a whole, against the same rules as adding a KPI, so a baseline and target may move together. A new category must be active; the one the KPI has may stay. Leave `window` out to keep it; it can change only while the KPI has no measurements, since they were recorded under it. `rollingAverageOf` is replaced like any other field: leave it out to read the latest value alone. {ManageDocs}")]
@@ -138,6 +140,7 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPost("{kpiId:guid}/close")]
+    [McpTool("Kpis_CloseKpi", "Close a KPI")]
     [EndpointSummary("Close a KPI, keeping its measurements as history.")]
     [EndpointDescription($"{SubjectDocs} A closed KPI leaves the scorecard and takes no measurements until it is reopened. {ManageDocs}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -154,6 +157,7 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPost("{kpiId:guid}/reopen")]
+    [McpTool("Kpis_ReopenKpi", "Reopen a KPI")]
     [EndpointSummary("Reopen a closed KPI.")]
     [EndpointDescription($"{SubjectDocs} {ManageDocs}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -170,6 +174,7 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpDelete("{kpiId:guid}")]
+    [McpTool("Kpis_RemoveKpi", "Remove a KPI")]
     [EndpointSummary("Remove a KPI and its measurements for good.")]
     [EndpointDescription($"{SubjectDocs} Close a KPI instead to keep its history. {ManageDocs}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -186,6 +191,7 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("order")]
+    [McpTool("Kpis_ReorderKpis", "Reorder a scorecard's KPIs")]
     [EndpointSummary("Put a record's KPIs in a new order.")]
     [EndpointDescription($"{SubjectDocs} `kpiIds` lists every KPI on the record, open and closed, each once. {ManageDocs}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -222,6 +228,7 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPut("{kpiId:guid}/measurements/{measurementId:guid}")]
+    [McpTool("Kpis_ChangeMeasurement", "Correct a KPI measurement")]
     [EndpointSummary("Correct a measurement.")]
     [EndpointDescription($"{SubjectDocs} Replaces the value and time of a measurement on an open KPI, given as recording it takes them; who took it stays as recorded. {ManageDocs}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -239,6 +246,7 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpDelete("{kpiId:guid}/measurements/{measurementId:guid}")]
+    [McpTool("Kpis_RemoveMeasurement", "Remove a KPI measurement")]
     [EndpointSummary("Remove a measurement.")]
     [EndpointDescription($"{SubjectDocs} Removes a measurement from an open KPI. {ManageDocs}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

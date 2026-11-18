@@ -1,3 +1,4 @@
+using System.Globalization;
 using Wayd.Tools.DataGeneration.Cli.Csv;
 using Wayd.Tools.DataGeneration.Cli.Generation;
 
@@ -63,7 +64,8 @@ public sealed class KpiCategoriesArea() : KpiSeedArea(KpiArea.Categories, KpiAre
 
 /// <summary>
 /// Loads every team's and ART's KPIs with their monthly history, resolving each one's record and category. A
-/// KPI travels with its measurements, so a batch never splits one from its history.
+/// KPI travels with its measurements, so a batch never splits one from its history. A point-in-time moment is
+/// written with its offset, which the import requires.
 /// </summary>
 public sealed class KpisArea() : KpiSeedArea(KpiArea.Kpis, KpiArea.Categories, OrganizationArea.Teams)
 {
@@ -99,6 +101,11 @@ public sealed class KpisArea() : KpiSeedArea(KpiArea.Kpis, KpiArea.Categories, O
             AtRiskKind = k.AtRiskKind,
             AtRiskValue = k.AtRiskValue,
             IsClosed = k.IsClosed,
+            WindowKind = k.WindowKind,
+            WindowAnchorDate = k.WindowAnchorDate,
+            WindowRollingCount = k.WindowRollingCount,
+            WindowRollingUnit = k.WindowRollingUnit,
+            RollingAverageOf = k.RollingAverageOf,
         }).ToList();
 
         var batches = Batch(context, rows, r => r.ImportId);
@@ -113,6 +120,8 @@ public sealed class KpisArea() : KpiSeedArea(KpiArea.Kpis, KpiArea.Categories, O
                     KpiImportId = m.KpiHandle,
                     PeriodStart = m.PeriodStart,
                     PeriodEnd = m.PeriodEnd,
+                    AsOf = m.AsOf,
+                    MeasuredAt = m.MeasuredAt?.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture),
                     Value = m.Value,
                     SampleSize = m.SampleSize,
                 });

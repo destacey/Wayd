@@ -109,33 +109,100 @@ public class KpiGeneratorTests
     }
 
     [Fact]
-    public void Generate_RecordsWholeMonthsThatNeverOverlap_EndingBeforeThisMonth()
+    public void Generate_RecordsWholeMonthsThatNeverOverlap_ForAPerPeriodKpi_EndingBeforeThisMonth()
     {
         // Arrange
         var thisMonth = new DateOnly(_asOf.Year, _asOf.Month, 1);
+        var perPeriod = Data.Kpis.Where(k => k.WindowKind == KpiVocabulary.PerPeriod).Select(k => k.Handle).ToHashSet();
 
         // Act
-        var byKpi = Data.Measurements.GroupBy(m => m.KpiHandle);
+        var byKpi = Data.Measurements.Where(m => perPeriod.Contains(m.KpiHandle)).GroupBy(m => m.KpiHandle);
 
         // Assert
+        perPeriod.Should().NotBeEmpty();
         byKpi.Should().AllSatisfy(history =>
         {
             var ordered = history.OrderBy(m => m.PeriodStart).ToList();
             ordered.Should().AllSatisfy(m =>
             {
-                m.PeriodStart.Day.Should().Be(1);
-                m.PeriodEnd.Should().Be(m.PeriodStart.AddMonths(1).AddDays(-1));
-                m.PeriodEnd.Should().BeBefore(thisMonth);
+                m.AsOf.Should().BeNull();
+                m.MeasuredAt.Should().BeNull();
+                m.PeriodStart!.Value.Day.Should().Be(1);
+                m.PeriodEnd.Should().Be(m.PeriodStart.Value.AddMonths(1).AddDays(-1));
+                m.PeriodEnd!.Value.Should().BeBefore(thisMonth);
             });
-            ordered.Zip(ordered.Skip(1)).Should().AllSatisfy(pair => pair.Second.PeriodStart.Should().BeAfter(pair.First.PeriodEnd));
+            ordered.Zip(ordered.Skip(1)).Should().AllSatisfy(pair => pair.Second.PeriodStart!.Value.Should().BeAfter(pair.First.PeriodEnd!.Value));
         });
+    }
+
+    [Fact]
+    public void Generate_CoversEveryWindowKind_AndARollingAverage()
+    {
+        // Arrange & Act
+        var kinds = Data.Kpis.Select(k => k.WindowKind).Distinct().ToList();
+
+        // Assert
+        kinds.Should().BeEquivalentTo([KpiVocabulary.PerPeriod, KpiVocabulary.Cumulative, KpiVocabulary.Rolling, KpiVocabulary.PointInTime]);
+        Data.Kpis.Should().Contain(k => k.RollingAverageOf != null);
+        Data.Kpis.Where(k => k.RollingAverageOf != null).Should().AllSatisfy(k => k.WindowKind.Should().Be(KpiVocabulary.PerPeriod));
+    }
+
+    [Fact]
+    public void Generate_RecordsACumulativeOrRollingKpi_AsOfDistinctDays_FromItsAnchor()
+    {
+        // Arrange
+        var windowed = Data.Kpis.Where(k => k.WindowKind is KpiVocabulary.Cumulative or KpiVocabulary.Rolling).ToList();
+
+        // Act & Assert
+        windowed.Should().NotBeEmpty();
+        windowed.Should().AllSatisfy(k =>
+        {
+            var history = Data.Measurements.Where(m => m.KpiHandle == k.Handle).ToList();
+            history.Should().AllSatisfy(m =>
+            {
+                m.PeriodStart.Should().BeNull();
+                m.MeasuredAt.Should().BeNull();
+                m.AsOf.Should().NotBeNull();
+            });
+            history.Select(m => m.AsOf).Should().OnlyHaveUniqueItems();
+
+            if (k.WindowKind == KpiVocabulary.Cumulative)
+            {
+                k.WindowAnchorDate.Should().NotBeNull();
+                history.Should().AllSatisfy(m => m.AsOf!.Value.Should().BeOnOrAfter(k.WindowAnchorDate!.Value));
+            }
+            else
+            {
+                k.WindowRollingCount.Should().BePositive();
+                k.WindowRollingUnit.Should().Be("Days");
+            }
+        });
+    }
+
+    [Fact]
+    public void Generate_TakesPointInTimeReadingsAtDistinctMoments_WithTheirOffset()
+    {
+        // Arrange
+        var handles = Data.Kpis.Where(k => k.WindowKind == KpiVocabulary.PointInTime).Select(k => k.Handle).ToHashSet();
+
+        // Act
+        var readings = Data.Measurements.Where(m => handles.Contains(m.KpiHandle)).ToList();
+
+        // Assert
+        readings.Should().NotBeEmpty().And.AllSatisfy(m =>
+        {
+            m.PeriodStart.Should().BeNull();
+            m.AsOf.Should().BeNull();
+            m.MeasuredAt.Should().NotBeNull();
+        });
+        readings.GroupBy(m => m.KpiHandle).Should().AllSatisfy(g => g.Select(m => m.MeasuredAt).Should().OnlyHaveUniqueItems());
     }
 
     [Fact]
     public void Generate_TakesTheBaselineOverTheFirstThreeMonths()
     {
         // Arrange & Act
-        var kpi = Data.Kpis.First();
+        var kpi = Data.Kpis.First(k => k.WindowKind == KpiVocabulary.PerPeriod);
         var history = Data.Measurements.Where(m => m.KpiHandle == kpi.Handle).OrderBy(m => m.PeriodStart).ToList();
 
         // Assert
@@ -148,16 +215,20 @@ public class KpiGeneratorTests
     public void Generate_ClosesSomeKpisPartway_KeepingTheirHistory()
     {
         // Arrange
-        var longest = Data.Measurements.GroupBy(m => m.KpiHandle).Max(g => g.Count());
+        var lastDay = Data.Measurements.Max(m => m.LastDay);
 
         // Act
         var closed = Data.Kpis.Where(k => k.IsClosed).ToList();
 
-        // Assert
+        // Assert — a dropped KPI's history stops before the last month the open ones reach
         closed.Should().NotBeEmpty();
         closed.Count.Should().BeLessThan(Data.Kpis.Count / 3);
         closed.Should().AllSatisfy(k =>
-            Data.Measurements.Count(m => m.KpiHandle == k.Handle).Should().BeInRange(6, longest - 1));
+        {
+            var history = Data.Measurements.Where(m => m.KpiHandle == k.Handle).ToList();
+            history.Should().HaveCountGreaterThanOrEqualTo(3);
+            history.Max(m => m.LastDay).Should().BeBefore(lastDay);
+        });
     }
 
     [Fact]

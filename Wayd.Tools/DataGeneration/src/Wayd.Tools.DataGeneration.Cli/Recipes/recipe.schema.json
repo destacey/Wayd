@@ -312,7 +312,7 @@
           "type": "integer",
           "description": "How many KPIs each delivery team carries. Its ART carries half as many, at least one.",
           "minimum": 0,
-          "maximum": 7,
+          "maximum": 8,
           "x-cli-flag": "--kpis-per-team"
         }
       }

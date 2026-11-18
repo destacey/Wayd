@@ -8,9 +8,18 @@ import Superscript from '@tiptap/extension-superscript'
 import { TableKit } from '@tiptap/extension-table'
 import { Markdown } from '@tiptap/markdown'
 import StarterKit from '@tiptap/starter-kit'
+import {
+  attachmentIdFrom,
+  isAttachmentPath,
+  loadAttachmentUrl,
+} from '../attachments'
 import { bulletToTaskInputRule } from './bullet-to-task-input-rule'
 import { installMinimalMarkdownEscaping } from './markdown-escaping'
 import { markdownImageInputRule } from './markdown-image-input-rule'
+import {
+  acceptsAttachmentImages,
+  MarkdownImageUpload,
+} from './markdown-image-upload'
 import { MarkdownLengthLimit } from './markdown-length-limit'
 import { markdownLinkInputRule } from './markdown-link-input-rule'
 import { MarkdownPaste } from './markdown-paste'
@@ -91,9 +100,72 @@ const plainText = (tokens: MarkdownToken[]): string =>
  * taken from pasted HTML or typed as `![alt](address)`. The address is written as `MarkdownLink`
  * writes one.
  */
+/** Where an uploaded image's address is written when the image is rendered as HTML. */
+const ATTACHMENT_SRC_ATTRIBUTE = 'data-attachment-src'
+
 const MarkdownImage = Image.extend({
   addInputRules() {
-    return [markdownImageInputRule()]
+    const { editor } = this
+    return [markdownImageInputRule(() => acceptsAttachmentImages(editor))]
+  },
+  // An uploaded image's address is a path on the API, so anything that renders it as HTML — the first
+  // draw before the node view is installed, a copy to the clipboard — keeps it out of `src`, where
+  // the browser would ask this site for it.
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      src: {
+        default: null,
+        parseHTML: (element) =>
+          element.getAttribute('src') ??
+          element.getAttribute(ATTACHMENT_SRC_ATTRIBUTE),
+        renderHTML: (attributes) =>
+          isAttachmentPath(attributes.src)
+            ? { [ATTACHMENT_SRC_ATTRIBUTE]: attributes.src }
+            : { src: attributes.src },
+      },
+    }
+  },
+  // An uploaded image is loaded through the API: as a plain `src` it would be asked of this site.
+  addNodeView() {
+    return ({ node }) => {
+      const dom = document.createElement('img')
+      let shown: string | null = null
+      const show = (src: string, alt: string, title: string | null) => {
+        dom.alt = alt
+        if (title) dom.title = title
+        else dom.removeAttribute('title')
+        if (src === shown) return
+        shown = src
+        const id = attachmentIdFrom(src)
+        if (!id) {
+          dom.src = src
+          return
+        }
+        dom.removeAttribute('src')
+        loadAttachmentUrl(id).then(
+          (url) => {
+            if (shown === src) dom.src = url
+          },
+          () => {
+            if (shown === src) dom.alt = `[${alt || 'Image'} unavailable]`
+          },
+        )
+      }
+      show(node.attrs.src ?? '', node.attrs.alt ?? '', node.attrs.title)
+      return {
+        dom,
+        update: (updated) => {
+          if (updated.type !== node.type) return false
+          show(
+            updated.attrs.src ?? '',
+            updated.attrs.alt ?? '',
+            updated.attrs.title,
+          )
+          return true
+        },
+      }
+    }
   },
   parseHTML() {
     return [
@@ -101,6 +173,15 @@ const MarkdownImage = Image.extend({
         tag: 'img[src]',
         getAttrs: (element) =>
           isSafeImageSrc((element as HTMLElement).getAttribute('src'))
+            ? null
+            : false,
+      },
+      {
+        tag: `img[${ATTACHMENT_SRC_ATTRIBUTE}]`,
+        getAttrs: (element) =>
+          isAttachmentPath(
+            (element as HTMLElement).getAttribute(ATTACHMENT_SRC_ATTRIBUTE),
+          )
             ? null
             : false,
       },
@@ -151,6 +232,7 @@ export const markdownEditorExtensions = (): Extensions => [
   MarkdownSuperscript,
   MarkdownLengthLimit,
   MarkdownPaste,
+  MarkdownImageUpload,
   MarkdownTableShortcut,
   Markdown,
 ]

@@ -78,7 +78,9 @@ const unsupportedConstructs: {
   },
   {
     find: (prose) =>
-      /<img\b(?![^>]*\bsrc\s*=\s*["']?https?:)/i.test(prose)
+      /<img\b(?![^>]*\bsrc\s*=\s*["']?(?:https?:|\/api\/attachments\/))/i.test(
+        prose,
+      )
         ? 'images that are not web addresses'
         : null,
   },

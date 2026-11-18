@@ -70,6 +70,27 @@ describe('apiFetch', () => {
     expect(authorization(0)).toBe('Bearer old-token')
   })
 
+  it('returns an image as a blob of its exact bytes', async () => {
+    // Arrange — bytes that are not valid UTF-8, which reading as text would replace.
+    storeSession()
+    const bytes = new Uint8Array([0x89, 0x50, 0xff, 0xfe, 0x00])
+    fetchSpy.mockResolvedValue(
+      new Response(bytes, {
+        status: 200,
+        headers: { 'Content-Type': 'image/png' },
+      }),
+    )
+
+    // Act
+    const result = await apiFetch('/api/attachments/a-1', { method: 'GET' })
+
+    // Assert
+    expect(result).toBeInstanceOf(Blob)
+    const blob = result as Blob
+    expect(blob.type).toBe('image/png')
+    expect(new Uint8Array(await blob.arrayBuffer())).toEqual(bytes)
+  })
+
   it('returns undefined for an empty response', async () => {
     // Arrange
     storeSession()

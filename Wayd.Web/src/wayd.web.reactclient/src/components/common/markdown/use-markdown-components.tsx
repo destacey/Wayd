@@ -1,6 +1,6 @@
 'use client'
 
-import { Divider, Image, Typography } from 'antd'
+import { Divider, Typography } from 'antd'
 import useTheme from '../../contexts/theme'
 import React from 'react'
 import { Components } from 'react-markdown'
@@ -12,6 +12,7 @@ import {
   MarkdownCodeBlockProps,
   MarkdownTable,
 } from '.'
+import MarkdownImage from './markdown-image'
 
 const { Title, Paragraph, Text, Link: AntDLink } = Typography
 
@@ -71,17 +72,13 @@ export const useMarkdownComponents = (): Components => {
     // `ref` is dropped as well because antd 6.6 types Divider's ref as DividerRef,
     // which is incompatible with the HTMLHRElement ref react-markdown passes for <hr>.
     hr: ({ ref: _ref, node: _node, ...props }) => <Divider {...props} />,
-    img: ({ node: _node, src: rawSrc, alt, ...rest }) => {
-      const src = typeof rawSrc === 'string' ? rawSrc : undefined
-      return (
-        <Image
-          src={src}
-          alt={alt || 'Image'}
-          fallback="/images/fallback-image.png"
-          {...(rest as object)}
-        />
-      )
-    }, // TODO: needs improvement, especially for background
+    img: ({ node: _node, src, alt, title }) => (
+      <MarkdownImage
+        src={typeof src === 'string' ? src : undefined}
+        alt={alt}
+        title={title}
+      />
+    ),
     table: ({ node: _node, ...props }) => <MarkdownTable {...props} />,
   } as Components
 }

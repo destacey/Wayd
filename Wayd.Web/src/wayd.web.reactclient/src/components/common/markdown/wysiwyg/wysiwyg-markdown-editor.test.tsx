@@ -5,6 +5,27 @@ import { Form } from 'antd'
 import { stubEditorLayout } from './editor-test-utils'
 import { MARKDOWN_VIEW_KEY } from './markdown-view-preference'
 import WysiwygMarkdownEditor from './wysiwyg-markdown-editor'
+import { attachmentsUpload } from '@/src/services/api/attachments'
+
+vi.mock(import('@/src/services/api/attachments'), () => ({
+  attachmentsGetContent: vi.fn(() => new Promise<Blob>(() => {})),
+  attachmentsUpload: vi.fn(),
+}))
+
+/** Pastes `files` into `target`, with no HTML, as a screenshot tool's clipboard holds them. */
+const pasteFiles = (target: Element, files: File[]) => {
+  const clipboardData = {
+    files,
+    types: ['Files'],
+    getData: () => '',
+  }
+  const event = new Event('paste', { bubbles: true, cancelable: true })
+  Object.defineProperty(event, 'clipboardData', { value: clipboardData })
+  act(() => {
+    target.dispatchEvent(event)
+  })
+  return event
+}
 
 beforeAll(stubEditorLayout)
 
@@ -972,6 +993,148 @@ describe('WysiwygMarkdownEditor', () => {
       })
       expect(editable).toHaveAttribute('contenteditable', 'true')
       expect(editable).toHaveAttribute('id', 'form_description')
+    })
+
+    it('uploads an image pasted into the source view and writes it where the caret was', async () => {
+      // Arrange
+      const path = '/api/attachments/0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b'
+      vi.mocked(attachmentsUpload).mockResolvedValue({
+        id: '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b',
+        path,
+        contentType: 'image/png',
+        size: 10,
+        width: 1,
+        height: 1,
+      })
+      const onChange = vi.fn()
+      render(
+        <WysiwygMarkdownEditor
+          value="before after"
+          onChange={onChange}
+          maxLength={100}
+          imageUploads
+        />,
+      )
+      await findEditable()
+      await toggleSource()
+      sourceBox().setSelectionRange(7, 7)
+
+      // Act
+      const event = pasteFiles(sourceBox(), [
+        new File([new Uint8Array(10)], 'shot.png', { type: 'image/png' }),
+      ])
+
+      // Assert
+      expect(event.defaultPrevented).toBe(true)
+      await waitFor(() =>
+        expect(onChange).toHaveBeenLastCalledWith(`before ![](${path})after`),
+      )
+      expect(sourceBox()).toHaveValue(`before ![](${path})after`)
+    })
+
+    it('writes a source-view upload where it was pasted, after text typed before it meanwhile', async () => {
+      // Arrange
+      const path = '/api/attachments/0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5c'
+      let finish!: () => void
+      vi.mocked(attachmentsUpload).mockReturnValue(
+        new Promise((resolve) => {
+          finish = () =>
+            resolve({
+              id: '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5c',
+              path,
+              contentType: 'image/png',
+              size: 10,
+              width: 1,
+              height: 1,
+            })
+        }),
+      )
+      URL.createObjectURL = vi.fn(() => 'blob:local')
+      const onChange = vi.fn()
+      render(
+        <WysiwygMarkdownEditor
+          value="before after"
+          onChange={onChange}
+          maxLength={100}
+          imageUploads
+        />,
+      )
+      await findEditable()
+      await toggleSource()
+      sourceBox().setSelectionRange(7, 7)
+      pasteFiles(sourceBox(), [
+        new File([new Uint8Array(10)], 'shot.png', { type: 'image/png' }),
+      ])
+
+      // Act
+      replaceSource('new before after')
+      await act(async () => finish())
+
+      // Assert
+      await waitFor(() =>
+        expect(onChange).toHaveBeenLastCalledWith(
+          `new before ![](${path})after`,
+        ),
+      )
+    })
+
+    it('adds a source-view upload to the end of the document when it answers after a switch back', async () => {
+      // Arrange
+      const path = '/api/attachments/0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5d'
+      let finish!: () => void
+      vi.mocked(attachmentsUpload).mockReturnValue(
+        new Promise((resolve) => {
+          finish = () =>
+            resolve({
+              id: '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5d',
+              path,
+              contentType: 'image/png',
+              size: 10,
+              width: 1,
+              height: 1,
+            })
+        }),
+      )
+      URL.createObjectURL = vi.fn(() => 'blob:local')
+      const onChange = vi.fn()
+      render(
+        <WysiwygMarkdownEditor
+          value="text"
+          onChange={onChange}
+          maxLength={200}
+          imageUploads
+        />,
+      )
+      await findEditable()
+      await toggleSource()
+      pasteFiles(sourceBox(), [
+        new File([new Uint8Array(10)], 'shot.png', { type: 'image/png' }),
+      ])
+      await toggleSource()
+
+      // Act
+      await act(async () => finish())
+
+      // Assert — the image is in the document, so typing on keeps it in the saved text.
+      await waitFor(() =>
+        expect(onChange).toHaveBeenLastCalledWith(`text\n\n![](${path})`),
+      )
+    })
+
+    it('leaves an image pasted into the source view to the textarea while uploads are off', async () => {
+      // Arrange
+      render(<WysiwygMarkdownEditor value="text" maxLength={100} />)
+      await findEditable()
+      await toggleSource()
+
+      // Act
+      const event = pasteFiles(sourceBox(), [
+        new File([new Uint8Array(10)], 'shot.png', { type: 'image/png' }),
+      ])
+
+      // Assert
+      expect(event.defaultPrevented).toBe(false)
+      expect(attachmentsUpload).not.toHaveBeenCalled()
     })
 
     it('switches views when browser storage cannot be written', async () => {

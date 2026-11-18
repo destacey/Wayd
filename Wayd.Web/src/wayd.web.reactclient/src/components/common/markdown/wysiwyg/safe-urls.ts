@@ -1,4 +1,5 @@
 import { defaultSchema } from 'rehype-sanitize'
+import { isAttachmentPath } from '../attachment-path'
 
 /** Schemes `MarkdownRenderer` keeps on a link; any other scheme is blanked when it renders. */
 const linkSchemes = defaultSchema.protocols?.href ?? ['http', 'https', 'mailto']
@@ -67,9 +68,12 @@ export const toLinkHref = (input: string): string | null => {
   return isSafeLinkHref(href) ? href : null
 }
 
-/** Whether `src` may be stored on an image: `http` or `https` only, as the sanitizer allows. */
+/**
+ * Whether `src` may be stored on an image: `http` or `https`, as the sanitizer allows, or an image
+ * uploaded into the field. No other relative path: it would load from this site, not the API.
+ */
 export const isSafeImageSrc = (src: string | null | undefined): boolean =>
-  !!src && /^https?:\/\//i.test(src.trim())
+  !!src && (/^https?:\/\//i.test(src.trim()) || isAttachmentPath(src))
 
 const DESTINATION_ESCAPES: Record<string, string> = {
   '(': '%28',

@@ -88,4 +88,16 @@ describe('findUnsupportedMarkdown', () => {
     // Arrange / Act / Assert
     expect(findUnsupportedMarkdown(markdown)).toEqual([])
   })
+
+  it('does not flag an image uploaded into the field, written as HTML', () => {
+    // Arrange
+    const markdown =
+      '<img src="/api/attachments/0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b" alt="diagram">'
+
+    // Act
+    const found = findUnsupportedMarkdown(markdown)
+
+    // Assert
+    expect(found).toEqual([])
+  })
 })

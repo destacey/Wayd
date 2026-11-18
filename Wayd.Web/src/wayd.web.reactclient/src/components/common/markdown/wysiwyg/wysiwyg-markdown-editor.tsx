@@ -4,7 +4,16 @@ import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
 import { EditorContent, useEditor } from '@tiptap/react'
 import { Alert, Button, Input, Typography } from 'antd'
 import type { TextAreaRef } from 'antd/es/input/TextArea'
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ClipboardEvent,
+  type DragEvent,
+} from 'react'
+import { errorDetail } from '@/src/utils/problem-details'
+import { imageFilesIn, imageUploadProblem, uploadImage } from '../attachments'
 import MarkdownEditorFooter from '../markdown-editor-footer'
 import { loadMarkdown } from './load-markdown'
 import {
@@ -15,6 +24,7 @@ import {
   restoreRefusedInput,
   setMarkdownLengthLimit,
 } from './markdown-length-limit'
+import { setMarkdownImageUpload } from './markdown-image-upload'
 import MarkdownToolbar from './markdown-toolbar'
 import {
   type MarkdownView,
@@ -38,6 +48,12 @@ export interface WysiwygMarkdownEditorProps {
    * scrolling past a fixed height.
    */
   rows?: number
+  /**
+   * Whether images pasted or dropped into the field are uploaded and placed in it. Only for a
+   * field whose record claims its images when it is saved; elsewhere they would be deleted a day
+   * later.
+   */
+  imageUploads?: boolean
   /** Set by `Form.Item` while the field shows validation help or errors. */
   'aria-describedby'?: string
   /** Set by `Form.Item` while the field is invalid; also turns the border to the error color. */
@@ -72,6 +88,7 @@ const WysiwygMarkdownEditor = ({
   onChange,
   maxLength,
   rows,
+  imageUploads = false,
   'aria-describedby': ariaDescribedBy,
   'aria-invalid': ariaInvalid,
   'aria-required': ariaRequired,
@@ -91,6 +108,12 @@ const WysiwygMarkdownEditor = ({
   // What the source view showed when it opened or last loaded; text that differs was edited there.
   const sourceShownRef = useRef(value ?? '')
   const sourceRef = useRef<TextAreaRef>(null)
+  // The source view's text as its textarea holds it (LF), for writing an upload in once it answers.
+  const sourceTextRef = useRef(toLf(value ?? ''))
+  // Where each image pasted into the source view and still uploading goes, kept in step with edits.
+  const pendingSourceImagesRef = useRef<{ offset: number }[]>([])
+  // The view shown now, for an upload that answers after a switch.
+  const viewRef = useRef(view)
   // Set by the toggle, so the view it opens takes focus; a hidden view cannot keep it.
   const focusOnSwitchRef = useRef(false)
 
@@ -133,9 +156,21 @@ const WysiwygMarkdownEditor = ({
     },
   })
 
+  // Why the last image pasted or dropped could not be added; cleared by the next edit.
+  const [imageError, setImageError] = useState<string | null>(null)
+
   useEffect(() => {
     if (editor) setMarkdownLengthLimit(editor, maxLength, setRefusedLength)
   }, [editor, maxLength])
+
+  useEffect(() => {
+    if (!editor) return
+    setMarkdownImageUpload(
+      editor,
+      imageUploads ? uploadImage : undefined,
+      setImageError,
+    )
+  }, [editor, imageUploads])
 
   // Loads `value` when it is not what the editor last reported: on mount, and when the form resets
   // or switches record. The echo of the user's own typing is skipped, so the cursor stays put.
@@ -147,6 +182,7 @@ const WysiwygMarkdownEditor = ({
     loadedRef.current = { markdown, document: loadMarkdown(editor, markdown) }
     lastReportedRef.current = markdown
     sourceShownRef.current = markdown
+    sourceTextRef.current = toLf(markdown)
     setSourceText(markdown)
     setLoadedMarkdown(markdown)
     setIsDocumentEdited(false)
@@ -184,6 +220,8 @@ const WysiwygMarkdownEditor = ({
   const showSource = () => {
     const markdown = lastReportedRef.current ?? value ?? ''
     sourceShownRef.current = markdown
+    sourceTextRef.current = toLf(markdown)
+    pendingSourceImagesRef.current = []
     setSourceText(markdown)
   }
 
@@ -205,6 +243,7 @@ const WysiwygMarkdownEditor = ({
     else showDocument()
     setRefusedLength(null)
     focusOnSwitchRef.current = true
+    viewRef.current = next
     setView(next)
     saveMarkdownView(next)
   }
@@ -220,7 +259,92 @@ const WysiwygMarkdownEditor = ({
       setRefusedLength(text.length)
       return
     }
+    applySourceText(text)
+  }
+
+  // An image pasted or dropped as markdown source is uploaded, then written as `![](path)` where it
+  // was placed, wherever later edits have moved that place. One that answers after a switch to the
+  // document goes at the document's end, so it is never lost. As in the document view, a paste
+  // that also carries HTML is left to the textarea.
+  const uploadIntoSource = (files: File[], offset: number) => {
+    setImageError(null)
+    for (const file of files) {
+      const problem = imageUploadProblem(file)
+      if (problem) {
+        setImageError(problem)
+        continue
+      }
+      const pending = { offset }
+      pendingSourceImagesRef.current.push(pending)
+      uploadImage(file).then(
+        ({ path }) => {
+          const pendingImages = pendingSourceImagesRef.current
+          if (!pendingImages.includes(pending)) return
+          pendingSourceImagesRef.current = pendingImages.filter(
+            (p) => p !== pending,
+          )
+          const image = `![](${path})`
+          if (viewRef.current !== 'source') {
+            editor?.commands.insertContentAt(editor.state.doc.content.size, {
+              type: 'paragraph',
+              content: [{ type: 'image', attrs: { src: path, alt: '' } }],
+            })
+            return
+          }
+          const current = sourceTextRef.current
+          const at = Math.min(pending.offset, current.length)
+          const text = `${current.slice(0, at)}${image}${current.slice(at)}`
+          if (text.length > maxLength) {
+            setRefusedLength(text.length)
+            return
+          }
+          applySourceText(text)
+        },
+        (error: unknown) => {
+          pendingSourceImagesRef.current =
+            pendingSourceImagesRef.current.filter((p) => p !== pending)
+          setImageError(
+            errorDetail(error) ?? 'The image could not be uploaded.',
+          )
+        },
+      )
+    }
+  }
+
+  const onSourcePaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const files = imageFilesIn(event.clipboardData)
+    if (!imageUploads || files.length === 0) return
+    if (event.clipboardData.types.includes('text/html')) return
+    event.preventDefault()
+    uploadIntoSource(files, event.currentTarget.selectionStart)
+  }
+
+  const onSourceDrop = (event: DragEvent<HTMLTextAreaElement>) => {
+    const files = imageFilesIn(event.dataTransfer)
+    if (!imageUploads || files.length === 0) return
+    event.preventDefault()
+    uploadIntoSource(files, event.currentTarget.selectionStart)
+  }
+
+  // Moves each pending upload's place past an edit before it, so the image lands where it was put.
+  const shiftPendingSourceImages = (previous: string, next: string) => {
+    let start = 0
+    while (
+      start < previous.length &&
+      start < next.length &&
+      previous[start] === next[start]
+    )
+      start++
+    const delta = next.length - previous.length
+    for (const pending of pendingSourceImagesRef.current)
+      if (pending.offset > start)
+        pending.offset = Math.max(start, pending.offset + delta)
+  }
+
+  const applySourceText = (text: string) => {
     setRefusedLength(null)
+    shiftPendingSourceImages(sourceTextRef.current, text)
+    sourceTextRef.current = text
     setSourceText(text)
     // Text loaded with CRLF line endings comes back from the textarea with LF; typed back to what
     // was loaded, it reports the loaded text rather than rewriting every line ending.
@@ -296,12 +420,19 @@ const WysiwygMarkdownEditor = ({
             spellCheck
             value={sourceText}
             onChange={onSourceChange}
+            onPaste={onSourcePaste}
+            onDrop={onSourceDrop}
             aria-describedby={ariaDescribedBy}
             aria-invalid={isInvalid || undefined}
             aria-required={isRequired || undefined}
           />
         )}
       </div>
+      {imageError !== null && (
+        <Typography.Text type="danger" role="status">
+          {imageError}
+        </Typography.Text>
+      )}
       {refusedLength !== null && (
         <Typography.Text type="danger" role="status">
           That change would make the saved text {refusedLength} characters, over

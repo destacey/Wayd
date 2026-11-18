@@ -145,10 +145,10 @@ public sealed class ImportKpiRequestValidator : CustomValidator<ImportKpiRequest
 
         RuleFor(k => k.BaselineWindowEnd)
             .NotNull()
-                .When(k => k.BaselineWindowStart is not null)
+                .When(k => k.BaselineWindowStart is not null, ApplyConditionTo.CurrentValidator)
                 .WithMessage("A baseline window needs both a start and an end.")
             .GreaterThanOrEqualTo(k => k.BaselineWindowStart!.Value)
-                .When(k => k.BaselineWindowStart is not null && k.BaselineWindowEnd is not null)
+                .When(k => k.BaselineWindowStart is not null && k.BaselineWindowEnd is not null, ApplyConditionTo.CurrentValidator)
                 .WithMessage(KpiErrors.PeriodEndsBeforeStart);
 
         RuleFor(k => k.BaselineWindowStart)

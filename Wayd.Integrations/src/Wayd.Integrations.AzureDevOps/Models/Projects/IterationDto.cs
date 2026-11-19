@@ -53,8 +53,10 @@ internal static class IterationDtoExtensions
         };
 
         // Azure DevOps stores an iteration's dates as calendar days, sent as midnight UTC.
+#pragma warning disable RS0030 // The UTC date of a midnight-UTC instant is the day Azure DevOps stored.
         LocalDate? start = iteration.StartDate.HasValue ? Instant.FromDateTimeUtc(iteration.StartDate.Value).InUtc().Date : null;
         LocalDate? end = iteration.EndDate.HasValue ? Instant.FromDateTimeUtc(iteration.EndDate.Value).InUtc().Date : null;
+#pragma warning restore RS0030
 
         // Azure DevOps iterations are sprints only if they do not have child iterations and they have start and end dates
         var type = !iteration.HasChildren && start.HasValue && end.HasValue

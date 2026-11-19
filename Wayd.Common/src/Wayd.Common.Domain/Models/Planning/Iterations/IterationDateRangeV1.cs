@@ -27,5 +27,7 @@ public sealed record IterationDateRangeV1
     /// The calendar days these instants stood for: the UTC date of each, as the data migration took them.
     /// </summary>
     public IterationDateRange ToIterationDateRange()
+#pragma warning disable RS0030 // These payloads carry days as midnight UTC, so the UTC date is the day.
         => new(Start?.InUtc().Date, End?.InUtc().Date);
+#pragma warning restore RS0030
 }

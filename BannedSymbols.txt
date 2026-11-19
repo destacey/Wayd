@@ -1,0 +1,1 @@
+M:NodaTime.Instant.InUtc;A moment's calendar day is read in a zone: ISystemCalendar for the system zone, or the team's zone. Where a day really is UTC (a date carried as midnight UTC), suppress RS0030 there and say why.

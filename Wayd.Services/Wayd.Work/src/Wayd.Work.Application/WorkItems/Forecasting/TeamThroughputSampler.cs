@@ -27,7 +27,9 @@ internal sealed class TeamThroughputSampler(IWorkDbContext workDbContext)
     /// out because it is not over, and would read as a slow day.
     /// </summary>
     public static (LocalDate From, LocalDate To) LookbackWindow(Instant now, int days = ForecastOptions.DefaultLookbackDays) =>
+#pragma warning disable RS0030 // A forecast samples in UTC days; see the class remarks.
         LookbackWindow(now.InUtc().Date, days);
+#pragma warning restore RS0030
 
     /// <summary>
     /// The <paramref name="days"/> whole days before <paramref name="today"/>, which is left out because it is
@@ -64,7 +66,9 @@ internal sealed class TeamThroughputSampler(IWorkDbContext workDbContext)
             .Select(w => new { TeamId = w.TeamId!.Value, DoneTimestamp = w.DoneTimestamp!.Value })
             .ToListAsync(cancellationToken);
 
+#pragma warning disable RS0030 // A forecast samples in UTC days; see the class remarks.
         var completedOnByTeam = completions.ToLookup(c => c.TeamId, c => c.DoneTimestamp.InUtc().Date);
+#pragma warning restore RS0030
 
         return teamIds.Distinct().ToDictionary(
             teamId => teamId,

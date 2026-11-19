@@ -18,7 +18,8 @@ public sealed class ActivateProjectPortfolioCommandHandler(
     ICurrentPrincipal currentPrincipal,
     ICurrentUser currentUser,
     ILogger<ActivateProjectPortfolioCommandHandler> logger,
-    IDateTimeProvider dateTimeProvider) : ICommandHandler<ActivateProjectPortfolioCommand>
+    IDateTimeProvider dateTimeProvider,
+    ISystemCalendar systemCalendar) : ICommandHandler<ActivateProjectPortfolioCommand>
 {
     private const string AppRequestName = nameof(ActivateProjectPortfolioCommand);
 
@@ -27,6 +28,7 @@ public sealed class ActivateProjectPortfolioCommandHandler(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<ActivateProjectPortfolioCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<Result> Handle(ActivateProjectPortfolioCommand request, CancellationToken cancellationToken)
     {
@@ -43,7 +45,7 @@ public sealed class ActivateProjectPortfolioCommandHandler(
                 return Result.Failure("Project Portfolio not found.");
             }
 
-            var activateResult = portfolio.Activate(actor, _dateTimeProvider.Today, _dateTimeProvider.Now);
+            var activateResult = portfolio.Activate(actor, await _systemCalendar.Today(cancellationToken), _dateTimeProvider.Now);
             if (activateResult.IsFailure)
             {
                 // Reset the entity

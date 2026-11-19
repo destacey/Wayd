@@ -31,11 +31,12 @@ public class GetProjectsTaskMetricsQueryHandlerTests : IDisposable
         _currentPrincipalMock = new Mock<ICurrentPrincipal>();
         _currentPrincipalMock.Setup(u => u.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_employeeId);
 
-        var instant = Today.AtStartOfDayInZone(DateTimeZone.Utc).ToInstant();
+        // Already the next day in UTC, still Today in the system zone.
+        var instant = Today.PlusDays(1).AtStartOfDayInZone(DateTimeZone.Utc).ToInstant().Plus(Duration.FromHours(5));
         var clock = new FakeClock(instant);
         _dateTimeProvider = new TestingDateTimeProvider(clock);
 
-        _handler = new GetProjectsTaskMetricsQueryHandler(_dbContext, _currentPrincipalMock.Object, _dateTimeProvider);
+        _handler = new GetProjectsTaskMetricsQueryHandler(_dbContext, _currentPrincipalMock.Object, new TestingSystemCalendar(_dateTimeProvider));
     }
 
     #region Helpers

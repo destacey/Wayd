@@ -16,12 +16,12 @@ public sealed record GetProjectsTaskMetricsQuery(
 public sealed class GetProjectsTaskMetricsQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ICurrentPrincipal currentPrincipal,
-    IDateTimeProvider dateTimeProvider)
+    ISystemCalendar systemCalendar)
     : IQueryHandler<GetProjectsTaskMetricsQuery, ProjectsTaskMetricsDto>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<ProjectsTaskMetricsDto> Handle(GetProjectsTaskMetricsQuery request, CancellationToken cancellationToken)
     {
@@ -35,7 +35,7 @@ public sealed class GetProjectsTaskMetricsQueryHandler(
         }
 
         var eid = employeeId.Value;
-        var today = _dateTimeProvider.Today;
+        var today = await _systemCalendar.Today(cancellationToken);
 
         // Saturday = ISO day 6. NodaTime uses ISO: Monday=1 ... Sunday=7
         var daysUntilSaturday = ((int)IsoDayOfWeek.Saturday - (int)today.DayOfWeek + 7) % 7;

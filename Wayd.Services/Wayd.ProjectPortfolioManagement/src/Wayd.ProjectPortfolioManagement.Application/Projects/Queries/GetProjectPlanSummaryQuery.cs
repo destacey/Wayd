@@ -25,15 +25,15 @@ public sealed record GetProjectPlanSummaryQuery : IQuery<ProjectPlanSummaryDto>
 
 public sealed class GetProjectPlanSummaryQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
-    IDateTimeProvider dateTimeProvider)
+    ISystemCalendar systemCalendar)
     : IQueryHandler<GetProjectPlanSummaryQuery, ProjectPlanSummaryDto>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<ProjectPlanSummaryDto> Handle(GetProjectPlanSummaryQuery request, CancellationToken cancellationToken)
     {
-        var today = _dateTimeProvider.Today;
+        var today = await _systemCalendar.Today(cancellationToken);
 
         // Saturday = ISO day 6. NodaTime uses ISO: Monday=1 ... Sunday=7
         var daysUntilSaturday = ((int)IsoDayOfWeek.Saturday - (int)today.DayOfWeek + 7) % 7;

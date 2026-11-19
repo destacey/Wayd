@@ -14,6 +14,7 @@ using Wayd.Infrastructure.Persistence.Context;
 using Wayd.Organization.Application.EmployeeCapacities.Queries;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.IntegrationTests.Infrastructure;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Organization.IntegrationTests.Sut;
 
@@ -49,7 +50,7 @@ public sealed class GetTeamsCapacityByPeriodQueryHandlerTests(SqlServerDbContext
             var payments = TeamOfTeams.Create("Payments", new TeamCode("PAY"), null, new LocalDate(2024, 1, 1), "UTC", EventActor.System, SqlServerDbContextFixture.FixedNow);
             await seedContext.AddAsync(payments, cancellationToken);
             var cards = await OrganizationSeeder.SeedTeam(seedContext, "CARDS", "Cards", cancellationToken);
-            cards.AddTeamMembership(payments, new MembershipDateRange(SecondWeek.Start, null), EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+            cards.AddTeamMembership(payments, new MembershipDateRange(SecondWeek.Start, null), EventActor.System, SqlServerDbContextFixture.FixedNow, SqlServerDbContextFixture.FixedNow.InUtc().Date).IsSuccess.Should().BeTrue();
             await seedContext.SaveChangesAsync(cancellationToken);
 
             var ada = await OrganizationSeeder.SeedEmployee(seedContext, "E-1001", "ada@acme.example", cancellationToken);
@@ -132,7 +133,7 @@ public sealed class GetTeamsCapacityByPeriodQueryHandlerTests(SqlServerDbContext
         var principal = new Mock<ICurrentPrincipal>();
         var clock = new Mock<IDateTimeProvider>();
         clock.SetupGet(d => d.Now).Returns(SqlServerDbContextFixture.FixedNow);
-        return new(context, new Mock<IDispatcher>().Object, principal.Object, Settings(defaultCalendarId), clock.Object);
+        return new(context, new Mock<IDispatcher>().Object, principal.Object, Settings(defaultCalendarId), new TestingSystemCalendar(clock.Object));
     }
 
     private static GetTeamOfTeamsCapacityRollupQueryHandler RollupHandler(WaydDbContext context, Guid? defaultCalendarId) =>

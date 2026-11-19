@@ -95,7 +95,7 @@ public class ProjectPortfolioTests
         var portfolio = ProjectPortfolio.Create("Growth", "Growth portfolio", null, EventActor.System, _dateTimeProvider.Now);
 
         // Act
-        portfolio.Activate(AnAuthorizedActor(), _dateTimeProvider.Today, _dateTimeProvider.Now);
+        portfolio.Activate(AnAuthorizedActor(), _dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now);
         portfolio.ExecutePostPersistenceActions();
 
         // Assert
@@ -129,7 +129,7 @@ public class ProjectPortfolioTests
     {
         // Arrange
         var portfolio = _portfolioFaker.AsProposed();
-        var startDate = _dateTimeProvider.Today;
+        var startDate = _dateTimeProvider.Now.InUtc().Date;
         portfolio.ClearDomainEvents();
 
         // Act
@@ -185,7 +185,7 @@ public class ProjectPortfolioTests
     {
         // Arrange
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
-        var endDate = _dateTimeProvider.Today;
+        var endDate = _dateTimeProvider.Now.InUtc().Date;
         portfolio.ClearDomainEvents();
 
         // Act
@@ -382,7 +382,7 @@ public class ProjectPortfolioTests
     {
         // Arrange
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
-        var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(90));
+        var dateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(90));
         portfolio.ClearDomainEvents();
 
         // Act
@@ -411,7 +411,7 @@ public class ProjectPortfolioTests
     {
         // Arrange
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
-        var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(90));
+        var dateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(90));
         var initiative = portfolio.CreateStrategicInitiative(
             "Cloud Migration", "Move the estate", dateRange, null, EventActor.System, _dateTimeProvider.Now).Value;
         portfolio.ClearDomainEvents();
@@ -639,7 +639,7 @@ public class ProjectPortfolioTests
     {
         // Arrange
         var portfolio = _portfolioFaker.Generate();
-        var startDate = _dateTimeProvider.Today;
+        var startDate = _dateTimeProvider.Now.InUtc().Date;
 
         // Act
         var result = portfolio.Activate(AnAuthorizedActor(), startDate, _dateTimeProvider.Now);
@@ -659,7 +659,7 @@ public class ProjectPortfolioTests
         var project = _projectFaker.AsActive(_dateTimeProvider, portfolio.Id);
         portfolio.CreateProject(project.Name, project.Description, project.Key, 1, null, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor());
 
-        var endDate = _dateTimeProvider.Today.PlusDays(10);
+        var endDate = _dateTimeProvider.Now.InUtc().Date.PlusDays(10);
 
         // Act
         var result = portfolio.Close(AnAuthorizedActor(), endDate, _dateTimeProvider.Now);
@@ -676,11 +676,11 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
 
         var fakeProject = _projectFaker.AsProposed(_dateTimeProvider, portfolio.Id);
-        var projectDateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3));
+        var projectDateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusMonths(3));
         var createProjectReult = portfolio.CreateProject(fakeProject.Name, fakeProject.Description, fakeProject.Key, 1, projectDateRange, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor());
         var project = createProjectReult.Value;
 
-        var endDate = _dateTimeProvider.Today.PlusDays(10);
+        var endDate = _dateTimeProvider.Now.InUtc().Date.PlusDays(10);
 
         var activateProjectResult = project.Activate(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
         activateProjectResult.IsSuccess.Should().BeTrue();
@@ -803,7 +803,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.Generate();
 
         // Act
-        var result = portfolio.Activate(AnUnauthorizedActor(), _dateTimeProvider.Today, _dateTimeProvider.Now);
+        var result = portfolio.Activate(AnUnauthorizedActor(), _dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -818,7 +818,7 @@ public class ProjectPortfolioTests
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
 
         // Act
-        var result = portfolio.Close(AnUnauthorizedActor(), _dateTimeProvider.Today.PlusDays(10), _dateTimeProvider.Now);
+        var result = portfolio.Close(AnUnauthorizedActor(), _dateTimeProvider.Now.InUtc().Date.PlusDays(10), _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -898,7 +898,7 @@ public class ProjectPortfolioTests
         // Arrange
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
         var program = portfolio.CreateProgram("Target Program", "Description",
-            new LocalDateRange(_dateTimeProvider.Today.PlusDays(-5), _dateTimeProvider.Today.PlusMonths(3)),
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(-5), _dateTimeProvider.Now.InUtc().Date.PlusMonths(3)),
             null, null, EventActor.System, _dateTimeProvider.Now).Value;
         // A program only accepts projects once it is active.
         program.Activate(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
@@ -922,11 +922,11 @@ public class ProjectPortfolioTests
         var employeeId = Guid.NewGuid();
         var portfolio = _portfolioFaker
             .WithStatus(ProjectPortfolioStatus.Active)
-            .WithDateRange(new FlexibleDateRange(_dateTimeProvider.Today.PlusDays(-10)))
+            .WithDateRange(new FlexibleDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(-10)))
             .WithOwner(employeeId)
             .Generate();
         var program = portfolio.CreateProgram("Target Program", "Description",
-            new LocalDateRange(_dateTimeProvider.Today.PlusDays(-5), _dateTimeProvider.Today.PlusMonths(3)),
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(-5), _dateTimeProvider.Now.InUtc().Date.PlusMonths(3)),
             null, null, EventActor.System, _dateTimeProvider.Now).Value;
         // A program only accepts projects once it is active.
         program.Activate(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
@@ -950,7 +950,7 @@ public class ProjectPortfolioTests
         var employeeId = Guid.NewGuid();
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
         var program = portfolio.CreateProgram("Target Program", "Description",
-            new LocalDateRange(_dateTimeProvider.Today.PlusDays(-5), _dateTimeProvider.Today.PlusMonths(3)),
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(-5), _dateTimeProvider.Now.InUtc().Date.PlusMonths(3)),
             null, null, EventActor.System, _dateTimeProvider.Now).Value;
         // A program only accepts projects once it is active.
         program.Activate(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
@@ -982,7 +982,7 @@ public class ProjectPortfolioTests
         // Arrange
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
         var program = portfolio.CreateProgram("Target Program", "Description",
-            new LocalDateRange(_dateTimeProvider.Today.PlusDays(-5), _dateTimeProvider.Today.PlusMonths(3)),
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(-5), _dateTimeProvider.Now.InUtc().Date.PlusMonths(3)),
             null, null, EventActor.System, _dateTimeProvider.Now).Value;
         // A program only accepts projects once it is active.
         program.Activate(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
@@ -1042,7 +1042,7 @@ public class ProjectPortfolioTests
 
         program.AddProject(project, EventActor.System, _dateTimeProvider.Now);
 
-        var endDate = _dateTimeProvider.Today.PlusDays(10);
+        var endDate = _dateTimeProvider.Now.InUtc().Date.PlusDays(10);
 
         // Act
         var result = portfolio.Close(AnAuthorizedActor(), endDate, _dateTimeProvider.Now);
@@ -1367,7 +1367,7 @@ public class ProjectPortfolioTests
     {
         // Arrange
         var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
-        var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3));
+        var dateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusMonths(3));
 
         // Act
         var result = portfolio.CreateStrategicInitiative("Test Initiative", "Test Description", dateRange, null, EventActor.System, _dateTimeProvider.Now);
@@ -1387,7 +1387,7 @@ public class ProjectPortfolioTests
     {
         // Arrange
         var portfolio = _portfolioFaker.AsProposed();
-        var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3));
+        var dateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusMonths(3));
 
         // Act
         var result = portfolio.CreateStrategicInitiative("Test Initiative", "Test Description", dateRange, null, EventActor.System, _dateTimeProvider.Now);

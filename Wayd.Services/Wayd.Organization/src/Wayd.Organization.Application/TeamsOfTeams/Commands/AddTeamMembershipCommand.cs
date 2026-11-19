@@ -20,12 +20,13 @@ public sealed class AddTeamMembershipCommandValidator : CustomValidator<AddTeamM
     }
 }
 
-public sealed class AddTeamMembershipCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, ILogger<AddTeamMembershipCommandHandler> logger) : ICommandHandler<AddTeamMembershipCommand>
+public sealed class AddTeamMembershipCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ISystemCalendar systemCalendar, ICurrentUser currentUser, ILogger<AddTeamMembershipCommandHandler> logger) : ICommandHandler<AddTeamMembershipCommand>
 {
     private const string RequestName = nameof(AddTeamMembershipCommand);
 
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<AddTeamMembershipCommandHandler> _logger = logger;
 
@@ -44,7 +45,8 @@ public sealed class AddTeamMembershipCommandHandler(IOrganizationDbContext organ
             var parentTeam = await _organizationDbContext.TeamOfTeams
                 .SingleAsync(t => t.Id == request.ParentTeamId, cancellationToken: cancellationToken);
 
-            var result = team.AddTeamMembership(parentTeam, request.DateRange, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+            var now = _dateTimeProvider.Now;
+            var result = team.AddTeamMembership(parentTeam, request.DateRange, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), now, await _systemCalendar.DayOf(now, cancellationToken));
             if (result.IsFailure)
             {
                 _logger.LogError("{RequestName}: failed to add Team Membership for Team of Teams {TeamId} and ParentTeamId {ParentTeamId}. Error: {Error}", RequestName, request.TeamId, request.ParentTeamId, result.Error);

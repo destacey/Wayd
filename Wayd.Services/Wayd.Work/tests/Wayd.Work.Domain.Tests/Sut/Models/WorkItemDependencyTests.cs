@@ -50,7 +50,7 @@ public class WorkItemDependencyTests
     {
         // Arrange
         var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
 
         var source = _workItemFaker.WithStatusCategory(StatusCategory.Active).Generate();
         var target = _workItemFaker.WithStatusCategory(StatusCategory.Active).Generate();
@@ -87,7 +87,7 @@ public class WorkItemDependencyTests
     {
         // Arrange
         var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
 
         var source = _workItemFaker.WithStatusCategory(sourceStatusCategory).Generate();
         var target = _workItemFaker.WithStatusCategory(targetStatusCategory).Generate();
@@ -149,7 +149,7 @@ public class WorkItemDependencyTests
     {
         // Arrange: start with no planned dates -> AtRisk
         var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
 
         var source = _workItemFaker.WithProposedState().Generate();
         var target = _workItemFaker.WithStatusCategory(StatusCategory.Proposed).Generate();
@@ -177,7 +177,7 @@ public class WorkItemDependencyTests
     {
         // Arrange: predecessor after successor -> Unhealthy
         var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
 
         var source = _workItemFaker.WithProposedState().Generate();
         var target = _workItemFaker.WithProposedState().Generate();
@@ -207,7 +207,7 @@ public class WorkItemDependencyTests
     {
         // Arrange: start with no planned dates -> AtRisk
         var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
 
         var source = _workItemFaker.WithProposedState().Generate();
         var target = _workItemFaker.WithStatusCategory(StatusCategory.Proposed).Generate();
@@ -245,7 +245,7 @@ public class WorkItemDependencyTests
     {
         // Arrange: start with healthy planned dates
         var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
 
         var source = _workItemFaker.WithProposedState().Generate();
         var target = _workItemFaker.WithStatusCategory(StatusCategory.Proposed).Generate();
@@ -283,7 +283,7 @@ public class WorkItemDependencyTests
     {
         // Arrange: start with healthy planned dates
         var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
 
         var source = _workItemFaker.WithProposedState().Generate();
         var target = _workItemFaker.WithStatusCategory(StatusCategory.Proposed).Generate();
@@ -319,7 +319,7 @@ public class WorkItemDependencyTests
     {
         // Arrange: start with both unplanned -> AtRisk
         var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
 
         var source = _workItemFaker.WithProposedState().Generate();
         var target = _workItemFaker.WithStatusCategory(StatusCategory.Proposed).Generate();
@@ -348,7 +348,7 @@ public class WorkItemDependencyTests
     {
         // Arrange
         var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
 
         var source = _workItemFaker.WithStatusCategory(StatusCategory.Active).Generate();
         var target = _workItemFaker.WithStatusCategory(StatusCategory.Active).Generate();
@@ -379,7 +379,7 @@ public class WorkItemDependencyTests
     {
         // Arrange
         var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
 
         var source = _workItemFaker.WithStatusCategory(StatusCategory.Active).Generate();
         var target = _workItemFaker.WithStatusCategory(StatusCategory.Active).Generate();
@@ -442,7 +442,7 @@ public class WorkItemDependencyTests
     {
         // Arrange: start with unhealthy (predecessor after successor)
         var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
 
         var source = _workItemFaker.WithProposedState().Generate();
         var target = _workItemFaker.WithStatusCategory(StatusCategory.Proposed).Generate();
@@ -478,7 +478,7 @@ public class WorkItemDependencyTests
     {
         // Arrange: start with unhealthy (predecessor after successor)
         var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
 
         var source = _workItemFaker.WithProposedState().Generate();
         var target = _workItemFaker.WithStatusCategory(StatusCategory.Proposed).Generate();
@@ -555,7 +555,7 @@ public class WorkItemDependencyTests
     {
         // Arrange
         var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
 
         var createdBy = Guid.NewGuid();
         var createdOn = now;

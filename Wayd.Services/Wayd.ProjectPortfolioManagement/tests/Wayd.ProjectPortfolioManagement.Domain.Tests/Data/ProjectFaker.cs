@@ -163,7 +163,7 @@ public static class ProjectFakerExtensions
     /// <returns></returns>
     public static Project AsProposed(this ProjectFaker faker, TestingDateTimeProvider dateTimeProvider, Guid? portfolioId = null, Guid? programId = null)
     {
-        var now = dateTimeProvider.Today;
+        var now = dateTimeProvider.Now.InUtc().Date;
         var startDate = now.PlusDays(10);
         var endDate = startDate.PlusMonths(5);
 
@@ -180,7 +180,7 @@ public static class ProjectFakerExtensions
     /// </summary>
     public static Project AsApproved(this ProjectFaker faker, TestingDateTimeProvider dateTimeProvider, Guid? portfolioId = null, Guid? programId = null)
     {
-        var now = dateTimeProvider.Today;
+        var now = dateTimeProvider.Now.InUtc().Date;
         var startDate = now.PlusDays(10);
         var endDate = startDate.PlusMonths(5);
 
@@ -197,7 +197,7 @@ public static class ProjectFakerExtensions
     /// </summary>
     public static Project AsActive(this ProjectFaker faker, TestingDateTimeProvider dateTimeProvider, Guid? portfolioId = null, Guid? programId = null)
     {
-        var now = dateTimeProvider.Today;
+        var now = dateTimeProvider.Now.InUtc().Date;
         var startDate = now.PlusDays(-10);
         var endDate = startDate.PlusMonths(5);
 
@@ -214,7 +214,7 @@ public static class ProjectFakerExtensions
     /// </summary>
     public static Project AsCompleted(this ProjectFaker faker, TestingDateTimeProvider dateTimeProvider, Guid? portfolioId = null, Guid? programId = null)
     {
-        var now = dateTimeProvider.Today;
+        var now = dateTimeProvider.Now.InUtc().Date;
         var startDate = now.PlusDays(-20);
         var endDate = startDate.PlusDays(10);
 
@@ -231,7 +231,7 @@ public static class ProjectFakerExtensions
     /// </summary>
     public static Project AsCanceled(this ProjectFaker faker, TestingDateTimeProvider dateTimeProvider, Guid? portfolioId = null, Guid? programId = null)
     {
-        var now = dateTimeProvider.Today;
+        var now = dateTimeProvider.Now.InUtc().Date;
         var startDate = now.PlusDays(-15);
         var endDate = startDate.PlusDays(5);
 

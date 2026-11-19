@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Moq.AutoMock;
 using NodaTime;
+using NodaTime.Testing;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Organization.Application.Teams.Dtos;
@@ -13,6 +14,7 @@ using Wayd.Planning.Application.PlanningIntervals.Dtos;
 using Wayd.Planning.Application.PlanningIntervals.Queries;
 using Wayd.Planning.Application.PlanningSprints.Dtos;
 using Wayd.Web.Api.Controllers.Planning;
+using Wayd.Tests.Shared;
 using Wayd.Web.Api.Models.Planning.PlanningIntervals;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkItems.Queries;
@@ -112,5 +114,31 @@ public sealed class PlanningIntervalsControllerMetricsTests
         var response = result.Result.Should().BeOfType<OkObjectResult>()
             .Which.Value.Should().BeOfType<PlanningIntervalMetricsResponse>().Subject;
         response.TeamMetrics.Should().ContainSingle().Which.TeamCode.Should().Be("ATLAS");
+    }
+
+    [Fact]
+    public async Task GetObjectiveWorkItemMetrics_ReadsUpToTodayInTheSystemZone()
+    {
+        // Arrange — 16 January in UTC, still 15 January in the system zone
+        var objectiveId = Guid.NewGuid();
+        _mocker.Use<ISystemCalendar>(new TestingSystemCalendar(new TestingDateTimeProvider(new FakeClock(Instant.FromUtc(2026, 1, 16, 5, 0)))));
+        SetupPlanningIntervalWithOneSprint(sprintTeamCode: "ATLAS");
+        var dispatcher = _mocker.GetMock<IDispatcher>();
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<CheckPlanningIntervalObjectiveExistsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(objectiveId);
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetExternalObjectWorkItemMetricsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        var controller = CreateController();
+
+        // Act
+        await controller.GetObjectiveWorkItemMetrics("7", "1", TestContext.Current.CancellationToken);
+
+        // Assert
+        dispatcher.Verify(d => d.Send(
+            It.Is<GetExternalObjectWorkItemMetricsQuery>(q => q.ObjectiveId == objectiveId && q.Start == new DateOnly(2026, 1, 5) && q.End == new DateOnly(2026, 1, 15)),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }

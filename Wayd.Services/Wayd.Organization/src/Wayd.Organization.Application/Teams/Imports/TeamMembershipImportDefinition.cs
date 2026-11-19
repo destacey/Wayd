@@ -24,11 +24,13 @@ namespace Wayd.Organization.Application.Teams.Imports;
 public sealed class TeamMembershipImportDefinition(
     IOrganizationDbContext organizationDbContext,
     IDateTimeProvider dateTimeProvider,
+    ISystemCalendar systemCalendar,
     ICurrentUser currentUser,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportTeamMembershipDto>(serializer)
 {
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
     private readonly ICurrentUser _currentUser = currentUser;
 
     public const string ImportKey = "team-memberships";
@@ -65,6 +67,7 @@ public sealed class TeamMembershipImportDefinition(
     private async Task<Result> AddMemberships(ImportPassContext<ImportTeamMembershipDto> context, CancellationToken cancellationToken)
     {
         var timestamp = _dateTimeProvider.Now;
+        var today = await _systemCalendar.DayOf(timestamp, cancellationToken);
         var actor = EventActor.Import(_currentUser.GetUserId());
 
         var codes = context.Rows
@@ -112,7 +115,7 @@ public sealed class TeamMembershipImportDefinition(
             var child = teamsByCode[Normalize(row.Data.ChildCode)];
             var parent = (TeamOfTeams)teamsByCode[Normalize(row.Data.ParentCode)];
 
-            var result = child.AddTeamMembership(parent, new MembershipDateRange(row.Data.Start, row.Data.End), actor, timestamp);
+            var result = child.AddTeamMembership(parent, new MembershipDateRange(row.Data.Start, row.Data.End), actor, timestamp, today);
             if (result.IsFailure)
             {
                 // The domain refused — an overlap or a cycle it can only see with the whole file loaded.

@@ -11,11 +11,11 @@ namespace Wayd.Organization.Application.Teams.Queries;
 public sealed record GetTeamOperatingModelsForTeamsQuery(IEnumerable<Guid> TeamIds, LocalDate? AsOfDate = null)
     : IQuery<List<TeamOperatingModelDetailsDto>>;
 
-public sealed class GetTeamOperatingModelsForTeamsQueryHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider)
+public sealed class GetTeamOperatingModelsForTeamsQueryHandler(IOrganizationDbContext organizationDbContext, ISystemCalendar systemCalendar)
     : IQueryHandler<GetTeamOperatingModelsForTeamsQuery, List<TeamOperatingModelDetailsDto>>
 {
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<List<TeamOperatingModelDetailsDto>> Handle(GetTeamOperatingModelsForTeamsQuery request, CancellationToken cancellationToken)
     {
@@ -25,7 +25,7 @@ public sealed class GetTeamOperatingModelsForTeamsQueryHandler(IOrganizationDbCo
             return [];
         }
 
-        var asOfDate = request.AsOfDate ?? _dateTimeProvider.Today;
+        var asOfDate = request.AsOfDate ?? await _systemCalendar.Today(cancellationToken);
 
         var query = _organizationDbContext.Teams
             .Where(t => teamIdList.Contains(t.Id))

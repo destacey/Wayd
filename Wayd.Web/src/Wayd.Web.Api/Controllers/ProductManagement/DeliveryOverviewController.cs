@@ -31,8 +31,9 @@ public class DeliveryOverviewController(IDispatcher dispatcher) : ControllerBase
     /// <param name="productId">The ID of the product to scope the delivery overview to. Omit for the whole catalog.</param>
     /// <param name="timeZone">
     /// The IANA zone whose days the window and the daily buckets are, normally the viewer's. Defaults
-    /// to UTC.
+    /// to the system time zone.
     /// </param>
+    /// <param name="systemCalendar">The system calendar, whose zone stands in for an omitted <paramref name="timeZone"/>.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Delivery)]
@@ -48,10 +49,11 @@ public class DeliveryOverviewController(IDispatcher dispatcher) : ControllerBase
         [FromQuery] Instant to,
         [FromQuery] Guid? productId,
         [FromQuery] string? timeZone,
+        [FromServices] ISystemCalendar systemCalendar,
         CancellationToken cancellationToken)
     {
         var zone = string.IsNullOrWhiteSpace(timeZone)
-            ? DateTimeZone.Utc
+            ? await systemCalendar.Zone(cancellationToken)
             : DateTimeZoneProviders.Tzdb.GetZoneOrNull(timeZone.Trim());
 
         if (zone is null)

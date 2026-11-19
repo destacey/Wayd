@@ -30,6 +30,7 @@ public sealed class StartSprintCommandHandler(
     ICurrentUser currentUser,
     ICurrentPrincipal currentPrincipal,
     IDateTimeProvider dateTimeProvider,
+    ISystemCalendar systemCalendar,
     ILogger<StartSprintCommandHandler> logger)
     : ICommandHandler<StartSprintCommand>
 {
@@ -42,6 +43,7 @@ public sealed class StartSprintCommandHandler(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
     private readonly ILogger<StartSprintCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(StartSprintCommand request, CancellationToken cancellationToken)
@@ -49,7 +51,7 @@ public sealed class StartSprintCommandHandler(
         try
         {
             return await SprintLifecycleChange.Apply(
-                _workDbContext, _dispatcher, _schedulingSettings, _generalSettings, _currentUser, _currentPrincipal, _dateTimeProvider, _logger,
+                _workDbContext, _dispatcher, _schedulingSettings, _generalSettings, _currentUser, _currentPrincipal, _dateTimeProvider, _systemCalendar, _logger,
                 request.Id,
                 "start",
                 (sprint, timeline, actor, now) => Steps(request, sprint, timeline, actor, now),

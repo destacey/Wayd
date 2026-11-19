@@ -18,7 +18,8 @@ public sealed class CloseProjectPortfolioCommandHandler(
     ICurrentPrincipal currentPrincipal,
     ICurrentUser currentUser,
     ILogger<CloseProjectPortfolioCommandHandler> logger,
-    IDateTimeProvider dateTimeProvider) : ICommandHandler<CloseProjectPortfolioCommand>
+    IDateTimeProvider dateTimeProvider,
+    ISystemCalendar systemCalendar) : ICommandHandler<CloseProjectPortfolioCommand>
 {
     private const string AppRequestName = nameof(CloseProjectPortfolioCommand);
 
@@ -27,6 +28,7 @@ public sealed class CloseProjectPortfolioCommandHandler(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<CloseProjectPortfolioCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<Result> Handle(CloseProjectPortfolioCommand request, CancellationToken cancellationToken)
     {
@@ -43,7 +45,8 @@ public sealed class CloseProjectPortfolioCommandHandler(
                 return Result.Failure("Project Portfolio not found.");
             }
 
-            var closeResult = portfolio.Close(actor, _dateTimeProvider.Today, _dateTimeProvider.Now);
+            var now = _dateTimeProvider.Now;
+            var closeResult = portfolio.Close(actor, await _systemCalendar.DayOf(now, cancellationToken), now);
             if (closeResult.IsFailure)
             {
                 // Reset the entity

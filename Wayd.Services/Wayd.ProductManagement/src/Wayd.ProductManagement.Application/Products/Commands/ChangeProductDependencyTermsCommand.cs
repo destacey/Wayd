@@ -49,7 +49,8 @@ public sealed class ChangeProductDependencyTermsCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     ICurrentUser currentUser,
     ILogger<ChangeProductDependencyTermsCommandHandler> logger,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    ISystemCalendar systemCalendar)
     : ICommandHandler<ChangeProductDependencyTermsCommand, Guid>
 {
     private const string AppRequestName = nameof(ChangeProductDependencyTermsCommand);
@@ -58,6 +59,7 @@ public sealed class ChangeProductDependencyTermsCommandHandler(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<ChangeProductDependencyTermsCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<Result<Guid>> Handle(ChangeProductDependencyTermsCommand request, CancellationToken cancellationToken)
     {
@@ -73,7 +75,8 @@ public sealed class ChangeProductDependencyTermsCommandHandler(
                 return Result.Failure<Guid>("Product not found.");
             }
 
-            var today = _dateTimeProvider.Today;
+            var now = _dateTimeProvider.Now;
+            var today = await _systemCalendar.DayOf(now, cancellationToken);
 
             var changeResult = product.ChangeDependencyTerms(
                 request.DependencyId,
@@ -82,7 +85,7 @@ public sealed class ChangeProductDependencyTermsCommandHandler(
                 request.ChangedOn ?? today,
                 today,
                 EventActor.User(_currentUser.GetUserId()),
-                _dateTimeProvider.Now);
+                now);
 
             if (changeResult.IsFailure)
             {

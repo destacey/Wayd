@@ -109,7 +109,7 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
         await using (var context = _fixture.CreateContext())
         {
             result = await new ChangeProductDependencyTermsCommandHandler(
-                    context, CurrentUser(), Mock.Of<ILogger<ChangeProductDependencyTermsCommandHandler>>(), Clock())
+                    context, CurrentUser(), Mock.Of<ILogger<ChangeProductDependencyTermsCommandHandler>>(), Clock(), new Wayd.Tests.Shared.TestingSystemCalendar(Clock()))
                 .Handle(new ChangeProductDependencyTermsCommand(web.Id, originalId, DependencyStrength.Hard, null, changedOn), ct);
         }
 
@@ -239,7 +239,7 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
     }
 
     private static AddProductDependencyCommandHandler AddHandler(WaydDbContext context) =>
-        new(context, CurrentUser(), Mock.Of<ILogger<AddProductDependencyCommandHandler>>(), Clock());
+        new(context, CurrentUser(), Mock.Of<ILogger<AddProductDependencyCommandHandler>>(), Clock(), new Wayd.Tests.Shared.TestingSystemCalendar(Clock()));
 
     private static ICurrentUser CurrentUser()
     {
@@ -252,7 +252,6 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
     {
         var provider = new Mock<IDateTimeProvider>();
         provider.SetupGet(d => d.Now).Returns(Now);
-        provider.SetupGet(d => d.Today).Returns(Today);
         return provider.Object;
     }
 

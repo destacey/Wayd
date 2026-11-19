@@ -788,7 +788,7 @@ Withdrawing and retiring are the everyday way out and are all Update. DELETE is 
 
 ### Delivery Overview
 
-Version activity over a window, for one product subtree or the whole catalog. GET product-management/delivery-overview (from, to, productId, timeZone) and /recent. `timeZone` is an optional IANA zone (default UTC; the web app sends the browser's) — the window and the per-day activity buckets are that zone's days, so a late-evening release counts on the day it happened locally. The MCP tool DeliveryOverview_GetDeliveryOverview takes the same parameter.
+Version activity over a window, for one product subtree or the whole catalog. GET product-management/delivery-overview (from, to, productId, timeZone) and /recent. `timeZone` is an optional IANA zone (default: the system time zone; the web app sends the browser's) — the window and the per-day activity buckets are that zone's days, so a late-evening release counts on the day it happened locally. The MCP tool DeliveryOverview_GetDeliveryOverview takes the same parameter.
 
 Measures: versions released per week, and mean cut-to-released latency — the real elapsed time between CutAt and ReleasedAt, in fractional days, not a count of calendar days. Both count VERSIONS ONLY — a release package is a bundle of versions, and counting one would count the same shipment twice.
 
@@ -878,7 +878,7 @@ Each service: Domain (entities, value objects) → Application (commands, querie
 Application layer organized by aggregate root: {Feature}/Commands/, {Feature}/Queries/, {Feature}/Dtos/.
 
 ### Time Handling
-NodaTime types (Instant, LocalDate). Never DateTime.UtcNow — always inject IDateTimeProvider.
+NodaTime types (Instant, LocalDate). Never DateTime.UtcNow — always inject IDateTimeProvider. A calendar day ("today", the day a moment falls on) comes from ISystemCalendar, read in the system time zone (GeneralSettings.TimeZone), or from a team's own zone; Instant.InUtc() is banned in production code.
 
 ### Frontend Patterns
 - Orval-generated typed functions for API calls (src/services/api/; never a hand-written fetch)

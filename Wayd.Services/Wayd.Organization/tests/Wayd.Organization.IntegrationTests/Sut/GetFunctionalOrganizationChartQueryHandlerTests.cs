@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using NodaTime.Testing;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Events;
@@ -8,6 +9,7 @@ using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.IntegrationTests.Infrastructure;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Organization.IntegrationTests.Sut;
 
@@ -53,19 +55,17 @@ public sealed class GetFunctionalOrganizationChartQueryHandlerTests
             await seedContext.TeamOfTeams.AddRangeAsync([valueStream, art], cancellationToken);
             await seedContext.Teams.AddRangeAsync([team, past], cancellationToken);
 
-            art.AddTeamMembership(valueStream, new MembershipDateRange(MembershipStart, null), EventActor.System, now).IsSuccess.Should().BeTrue();
-            team.AddTeamMembership(art, new MembershipDateRange(MembershipStart, null), EventActor.System, now).IsSuccess.Should().BeTrue();
-            past.AddTeamMembership(art, new MembershipDateRange(MembershipStart, asOf.PlusDays(-1)), EventActor.System, now).IsSuccess.Should().BeTrue();
+            art.AddTeamMembership(valueStream, new MembershipDateRange(MembershipStart, null), EventActor.System, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
+            team.AddTeamMembership(art, new MembershipDateRange(MembershipStart, null), EventActor.System, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
+            past.AddTeamMembership(art, new MembershipDateRange(MembershipStart, asOf.PlusDays(-1)), EventActor.System, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
 
             await seedContext.SaveChangesAsync(cancellationToken);
         }
 
-        var dateTimeProvider = new Mock<IDateTimeProvider>();
-        dateTimeProvider.SetupGet(d => d.Today).Returns(asOf);
-
         await using var context = _fixture.CreateContext();
         var handler = new GetFunctionalOrganizationChartQueryHandler(
-            context, NullLogger<GetFunctionalOrganizationChartQueryHandler>.Instance, dateTimeProvider.Object);
+            context, NullLogger<GetFunctionalOrganizationChartQueryHandler>.Instance,
+            new TestingSystemCalendar(new TestingDateTimeProvider(new FakeClock(SqlServerDbContextFixture.FixedNow))));
 
         // Act
         var result = await handler.Handle(new GetFunctionalOrganizationChartQuery(asOf), cancellationToken);

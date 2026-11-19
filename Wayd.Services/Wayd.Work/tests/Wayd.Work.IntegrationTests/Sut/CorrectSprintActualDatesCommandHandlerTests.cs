@@ -108,6 +108,7 @@ public sealed class CorrectSprintActualDatesCommandHandlerTests(SqlServerDbConte
             currentUser.Object,
             currentPrincipal.Object,
             Mock.Of<IDateTimeProvider>(p => p.Now == now),
+            new Wayd.Tests.Shared.TestingSystemCalendar(Mock.Of<IDateTimeProvider>(p => p.Now == now)),
             NullLogger<CorrectSprintActualDatesCommandHandler>.Instance);
     }
 

@@ -16,15 +16,15 @@ public sealed record GetPlanningIntervalIterationQuery : IQuery<PlanningInterval
     public Expression<Func<PlanningIntervalIteration, bool>> IterationIdOrKeyFilter { get; }
 }
 
-public sealed class GetPlanningIntervalIterationQueryHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider)
+public sealed class GetPlanningIntervalIterationQueryHandler(IPlanningDbContext planningDbContext, ISystemCalendar systemCalendar)
     : IQueryHandler<GetPlanningIntervalIterationQuery, PlanningIntervalIterationDetailsDto?>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<PlanningIntervalIterationDetailsDto?> Handle(GetPlanningIntervalIterationQuery request, CancellationToken cancellationToken)
     {
-        LocalDate today = _dateTimeProvider.Today;
+        LocalDate today = await _systemCalendar.Today(cancellationToken);
         var config = PlanningIntervalIterationDetailsDto.CreateTypeAdapterConfig(today);
 
         var iteration = await _planningDbContext.PlanningIntervals

@@ -17,7 +17,7 @@ namespace Wayd.Web.Api.Controllers.Ppm;
 /// Gathers a project's health-check evidence by dispatching the reads the health-check recipe makes one at
 /// a time, so an agent gets them in one call.
 /// </summary>
-public sealed class ProjectHealthCheckEvidenceComposer(IDispatcher dispatcher, IFeatureFlags featureFlags, IDateTimeProvider dateTimeProvider)
+public sealed class ProjectHealthCheckEvidenceComposer(IDispatcher dispatcher, IFeatureFlags featureFlags, ISystemCalendar systemCalendar)
 {
     /// <summary>Entries read per activity page while walking the project's history.</summary>
     private const int ActivityPageSize = 100;
@@ -34,7 +34,7 @@ public sealed class ProjectHealthCheckEvidenceComposer(IDispatcher dispatcher, I
 
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly IFeatureFlags _featureFlags = featureFlags;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     /// <summary>The evidence for the project named by <paramref name="idOrKey"/>, or null when there is none.</summary>
     public async Task<ProjectHealthCheckEvidenceDto?> Compose(string idOrKey, ForecastOptions forecastOptions, CancellationToken cancellationToken)
@@ -43,7 +43,7 @@ public sealed class ProjectHealthCheckEvidenceComposer(IDispatcher dispatcher, I
         if (project is null)
             return null;
 
-        var today = _dateTimeProvider.Today;
+        var today = await _systemCalendar.Today(cancellationToken);
         ProjectIdOrKey projectId = project.Id;
 
         var planSummary = await _dispatcher.Send(new GetProjectPlanSummaryQuery(projectId), cancellationToken);

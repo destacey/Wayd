@@ -156,7 +156,7 @@ public sealed class ProjectPortfolioImportDefinition(
     /// </summary>
     /// <remarks>
     /// The transitions are invoked on the aggregate directly rather than through the lifecycle commands
-    /// because <c>Activate</c>/<c>Close</c> take the date from <c>IDateTimeProvider.Today</c> — going
+    /// because <c>Activate</c>/<c>Close</c> take the date from <c>ISystemCalendar.Today</c> — going
     /// through them would stamp every imported portfolio with today's date.
     /// <para>
     /// A portfolio only accepts programs and projects while active but can only be closed once all of them

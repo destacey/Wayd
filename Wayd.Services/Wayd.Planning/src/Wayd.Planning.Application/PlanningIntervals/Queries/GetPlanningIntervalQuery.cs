@@ -18,21 +18,22 @@ public sealed class GetPlanningIntervalQueryHandler : IQueryHandler<GetPlanningI
 {
     private readonly IPlanningDbContext _planningDbContext;
     private readonly ILogger<GetPlanningIntervalQueryHandler> _logger;
-    private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar;
 
-    public GetPlanningIntervalQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetPlanningIntervalQueryHandler> logger, IDateTimeProvider dateTimeProvider)
+    public GetPlanningIntervalQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetPlanningIntervalQueryHandler> logger, ISystemCalendar systemCalendar)
     {
         _planningDbContext = planningDbContext;
         _logger = logger;
-        _dateTimeProvider = dateTimeProvider;
+        _systemCalendar = systemCalendar;
     }
 
     public async Task<PlanningIntervalDetailsDto?> Handle(GetPlanningIntervalQuery request, CancellationToken cancellationToken)
     {
+        var today = await _systemCalendar.Today(cancellationToken);
         return await _planningDbContext.PlanningIntervals
             .Include(p => p.Objectives)
             .Where(request.IdOrKeyFilter)
-            .Select(p => PlanningIntervalDetailsDto.Create(p, _dateTimeProvider))
+            .Select(p => PlanningIntervalDetailsDto.Create(p, today))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

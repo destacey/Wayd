@@ -18,8 +18,8 @@ public class RoadmapMilestoneTests
     public RoadmapMilestoneTests()
     {
         _dateTimeProvider = new(new FakeClock(DateTime.UtcNow.ToInstant()));
-        _activityFaker = new RoadmapActivityFaker(Guid.NewGuid(), _dateTimeProvider.Today);
-        _milestoneFaker = new RoadmapMilestoneFaker(localDate: _dateTimeProvider.Today);
+        _activityFaker = new RoadmapActivityFaker(Guid.NewGuid(), _dateTimeProvider.Now.InUtc().Date);
+        _milestoneFaker = new RoadmapMilestoneFaker(localDate: _dateTimeProvider.Now.InUtc().Date);
     }
 
     private RoadmapActivity GenerateActivity(LocalDateRange dateRange) =>
@@ -32,7 +32,7 @@ public class RoadmapMilestoneTests
     }
 
     private LocalDateRange Range(int startOffsetDays, int endOffsetDays) =>
-        new(_dateTimeProvider.Today.PlusDays(startOffsetDays), _dateTimeProvider.Today.PlusDays(endOffsetDays));
+        new(_dateTimeProvider.Now.InUtc().Date.PlusDays(startOffsetDays), _dateTimeProvider.Now.InUtc().Date.PlusDays(endOffsetDays));
 
     [Fact]
     public void Create_ShouldSetType()
@@ -53,15 +53,15 @@ public class RoadmapMilestoneTests
     {
         // Arrange
         var parent = GenerateActivity(Range(0, 10));
-        var milestone = CreateChildMilestone(parent, _dateTimeProvider.Today.PlusDays(5));
+        var milestone = CreateChildMilestone(parent, _dateTimeProvider.Now.InUtc().Date.PlusDays(5));
 
         // Act
-        var result = milestone.UpdateDate(new TestUpsertRoadmapMilestoneDate(_dateTimeProvider.Today.PlusDays(25)));
+        var result = milestone.UpdateDate(new TestUpsertRoadmapMilestoneDate(_dateTimeProvider.Now.InUtc().Date.PlusDays(25)));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        milestone.Date.Should().Be(_dateTimeProvider.Today.PlusDays(25));
-        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(25));
+        milestone.Date.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(25));
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(25));
     }
 
     [Fact]
@@ -69,15 +69,15 @@ public class RoadmapMilestoneTests
     {
         // Arrange
         var parent = GenerateActivity(Range(10, 20));
-        var milestone = CreateChildMilestone(parent, _dateTimeProvider.Today.PlusDays(15));
+        var milestone = CreateChildMilestone(parent, _dateTimeProvider.Now.InUtc().Date.PlusDays(15));
 
         // Act
-        var result = milestone.UpdateDate(new TestUpsertRoadmapMilestoneDate(_dateTimeProvider.Today.PlusDays(2)));
+        var result = milestone.UpdateDate(new TestUpsertRoadmapMilestoneDate(_dateTimeProvider.Now.InUtc().Date.PlusDays(2)));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        parent.DateRange.Start.Should().Be(_dateTimeProvider.Today.PlusDays(2));
-        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(20));
+        parent.DateRange.Start.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(2));
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(20));
     }
 
     [Fact]
@@ -86,10 +86,10 @@ public class RoadmapMilestoneTests
         // Arrange
         var parentRange = Range(0, 30);
         var parent = GenerateActivity(parentRange);
-        var milestone = CreateChildMilestone(parent, _dateTimeProvider.Today.PlusDays(5));
+        var milestone = CreateChildMilestone(parent, _dateTimeProvider.Now.InUtc().Date.PlusDays(5));
 
         // Act
-        var result = milestone.UpdateDate(new TestUpsertRoadmapMilestoneDate(_dateTimeProvider.Today.PlusDays(10)));
+        var result = milestone.UpdateDate(new TestUpsertRoadmapMilestoneDate(_dateTimeProvider.Now.InUtc().Date.PlusDays(10)));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -100,8 +100,8 @@ public class RoadmapMilestoneTests
     public void UpdateDate_WhenNoParent_ShouldUpdateDate()
     {
         // Arrange
-        var milestone = _milestoneFaker.WithDate(_dateTimeProvider.Today).Generate();
-        var newDate = _dateTimeProvider.Today.PlusDays(7);
+        var milestone = _milestoneFaker.WithDate(_dateTimeProvider.Now.InUtc().Date).Generate();
+        var newDate = _dateTimeProvider.Now.InUtc().Date.PlusDays(7);
 
         // Act
         var result = milestone.UpdateDate(new TestUpsertRoadmapMilestoneDate(newDate));
@@ -116,12 +116,12 @@ public class RoadmapMilestoneTests
     {
         // Arrange
         var parent = GenerateActivity(Range(0, 10));
-        var milestone = CreateChildMilestone(parent, _dateTimeProvider.Today.PlusDays(5));
+        var milestone = CreateChildMilestone(parent, _dateTimeProvider.Now.InUtc().Date.PlusDays(5));
 
         var update = new TestUpsertRoadmapMilestone(milestone)
         {
             ParentId = parent.Id,
-            Date = _dateTimeProvider.Today.PlusDays(40)
+            Date = _dateTimeProvider.Now.InUtc().Date.PlusDays(40)
         };
 
         // Act
@@ -129,6 +129,6 @@ public class RoadmapMilestoneTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(40));
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(40));
     }
 }

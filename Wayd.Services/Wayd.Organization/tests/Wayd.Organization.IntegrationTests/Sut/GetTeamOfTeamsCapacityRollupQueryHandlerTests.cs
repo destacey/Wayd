@@ -10,6 +10,7 @@ using Wayd.Organization.Application.EmployeeCapacities.Dtos;
 using Wayd.Organization.Application.EmployeeCapacities.Queries;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.IntegrationTests.Infrastructure;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Organization.IntegrationTests.Sut;
 
@@ -276,7 +277,7 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryHandlerTests(SqlServerDbCon
     }
 
     private static void Join(BaseTeam child, TeamOfTeams parent, LocalDate start, LocalDate? end) =>
-        child.AddTeamMembership(parent, new MembershipDateRange(start, end), EventActor.System, SqlServerDbContextFixture.FixedNow)
+        child.AddTeamMembership(parent, new MembershipDateRange(start, end), EventActor.System, SqlServerDbContextFixture.FixedNow, SqlServerDbContextFixture.FixedNow.InUtc().Date)
             .IsSuccess.Should().BeTrue();
 
     private static EmployeeCapacity Allocate(Guid employeeId, params AllocationChange[] changes)
@@ -304,7 +305,7 @@ public sealed class GetTeamOfTeamsCapacityRollupQueryHandlerTests(SqlServerDbCon
             new Mock<IDispatcher>().Object,
             principal.Object,
             Settings(defaultCalendarId),
-            clock.Object);
+            new TestingSystemCalendar(clock.Object));
     }
 
     private static ISettings<SchedulingSettings> Settings(Guid? defaultCalendarId)

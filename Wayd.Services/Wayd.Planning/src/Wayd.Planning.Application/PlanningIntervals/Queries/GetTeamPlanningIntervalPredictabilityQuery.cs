@@ -17,11 +17,11 @@ public sealed record GetTeamPlanningIntervalPredictabilityQuery : IQuery<double?
     public Guid TeamId { get; }
 }
 
-public sealed class GetTeamPlanningIntervalPredictabilityQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetTeamPlanningIntervalPredictabilityQueryHandler> logger, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetTeamPlanningIntervalPredictabilityQuery, double?>
+public sealed class GetTeamPlanningIntervalPredictabilityQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetTeamPlanningIntervalPredictabilityQueryHandler> logger, ISystemCalendar systemCalendar) : IQueryHandler<GetTeamPlanningIntervalPredictabilityQuery, double?>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ILogger<GetTeamPlanningIntervalPredictabilityQueryHandler> _logger = logger;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<double?> Handle(GetTeamPlanningIntervalPredictabilityQuery request, CancellationToken cancellationToken)
     {
@@ -35,7 +35,7 @@ public sealed class GetTeamPlanningIntervalPredictabilityQueryHandler(IPlanningD
         if (planningInterval is null || planningInterval.Teams.Count == 0)
             return null;
 
-        return planningInterval.CalculatePredictability(_dateTimeProvider.Today, request.TeamId);
+        return planningInterval.CalculatePredictability(await _systemCalendar.Today(cancellationToken), request.TeamId);
     }
 }
 

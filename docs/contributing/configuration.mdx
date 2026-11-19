@@ -605,8 +605,8 @@ public sealed record GeneralSettings : ISettingsSection<GeneralSettings>
 
 **The system time zone is `GeneralSettings.TimeZone`**, not a scheduling setting. Anything that needs a zone
 when no team's own applies — a sprint with no team, a date sent without a time, the day of an event that has no
-team — reads `ISettings<GeneralSettings>` and calls `Zone()`. A team's own zone, on its operating model, always
-comes first.
+team — reads it through `ISystemCalendar` (`Zone`, `Today`, `DayOf`), which is also where every "today" comes from.
+A team's own zone, on its operating model, always comes first.
 
 **The property initializers are the defaults, and a missing value reads as its default.** A section never
 saved has no row; a row written before a property existed does not carry it. Either way the reader gets the

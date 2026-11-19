@@ -136,6 +136,7 @@ public sealed class SetSprintTeamDaysOffCommandHandlerTests(SqlServerDbContextFi
             currentUser.Object,
             currentPrincipal.Object,
             Mock.Of<IDateTimeProvider>(p => p.Now == SqlServerDbContextFixture.FixedNow),
+            new Wayd.Tests.Shared.TestingSystemCalendar(Mock.Of<IDateTimeProvider>(p => p.Now == SqlServerDbContextFixture.FixedNow)),
             NullLogger<SetSprintTeamDaysOffCommandHandler>.Instance);
     }
 

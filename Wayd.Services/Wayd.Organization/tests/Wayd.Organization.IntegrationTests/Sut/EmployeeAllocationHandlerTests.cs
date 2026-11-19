@@ -14,6 +14,7 @@ using Wayd.Organization.Application.EmployeeCapacities.EventHandlers;
 using Wayd.Organization.Application.EmployeeCapacities.Queries;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.IntegrationTests.Infrastructure;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Organization.IntegrationTests.Sut;
 
@@ -372,7 +373,7 @@ public sealed class EmployeeAllocationHandlerTests(SqlServerDbContextFixture fix
             new AllocationChange(seeded.TeamBId, null, Feb1, Feb7, 30));
 
         await using var context = _fixture.CreateContext();
-        var handler = new GetEmployeeAllocationsQueryHandler(context, Dispatcher(), Administrator(), Clock());
+        var handler = new GetEmployeeAllocationsQueryHandler(context, Dispatcher(), Administrator(), Calendar());
 
         // Act
         var allocations = await handler.Handle(new GetEmployeeAllocationsQuery(seeded.EmployeeId), cancellationToken);
@@ -667,7 +668,7 @@ public sealed class EmployeeAllocationHandlerTests(SqlServerDbContextFixture fix
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var context = _fixture.CreateContext();
-        var handler = new GetEmployeeAllocationsQueryHandler(context, Dispatcher(), Administrator(), Clock());
+        var handler = new GetEmployeeAllocationsQueryHandler(context, Dispatcher(), Administrator(), Calendar());
 
         // Act
         var allocations = await handler.Handle(new GetEmployeeAllocationsQuery(Guid.NewGuid()), cancellationToken);
@@ -711,10 +712,10 @@ public sealed class EmployeeAllocationHandlerTests(SqlServerDbContextFixture fix
     }
 
     private static ChangeEmployeeAllocationsCommandHandler ChangeHandler(WaydDbContext context, ICurrentPrincipal principal, params Guid[] memberOf) =>
-        new(context, Dispatcher(memberOf), CurrentUser(), principal, Clock(), NullLogger<ChangeEmployeeAllocationsCommandHandler>.Instance);
+        new(context, Dispatcher(memberOf), CurrentUser(), principal, Clock(), Calendar(), NullLogger<ChangeEmployeeAllocationsCommandHandler>.Instance);
 
     private static MoveEmployeeAllocationCommandHandler MoveHandler(WaydDbContext context, ICurrentPrincipal principal, params Guid[] memberOf) =>
-        new(context, Dispatcher(memberOf), CurrentUser(), principal, Clock(), NullLogger<MoveEmployeeAllocationCommandHandler>.Instance);
+        new(context, Dispatcher(memberOf), CurrentUser(), principal, Clock(), Calendar(), NullLogger<MoveEmployeeAllocationCommandHandler>.Instance);
 
     private static EmployeeDeactivatedAllocationHandler DeactivationHandler(WaydDbContext context)
     {
@@ -752,6 +753,8 @@ public sealed class EmployeeAllocationHandlerTests(SqlServerDbContextFixture fix
         dispatcher.Setup(d => d.Send(It.IsAny<IQuery<IReadOnlySet<Guid>>>(), It.IsAny<CancellationToken>())).ReturnsAsync(memberOf.ToHashSet());
         return dispatcher.Object;
     }
+
+    private static TestingSystemCalendar Calendar() => new(Clock());
 
     private static IDateTimeProvider Clock()
     {

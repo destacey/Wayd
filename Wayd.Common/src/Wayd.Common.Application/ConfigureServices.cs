@@ -32,6 +32,7 @@ public static class ConfigureServices
         services.AddScoped<IImportDefinitionRegistry, ImportDefinitionRegistry>();
         services.AddScoped<IActivityLogReader, ActivityLogReader>();
         services.AddScoped(typeof(ISettings<>), typeof(StoredSettings<>));
+        services.AddScoped<ISystemCalendar, SystemSettings.General.SystemCalendar>();
 
         TypeAdapterConfig.GlobalSettings.Scan(assembly);
         TypeAdapterConfig.GlobalSettings.ScanInheritedTypes(assembly);

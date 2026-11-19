@@ -149,8 +149,8 @@ saga  →  handlers  →  service  →  DbContext / domain
 
 - A **service** (a class implementing `IScopedService` or `ITransientService`, which also registers it) does
   one job against the database and the domain. It may take framework primitives — `IDateTimeProvider`,
-  `ICurrentUser`, `IUserService` — but never another service and never `IDispatcher`, so the graph below a
-  handler stays a tree.
+  `ISystemCalendar`, `ICurrentUser`, `IUserService` — but never another service and never `IDispatcher`, so the
+  graph below a handler stays a tree.
 - A **saga** (`ISaga`) coordinates several handlers to complete one piece of work, so unlike a service it
   may hold `IDispatcher`. The sync runners (`IWorkSyncRunner`, `IPeopleSyncRunner`) and
   `IAzureDevOpsInitManager` are sagas.

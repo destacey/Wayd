@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, Form, Skeleton } from 'antd'
+import { App, Button, Form, Skeleton } from 'antd'
 import { useEffect, useState } from 'react'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { toApiError, toFormErrors } from '@/src/utils'
@@ -26,6 +26,7 @@ const GeneralSettingsForm = ({
   const [form] = Form.useForm<GeneralSettingsFormValues>()
   const [isDirty, setIsDirty] = useState(false)
   const messageApi = useMessage()
+  const { modal } = App.useApp()
   const [updateGeneralSettings, { isLoading: isSaving }] =
     useUpdateGeneralSettingsMutation()
 
@@ -42,7 +43,7 @@ const GeneralSettingsForm = ({
     form.setFieldsValue({ timeZone: settings.timeZone })
   }, [settings, form])
 
-  const onFinish = async (values: GeneralSettingsFormValues) => {
+  const save = async (values: GeneralSettingsFormValues) => {
     try {
       const response = await updateGeneralSettings({
         timeZone: values.timeZone,
@@ -66,6 +67,19 @@ const GeneralSettingsForm = ({
     }
   }
 
+  // Moving the zone moves today for every date rule at once, so a change is
+  // confirmed; saving the zone already in effect is not.
+  const onFinish = (values: GeneralSettingsFormValues) => {
+    if (values.timeZone === settings?.timeZone) return save(values)
+
+    modal.confirm({
+      title: 'Change the system time zone?',
+      content: `Today moves to today in ${values.timeZone} for every date rule at once: which memberships, sprints and planning intervals are current, and the default day of new records. Dates already saved keep their day, and each team's own time zone still wins for that team.`,
+      okText: 'Change time zone',
+      onOk: () => save(values),
+    })
+  }
+
   if (isLoading) {
     return <Skeleton active paragraph={{ rows: 1 }} />
   }
@@ -82,7 +96,7 @@ const GeneralSettingsForm = ({
       <Form.Item
         name="timeZone"
         label="System time zone"
-        extra="The organization's time zone. Wayd reads calendar days in it wherever no team's own time zone applies, such as sprints with no team and dates sent without a time, and new teams start with it. A team's own time zone always wins for that team, and changing this one does not change any team."
+        extra="The organization's time zone. Wayd reads today, and every calendar day, in it wherever no team's own time zone applies, such as which memberships and planning intervals are current, sprints with no team and dates sent without a time, and new teams start with it. A team's own time zone always wins for that team, and changing this one does not change any team."
         rules={[{ required: true, message: 'Select a time zone.' }]}
       >
         <TimeZoneSelect aria-label="System time zone" />

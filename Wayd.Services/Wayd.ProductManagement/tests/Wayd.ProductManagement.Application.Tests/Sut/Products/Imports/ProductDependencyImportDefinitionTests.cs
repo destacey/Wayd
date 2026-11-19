@@ -12,6 +12,7 @@ using Wayd.ProductManagement.Application.Products.Imports;
 using Wayd.ProductManagement.Application.Tests.Infrastructure;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.ProductManagement.Domain.Tests.Data;
+using Wayd.Tests.Shared;
 
 namespace Wayd.ProductManagement.Application.Tests.Sut.Products.Imports;
 
@@ -22,7 +23,8 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.Products.Imports;
 /// </summary>
 public sealed class ProductDependencyImportDefinitionTests
 {
-    private static readonly Instant Now = Instant.FromUtc(2026, 4, 1, 9, 0, 0);
+    // 2 April in UTC, still Today in the system zone, the day the import reads a blank start as.
+    private static readonly Instant Now = Instant.FromUtc(2026, 4, 2, 5, 0, 0);
     private static readonly LocalDate Today = new(2026, 4, 1);
 
     private readonly FakeProductManagementDbContext _dbContext = new();
@@ -35,10 +37,9 @@ public sealed class ProductDependencyImportDefinitionTests
 
         var dateTimeProvider = new Mock<IDateTimeProvider>();
         dateTimeProvider.SetupGet(d => d.Now).Returns(Now);
-        dateTimeProvider.SetupGet(d => d.Today).Returns(Today);
 
         _definition = new ProductDependencyImportDefinition(
-            _dbContext, currentUser.Object, dateTimeProvider.Object, new ImportPayloadSerializer());
+            _dbContext, currentUser.Object, dateTimeProvider.Object, new TestingSystemCalendar(dateTimeProvider.Object), new ImportPayloadSerializer());
     }
 
     private Product SeedProduct(Guid? parentId = null)

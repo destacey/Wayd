@@ -3,6 +3,7 @@ using FluentAssertions;
 using Moq;
 using Moq.AutoMock;
 using NodaTime;
+using NodaTime.Testing;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.FeatureManagement;
@@ -15,6 +16,7 @@ using Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Queries;
 using Wayd.Web.Api.Controllers.Ppm;
+using Wayd.Tests.Shared;
 using Wayd.Web.Api.Dtos.Ppm;
 using Wayd.Work.Application.WorkItems.Forecasting;
 using Wayd.Work.Application.WorkItems.Queries;
@@ -32,7 +34,8 @@ public sealed class ProjectHealthCheckEvidenceComposerTests
 
     public ProjectHealthCheckEvidenceComposerTests()
     {
-        _mocker.GetMock<IDateTimeProvider>().Setup(c => c.Today).Returns(Today);
+        // The next day in UTC, still Today in the system zone.
+        _mocker.Use<ISystemCalendar>(new TestingSystemCalendar(new TestingDateTimeProvider(new FakeClock(Instant.FromUtc(2026, 8, 16, 5, 0)))));
 
         SetupProject(withLifecycle: false);
         Dispatcher.Setup(d => d.Send(It.IsAny<GetProjectPlanSummaryQuery>(), It.IsAny<CancellationToken>()))

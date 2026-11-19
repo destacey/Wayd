@@ -27,6 +27,7 @@ public class ReopenSprintCommandHandlerTests : IDisposable
             _scenario.CurrentUser.Object,
             _scenario.CurrentPrincipal.Object,
             _scenario.DateTimeProvider,
+            _scenario.SystemCalendar,
             Mock.Of<ILogger<ReopenSprintCommandHandler>>());
     }
 

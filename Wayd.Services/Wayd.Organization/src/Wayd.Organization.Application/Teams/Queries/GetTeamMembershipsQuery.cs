@@ -25,13 +25,13 @@ public sealed class GetTeamMembershipsQueryHandler : IQueryHandler<GetTeamMember
 {
     private readonly IOrganizationDbContext _organizationDbContext;
     private readonly ILogger<GetTeamMembershipsQueryHandler> _logger;
-    private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar;
 
-    public GetTeamMembershipsQueryHandler(IOrganizationDbContext organizationDbContext, ILogger<GetTeamMembershipsQueryHandler> logger, IDateTimeProvider dateTimeProvider)
+    public GetTeamMembershipsQueryHandler(IOrganizationDbContext organizationDbContext, ILogger<GetTeamMembershipsQueryHandler> logger, ISystemCalendar systemCalendar)
     {
         _organizationDbContext = organizationDbContext;
         _logger = logger;
-        _dateTimeProvider = dateTimeProvider;
+        _systemCalendar = systemCalendar;
     }
 
     public async Task<IReadOnlyList<TeamMembershipDto>?> Handle(GetTeamMembershipsQuery request, CancellationToken cancellationToken)
@@ -63,6 +63,7 @@ public sealed class GetTeamMembershipsQueryHandler : IQueryHandler<GetTeamMember
         if (team is null)
             return null;
 
-        return team.ParentMemberships.Select(m => TeamMembershipDto.Create(m, _dateTimeProvider)).ToList();
+        var today = await _systemCalendar.Today(cancellationToken);
+        return team.ParentMemberships.Select(m => TeamMembershipDto.Create(m, today)).ToList();
     }
 }

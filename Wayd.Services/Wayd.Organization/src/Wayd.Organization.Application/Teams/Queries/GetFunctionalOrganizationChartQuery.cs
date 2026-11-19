@@ -7,18 +7,18 @@ namespace Wayd.Organization.Application.Teams.Queries;
 
 public sealed record GetFunctionalOrganizationChartQuery(LocalDate? AsOfDate = null) : IQuery<FunctionalOrganizationChartDto>;
 
-public sealed class GetFunctionalOrganizationChartQueryHandler(IOrganizationDbContext organizationDbContext, ILogger<GetFunctionalOrganizationChartQueryHandler> logger, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetFunctionalOrganizationChartQuery, FunctionalOrganizationChartDto>
+public sealed class GetFunctionalOrganizationChartQueryHandler(IOrganizationDbContext organizationDbContext, ILogger<GetFunctionalOrganizationChartQueryHandler> logger, ISystemCalendar systemCalendar) : IQueryHandler<GetFunctionalOrganizationChartQuery, FunctionalOrganizationChartDto>
 {
     private const string RequestName = nameof(GetFunctionalOrganizationChartQuery);
     private const string PathSeparator = " -> ";
 
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly ILogger<GetFunctionalOrganizationChartQueryHandler> _logger = logger;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<FunctionalOrganizationChartDto> Handle(GetFunctionalOrganizationChartQuery request, CancellationToken cancellationToken)
     {
-        var asOfDate = request.AsOfDate ?? _dateTimeProvider.Today;
+        var asOfDate = request.AsOfDate ?? await _systemCalendar.Today(cancellationToken);
 
         _logger.LogInformation("{RequestName}: Retrieving functional organization chart as of {AsOfDate}", RequestName, asOfDate);
 

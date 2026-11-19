@@ -233,7 +233,7 @@ public class RevertProjectStatusCommandHandlerTests : IDisposable
 
     private LocalDateRange ADeliveredDateRange()
     {
-        var start = _dateTimeProvider.Today.PlusDays(-20);
+        var start = _dateTimeProvider.Now.InUtc().Date.PlusDays(-20);
 
         return new LocalDateRange(start, start.PlusMonths(2));
     }

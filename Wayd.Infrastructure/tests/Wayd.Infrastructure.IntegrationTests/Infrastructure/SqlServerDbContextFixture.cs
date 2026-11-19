@@ -87,7 +87,6 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
 
         var dateTimeProvider = new Mock<IDateTimeProvider>();
         dateTimeProvider.SetupGet(d => d.Now).Returns(Instant.FromUtc(2026, 1, 15, 9, 30, 0));
-        dateTimeProvider.SetupGet(d => d.Today).Returns(new LocalDate(2026, 1, 15));
 
         var events = new Mock<IEventPublisher>();
         events.Setup(e => e.PublishAsync(It.IsAny<IEvent>())).Returns(Task.CompletedTask);

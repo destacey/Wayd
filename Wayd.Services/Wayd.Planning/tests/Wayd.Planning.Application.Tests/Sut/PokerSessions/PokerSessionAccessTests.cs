@@ -1,5 +1,6 @@
 using Moq;
 using NodaTime;
+using NodaTime.Testing;
 using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Identity.Users;
 using Wayd.Common.Application.Interfaces;
@@ -11,6 +12,7 @@ using Wayd.Planning.Application.PokerSessions;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Planning.Domain.Tests.Data;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Planning.Application.Tests.Sut.PokerSessions;
 
@@ -21,6 +23,9 @@ public class PokerSessionAccessTests : IDisposable
 {
     private const string UserId = "user-1";
     private static readonly LocalDate Today = new(2026, 1, 15);
+
+    // 16 January in UTC, still Today in the system zone: membership is read on the system zone's day.
+    private static readonly Instant Now = Instant.FromUtc(2026, 1, 16, 5, 0);
 
     private readonly FakePlanningDbContext _dbContext = new();
     private readonly Mock<ICurrentPrincipal> _currentPrincipal = new();
@@ -36,8 +41,7 @@ public class PokerSessionAccessTests : IDisposable
 
     public PokerSessionAccessTests()
     {
-        var dateTimeProvider = new Mock<IDateTimeProvider>();
-        dateTimeProvider.Setup(d => d.Today).Returns(Today);
+        var calendar = new TestingSystemCalendar(new TestingDateTimeProvider(new FakeClock(Now)));
 
         _currentUser.Setup(u => u.GetUserId()).Returns(UserId);
         _currentPrincipal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_employeeId);
@@ -49,7 +53,7 @@ public class PokerSessionAccessTests : IDisposable
         _deskAccess.Setup(a => a.Kind).Returns(PokerSessionHostKind.IntakeDesk);
         _deskAccess.Setup(a => a.HostsManagedBy(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(new HashSet<Guid>());
 
-        _access = new PokerSessionAccess(_dbContext, _currentPrincipal.Object, _currentUser.Object, _userService.Object, _dispatcher.Object, dateTimeProvider.Object,
+        _access = new PokerSessionAccess(_dbContext, _currentPrincipal.Object, _currentUser.Object, _userService.Object, _dispatcher.Object, calendar,
             [_deskAccess.Object]);
     }
 
@@ -306,7 +310,7 @@ public class PokerSessionAccessTests : IDisposable
     {
         // Arrange
         var access = new PokerSessionAccess(_dbContext, _currentPrincipal.Object, _currentUser.Object, _userService.Object, _dispatcher.Object,
-            Mock.Of<IDateTimeProvider>(), []);
+            Mock.Of<ISystemCalendar>(), []);
 
         // Act
         var managesHost = await access.ManagesHost(new PokerSessionHost(PokerSessionHostKind.IntakeDesk, _deskId), _employeeId,

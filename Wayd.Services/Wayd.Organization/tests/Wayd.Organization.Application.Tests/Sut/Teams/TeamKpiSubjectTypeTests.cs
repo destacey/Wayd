@@ -32,7 +32,7 @@ public sealed class TeamKpiSubjectTypeTests : IDisposable
 
     public void Dispose() => _dbContext.Dispose();
 
-    private TeamKpiSubjectType CreateSut() => new(_dbContext, _currentPrincipal.Object, _dateTimeProvider);
+    private TeamKpiSubjectType CreateSut() => new(_dbContext, _currentPrincipal.Object, new TestingSystemCalendar(_dateTimeProvider));
 
     private Employee SignedIn()
     {
@@ -47,8 +47,8 @@ public sealed class TeamKpiSubjectTypeTests : IDisposable
         var grandparent = _teamOfTeamsFaker.WithActiveDate(ActiveDate).Generate();
         var parent = _teamOfTeamsFaker.WithActiveDate(ActiveDate).Generate();
         var team = _teamFaker.WithActiveDate(ActiveDate).Generate();
-        parent.AddTeamMembership(grandparent, new MembershipDateRange(ActiveDate, null), EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
-        team.AddTeamMembership(parent, new MembershipDateRange(ActiveDate, null), EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        parent.AddTeamMembership(grandparent, new MembershipDateRange(ActiveDate, null), EventActor.System, Timestamp, Timestamp.InUtc().Date).IsSuccess.Should().BeTrue();
+        team.AddTeamMembership(parent, new MembershipDateRange(ActiveDate, null), EventActor.System, Timestamp, Timestamp.InUtc().Date).IsSuccess.Should().BeTrue();
         _dbContext.AddTeamOfTeams(grandparent);
         _dbContext.AddTeamOfTeams(parent);
         _dbContext.AddTeam(team);
@@ -109,11 +109,30 @@ public sealed class TeamKpiSubjectTypeTests : IDisposable
         // Arrange
         var former = _teamOfTeamsFaker.WithActiveDate(ActiveDate).Generate();
         var team = _teamFaker.WithActiveDate(ActiveDate).Generate();
-        team.AddTeamMembership(former, new MembershipDateRange(ActiveDate, new LocalDate(2025, 12, 31)), EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        team.AddTeamMembership(former, new MembershipDateRange(ActiveDate, new LocalDate(2025, 12, 31)), EventActor.System, Timestamp, Timestamp.InUtc().Date).IsSuccess.Should().BeTrue();
         _dbContext.AddTeamOfTeams(former);
         _dbContext.AddTeam(team);
         var employee = SignedIn();
         former.AddMember(employee, [Guid.NewGuid()], EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+
+        // Act
+        var access = await CreateSut().Resolve(team.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        access!.CanManage.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Resolve_ShouldIgnoreATeamOfTeamsTheTeamJoinsOnTheUtcDayBeforeItStartsInTheSystemZone()
+    {
+        // Arrange — the clock is 16 November in UTC and still 15 November in the system zone
+        var next = _teamOfTeamsFaker.WithActiveDate(ActiveDate).Generate();
+        var team = _teamFaker.WithActiveDate(ActiveDate).Generate();
+        team.AddTeamMembership(next, new MembershipDateRange(new LocalDate(2026, 11, 16), null), EventActor.System, Timestamp, Timestamp.InUtc().Date).IsSuccess.Should().BeTrue();
+        _dbContext.AddTeamOfTeams(next);
+        _dbContext.AddTeam(team);
+        var employee = SignedIn();
+        next.AddMember(employee, [Guid.NewGuid()], EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
 
         // Act
         var access = await CreateSut().Resolve(team.Id, TestContext.Current.CancellationToken);

@@ -41,9 +41,9 @@ public sealed class GetTeamsParentQueryHandlerTests(SqlServerDbContextFixture fi
             await seedContext.TeamOfTeams.AddRangeAsync([art, old], cancellationToken);
             await seedContext.Teams.AddRangeAsync([cards, wallets], cancellationToken);
 
-            cards.AddTeamMembership(old, new MembershipDateRange(ActiveDate, Today.PlusDays(-1)), actor, now).IsSuccess.Should().BeTrue();
-            cards.AddTeamMembership(art, new MembershipDateRange(Today, null), actor, now).IsSuccess.Should().BeTrue();
-            wallets.AddTeamMembership(art, new MembershipDateRange(Today.PlusDays(1), null), actor, now).IsSuccess.Should().BeTrue();
+            cards.AddTeamMembership(old, new MembershipDateRange(ActiveDate, Today.PlusDays(-1)), actor, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
+            cards.AddTeamMembership(art, new MembershipDateRange(Today, null), actor, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
+            wallets.AddTeamMembership(art, new MembershipDateRange(Today.PlusDays(1), null), actor, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
 
             await seedContext.SaveChangesAsync(cancellationToken);
             (artId, cardsId, walletsId) = (art.Id, cards.Id, wallets.Id);

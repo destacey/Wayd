@@ -16,11 +16,11 @@ public sealed record GetTeamOfTeamsListQuery : IQuery<IReadOnlyList<TeamOfTeamsL
 
 public sealed class GetTeamOfTeamsListQueryHandler(
     IOrganizationDbContext organizationDbContext,
-    IDateTimeProvider dateTimeProvider)
+    ISystemCalendar systemCalendar)
     : IQueryHandler<GetTeamOfTeamsListQuery, IReadOnlyList<TeamOfTeamsListDto>>
 {
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<IReadOnlyList<TeamOfTeamsListDto>> Handle(GetTeamOfTeamsListQuery request, CancellationToken cancellationToken)
     {
@@ -35,7 +35,7 @@ public sealed class GetTeamOfTeamsListQueryHandler(
 
 
 
-        var today = _dateTimeProvider.Today;
+        var today = await _systemCalendar.Today(cancellationToken);
         var cfg = TeamOfTeamsListDto.CreateTypeAdapterConfig(today);
 
         // Stable, so an MCP caller's offset slices the same list on every call.

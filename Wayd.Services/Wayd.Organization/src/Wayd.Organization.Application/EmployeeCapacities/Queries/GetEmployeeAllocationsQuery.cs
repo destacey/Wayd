@@ -14,13 +14,13 @@ public sealed class GetEmployeeAllocationsQueryHandler(
     IOrganizationDbContext organizationDbContext,
     IDispatcher dispatcher,
     ICurrentPrincipal currentPrincipal,
-    IDateTimeProvider dateTimeProvider)
+    ISystemCalendar systemCalendar)
     : IQueryHandler<GetEmployeeAllocationsQuery, IReadOnlyList<EmployeeAllocationDto>?>
 {
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<IReadOnlyList<EmployeeAllocationDto>?> Handle(GetEmployeeAllocationsQuery request, CancellationToken cancellationToken)
     {
@@ -51,7 +51,7 @@ public sealed class GetEmployeeAllocationsQueryHandler(
             .ToListAsync(cancellationToken);
 
         List<Guid> teamIds = [.. rows.Select(r => r.TeamId).Distinct()];
-        var manageable = await _currentPrincipal.TeamsWithManageableAllocations(_dispatcher, teamIds, _dateTimeProvider.Now.InUtc().Date, cancellationToken);
+        var manageable = await _currentPrincipal.TeamsWithManageableAllocations(_dispatcher, teamIds, await _systemCalendar.Today(cancellationToken), cancellationToken);
 
         return [.. rows
             .OrderBy(r => r.Start)

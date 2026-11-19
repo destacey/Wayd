@@ -75,7 +75,7 @@ public sealed class PokerSessionAccess(
     ICurrentUser currentUser,
     IUserService userService,
     IDispatcher dispatcher,
-    IDateTimeProvider dateTimeProvider,
+    ISystemCalendar systemCalendar,
     IEnumerable<IPokerSessionHostAccess> hostAccess) : IPokerSessionAccess
 {
     /// <summary>Lets its holder see and manage every poker session.</summary>
@@ -91,7 +91,7 @@ public sealed class PokerSessionAccess(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IUserService _userService = userService;
     private readonly IDispatcher _dispatcher = dispatcher;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
     private readonly IReadOnlyList<IPokerSessionHostAccess> _hostAccess = [.. hostAccess];
 
     /// <inheritdoc />
@@ -181,6 +181,6 @@ public sealed class PokerSessionAccess(
         return hostIds;
     }
 
-    private Task<IReadOnlySet<Guid>> TeamsWithMember(IReadOnlyCollection<Guid> teamIds, Guid employeeId, CancellationToken cancellationToken) =>
-        _dispatcher.TeamsWithMember(teamIds, employeeId, _dateTimeProvider.Today, cancellationToken);
+    private async Task<IReadOnlySet<Guid>> TeamsWithMember(IReadOnlyCollection<Guid> teamIds, Guid employeeId, CancellationToken cancellationToken) =>
+        await _dispatcher.TeamsWithMember(teamIds, employeeId, await _systemCalendar.Today(cancellationToken), cancellationToken);
 }

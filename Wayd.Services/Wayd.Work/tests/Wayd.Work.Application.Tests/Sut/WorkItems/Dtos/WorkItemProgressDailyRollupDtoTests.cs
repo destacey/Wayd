@@ -19,10 +19,38 @@ public sealed class WorkItemProgressDailyRollupDtoTests
         var endDate = DateOnly.FromDateTime(DateTime.Parse(end));
 
         // Act
-        var result = WorkItemProgressDailyRollupDto.CreateList(startDate, endDate, []);
+        var result = WorkItemProgressDailyRollupDto.CreateList(startDate, endDate, [], DateTimeZone.Utc);
 
         // Assert
         Assert.Equal(expectedRecordsCount, result.Count);
+    }
+
+    [Fact]
+    public void CreateList_CountsATimestampOnTheDayItFallsOnInTheZone()
+    {
+        // Arrange — done at 03:00 UTC on 3 January, which is still 2 January in Chicago
+        var startDate = new DateOnly(2023, 1, 1);
+        var endDate = new DateOnly(2023, 1, 3);
+        List<WorkItemProgressStateDto> workItems =
+        [
+            new() {
+                Id = Guid.NewGuid(),
+                LevelOrder = 1,
+                Tier = WorkTypeTier.Requirement,
+                StatusCategory = StatusCategory.Done,
+                ParentId = null,
+                Created = Instant.FromUtc(2023, 1, 1, 18, 0),
+                ActivatedTimestamp = Instant.FromUtc(2023, 1, 1, 18, 0),
+                DoneTimestamp = Instant.FromUtc(2023, 1, 3, 3, 0)
+            },
+        ];
+
+        // Act
+        var result = WorkItemProgressDailyRollupDto.CreateList(startDate, endDate, workItems, DateTimeZoneProviders.Tzdb["America/Chicago"]);
+
+        // Assert
+        Assert.Equal(0, result.Single(d => d.Date == new DateOnly(2023, 1, 1)).Done);
+        Assert.Equal(1, result.Single(d => d.Date == new DateOnly(2023, 1, 2)).Done);
     }
 
     [Fact]
@@ -33,7 +61,7 @@ public sealed class WorkItemProgressDailyRollupDtoTests
         var endDate = new DateOnly(2023, 1, 5);
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => WorkItemProgressDailyRollupDto.CreateList(startDate, endDate, []));
+        Assert.Throws<ArgumentException>(() => WorkItemProgressDailyRollupDto.CreateList(startDate, endDate, [], DateTimeZone.Utc));
     }
 
     [Fact]
@@ -76,7 +104,7 @@ public sealed class WorkItemProgressDailyRollupDtoTests
         ];
 
         // Act
-        var result = WorkItemProgressDailyRollupDto.CreateList(startDate, endDate, workItems);
+        var result = WorkItemProgressDailyRollupDto.CreateList(startDate, endDate, workItems, DateTimeZone.Utc);
 
         // Assert
         Assert.Equal(expectedData.Count, result.Count);
@@ -193,7 +221,7 @@ public sealed class WorkItemProgressDailyRollupDtoTests
         ];
 
         // Act
-        var result = WorkItemProgressDailyRollupDto.CreateList(startDate, endDate, workItems);
+        var result = WorkItemProgressDailyRollupDto.CreateList(startDate, endDate, workItems, DateTimeZone.Utc);
 
         // Assert
         Assert.Equal(expectedData.Count, result.Count);
@@ -246,7 +274,7 @@ public sealed class WorkItemProgressDailyRollupDtoTests
         ];
 
         // Act
-        var result = WorkItemProgressDailyRollupDto.CreateList(startDate, endDate, workItems);
+        var result = WorkItemProgressDailyRollupDto.CreateList(startDate, endDate, workItems, DateTimeZone.Utc);
 
         // Assert
         Assert.Equal(expectedData.Count, result.Count);

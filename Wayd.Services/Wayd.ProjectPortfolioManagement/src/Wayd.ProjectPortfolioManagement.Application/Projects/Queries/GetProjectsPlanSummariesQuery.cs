@@ -23,12 +23,12 @@ public sealed record GetProjectsPlanSummariesQuery(
 public sealed class GetProjectsPlanSummariesQueryHandler(
     IProjectPortfolioManagementDbContext ppmDbContext,
     ICurrentPrincipal currentPrincipal,
-    IDateTimeProvider dateTimeProvider)
+    ISystemCalendar systemCalendar)
     : IQueryHandler<GetProjectsPlanSummariesQuery, Dictionary<Guid, ProjectPlanSummaryDto>>
 {
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<Dictionary<Guid, ProjectPlanSummaryDto>> Handle(
         GetProjectsPlanSummariesQuery request,
@@ -52,7 +52,7 @@ public sealed class GetProjectsPlanSummariesQueryHandler(
             }
         }
 
-        var today = _dateTimeProvider.Today;
+        var today = await _systemCalendar.Today(cancellationToken);
 
         var daysUntilSaturday = ((int)IsoDayOfWeek.Saturday - (int)today.DayOfWeek + 7) % 7;
         var endOfThisWeek = today.PlusDays(daysUntilSaturday);

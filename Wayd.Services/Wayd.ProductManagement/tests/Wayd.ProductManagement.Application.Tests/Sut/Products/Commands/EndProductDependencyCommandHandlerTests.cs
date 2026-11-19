@@ -9,7 +9,7 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.Products.Commands;
 public sealed class EndProductDependencyCommandHandlerTests : ProductCommandTestBase
 {
     private EndProductDependencyCommandHandler CreateSut() =>
-        new(DbContext, CurrentUser.Object, Logger<EndProductDependencyCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, CurrentUser.Object, Logger<EndProductDependencyCommandHandler>(), DateTimeProvider.Object, SystemCalendar);
 
     [Fact]
     public async Task Handle_ShouldEndTheDependencyAndKeepIt()

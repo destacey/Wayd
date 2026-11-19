@@ -36,13 +36,13 @@ public class TeamsOfTeamsController : ControllerBase
 {
     private readonly ILogger<TeamsOfTeamsController> _logger;
     private readonly IDispatcher _dispatcher;
-    private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar;
 
-    public TeamsOfTeamsController(ILogger<TeamsOfTeamsController> logger, IDispatcher dispatcher, IDateTimeProvider dateTimeProvider)
+    public TeamsOfTeamsController(ILogger<TeamsOfTeamsController> logger, IDispatcher dispatcher, ISystemCalendar systemCalendar)
     {
         _logger = logger;
         _dispatcher = dispatcher;
-        _dateTimeProvider = dateTimeProvider;
+        _systemCalendar = systemCalendar;
     }
 
     [HttpGet]
@@ -157,7 +157,7 @@ public class TeamsOfTeamsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<List<DependencyDto>>> GetDependencies(Guid id, CancellationToken cancellationToken)
     {
-        var today = _dateTimeProvider.Today;
+        var today = await _systemCalendar.Today(cancellationToken);
         var structure = await _dispatcher.Send(new GetTeamStructureQuery(id, today, today), cancellationToken);
         if (structure is null || structure.Teams.All(t => t.Id != id || t.Type != TeamType.TeamOfTeams))
             return NotFound();

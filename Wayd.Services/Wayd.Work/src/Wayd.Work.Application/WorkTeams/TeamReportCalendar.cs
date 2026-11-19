@@ -64,9 +64,12 @@ public sealed class TeamReportCalendar
     /// <summary>The day <paramref name="instant"/> falls in.</summary>
     public LocalDate DateOf(Instant instant)
     {
+#pragma warning disable RS0030 // Only a first guess at the zone; the loops below settle the day in the team's zone.
         var date = instant.InZone(ZoneOn(instant.InUtc().Date)).Date;
+#pragma warning restore RS0030
 
-        // Near a change of zone the guess can be a day out; no two zones are more than two days apart.
+        // The UTC day only picks the zone to try first. Near a change of zone the guess can be a day out; no two
+        // zones are more than two days apart.
         for (var i = 0; i < 2 && StartOf(date) > instant; i++)
             date = date.PlusDays(-1);
         for (var i = 0; i < 2 && StartOf(date.PlusDays(1)) <= instant; i++)

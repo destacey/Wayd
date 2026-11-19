@@ -18,8 +18,8 @@ public class RoadmapTimeboxTests
     public RoadmapTimeboxTests()
     {
         _dateTimeProvider = new(new FakeClock(DateTime.UtcNow.ToInstant()));
-        _activityFaker = new RoadmapActivityFaker(Guid.NewGuid(), _dateTimeProvider.Today);
-        _timeboxFaker = new RoadmapTimeboxFaker(localDate: _dateTimeProvider.Today);
+        _activityFaker = new RoadmapActivityFaker(Guid.NewGuid(), _dateTimeProvider.Now.InUtc().Date);
+        _timeboxFaker = new RoadmapTimeboxFaker(localDate: _dateTimeProvider.Now.InUtc().Date);
     }
 
     private RoadmapActivity GenerateActivity(LocalDateRange dateRange) =>
@@ -32,7 +32,7 @@ public class RoadmapTimeboxTests
     }
 
     private LocalDateRange Range(int startOffsetDays, int endOffsetDays) =>
-        new(_dateTimeProvider.Today.PlusDays(startOffsetDays), _dateTimeProvider.Today.PlusDays(endOffsetDays));
+        new(_dateTimeProvider.Now.InUtc().Date.PlusDays(startOffsetDays), _dateTimeProvider.Now.InUtc().Date.PlusDays(endOffsetDays));
 
     [Fact]
     public void Create_ShouldSetType()
@@ -61,7 +61,7 @@ public class RoadmapTimeboxTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         timebox.DateRange.Should().Be(Range(2, 25));
-        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(25));
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(25));
     }
 
     [Fact]
@@ -76,8 +76,8 @@ public class RoadmapTimeboxTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        parent.DateRange.Start.Should().Be(_dateTimeProvider.Today.PlusDays(2));
-        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(20));
+        parent.DateRange.Start.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(2));
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(20));
     }
 
     [Fact]
@@ -129,6 +129,6 @@ public class RoadmapTimeboxTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(40));
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(40));
     }
 }

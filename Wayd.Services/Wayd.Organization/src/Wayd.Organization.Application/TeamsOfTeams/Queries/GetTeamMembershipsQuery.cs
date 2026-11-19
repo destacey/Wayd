@@ -26,13 +26,13 @@ public sealed class GetTeamMembershipsQueryHandler : IQueryHandler<GetTeamMember
 {
     private readonly IOrganizationDbContext _organizationDbContext;
     private readonly ILogger<GetTeamMembershipsQueryHandler> _logger;
-    private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar;
 
-    public GetTeamMembershipsQueryHandler(IOrganizationDbContext organizationDbContext, ILogger<GetTeamMembershipsQueryHandler> logger, IDateTimeProvider dateTimeProvider)
+    public GetTeamMembershipsQueryHandler(IOrganizationDbContext organizationDbContext, ILogger<GetTeamMembershipsQueryHandler> logger, ISystemCalendar systemCalendar)
     {
         _organizationDbContext = organizationDbContext;
         _logger = logger;
-        _dateTimeProvider = dateTimeProvider;
+        _systemCalendar = systemCalendar;
     }
 
     public async Task<IReadOnlyList<TeamMembershipDto>?> Handle(GetTeamMembershipsQuery request, CancellationToken cancellationToken)
@@ -66,14 +66,15 @@ public sealed class GetTeamMembershipsQueryHandler : IQueryHandler<GetTeamMember
         if (team is null)
             return null;
 
+        var today = await _systemCalendar.Today(cancellationToken);
         List<TeamMembershipDto> memberships = [];
         if (team.ParentMemberships.Any())
         {
-            memberships.AddRange(team.ParentMemberships.Select(m => TeamMembershipDto.Create(m, _dateTimeProvider)).ToList());
+            memberships.AddRange(team.ParentMemberships.Select(m => TeamMembershipDto.Create(m, today)).ToList());
         }
         if (team.ChildMemberships.Any())
         {
-            memberships.AddRange(team.ChildMemberships.Select(m => TeamMembershipDto.Create(m, _dateTimeProvider)).ToList());
+            memberships.AddRange(team.ChildMemberships.Select(m => TeamMembershipDto.Create(m, today)).ToList());
         }
 
         return memberships;

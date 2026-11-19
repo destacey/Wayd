@@ -40,14 +40,14 @@ public class PlanningIntervalsController : ControllerBase
 {
     private readonly ILogger<PlanningIntervalsController> _logger;
     private readonly IDispatcher _dispatcher;
-    private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar;
     private readonly ICsvService _csvService;
 
-    public PlanningIntervalsController(ILogger<PlanningIntervalsController> logger, IDispatcher dispatcher, IDateTimeProvider dateTimeProvider, ICsvService csvService)
+    public PlanningIntervalsController(ILogger<PlanningIntervalsController> logger, IDispatcher dispatcher, ISystemCalendar systemCalendar, ICsvService csvService)
     {
         _logger = logger;
         _dispatcher = dispatcher;
-        _dateTimeProvider = dateTimeProvider;
+        _systemCalendar = systemCalendar;
         _csvService = csvService;
     }
 
@@ -945,7 +945,7 @@ public class PlanningIntervalsController : ControllerBase
 
         var planningInterval = await _dispatcher.Send(new GetPlanningIntervalQuery(idOrKey), cancellationToken);
 
-        var today = _dateTimeProvider.Now.ToDateOnly();
+        var today = (await _systemCalendar.Today(cancellationToken)).ToDateOnly();
         var piEnd = planningInterval!.End.ToDateOnly();
         // get the min of today and the end of the PI
         var end = today < piEnd ? today : piEnd;
@@ -1107,7 +1107,7 @@ public class PlanningIntervalsController : ControllerBase
             StartedWorkFirst = startedWorkFirst ?? true,
         };
 
-        var evidence = await new ObjectiveHealthCheckEvidenceComposer(_dispatcher, featureFlags, _dateTimeProvider)
+        var evidence = await new ObjectiveHealthCheckEvidenceComposer(_dispatcher, featureFlags, _systemCalendar)
             .Compose(idOrKey, objectiveIdOrKey, options, includeClosedRisks ?? false, cancellationToken);
 
         return evidence is not null

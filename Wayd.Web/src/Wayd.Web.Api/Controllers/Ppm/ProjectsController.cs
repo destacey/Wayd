@@ -389,7 +389,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
         [FromQuery] bool? ignoreDependencies,
         [FromQuery] bool? startedWorkFirst,
         [FromServices] IFeatureFlags featureFlags,
-        [FromServices] IDateTimeProvider dateTimeProvider,
+        [FromServices] ISystemCalendar systemCalendar,
         CancellationToken cancellationToken)
     {
         if (lookbackDays is < ForecastOptions.MinLookbackDays or > ForecastOptions.MaxLookbackDays)
@@ -403,7 +403,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
             StartedWorkFirst = startedWorkFirst ?? true,
         };
 
-        var evidence = await new ProjectHealthCheckEvidenceComposer(_dispatcher, featureFlags, dateTimeProvider)
+        var evidence = await new ProjectHealthCheckEvidenceComposer(_dispatcher, featureFlags, systemCalendar)
             .Compose(idOrKey, options, cancellationToken);
 
         return evidence is not null

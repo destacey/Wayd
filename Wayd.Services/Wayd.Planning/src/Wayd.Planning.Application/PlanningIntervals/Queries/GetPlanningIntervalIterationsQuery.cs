@@ -14,14 +14,14 @@ public sealed record GetPlanningIntervalIterationsQuery : IQuery<IReadOnlyList<P
     public Expression<Func<PlanningInterval, bool>> IdOrKeyFilter { get; }
 }
 
-public sealed class GetPlanningIntervalIterationsQueryHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetPlanningIntervalIterationsQuery, IReadOnlyList<PlanningIntervalIterationListDto>>
+public sealed class GetPlanningIntervalIterationsQueryHandler(IPlanningDbContext planningDbContext, ISystemCalendar systemCalendar) : IQueryHandler<GetPlanningIntervalIterationsQuery, IReadOnlyList<PlanningIntervalIterationListDto>>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<IReadOnlyList<PlanningIntervalIterationListDto>> Handle(GetPlanningIntervalIterationsQuery request, CancellationToken cancellationToken)
     {
-        LocalDate today = _dateTimeProvider.Today;
+        LocalDate today = await _systemCalendar.Today(cancellationToken);
         var config = PlanningIntervalIterationListDto.CreateTypeAdapterConfig(today);
 
         var iterations = await _planningDbContext.PlanningIntervals

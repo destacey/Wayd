@@ -5,9 +5,10 @@ namespace Wayd.Work.Application.WorkItems.Queries;
 
 public sealed record GetExternalObjectWorkItemMetricsQuery(Guid ObjectiveId, DateOnly Start, DateOnly End) : IQuery<List<WorkItemProgressDailyRollupDto>>;
 
-public sealed class GetExternalObjectWorkItemMetricsQueryHandler(IWorkDbContext workDbContext) : IQueryHandler<GetExternalObjectWorkItemMetricsQuery, List<WorkItemProgressDailyRollupDto>>
+public sealed class GetExternalObjectWorkItemMetricsQueryHandler(IWorkDbContext workDbContext, ISystemCalendar systemCalendar) : IQueryHandler<GetExternalObjectWorkItemMetricsQuery, List<WorkItemProgressDailyRollupDto>>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<List<WorkItemProgressDailyRollupDto>> Handle(GetExternalObjectWorkItemMetricsQuery request, CancellationToken cancellationToken)
     {
@@ -16,6 +17,6 @@ public sealed class GetExternalObjectWorkItemMetricsQueryHandler(IWorkDbContext 
 
         var progress = await new WorkItemProgressStateBuilder(_workDbContext, query).Build(cancellationToken);
 
-        return WorkItemProgressDailyRollupDto.CreateList(request.Start, request.End, progress);
+        return WorkItemProgressDailyRollupDto.CreateList(request.Start, request.End, progress, await _systemCalendar.Zone(cancellationToken));
     }
 }

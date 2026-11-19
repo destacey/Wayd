@@ -22,7 +22,8 @@ public sealed class EndProductDependencyCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     ICurrentUser currentUser,
     ILogger<EndProductDependencyCommandHandler> logger,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    ISystemCalendar systemCalendar)
     : ICommandHandler<EndProductDependencyCommand>
 {
     private const string AppRequestName = nameof(EndProductDependencyCommand);
@@ -31,6 +32,7 @@ public sealed class EndProductDependencyCommandHandler(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<EndProductDependencyCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<Result> Handle(EndProductDependencyCommand request, CancellationToken cancellationToken)
     {
@@ -46,14 +48,15 @@ public sealed class EndProductDependencyCommandHandler(
                 return Result.Failure("Product not found.");
             }
 
-            var today = _dateTimeProvider.Today;
+            var now = _dateTimeProvider.Now;
+            var today = await _systemCalendar.DayOf(now, cancellationToken);
 
             var endResult = product.EndDependency(
                 request.DependencyId,
                 request.EndsOn ?? today,
                 today,
                 EventActor.User(_currentUser.GetUserId()),
-                _dateTimeProvider.Now);
+                now);
 
             if (endResult.IsFailure)
             {

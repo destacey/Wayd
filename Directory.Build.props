@@ -16,4 +16,18 @@
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <NoWarn>$(NoWarn);1591;1573</NoWarn>
     </PropertyGroup>
+    <!--
+      Production code may not call the APIs in BannedSymbols.txt; reading a moment's calendar day in UTC is the
+      first of them, because "today" and every day derived from a moment is read in the system time zone. Limited
+      to projects under a src folder of the repository (the clone's own path does not count): tests choose their
+      own moments and days.
+    -->
+    <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.csproj' And $([System.String]::Copy('$([MSBuild]::MakeRelative($(RepoRoot), $(MSBuildProjectDirectory)))').Replace('\', '/').Contains('/src/'))">
+        <WaydBansApis>true</WaydBansApis>
+        <WarningsAsErrors>$(WarningsAsErrors);RS0030</WarningsAsErrors>
+    </PropertyGroup>
+    <ItemGroup Condition="'$(WaydBansApis)' == 'true'">
+        <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
+        <AdditionalFiles Include="$(RepoRoot)BannedSymbols.txt" Link="BannedSymbols.txt" />
+    </ItemGroup>
 </Project>

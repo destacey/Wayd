@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
+using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Organization;
@@ -12,6 +13,7 @@ using Wayd.Common.Domain.Settings;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain.Models;
+using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Extensions;
 
 // The delivery artifact record, not System.Version.
@@ -25,7 +27,8 @@ namespace Wayd.ProductManagement.Application.Tests.Infrastructure;
 /// </summary>
 public abstract class ProductCommandTestBase
 {
-    protected static readonly Instant Now = Instant.FromUtc(2026, 4, 1, 9, 0, 0);
+    // 2 April in UTC, still Today in the system zone, so a handler that reads today in UTC fails.
+    protected static readonly Instant Now = Instant.FromUtc(2026, 4, 2, 5, 0, 0);
     protected static readonly LocalDate Today = new(2026, 4, 1);
 
     /// <summary>
@@ -38,6 +41,9 @@ public abstract class ProductCommandTestBase
     protected readonly Mock<ICurrentPrincipal> CurrentPrincipal = new();
     protected readonly Mock<IDateTimeProvider> DateTimeProvider = new();
 
+    /// <summary>The system calendar, read against <see cref="Now"/>.</summary>
+    protected readonly ISystemCalendar SystemCalendar = new TestingSystemCalendar(new TestingDateTimeProvider(new FakeClock(Now)));
+
     /// <summary>The product tag settings in effect: free tags off, as a new install has them.</summary>
     protected readonly Mock<ISettings<ProductTagSettings>> TagSettings = new();
 
@@ -48,7 +54,6 @@ public abstract class ProductCommandTestBase
             .Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>()))
             .ReturnsAsync(ActingEmployeeId);
         DateTimeProvider.SetupGet(d => d.Now).Returns(Now);
-        DateTimeProvider.SetupGet(d => d.Today).Returns(Today);
         TagSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new ProductTagSettings());
     }
 

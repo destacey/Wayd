@@ -77,6 +77,9 @@ public sealed class SprintLifecycleScenario : IDisposable
     public FakeClock Clock { get; }
     public TestingDateTimeProvider DateTimeProvider { get; }
 
+    /// <summary>The system calendar, read against <see cref="Clock"/>.</summary>
+    public TestingSystemCalendar SystemCalendar => new(DateTimeProvider);
+
     public Guid EmployeeId { get; } = Guid.NewGuid();
     public WorkTeam Team { get; }
     public Iteration Sprint1 { get; }

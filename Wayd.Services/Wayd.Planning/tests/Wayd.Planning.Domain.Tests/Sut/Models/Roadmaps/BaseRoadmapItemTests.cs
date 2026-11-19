@@ -16,7 +16,7 @@ public class BaseRoadmapItemTests
     public BaseRoadmapItemTests()
     {
         _dateTimeProvider = new(new FakeClock(DateTime.UtcNow.ToInstant()));
-        _faker = new RoadmapActivityFaker(Guid.NewGuid(), _dateTimeProvider.Today);
+        _faker = new RoadmapActivityFaker(Guid.NewGuid(), _dateTimeProvider.Now.InUtc().Date);
     }
 
     [Fact]
@@ -98,10 +98,10 @@ public class BaseRoadmapItemTests
     {
         // Arrange
         var newParent = _faker
-            .WithDateRange(new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)))
+            .WithDateRange(new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(10)))
             .Generate();
         var activity = _faker
-            .WithDateRange(new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30)))
+            .WithDateRange(new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(30)))
             .Generate();
 
         // Act
@@ -109,7 +109,7 @@ public class BaseRoadmapItemTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        newParent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(30));
+        newParent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(30));
     }
 
     [Fact]

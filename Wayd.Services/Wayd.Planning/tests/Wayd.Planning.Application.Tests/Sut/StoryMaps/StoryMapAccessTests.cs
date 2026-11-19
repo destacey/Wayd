@@ -1,5 +1,6 @@
 using Moq;
 using NodaTime;
+using NodaTime.Testing;
 using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Identity.Users;
 using Wayd.Common.Application.Interfaces;
@@ -9,6 +10,7 @@ using Wayd.Planning.Application.StoryMaps;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Models.StoryMaps;
 using Wayd.Planning.Domain.Tests.Data;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Planning.Application.Tests.Sut.StoryMaps;
 
@@ -19,6 +21,9 @@ public class StoryMapAccessTests : IDisposable
 {
     private const string UserId = "user-1";
     private static readonly LocalDate Today = new(2026, 1, 15);
+
+    // 16 January in UTC, still Today in the system zone: membership is read on the system zone's day.
+    private static readonly Instant Now = Instant.FromUtc(2026, 1, 16, 5, 0);
 
     private readonly FakePlanningDbContext _dbContext = new();
     private readonly Mock<ICurrentPrincipal> _currentPrincipal = new();
@@ -31,8 +36,7 @@ public class StoryMapAccessTests : IDisposable
 
     public StoryMapAccessTests()
     {
-        var dateTimeProvider = new Mock<IDateTimeProvider>();
-        dateTimeProvider.Setup(d => d.Today).Returns(Today);
+        var calendar = new TestingSystemCalendar(new TestingDateTimeProvider(new FakeClock(Now)));
 
         _currentPrincipal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_employeeId);
         _userService.Setup(u => u.GetEmployeeIdAsync(UserId, It.IsAny<CancellationToken>())).ReturnsAsync(_employeeId);
@@ -41,7 +45,7 @@ public class StoryMapAccessTests : IDisposable
             .Setup(d => d.Send(It.IsAny<GetTeamsWithMemberQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new HashSet<Guid>());
 
-        _access = new StoryMapAccess(_dbContext, _currentPrincipal.Object, _userService.Object, _dispatcher.Object, dateTimeProvider.Object);
+        _access = new StoryMapAccess(_dbContext, _currentPrincipal.Object, _userService.Object, _dispatcher.Object, calendar);
     }
 
     private void MemberOfTeam(Guid teamId) =>

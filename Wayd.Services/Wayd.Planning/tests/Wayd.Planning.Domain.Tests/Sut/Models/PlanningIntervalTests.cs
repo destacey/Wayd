@@ -34,7 +34,7 @@ public class PlanningIntervalTests
     public void StateOn_ShouldReturnCompleted_WhenDateIsPast()
     {
         // Arrange
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
         var planningIntervalDateRange = new LocalDateRange(today.Plus(Period.FromWeeks(-14)), today.Plus(Period.FromWeeks(-2)));
         var sut = _planningIntervalFaker.WithDateRange(planningIntervalDateRange).Generate();
 
@@ -49,7 +49,7 @@ public class PlanningIntervalTests
     public void StateOn_ShouldReturnActive_WhenDateIsWithinRange()
     {
         // Arrange
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
         var planningIntervalDateRange = new LocalDateRange(today.Plus(Period.FromWeeks(-1)), today.Plus(Period.FromWeeks(11)));
         var sut = _planningIntervalFaker.WithDateRange(planningIntervalDateRange).Generate();
 
@@ -64,7 +64,7 @@ public class PlanningIntervalTests
     public void StateOn_ShouldReturnFuture_WhenDateIsFuture()
     {
         // Arrange
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
         var planningIntervalDateRange = new LocalDateRange(today.Plus(Period.FromWeeks(1)), today.Plus(Period.FromWeeks(13)));
         var sut = _planningIntervalFaker.WithDateRange(planningIntervalDateRange).Generate();
 
@@ -86,7 +86,7 @@ public class PlanningIntervalTests
         var sut = _planningIntervalFaker.Generate();
 
         // Act
-        var result = sut.CalculatePredictability(_dateTimeProvider.Today);
+        var result = sut.CalculatePredictability(_dateTimeProvider.Now.InUtc().Date);
 
         // Assert
         result.Should().BeNull();
@@ -100,7 +100,7 @@ public class PlanningIntervalTests
         sut.Update(sut.Name, sut.Description, false, EventActor.System, _dateTimeProvider.Now);
 
         // Act
-        var result = sut.CalculatePredictability(_dateTimeProvider.Today);
+        var result = sut.CalculatePredictability(_dateTimeProvider.Now.InUtc().Date);
 
         // Assert
         result.Should().BeNull();
@@ -114,7 +114,7 @@ public class PlanningIntervalTests
         var sut = _planningIntervalFaker.WithObjectives(team, 2).Generate();
 
         // Act
-        var result = sut.CalculatePredictability(_dateTimeProvider.Today);
+        var result = sut.CalculatePredictability(_dateTimeProvider.Now.InUtc().Date);
 
         // Assert
         result.Should().Be(0);
@@ -134,7 +134,7 @@ public class PlanningIntervalTests
         }
 
         // Act
-        var result = sut.CalculatePredictability(_dateTimeProvider.Today);
+        var result = sut.CalculatePredictability(_dateTimeProvider.Now.InUtc().Date);
 
         // Assert
         result.Should().Be(50);
@@ -156,7 +156,7 @@ public class PlanningIntervalTests
         }
 
         // Act
-        var result = sut.CalculatePredictability(_dateTimeProvider.Today);
+        var result = sut.CalculatePredictability(_dateTimeProvider.Now.InUtc().Date);
 
         // Assert
         result.Should().Be(100);
@@ -178,7 +178,7 @@ public class PlanningIntervalTests
         }
 
         // Act
-        var result = sut.CalculatePredictability(_dateTimeProvider.Today);
+        var result = sut.CalculatePredictability(_dateTimeProvider.Now.InUtc().Date);
 
         // Assert
         result.Should().Be(100);
@@ -201,7 +201,7 @@ public class PlanningIntervalTests
         }
 
         // Act
-        var result = sut.CalculatePredictability(_dateTimeProvider.Today);
+        var result = sut.CalculatePredictability(_dateTimeProvider.Now.InUtc().Date);
 
         // Assert
         result.Should().Be(100);
@@ -225,7 +225,7 @@ public class PlanningIntervalTests
         }
 
         // Act
-        var result = sut.CalculatePredictability(_dateTimeProvider.Today);
+        var result = sut.CalculatePredictability(_dateTimeProvider.Now.InUtc().Date);
 
         // Assert
         // 3/4 of the non-stretch objectives are complete and 0/2 of the stretch objectives are complete, so 75% predictability
@@ -250,7 +250,7 @@ public class PlanningIntervalTests
         }
 
         // Act
-        var result = sut.CalculatePredictability(_dateTimeProvider.Today);
+        var result = sut.CalculatePredictability(_dateTimeProvider.Now.InUtc().Date);
 
         // Assert
         // 3/4 of the non-stretch objectives are complete and 0/2 of the stretch objectives are complete, so 75% predictability

@@ -1,9 +1,9 @@
 using FluentAssertions;
-using Moq;
 using NodaTime;
-using Wayd.Common.Application.Interfaces;
+using NodaTime.Testing;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.ProductManagement.Application.Products.Dtos;
+using Wayd.Tests.Shared;
 
 namespace Wayd.ProductManagement.Application.Tests.Sut.Products.Dtos;
 
@@ -14,40 +14,36 @@ public sealed class ImportProductDependencyDtoValidatorTests
 {
     private static readonly LocalDate Today = new(2026, 4, 1);
 
-    private readonly ImportProductDependencyDtoValidator _sut;
+    // 2 April in UTC, still Today in the system zone, which is the day a blank start means.
+    private static readonly Instant Now = Instant.FromUtc(2026, 4, 2, 5, 0);
 
-    public ImportProductDependencyDtoValidatorTests()
-    {
-        var dateTimeProvider = new Mock<IDateTimeProvider>();
-        dateTimeProvider.SetupGet(d => d.Today).Returns(Today);
-
-        _sut = new ImportProductDependencyDtoValidator(dateTimeProvider.Object);
-    }
+    private readonly ImportProductDependencyDtoValidator _sut =
+        new(new TestingSystemCalendar(new TestingDateTimeProvider(new FakeClock(Now))));
 
     private static ImportProductDependencyDto Row(LocalDate? startsOn, LocalDate? endsOn) =>
         new(Guid.CreateVersion7(), Guid.CreateVersion7(), DependencyStrength.Hard, null, null, startsOn, endsOn);
 
     [Fact]
-    public void Validate_ShouldRejectAnEndBeforeTheStart()
+    public async Task Validate_ShouldRejectAnEndBeforeTheStart()
     {
         // Arrange
         var row = Row(Today.PlusDays(-10), Today.PlusDays(-20));
 
         // Act
-        var result = _sut.Validate(row);
+        var result = await _sut.ValidateAsync(row, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsValid.Should().BeFalse();
     }
 
     [Fact]
-    public void Validate_ShouldRejectAnEndBeforeTodayWhenTheStartIsBlank()
+    public async Task Validate_ShouldRejectAnEndBeforeTodayWhenTheStartIsBlank()
     {
         // Arrange — a blank start is today, so this row would end before it began
         var row = Row(null, Today.PlusDays(-1));
 
         // Act
-        var result = _sut.Validate(row);
+        var result = await _sut.ValidateAsync(row, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsValid.Should().BeFalse();
@@ -56,15 +52,17 @@ public sealed class ImportProductDependencyDtoValidatorTests
     }
 
     [Fact]
-    public void Validate_ShouldAcceptAnEndOnTheStartDay()
+    public async Task Validate_ShouldAcceptAnEndOnTheStartDay()
     {
-        // Arrange — the last day counts, so a link can start and end on the same day
+        // Arrange — the last day counts, so a link can start and end on the same day; a blank start is today in
+        // the system zone, not the UTC day after it
         var dated = Row(Today.PlusDays(-5), Today.PlusDays(-5));
         var today = Row(null, Today);
+        var cancellationToken = TestContext.Current.CancellationToken;
 
         // Act
-        var datedResult = _sut.Validate(dated);
-        var todayResult = _sut.Validate(today);
+        var datedResult = await _sut.ValidateAsync(dated, cancellationToken);
+        var todayResult = await _sut.ValidateAsync(today, cancellationToken);
 
         // Assert
         datedResult.IsValid.Should().BeTrue();
@@ -72,13 +70,13 @@ public sealed class ImportProductDependencyDtoValidatorTests
     }
 
     [Fact]
-    public void Validate_ShouldAcceptAnOpenLink()
+    public async Task Validate_ShouldAcceptAnOpenLink()
     {
         // Arrange
         var row = Row(null, null);
 
         // Act
-        var result = _sut.Validate(row);
+        var result = await _sut.ValidateAsync(row, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsValid.Should().BeTrue();

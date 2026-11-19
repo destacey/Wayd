@@ -24,7 +24,7 @@ namespace Wayd.Organization.Application.Teams;
 public sealed class TeamKpiSubjectType(
     IOrganizationDbContext dbContext,
     ICurrentPrincipal currentPrincipal,
-    IDateTimeProvider dateTimeProvider) : IKpiSubjectType
+    ISystemCalendar systemCalendar) : IKpiSubjectType
 {
     /// <summary>The permission reading a team's KPIs needs.</summary>
     public static readonly string ViewPermission = ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Teams);
@@ -37,7 +37,7 @@ public sealed class TeamKpiSubjectType(
 
     private readonly IOrganizationDbContext _dbContext = dbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     /// <inheritdoc/>
     public string SubjectType => OrganizationKpiSubjects.Team.Key;
@@ -57,7 +57,7 @@ public sealed class TeamKpiSubjectType(
 
         var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         var canManage = employeeId is { } id
-            && await IsMemberOfTeamOrAbove(subjectId, id, _dateTimeProvider.Today, cancellationToken);
+            && await IsMemberOfTeamOrAbove(subjectId, id, await _systemCalendar.Today(cancellationToken), cancellationToken);
 
         return new KpiSubjectAccess(team.Name, team.Code, canManage);
     }

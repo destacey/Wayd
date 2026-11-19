@@ -25,8 +25,6 @@ public class TestingDateTimeProvider : IDateTimeProvider
 
     public Instant Now => _clock.GetCurrentInstant();
 
-    public LocalDate Today => _clock.GetCurrentInstant().InUtc().Date;
-
     public void Advance(Duration duration)
     {
         _clock.Advance(duration);

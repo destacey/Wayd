@@ -27,6 +27,7 @@ public sealed class CompleteSprintCommandHandler(
     ICurrentUser currentUser,
     ICurrentPrincipal currentPrincipal,
     IDateTimeProvider dateTimeProvider,
+    ISystemCalendar systemCalendar,
     ILogger<CompleteSprintCommandHandler> logger)
     : ICommandHandler<CompleteSprintCommand>
 {
@@ -39,6 +40,7 @@ public sealed class CompleteSprintCommandHandler(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
     private readonly ILogger<CompleteSprintCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(CompleteSprintCommand request, CancellationToken cancellationToken)
@@ -46,7 +48,7 @@ public sealed class CompleteSprintCommandHandler(
         try
         {
             return await SprintLifecycleChange.Apply(
-                _workDbContext, _dispatcher, _schedulingSettings, _generalSettings, _currentUser, _currentPrincipal, _dateTimeProvider, _logger,
+                _workDbContext, _dispatcher, _schedulingSettings, _generalSettings, _currentUser, _currentPrincipal, _dateTimeProvider, _systemCalendar, _logger,
                 request.Id,
                 "complete",
                 (sprint, timeline, actor, now) => [() => sprint.Complete(timeline, request.CompletedAt ?? now, actor, now)],

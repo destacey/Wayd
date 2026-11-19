@@ -178,7 +178,7 @@ public class PlanningIntervalIterationTests
     public void StateOn_ShouldReturnCompleted_WhenDateIsPast()
     {
         // Arrange
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
         var iterationDateRange = new LocalDateRange(today.Plus(Period.FromWeeks(-4)), today.Plus(Period.FromWeeks(-2)));
         var sut = _faker.WithDateRange(iterationDateRange).Generate();
 
@@ -193,7 +193,7 @@ public class PlanningIntervalIterationTests
     public void StateOn_ShouldReturnActive_WhenDateIsWithinRange()
     {
         // Arrange
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
         var iterationDateRange = new LocalDateRange(today.Plus(Period.FromWeeks(-1)), today.Plus(Period.FromWeeks(1)));
         var sut = _faker.WithDateRange(iterationDateRange).Generate();
 
@@ -208,7 +208,7 @@ public class PlanningIntervalIterationTests
     public void StateOn_ShouldReturnFuture_WhenDateIsFuture()
     {
         // Arrange
-        var today = _dateTimeProvider.Today;
+        var today = _dateTimeProvider.Now.InUtc().Date;
         var iterationDateRange = new LocalDateRange(today.Plus(Period.FromWeeks(1)), today.Plus(Period.FromWeeks(3)));
         var sut = _faker.WithDateRange(iterationDateRange).Generate();
 

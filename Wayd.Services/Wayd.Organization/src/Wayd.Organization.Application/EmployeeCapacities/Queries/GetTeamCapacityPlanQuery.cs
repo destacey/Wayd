@@ -43,14 +43,14 @@ public sealed class GetTeamCapacityPlanQueryHandler(
     IDispatcher dispatcher,
     ICurrentPrincipal currentPrincipal,
     ISettings<SchedulingSettings> schedulingSettings,
-    IDateTimeProvider dateTimeProvider)
+    ISystemCalendar systemCalendar)
     : IQueryHandler<GetTeamCapacityPlanQuery, TeamCapacityPlanDto?>
 {
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<TeamCapacityPlanDto?> Handle(GetTeamCapacityPlanQuery request, CancellationToken cancellationToken)
     {
@@ -59,7 +59,7 @@ public sealed class GetTeamCapacityPlanQueryHandler(
             _dispatcher,
             _currentPrincipal,
             _schedulingSettings,
-            _dateTimeProvider.Now.InUtc().Date,
+            await _systemCalendar.Today(cancellationToken),
             request.TeamId,
             request.TeamType,
             request.From,

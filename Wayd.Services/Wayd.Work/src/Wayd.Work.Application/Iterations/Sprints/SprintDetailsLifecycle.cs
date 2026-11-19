@@ -19,6 +19,7 @@ public static class SprintDetailsLifecycle
         ICurrentPrincipal currentPrincipal,
         IDispatcher dispatcher,
         Instant now,
+        LocalDate today,
         CancellationToken cancellationToken)
     {
         details.State = SimpleNavigationDto.FromEnum(new IterationStateReader([timeline], timeline.DefaultZone, now).StateOf(sprint));
@@ -51,6 +52,6 @@ public static class SprintDetailsLifecycle
         if (timeline.OpenSprint is { } open && open.Id != entity.Id)
             details.OpenSprint = NavigationDto.Create(open.Id, open.Key, open.Name);
 
-        details.CanManageSprint = await currentPrincipal.CanManageTeamSprints(dispatcher, timeline.TeamId, now.InUtc().Date, cancellationToken);
+        details.CanManageSprint = await currentPrincipal.CanManageTeamSprints(dispatcher, timeline.TeamId, today, cancellationToken);
     }
 }

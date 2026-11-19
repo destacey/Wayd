@@ -27,6 +27,7 @@ public sealed class ReopenSprintCommandHandler(
     ICurrentUser currentUser,
     ICurrentPrincipal currentPrincipal,
     IDateTimeProvider dateTimeProvider,
+    ISystemCalendar systemCalendar,
     ILogger<ReopenSprintCommandHandler> logger)
     : ICommandHandler<ReopenSprintCommand>
 {
@@ -39,6 +40,7 @@ public sealed class ReopenSprintCommandHandler(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
     private readonly ILogger<ReopenSprintCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ReopenSprintCommand request, CancellationToken cancellationToken)
@@ -46,7 +48,7 @@ public sealed class ReopenSprintCommandHandler(
         try
         {
             return await SprintLifecycleChange.Apply(
-                _workDbContext, _dispatcher, _schedulingSettings, _generalSettings, _currentUser, _currentPrincipal, _dateTimeProvider, _logger,
+                _workDbContext, _dispatcher, _schedulingSettings, _generalSettings, _currentUser, _currentPrincipal, _dateTimeProvider, _systemCalendar, _logger,
                 request.Id,
                 "reopen",
                 (sprint, timeline, actor, now) => [() => sprint.Reopen(timeline, actor, now)],

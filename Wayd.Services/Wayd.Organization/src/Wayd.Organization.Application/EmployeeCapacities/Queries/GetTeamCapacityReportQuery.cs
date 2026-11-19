@@ -133,7 +133,11 @@ public sealed class GetTeamCapacityReportQueryHandler(
         var employment = employees.Values.ToDictionary(
             e => e.Id,
             e => new EmploymentPeriod(
+                // A hire date is a calendar day carried as midnight UTC by every source (Entra, Workday, the import), so
+                // reading it in UTC recovers the day; the system zone would move it back a day west of UTC.
+#pragma warning disable RS0030 // See above.
                 e.HireDate?.InUtc().Date,
+#pragma warning restore RS0030
                 e.IsActive || inactiveAllocationEnds[e.Id].Any(end => end is null)
                     ? null
                     : inactiveAllocationEnds[e.Id].Max()));

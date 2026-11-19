@@ -47,7 +47,7 @@ namespace Wayd.Web.Api.Controllers;
 [ApiController]
 [Authorize]
 [McpTools("wayd-users")]
-public class MeController(IDispatcher dispatcher, IUserService userService, ICurrentUser currentUser, ICurrentPrincipal currentPrincipal, IFeatureFlags featureFlags, IDateTimeProvider dateTimeProvider) : ControllerBase
+public class MeController(IDispatcher dispatcher, IUserService userService, ICurrentUser currentUser, ICurrentPrincipal currentPrincipal, IFeatureFlags featureFlags, IDateTimeProvider dateTimeProvider, ISystemCalendar systemCalendar) : ControllerBase
 {
     /// <summary>How many days, today included, a Kanban team's recent completions are counted over.</summary>
     private const int RecentFlowDays = 14;
@@ -60,6 +60,7 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IFeatureFlags _featureFlags = featureFlags;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     [HttpGet]
     [EndpointSummary("Get who you are: your user account and the employee it is linked to.")]
@@ -227,7 +228,7 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
         }
 
         var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
+        var today = await _systemCalendar.DayOf(now, cancellationToken);
 
         var structures = new List<TeamStructure>();
         foreach (var teamOfTeams in teamsOfTeams)

@@ -14,7 +14,7 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.Products.Commands;
 public sealed class AddProductDependencyCommandHandlerTests : ProductCommandTestBase
 {
     private AddProductDependencyCommandHandler CreateSut() =>
-        new(DbContext, CurrentUser.Object, Logger<AddProductDependencyCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, CurrentUser.Object, Logger<AddProductDependencyCommandHandler>(), DateTimeProvider.Object, SystemCalendar);
 
     [Fact]
     public async Task Handle_ShouldRecordTheDependencyAndReturnItsId()

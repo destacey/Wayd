@@ -3,6 +3,8 @@ using FluentAssertions;
 using Moq;
 using Moq.AutoMock;
 using NodaTime;
+using NodaTime.Testing;
+using Wayd.Tests.Shared;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.FeatureManagement;
@@ -26,7 +28,8 @@ public sealed class ObjectiveHealthCheckEvidenceComposerTests
 {
     private static readonly LocalDate PiStart = new(2026, 7, 1);
     private static readonly LocalDate PiEnd = new(2026, 9, 30);
-    private static readonly Instant Now = Instant.FromUtc(2026, 8, 15, 12, 0);
+    // 16 August in UTC, still 15 August in the system zone: the day the composer reads as today.
+    private static readonly Instant Now = Instant.FromUtc(2026, 8, 16, 5, 0);
 
     private readonly AutoMocker _mocker = new();
     private readonly Guid _piId = Guid.NewGuid();
@@ -35,9 +38,7 @@ public sealed class ObjectiveHealthCheckEvidenceComposerTests
 
     public ObjectiveHealthCheckEvidenceComposerTests()
     {
-        var clock = _mocker.GetMock<IDateTimeProvider>();
-        clock.Setup(c => c.Now).Returns(Now);
-        clock.Setup(c => c.Today).Returns(new LocalDate(2026, 8, 15));
+        _mocker.Use<ISystemCalendar>(new TestingSystemCalendar(new TestingDateTimeProvider(new FakeClock(Now))));
 
         SetupPlanningInterval();
         SetupObjective(startDate: null, targetDate: null, progress: 40);

@@ -27,9 +27,9 @@ public sealed record PlanningIntervalListDto
     public required SimpleNavigationDto State { get; set; }
 
     // TODO: do this with Mapster
-    public static PlanningIntervalListDto Create(PlanningInterval planningInterval, IDateTimeProvider dateTimeProvider)
+    public static PlanningIntervalListDto Create(PlanningInterval planningInterval, LocalDate today)
     {
-        var state = planningInterval.StateOn(dateTimeProvider.Now.InUtc().Date);
+        var state = planningInterval.StateOn(today);
         return new PlanningIntervalListDto()
         {
             Id = planningInterval.Id,

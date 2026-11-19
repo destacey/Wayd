@@ -6,7 +6,7 @@ using Wayd.Planning.Domain.Models.Roadmaps;
 
 namespace Wayd.Planning.Application.Search;
 
-public sealed class SearchPlanningForGlobalSearchQueryHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, ICurrentPrincipal currentPrincipal)
+public sealed class SearchPlanningForGlobalSearchQueryHandler(IPlanningDbContext planningDbContext, ISystemCalendar systemCalendar, ICurrentPrincipal currentPrincipal)
     : IQueryHandler<SearchPlanningForGlobalSearchQuery, ServiceSearchResponse>
 {
     public async Task<ServiceSearchResponse> Handle(SearchPlanningForGlobalSearchQuery request, CancellationToken cancellationToken)
@@ -99,7 +99,7 @@ public sealed class SearchPlanningForGlobalSearchQueryHandler(IPlanningDbContext
             .SelectMany(pi => pi.Teams, (pi, pit) => new { pi, pit.Team })
             .Where(x => x.Team.Name.Contains(term) || ((string)x.Team.Code).Contains(term));
 
-        var today = dateTimeProvider.Today;
+        var today = await systemCalendar.Today(cancellationToken);
 
         var piTeamCount = await piTeamQuery.CountAsync(cancellationToken);
         var piTeams = await piTeamQuery

@@ -61,7 +61,7 @@ public sealed class StoryMapAccess(
     ICurrentPrincipal currentPrincipal,
     IUserService userService,
     IDispatcher dispatcher,
-    IDateTimeProvider dateTimeProvider) : IStoryMapAccess
+    ISystemCalendar systemCalendar) : IStoryMapAccess
 {
     /// <summary>Lets its holder see, edit and manage every story map.</summary>
     public static readonly string AdministratorPermission =
@@ -75,7 +75,7 @@ public sealed class StoryMapAccess(
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IUserService _userService = userService;
     private readonly IDispatcher _dispatcher = dispatcher;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     /// <inheritdoc />
     public async Task<StoryMapActor> ResolveActor(StoryMap map, CancellationToken cancellationToken)
@@ -140,6 +140,6 @@ public sealed class StoryMapAccess(
         return map.CanAccess(new StoryMapActor(employeeId.Value, false, teamIds));
     }
 
-    private Task<IReadOnlySet<Guid>> TeamsWithMember(IReadOnlyCollection<Guid> teamIds, Guid employeeId, CancellationToken cancellationToken) =>
-        _dispatcher.TeamsWithMember(teamIds, employeeId, _dateTimeProvider.Today, cancellationToken);
+    private async Task<IReadOnlySet<Guid>> TeamsWithMember(IReadOnlyCollection<Guid> teamIds, Guid employeeId, CancellationToken cancellationToken) =>
+        await _dispatcher.TeamsWithMember(teamIds, employeeId, await _systemCalendar.Today(cancellationToken), cancellationToken);
 }

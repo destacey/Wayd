@@ -39,9 +39,9 @@ public sealed record PlanningIntervalDetailsDto
     public double? Predictability { get; set; }
 
     // TODO: do this with Mapster
-    public static PlanningIntervalDetailsDto Create(PlanningInterval planningInterval, IDateTimeProvider dateTimeProvider)
+    public static PlanningIntervalDetailsDto Create(PlanningInterval planningInterval, LocalDate today)
     {
-        var state = planningInterval.StateOn(dateTimeProvider.Now.InUtc().Date);
+        var state = planningInterval.StateOn(today);
         return new PlanningIntervalDetailsDto()
         {
             Id = planningInterval.Id,
@@ -52,7 +52,7 @@ public sealed record PlanningIntervalDetailsDto
             End = planningInterval.DateRange.End,
             State = SimpleNavigationDto.FromEnum(state),
             ObjectivesLocked = planningInterval.ObjectivesLocked,
-            Predictability = planningInterval.CalculatePredictability(dateTimeProvider.Now.InUtc().Date)
+            Predictability = planningInterval.CalculatePredictability(today)
         };
     }
 }

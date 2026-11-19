@@ -20,13 +20,13 @@ public sealed class GetPlanningIntervalPredictabilityQueryHandler : IQueryHandle
 {
     private readonly IPlanningDbContext _planningDbContext;
     private readonly ILogger<GetPlanningIntervalPredictabilityQueryHandler> _logger;
-    private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar;
 
-    public GetPlanningIntervalPredictabilityQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetPlanningIntervalPredictabilityQueryHandler> logger, IDateTimeProvider dateTimeProvider)
+    public GetPlanningIntervalPredictabilityQueryHandler(IPlanningDbContext planningDbContext, ILogger<GetPlanningIntervalPredictabilityQueryHandler> logger, ISystemCalendar systemCalendar)
     {
         _planningDbContext = planningDbContext;
         _logger = logger;
-        _dateTimeProvider = dateTimeProvider;
+        _systemCalendar = systemCalendar;
     }
 
     public async Task<PlanningIntervalPredictabilityDto?> Handle(GetPlanningIntervalPredictabilityQuery request, CancellationToken cancellationToken)
@@ -44,7 +44,7 @@ public sealed class GetPlanningIntervalPredictabilityQueryHandler : IQueryHandle
         else if (!planningInterval.Teams.Any())
             return new PlanningIntervalPredictabilityDto(null, []);
 
-        var currentDate = _dateTimeProvider.Today;
+        var currentDate = await _systemCalendar.Today(cancellationToken);
 
         // Pre-bucket team objectives once. We need per-team counts of
         // regular/stretch/completed objectives — same data the predictability

@@ -19,7 +19,7 @@ namespace Wayd.Web.Api.Controllers.Planning;
 /// objective endpoints, calling each the way its endpoint does so the evidence matches what those
 /// endpoints return.
 /// </summary>
-public sealed class ObjectiveHealthCheckEvidenceComposer(IDispatcher dispatcher, IFeatureFlags featureFlags, IDateTimeProvider dateTimeProvider)
+public sealed class ObjectiveHealthCheckEvidenceComposer(IDispatcher dispatcher, IFeatureFlags featureFlags, ISystemCalendar systemCalendar)
 {
     /// <summary>Activity is read in pages of this size, back to the last check.</summary>
     private const int ActivityPageSize = 50;
@@ -36,7 +36,7 @@ public sealed class ObjectiveHealthCheckEvidenceComposer(IDispatcher dispatcher,
 
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly IFeatureFlags _featureFlags = featureFlags;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     /// <summary>
     /// Gathers the evidence, or returns null when the interval does not exist or the objective is not
@@ -57,15 +57,15 @@ public sealed class ObjectiveHealthCheckEvidenceComposer(IDispatcher dispatcher,
         if (objective is null)
             return null;
 
-        var schedule = Schedule(planningInterval, objective);
+        var today = await _systemCalendar.Today(cancellationToken);
+        var schedule = Schedule(planningInterval, objective, today);
 
         var workItems = await _dispatcher.Send(new GetExternalObjectWorkItemsQuery(objective.Id), cancellationToken);
         if (workItems is not null && workItems.WorkItems.Count > 0)
             workItems.WorkItems = [.. workItems.WorkItems.OrderBy(w => w.StackRank)];
 
-        var today = _dateTimeProvider.Now.ToDateOnly();
         var piEnd = planningInterval.End.ToDateOnly();
-        var metricsEnd = today < piEnd ? today : piEnd;
+        var metricsEnd = today.ToDateOnly() < piEnd ? today.ToDateOnly() : piEnd;
         var metrics = await _dispatcher.Send(
             new GetExternalObjectWorkItemMetricsQuery(objective.Id, planningInterval.Start.ToDateOnly(), metricsEnd), cancellationToken);
 
@@ -97,11 +97,10 @@ public sealed class ObjectiveHealthCheckEvidenceComposer(IDispatcher dispatcher,
         };
     }
 
-    private ObjectiveScheduleEvidenceDto Schedule(PlanningIntervalDetailsDto planningInterval, PlanningIntervalObjectiveDetailsDto objective)
+    private static ObjectiveScheduleEvidenceDto Schedule(PlanningIntervalDetailsDto planningInterval, PlanningIntervalObjectiveDetailsDto objective, LocalDate today)
     {
         var start = objective.StartDate ?? planningInterval.Start;
         var target = objective.TargetDate ?? planningInterval.End;
-        var today = _dateTimeProvider.Today;
 
         return new ObjectiveScheduleEvidenceDto
         {

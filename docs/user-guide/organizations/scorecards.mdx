@@ -53,7 +53,7 @@ The window is chosen when the KPI is added and cannot change once it has measure
 
 ### Rolling averages
 
-A per-period KPI whose values add up per period can be read as the **average of its latest measurements**, 2 to 12 of them. A team's velocity, recorded each sprint, read over its last 7 sprints, is the usual case. The average is what the target, health and trend judge, and the card also shows the latest single value. While a KPI has fewer measurements than the average asks for, it averages what it has and says how many.
+A per-period KPI whose values add up per period can be read as the **average of its latest measurements**, 2 to 12 of them. A team's velocity, recorded each sprint, read over its last 7 sprints, is the usual case. The average is what the target, health and trend judge; the card's headline says it is an average, and the KPI's details also show the latest single value. While a KPI has fewer measurements than the average asks for, it averages what it has and says how many.
 
 The average is worked out when read, never stored, so changing how many it covers reads through the whole history at once.
 
@@ -63,7 +63,7 @@ Each KPI is a card showing:
 
 - **Its headline** — the latest value (or rolling average), its change from baseline, or its progress to target, as the KPI is set to show.
 - **Health** — **Healthy** once the target is met, **At Risk** past the at-risk threshold, **Unhealthy** otherwise. Nothing until the KPI is first measured.
-- **Trend** — whether the latest value moved the right way from the one before it.
+- **Trend** — whether the latest value moved the right way from the one before it. For a KPI read as a rolling average, whether the average moved the right way from the average one measurement earlier.
 - **A line of its recent values**, and the baseline and target.
 
 Open a card for the KPI's full view: its goal, every reading, a chart of its history against the target, at-risk and baseline lines, and every measurement. **Show closed KPIs** lists the KPIs taken off the scorecard.

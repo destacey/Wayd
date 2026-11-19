@@ -15,7 +15,7 @@ import {
 } from '@/src/store/features/common/kpis-api'
 import { toApiError, toFormErrors } from '@/src/utils'
 import { parseCalendarDate, toCalendarDate } from '@/src/utils/calendar-date'
-import { toInstant } from '@/src/utils/instant'
+import { instantTime, toInstant } from '@/src/utils/instant'
 import { DatePicker, Form, Input, InputNumber, Modal } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
 import { useEffect } from 'react'
@@ -64,6 +64,24 @@ const takesAsOf = (measurementWindow: KpiMeasurementWindowDto) =>
   measurementWindow.kind === KpiWindowKind.Cumulative ||
   measurementWindow.kind === KpiWindowKind.Rolling
 
+/** Whether a correction says the value was taken when the measurement already says. */
+const sameTime = (
+  measurement: KpiMeasurementDto,
+  when: Partial<KpiMeasurementRequest>,
+) => {
+  if (when.measuredAt !== undefined)
+    return (
+      !!when.measuredAt &&
+      !!measurement.measuredAt &&
+      instantTime(when.measuredAt) === instantTime(measurement.measuredAt)
+    )
+  if (when.asOf !== undefined) return when.asOf === measurement.periodEnd
+  return (
+    when.periodStart === measurement.periodStart &&
+    when.periodEnd === measurement.periodEnd
+  )
+}
+
 /**
  * Records the raw value of a KPI, or corrects one, saying when it was taken the
  * way the KPI's window takes it: for a period, as of a day, or at a moment.
@@ -104,7 +122,12 @@ const KpiMeasurementForm = ({
           ...when,
           sampleSize: values.sampleSize ?? undefined,
           note: values.note?.trim() || undefined,
-          measuredOn: measurement?.measuredOn,
+          // A correction that moves the value in time lets the server take the
+          // day it was measured from the new time, rather than keep the old one.
+          measuredOn:
+            measurement && sameTime(measurement, when)
+              ? measurement.measuredOn
+              : undefined,
         }
         try {
           if (measurement) {

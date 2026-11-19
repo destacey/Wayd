@@ -60,11 +60,11 @@ export interface KpiHeadline {
  */
 export function kpiHeadline(kpi: KpiSummaryDto): KpiHeadline {
   const { reading } = kpi
+  // A single value is not an average, though the KPI asks for one.
+  const averaged = (reading.averagedCount ?? 0) > 1
+  const of = averaged ? ` (average of last ${reading.averagedCount})` : ''
   const value = {
-    label:
-      reading.averagedCount != null
-        ? `Average of last ${reading.averagedCount}`
-        : 'Latest',
+    label: averaged ? `Average of last ${reading.averagedCount}` : 'Latest',
     text: formatKpiValue(reading.value, kpi.prefix, kpi.suffix),
   }
   if (reading.value == null) return value
@@ -74,14 +74,14 @@ export function kpiHeadline(kpi: KpiSummaryDto): KpiHeadline {
       return reading.changeFromBaselinePercent == null
         ? value
         : {
-            label: 'Change from baseline',
+            label: `Change from baseline${of}`,
             text: formatPercent(reading.changeFromBaselinePercent, true),
           }
     case KpiExpressedAs.ProgressToTarget:
       return reading.progressToTarget == null
         ? value
         : {
-            label: 'Progress to target',
+            label: `Progress to target${of}`,
             text: formatPercent(reading.progressToTarget * 100),
           }
     default:

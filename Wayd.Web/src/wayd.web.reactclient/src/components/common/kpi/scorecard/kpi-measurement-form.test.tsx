@@ -152,6 +152,34 @@ describe('KpiMeasurementForm', () => {
     expect(request.periodStart).toBeUndefined()
     expect(request.periodEnd).toBeUndefined()
     expect(request.measuredAt).toBeUndefined()
+    expect(request.measuredOn).toBe('2026-10-15')
+  })
+
+  it('lets the server work out the day measured when a correction moves the as-of day', async () => {
+    // Arrange
+    const rolling: KpiMeasurementWindowDto = {
+      kind: KpiWindowKind.Rolling,
+      rollingCount: 90,
+      rollingUnit: KpiRollingUnit.Days,
+    }
+    await renderForm(rolling, {
+      ...measurement,
+      periodStart: asCalendarDate('2026-07-17'),
+      periodEnd: asCalendarDate('2026-10-14'),
+      periodRecordKind: undefined,
+      periodRecordId: undefined,
+    })
+    const asOf = screen.getByRole('textbox', { name: /As of/ })
+    await userEvent.clear(asOf)
+    await userEvent.type(asOf, 'Oct 21, 2026{Enter}')
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    // Assert
+    const { request } = mockChange.mock.calls[0][0]
+    expect(request.asOf).toBe('2026-10-21')
+    expect(request.measuredOn).toBeUndefined()
   })
 
   it('corrects a point-in-time KPI by its moment, sending no day or period', async () => {

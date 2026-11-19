@@ -11,6 +11,7 @@ import {
   parseCalendarDate,
 } from '@/src/utils/calendar-date'
 import { instantTime } from '@/src/utils/instant'
+import dayjs from 'dayjs'
 import { FC } from 'react'
 import { formatKpiValue } from './kpi-format'
 
@@ -79,6 +80,8 @@ const KpiHistoryChart: FC<KpiHistoryChartProps> = ({
       ? new Date(instantTime(point.measuredAt))
       : parseCalendarDate(point.periodEnd).toDate()
   const ordered = [...values].sort((a, b) => at(a).getTime() - at(b).getTime())
+  // Point-in-time readings can fall on one day, so their time tells them apart.
+  const timed = ordered.some((p) => p.measuredAt)
 
   const actual: KpiChartPoint[] = ordered.map((p) => ({
     at: at(p),
@@ -156,10 +159,11 @@ const KpiHistoryChart: FC<KpiHistoryChartProps> = ({
     interaction: { tooltip: { crosshairs: true, shared: true } },
     tooltip: {
       title: (datum: KpiChartPoint) =>
-        datum.at.toLocaleDateString(undefined, {
+        datum.at.toLocaleString(undefined, {
           year: 'numeric',
           month: 'short',
           day: 'numeric',
+          ...(timed ? { hour: 'numeric', minute: '2-digit' } : {}),
         }),
       items: [
         {
@@ -175,9 +179,11 @@ const KpiHistoryChart: FC<KpiHistoryChartProps> = ({
     <ChartCard
       title="History"
       tooltip={
-        last
-          ? `Each value is placed at the end of its period. Latest period ends ${formatCalendarDate(last.periodEnd)}.`
-          : undefined
+        !last
+          ? undefined
+          : last.measuredAt
+            ? `Each value is placed at the moment it describes. Latest taken ${dayjs(last.measuredAt).format('MMM D, YYYY h:mm A')}.`
+            : `Each value is placed at the end of its period. Latest period ends ${formatCalendarDate(last.periodEnd)}.`
       }
       loading={isLoading}
       skeletonHeight={CHART_HEIGHT}

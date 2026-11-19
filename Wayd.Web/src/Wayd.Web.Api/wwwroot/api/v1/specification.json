@@ -11818,7 +11818,7 @@
           {
             "name": "timeZone",
             "in": "query",
-            "description": "The IANA zone whose days the window and the daily buckets are, normally the viewer's. Defaults\nto UTC.",
+            "description": "The IANA zone whose days the window and the daily buckets are, normally the viewer's. Defaults\nto the system time zone.",
             "schema": {
               "type": [
                 "null",

@@ -20634,7 +20634,7 @@ export type DeliveryOverviewGetDeliveryOverviewParams = {
   productId?: string;
   /**
    * The IANA zone whose days the window and the daily buckets are, normally the viewer's. Defaults
-   * to UTC.
+   * to the system time zone.
    */
   timeZone?: string;
 };

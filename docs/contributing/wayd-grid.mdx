@@ -321,19 +321,32 @@ compares — an enum's code or a record's id, never a name:
 - **Values the page already holds** (the severity levels its filter bar loaded, say) are passed as
   `meta.filterOptions` directly.
 - **Anything else** loads them with `meta.filterOptionsSource`, from the list's `filter-options` endpoint (see
-  [The values a filter offers](./api.mdx#the-values-a-filter-offers)):
+  [The values a filter offers](./api.mdx#the-values-a-filter-offers)), through an RTK Query endpoint so each
+  search is cached. `filterOptionsLoader` (`store/features/common/filter-options-source.ts`) turns that endpoint
+  into a source's `load`, aborting the request when the panel drops it. The list's API file wraps it in a hook
+  that the grid calls once, as `useIncidentFilterOptions` does:
 
 ```tsx
-meta: {
-  filterType: 'set',
-  filterOptionsSource: {
-    load: ({ search, signal }) =>
-      incidentsGetFilterOptions({ field: 'reportedBy', search }, { signal })
-        .then(({ options, hasMore }) => ({ options: [...options], hasMore })),
-    includeBlank: false,
-  },
+// incidents-api.ts
+export const useIncidentFilterOptions = () => {
+  const dispatch = useAppDispatch()
+  return (field: IncidentFilterField, extra: Omit<FilterOptionsSource, 'load'> = {}) => ({
+    load: filterOptionsLoader(dispatch, incidentsApi.endpoints.getIncidentFilterOptions, (search) => ({
+      field,
+      search,
+    })),
+    ...extra,
+  })
 }
+
+// incidents-grid.tsx
+const sourceFor = useIncidentFilterOptions()
+meta: { filterType: 'set', filterOptionsSource: sourceFor('commander', { includeBlank: true }) }
 ```
+
+The options endpoint provides the list's `LIST` tag, so creating or changing a record drops the cached values.
+A column over a field the server filters but cannot sort (a collection) sets `enableSorting: false` itself;
+`fields` alone turns both on.
 
 The panel calls `load` only when the filter opens and again, debounced, as the user types, aborting the request a
 new search replaces. It works **by inclusion**: nothing is checked until the user picks values, because a column
@@ -343,8 +356,8 @@ value. When the source has more than it returned, the panel says so and asks the
 offers (Blanks) for a field the server compares with blank (`commander=`). A source also works in client mode,
 for a column with too many values to list.
 
-Lists that page but do not yet sort or filter on the server (background jobs, dead letters, incidents, the import
-process list) still use `WaydGridPager` in the toolbar's `rightSlot`, with `useGridPaging` holding the page; the
+Lists that page but do not yet sort or filter on the server (background jobs, dead letters, the import process
+list) still use `WaydGridPager` in the toolbar's `rightSlot`, with `useGridPaging` holding the page; the
 grid's sort, search, filters and export act only on the page it holds there. Each moves to server mode in turn,
 and the pager goes with the last of them.
 

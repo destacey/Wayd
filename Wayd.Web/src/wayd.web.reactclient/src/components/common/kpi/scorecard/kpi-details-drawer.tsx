@@ -32,7 +32,9 @@ import {
   atRiskLabel,
   describeAtRisk,
   describeChange,
+  describeMeasurementTime,
   describeTarget,
+  describeWindow,
   formatKpiValue,
   formatPercent,
   kpiHeadline,
@@ -112,11 +114,11 @@ const KpiDetailsDrawer = ({
     }),
     {
       id: 'period',
-      header: 'Period',
+      header: 'When',
       size: 210,
-      accessorFn: (m) => m.periodEnd,
+      accessorFn: (m) => m.measuredAt ?? m.periodEnd,
       cell: ({ row }) =>
-        `${formatCalendarDate(row.original.periodStart)} – ${formatCalendarDate(row.original.periodEnd)}`,
+        kpi ? describeMeasurementTime(row.original, kpi.window) : '',
     },
     {
       id: 'value',
@@ -221,6 +223,24 @@ const KpiDetailsDrawer = ({
                 {headline!.text}
               </Text>
             </LabeledContent>
+            {kpi.reading.averagedCount != null && (
+              <LabeledContent label="Latest">
+                {formatKpiValue(
+                  kpi.reading.latestValue,
+                  kpi.prefix,
+                  kpi.suffix,
+                )}
+              </LabeledContent>
+            )}
+            <LabeledContent label="Each value covers">
+              {describeWindow(kpi.window)}
+              {kpi.rollingAverageOf != null && (
+                <Text type="secondary">
+                  {' '}
+                  (read as the average of the last {kpi.rollingAverageOf})
+                </Text>
+              )}
+            </LabeledContent>
             <LabeledContent label="Direction">
               {kpi.goal.direction === KpiTargetDirection.Increase
                 ? 'Higher is better'
@@ -266,6 +286,7 @@ const KpiDetailsDrawer = ({
               periodStart: m.periodStart,
               periodEnd: m.periodEnd,
               value: m.value,
+              measuredAt: m.measuredAt,
             }))}
             goal={kpi.goal}
             prefix={kpi.prefix ?? undefined}
@@ -300,6 +321,7 @@ const KpiDetailsDrawer = ({
       {kpi && dialog?.dialog === 'record' && (
         <KpiMeasurementForm
           target={target}
+          measurementWindow={kpi.window}
           prefix={kpi.prefix ?? undefined}
           suffix={kpi.suffix ?? undefined}
           onFormComplete={closeDialog}
@@ -309,6 +331,7 @@ const KpiDetailsDrawer = ({
       {kpi && dialog?.dialog === 'correct' && (
         <KpiMeasurementForm
           target={target}
+          measurementWindow={kpi.window}
           prefix={kpi.prefix ?? undefined}
           suffix={kpi.suffix ?? undefined}
           measurement={dialog.measurement}
@@ -332,9 +355,8 @@ const KpiDetailsDrawer = ({
           onFormComplete={closeDialog}
           onFormCancel={closeDialog}
         >
-          {formatKpiValue(dialog.measurement.value, kpi.prefix, kpi.suffix)} for{' '}
-          {formatCalendarDate(dialog.measurement.periodStart)} –{' '}
-          {formatCalendarDate(dialog.measurement.periodEnd)}
+          {formatKpiValue(dialog.measurement.value, kpi.prefix, kpi.suffix)},{' '}
+          {describeMeasurementTime(dialog.measurement, kpi.window)}
         </KpiConfirmForm>
       )}
       {kpi && dialog?.dialog === 'close' && (

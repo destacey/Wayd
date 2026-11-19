@@ -13,6 +13,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 /// so a scorecard shows healthy, at-risk and unhealthy KPIs side by side. A few KPIs were dropped partway and
 /// arrive closed, their history kept.
 /// </para>
+/// <para>
+/// Each month's value is recorded the way its KPI's window takes it: for the month itself when per period; as of the
+/// month's last day when rolling or cumulative, a cumulative KPI counting from the month after its baseline; and as
+/// two readings, on the 1st and the 15th, when point in time.
+/// </para>
 /// </summary>
 public sealed class KpiGenerator
 {
@@ -27,6 +32,9 @@ public sealed class KpiGenerator
 
     /// <summary>The share of KPIs that were dropped partway and arrive closed.</summary>
     private const double ClosedFraction = 0.12;
+
+    /// <summary>The hour, in UTC, a point-in-time reading is taken: mid-morning in the Americas, afternoon in Europe.</summary>
+    private const int ReadingHourUtc = 15;
 
     private readonly OrgStructure _org;
     private readonly KpiOptions _options;
@@ -138,7 +146,12 @@ public sealed class KpiGenerator
             target.Value,
             d.AtRiskShare is null ? null : "ProgressToTarget",
             d.AtRiskShare,
-            isClosed));
+            isClosed,
+            d.Window,
+            d.Window == Cumulative ? months[BaselineMonths].Start : null,
+            d.Window == Rolling ? d.RollingDays : null,
+            d.Window == Rolling ? "Days" : null,
+            d.RollingAverageOf));
 
         var steps = Math.Max(1, measured - BaselineMonths);
         for (var i = 0; i < measured; i++)
@@ -152,9 +165,39 @@ public sealed class KpiGenerator
                 ? Math.Max(1, (int)Math.Round(typical * _faker.Random.Double(0.7, 1.3)))
                 : null;
 
-            _measurements.Add(new KpiMeasurementModel(handle, months[i].Start, months[i].End, value, sampleSize));
+            Record(handle, d, months[i], i, value, sampleSize, noise);
         }
     }
+
+    /// <summary>Records one month's value the way the KPI's window takes it.</summary>
+    private void Record(string handle, KpiDefinition d, (DateOnly Start, DateOnly End) month, int index, double value, int? sampleSize, double noise)
+    {
+        switch (d.Window)
+        {
+            case Cumulative:
+                // Counted from the month after the baseline: an as-of day before the anchor is refused.
+                if (index >= BaselineMonths)
+                    _measurements.Add(new KpiMeasurementModel(handle, null, null, month.End, null, value, sampleSize));
+                break;
+
+            case Rolling:
+                _measurements.Add(new KpiMeasurementModel(handle, null, null, month.End, null, value, sampleSize));
+                break;
+
+            case PointInTime:
+                var mid = Round(Clamp(value + _faker.Random.Double(-1, 1) * noise, d), d);
+                _measurements.Add(new KpiMeasurementModel(handle, null, null, null, Reading(month.Start), value, sampleSize));
+                _measurements.Add(new KpiMeasurementModel(handle, null, null, null, Reading(month.Start.AddDays(14)), mid, sampleSize));
+                break;
+
+            default:
+                _measurements.Add(new KpiMeasurementModel(handle, month.Start, month.End, null, null, value, sampleSize));
+                break;
+        }
+    }
+
+    private static DateTimeOffset Reading(DateOnly day) =>
+        new(day.ToDateTime(new TimeOnly(ReadingHourUtc, 0)), TimeSpan.Zero);
 
     /// <summary>
     /// The target as the import states it, and the value it resolves to; null when this team's baseline leaves

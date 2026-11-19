@@ -1,0 +1,456 @@
+[
+  {
+    "id": "kpis-record-cumulative-as-of",
+    "skill": "wayd-kpis",
+    "prompt": "Record Falcon's cycle time KPI: it's 8.5 days as of Friday, March 6, 2026.",
+    "replies": ["Yes, record 8.5 days as of March 6."],
+    "traps": ["confirm-destructive", "wrong-tool"],
+    "fixtures": [
+      {
+        "tool": "Teams_GetTeams",
+        "result": [
+          {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": null
+          }
+        ]
+      },
+      {
+        "tool": "Kpis_GetScorecard",
+        "when": { "subjectId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614" },
+        "result": {
+          "subjectType": "organization.team",
+          "subjectId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+          "subjectName": "Falcon",
+          "subjectCode": "FALC",
+          "canManage": true,
+          "kpis": [
+            {
+              "id": "6a1f3c0e-2d7b-4c55-9b1e-0d3a5c7f9e21",
+              "key": 41,
+              "name": "Cycle time",
+              "description": "Median days from start to done since the year's anchor.",
+              "suffix": "days",
+              "source": "Manual",
+              "expressedAs": "Value",
+              "window": { "kind": "Cumulative", "anchorDate": "2026-02-16" },
+              "status": "Active",
+              "order": 0,
+              "goal": {
+                "direction": "Decrease",
+                "baselineValue": 10,
+                "targetKind": "RelativeChange",
+                "targetValue": 10,
+                "resolvedTargetValue": 9
+              },
+              "reading": {
+                "value": 9.2,
+                "changeFromBaseline": -0.8,
+                "changeFromBaselinePercent": -8,
+                "progressToTarget": 0.8,
+                "health": "Unhealthy",
+                "trend": "Improving",
+                "latestValue": 9.2
+              },
+              "recentValues": [
+                { "periodStart": "2026-02-16", "periodEnd": "2026-02-20", "value": 9.6 },
+                { "periodStart": "2026-02-16", "periodEnd": "2026-02-27", "value": 9.2 }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Kpis_GetKpi",
+        "result": {
+          "kpi": {
+            "id": "6a1f3c0e-2d7b-4c55-9b1e-0d3a5c7f9e21",
+            "key": 41,
+            "name": "Cycle time",
+            "suffix": "days",
+            "source": "Manual",
+            "expressedAs": "Value",
+            "window": { "kind": "Cumulative", "anchorDate": "2026-02-16" },
+            "status": "Active",
+            "order": 0,
+            "goal": {
+              "direction": "Decrease",
+              "baselineValue": 10,
+              "targetKind": "RelativeChange",
+              "targetValue": 10,
+              "resolvedTargetValue": 9
+            },
+            "reading": { "value": 9.2, "trend": "Improving", "latestValue": 9.2 },
+            "recentValues": []
+          },
+          "subjectName": "Falcon",
+          "canManage": true,
+          "measurements": [
+            {
+              "id": "0b9d2e4a-1c3f-4e5a-8b7c-6d5e4f3a2b1c",
+              "value": 9.2,
+              "periodStart": "2026-02-16",
+              "periodEnd": "2026-02-27",
+              "measuredOn": "2026-02-27",
+              "source": "Manual"
+            },
+            {
+              "id": "1c0e3f5b-2d4a-4f6b-9c8d-7e6f5a4b3c2d",
+              "value": 9.6,
+              "periodStart": "2026-02-16",
+              "periodEnd": "2026-02-20",
+              "measuredOn": "2026-02-20",
+              "source": "Manual"
+            }
+          ]
+        }
+      },
+      { "tool": "Kpis_RecordMeasurement", "result": "5e7c9a1b-3d2f-4b6e-8a0c-1f2e3d4c5b6a" }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "Kpis_RecordMeasurement",
+        "with": {
+          "subjectType": "organization.team",
+          "subjectId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+          "kpiId": "6a1f3c0e-2d7b-4c55-9b1e-0d3a5c7f9e21",
+          "value": 8.5,
+          "asOf": "2026-03-06"
+        },
+        "because": "wayd-kpis 'Measurement windows': a Cumulative KPI is recorded with asOf; Wayd works the period out from the anchor."
+      },
+      {
+        "type": "everyCall",
+        "tool": "Kpis_RecordMeasurement",
+        "with": {
+          "periodStart": { "$absent": true },
+          "periodEnd": { "$absent": true },
+          "measuredAt": { "$absent": true }
+        },
+        "because": "Giving a period, even 2026-02-16 to 2026-03-06, is refused for a cumulative KPI."
+      },
+      {
+        "type": "confirmedBefore",
+        "tool": "Kpis_RecordMeasurement",
+        "because": "wayd-kpis 'Before any change': recording a measurement changes the scorecard."
+      }
+    ],
+    "expected": "The agent resolves Falcon's UUID, reads the scorecard, sees Cycle time is Cumulative from 2026-02-16, confirms 8.5 days as of 2026-03-06 with the user, then calls Kpis_RecordMeasurement with asOf 2026-03-06 and no period or moment. It reports the value as cycle time since February 16."
+  },
+  {
+    "id": "kpis-record-point-in-time",
+    "skill": "wayd-kpis",
+    "prompt": "Falcon has 42 open bugs right now — it's 3:00 pm Chicago time on March 6, 2026. Log it against their open bugs KPI. We already logged one this morning.",
+    "replies": ["Yes, log 42 open bugs at 3:00 pm."],
+    "traps": ["confirm-destructive", "wrong-tool"],
+    "fixtures": [
+      {
+        "tool": "Teams_GetTeams",
+        "result": [
+          {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": null
+          }
+        ]
+      },
+      {
+        "tool": "Kpis_GetScorecard",
+        "when": { "subjectId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614" },
+        "result": {
+          "subjectType": "organization.team",
+          "subjectId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+          "subjectName": "Falcon",
+          "subjectCode": "FALC",
+          "canManage": true,
+          "kpis": [
+            {
+              "id": "9c4e2a7d-5b1f-4d3e-a6c8-2f1e0d9c8b7a",
+              "key": 44,
+              "name": "Open bugs",
+              "suffix": "bugs",
+              "source": "Manual",
+              "expressedAs": "Value",
+              "window": { "kind": "PointInTime" },
+              "status": "Active",
+              "order": 0,
+              "goal": {
+                "direction": "Decrease",
+                "baselineValue": 60,
+                "targetKind": "Absolute",
+                "targetValue": 30,
+                "resolvedTargetValue": 30
+              },
+              "reading": {
+                "value": 45,
+                "health": "Unhealthy",
+                "trend": "Improving",
+                "latestValue": 45
+              },
+              "recentValues": [
+                {
+                  "periodStart": "2026-03-06",
+                  "periodEnd": "2026-03-06",
+                  "value": 45,
+                  "measuredAt": "2026-03-06T15:00:00Z"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Kpis_GetKpi",
+        "result": {
+          "kpi": {
+            "id": "9c4e2a7d-5b1f-4d3e-a6c8-2f1e0d9c8b7a",
+            "key": 44,
+            "name": "Open bugs",
+            "source": "Manual",
+            "expressedAs": "Value",
+            "window": { "kind": "PointInTime" },
+            "status": "Active",
+            "order": 0,
+            "goal": {
+              "direction": "Decrease",
+              "baselineValue": 60,
+              "targetKind": "Absolute",
+              "targetValue": 30,
+              "resolvedTargetValue": 30
+            },
+            "reading": { "value": 45, "trend": "Improving", "latestValue": 45 },
+            "recentValues": []
+          },
+          "subjectName": "Falcon",
+          "canManage": true,
+          "measurements": [
+            {
+              "id": "2d1f4a6c-3e5b-4a7c-8d9e-0f1a2b3c4d5e",
+              "value": 45,
+              "periodStart": "2026-03-06",
+              "periodEnd": "2026-03-06",
+              "measuredAt": "2026-03-06T15:00:00Z",
+              "measuredOn": "2026-03-06",
+              "source": "Manual"
+            }
+          ]
+        }
+      },
+      { "tool": "Kpis_RecordMeasurement", "result": "6f8d0b2c-4e3a-4c7f-9b1d-2a3b4c5d6e7f" }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "Kpis_RecordMeasurement",
+        "with": {
+          "kpiId": "9c4e2a7d-5b1f-4d3e-a6c8-2f1e0d9c8b7a",
+          "value": 42,
+          "measuredAt": { "$regex": "^2026-03-06T21:00(:00(\\.0+)?)?Z$" }
+        },
+        "because": "wayd-kpis: a PointInTime KPI takes measuredAt as a UTC instant; 3:00 pm in Chicago on March 6, 2026 is 21:00Z."
+      },
+      {
+        "type": "everyCall",
+        "tool": "Kpis_RecordMeasurement",
+        "with": { "asOf": { "$absent": true }, "periodStart": { "$absent": true } },
+        "because": "A point-in-time KPI is recorded by moment, not by day or period; a second reading the same day is allowed."
+      },
+      { "type": "confirmedBefore", "tool": "Kpis_RecordMeasurement" }
+    ],
+    "expected": "The agent reads Falcon's scorecard, sees Open bugs is a PointInTime KPI with this morning's 45 at 15:00Z, and confirms logging 42 at 3:00 pm Chicago time. It calls Kpis_RecordMeasurement with measuredAt 2026-03-06T21:00:00Z and no asOf or period, knowing a second reading on one day is fine."
+  },
+  {
+    "id": "kpis-rename-keeps-every-field",
+    "skill": "wayd-kpis",
+    "prompt": "Rename Falcon's 'Velocity' KPI to 'Sprint velocity'. Don't change anything else.",
+    "replies": ["Yes, rename it to Sprint velocity."],
+    "traps": ["whole-record-overwrite", "confirm-destructive"],
+    "fixtures": [
+      {
+        "tool": "Teams_GetTeams",
+        "result": [
+          {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": null
+          }
+        ]
+      },
+      {
+        "tool": "Kpis_GetScorecard",
+        "when": { "subjectId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614" },
+        "result": {
+          "subjectType": "organization.team",
+          "subjectId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+          "subjectName": "Falcon",
+          "subjectCode": "FALC",
+          "canManage": true,
+          "kpis": [
+            {
+              "id": "3b5d7f9a-1c2e-4a6b-8d0f-4e5a6b7c8d9e",
+              "key": 47,
+              "name": "Velocity",
+              "description": "Story points completed per sprint.",
+              "category": {
+                "id": "7e8f9a0b-1c2d-4e3f-a4b5-c6d7e8f9a0b1",
+                "name": "Flow",
+                "order": 0
+              },
+              "suffix": "pts",
+              "source": "Manual",
+              "expressedAs": "Value",
+              "window": { "kind": "PerPeriod" },
+              "rollingAverageOf": 7,
+              "status": "Active",
+              "order": 0,
+              "goal": {
+                "direction": "Increase",
+                "baselineValue": 30,
+                "targetKind": "Absolute",
+                "targetValue": 36,
+                "atRiskKind": "Absolute",
+                "atRiskValue": 33,
+                "resolvedTargetValue": 36,
+                "resolvedAtRiskValue": 33
+              },
+              "reading": {
+                "value": 34,
+                "health": "AtRisk",
+                "trend": "Improving",
+                "latestValue": 38,
+                "averagedCount": 7
+              },
+              "recentValues": []
+            }
+          ]
+        }
+      },
+      { "tool": "Kpis_UpdateKpi", "result": null }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "Kpis_UpdateKpi",
+        "with": {
+          "kpiId": "3b5d7f9a-1c2e-4a6b-8d0f-4e5a6b7c8d9e",
+          "name": "Sprint velocity",
+          "description": "Story points completed per sprint.",
+          "categoryId": "7e8f9a0b-1c2d-4e3f-a4b5-c6d7e8f9a0b1",
+          "suffix": "pts",
+          "rollingAverageOf": 7,
+          "baseline": { "value": 30 },
+          "target": {
+            "direction": "Increase",
+            "value": 36,
+            "atRiskKind": "Absolute",
+            "atRiskValue": 33
+          }
+        },
+        "because": "wayd-kpis: Kpis_UpdateKpi replaces everything entered, so the description, category, suffix, rolling average, baseline and target must be sent back unchanged."
+      },
+      { "type": "confirmedBefore", "tool": "Kpis_UpdateKpi" }
+    ],
+    "expected": "The agent reads the scorecard, finds Velocity, confirms the rename, and calls Kpis_UpdateKpi with the name Sprint velocity and every other entered field as it was — description, category, suffix, rollingAverageOf 7, baseline 30 and the Increase target of 36 with its at-risk value of 33 — leaving window out."
+  },
+  {
+    "id": "kpis-window-change-refused",
+    "skill": "wayd-kpis",
+    "prompt": "Falcon's 'Throughput' KPI should really be a rolling 90 days instead of per sprint. Can you switch it?",
+    "traps": ["unsupported"],
+    "fixtures": [
+      {
+        "tool": "Teams_GetTeams",
+        "result": [
+          {
+            "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+            "key": 12,
+            "name": "Falcon",
+            "code": "FALC",
+            "type": "Team",
+            "isActive": true,
+            "teamOfTeams": null
+          }
+        ]
+      },
+      {
+        "tool": "Kpis_GetScorecard",
+        "when": { "subjectId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614" },
+        "result": {
+          "subjectType": "organization.team",
+          "subjectId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+          "subjectName": "Falcon",
+          "subjectCode": "FALC",
+          "canManage": true,
+          "kpis": [
+            {
+              "id": "4c6e8a0b-2d3f-4b7c-9e1a-5f6a7b8c9d0e",
+              "key": 48,
+              "name": "Throughput",
+              "suffix": "items",
+              "source": "Manual",
+              "expressedAs": "Value",
+              "window": { "kind": "PerPeriod" },
+              "status": "Active",
+              "order": 1,
+              "goal": {
+                "direction": "Increase",
+                "baselineValue": 12,
+                "targetKind": "Absolute",
+                "targetValue": 15,
+                "resolvedTargetValue": 15
+              },
+              "reading": {
+                "value": 14,
+                "health": "Unhealthy",
+                "trend": "Improving",
+                "latestValue": 14
+              },
+              "recentValues": [
+                { "periodStart": "2026-02-09", "periodEnd": "2026-02-20", "value": 13 },
+                { "periodStart": "2026-02-23", "periodEnd": "2026-03-06", "value": 14 }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Kpis_UpdateKpi",
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+          "title": "Bad Request",
+          "status": 400,
+          "detail": "A KPI's measurement window cannot change once it has measurements, since they were recorded under the old one. Close it and add a new KPI instead."
+        },
+        "error": true
+      }
+    ],
+    "expect": [
+      {
+        "type": "notCalled",
+        "tool": "Kpis_UpdateKpi",
+        "with": { "window": { "$present": true } },
+        "because": "wayd-kpis: a window change on a KPI with measurements is refused; the scorecard shows Throughput already has values."
+      },
+      {
+        "type": "says",
+        "pattern": "close|new KPI|add (a )?new|cannot change|can'?t (be )?change|locked",
+        "because": "The agent explains the window is fixed once measured and offers to close it and add a new rolling KPI."
+      }
+    ],
+    "expected": "The agent reads the scorecard, sees Throughput already has measurements, and tells the user its window cannot change once measured. It offers to close Throughput and add a new KPI with a rolling 90-day window, without calling Kpis_UpdateKpi with a window."
+  }
+]

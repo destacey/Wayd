@@ -20,7 +20,7 @@ public sealed record KpiMeasurementAddedEvent : DomainEvent<KpiMeasurementAddedE
         KpiMeasurementValues measurement,
         EventActor actor,
         Instant timestamp)
-        : base(actor, "1.0")
+        : base(actor, "1.1")
     {
         Id = id;
         Key = key;

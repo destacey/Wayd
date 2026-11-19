@@ -29,6 +29,60 @@ public sealed class KpiReadingTests
         reading.Trend.Should().Be(KpiTrend.Improving);
     }
 
+    [Fact]
+    public void OfValues_ShouldReadTheLatestAlone_WithoutARollingAverage()
+    {
+        // Act
+        var reading = KpiReading.OfValues(RaiseTenToTwenty, [15, 12, 30], null);
+
+        // Assert
+        reading.Value.Should().Be(15);
+        reading.LatestValue.Should().Be(15);
+        reading.AveragedCount.Should().BeNull();
+        reading.Trend.Should().Be(KpiTrend.Improving);
+    }
+
+    [Fact]
+    public void OfValues_ShouldHoldTheRollingAverageToTheGoal_AndTrendItAgainstTheAverageOneEarlier()
+    {
+        // Arrange — newest first: the average of the latest three is 16, of the three before it 14
+        double[] newestFirst = [18, 16, 14, 12, 10];
+
+        // Act
+        var reading = KpiReading.OfValues(RaiseTenToTwenty, newestFirst, 3);
+
+        // Assert
+        reading.Value.Should().BeApproximately(16, 1e-9);
+        reading.LatestValue.Should().Be(18);
+        reading.AveragedCount.Should().Be(3);
+        reading.Health.Should().Be(KpiHealth.AtRisk);
+        reading.ProgressToTarget.Should().BeApproximately(0.6, 1e-9);
+        reading.Trend.Should().Be(KpiTrend.Improving);
+    }
+
+    [Fact]
+    public void OfValues_ShouldAverageWhatThereIs_WhileThereAreFewerValuesThanTheAverageAsksFor()
+    {
+        // Act
+        var reading = KpiReading.OfValues(RaiseTenToTwenty, [18, 14], 7);
+
+        // Assert
+        reading.Value.Should().BeApproximately(16, 1e-9);
+        reading.AveragedCount.Should().Be(2);
+    }
+
+    [Fact]
+    public void OfValues_ShouldReadNothing_WithNoValues()
+    {
+        // Act
+        var reading = KpiReading.OfValues(RaiseTenToTwenty, [], 7);
+
+        // Assert
+        reading.Value.Should().BeNull();
+        reading.AveragedCount.Should().BeNull();
+        reading.Trend.Should().Be(KpiTrend.NoData);
+    }
+
     [Theory]
     [InlineData(20d, KpiHealth.Healthy)]
     [InlineData(17d, KpiHealth.AtRisk)]

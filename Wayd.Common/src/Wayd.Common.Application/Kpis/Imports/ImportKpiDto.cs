@@ -25,6 +25,8 @@ namespace Wayd.Common.Application.Kpis.Imports;
 /// <param name="AtRisk">The optional at-risk threshold.</param>
 /// <param name="IsClosed">Whether it arrives closed, as history only.</param>
 /// <param name="Measurements">Its history, in any order.</param>
+/// <param name="Window">How its measurements are windowed; per period when null, as every payload queued before windows existed means.</param>
+/// <param name="RollingAverageOf">How many of the latest measurements its reading averages, or null for the latest alone.</param>
 public sealed record ImportKpiDto(
     string SubjectType,
     Guid SubjectId,
@@ -39,22 +41,47 @@ public sealed record ImportKpiDto(
     KpiTarget Target,
     KpiAtRiskThreshold? AtRisk,
     bool IsClosed,
-    IReadOnlyList<ImportKpiMeasurementDto> Measurements);
+    IReadOnlyList<ImportKpiMeasurementDto> Measurements,
+    KpiMeasurementWindow? Window = null,
+    int? RollingAverageOf = null);
 
-/// <summary>One measurement of an imported KPI.</summary>
+/// <summary>
+/// One measurement of an imported KPI, saying when it was taken the one way its KPI's window takes: a period, an
+/// as-of day or a moment.
+/// </summary>
 /// <param name="Value">The raw measured value.</param>
-/// <param name="PeriodStart">The first day it describes.</param>
-/// <param name="PeriodEnd">The last day it describes.</param>
-/// <param name="MeasuredOn">The day it was taken; the period's last day when not given.</param>
+/// <param name="PeriodStart">The first day it describes, for a per-period KPI.</param>
+/// <param name="PeriodEnd">The last day it describes, for a per-period KPI.</param>
+/// <param name="MeasuredOn">The day it was taken; when not given, the last day it covers.</param>
 /// <param name="SampleSize">How many items it was computed over, when known.</param>
 /// <param name="Note">Context for it.</param>
+/// <param name="AsOf">The last day it covers, for a cumulative or rolling KPI.</param>
+/// <param name="MeasuredAt">The moment it describes, for a point-in-time KPI.</param>
 public sealed record ImportKpiMeasurementDto(
     double Value,
-    LocalDate PeriodStart,
-    LocalDate PeriodEnd,
+    LocalDate? PeriodStart,
+    LocalDate? PeriodEnd,
     LocalDate? MeasuredOn,
     int? SampleSize,
-    string? Note);
+    string? Note,
+    LocalDate? AsOf = null,
+    Instant? MeasuredAt = null)
+{
+    /// <summary>When it was taken, as the KPI's window will judge it.</summary>
+    public KpiMeasurementTime Time() => new(
+        PeriodStart is { } start && PeriodEnd is { } end && end >= start ? new KpiPeriod(start, end) : null,
+        AsOf,
+        MeasuredAt);
+
+    /// <summary>The last day it covers, for ordering and messages: the period's end, the as-of day, or the moment's day.</summary>
+    public LocalDate? LastDay(DateTimeZone zone) => PeriodEnd ?? AsOf ?? MeasuredAt?.InZone(zone).Date;
+
+    /// <summary>When it was taken, as a person reading an error would name it.</summary>
+    public string Describe() =>
+        MeasuredAt is { } at ? FormattableString.Invariant($"at {at}")
+        : AsOf is { } asOf ? FormattableString.Invariant($"as of {asOf:yyyy-MM-dd}")
+        : FormattableString.Invariant($"{PeriodStart:yyyy-MM-dd} to {PeriodEnd:yyyy-MM-dd}");
+}
 
 /// <summary>The shape a KPI row must have before it reaches the run. The domain checks the goal itself.</summary>
 public sealed class ImportKpiDtoValidator : AbstractValidator<ImportKpiDto>
@@ -70,9 +97,15 @@ public sealed class ImportKpiDtoValidator : AbstractValidator<ImportKpiDto>
         RuleFor(k => k.Baseline).NotNull();
         RuleFor(k => k.Target).NotNull();
         RuleFor(k => k.Measurements).NotNull();
+        RuleFor(k => k.RollingAverageOf).InclusiveBetween(Kpi.MinRollingAverageOf, Kpi.MaxRollingAverageOf).When(k => k.RollingAverageOf is not null);
         RuleForEach(k => k.Measurements).ChildRules(m =>
         {
-            m.RuleFor(x => x.PeriodEnd).GreaterThanOrEqualTo(x => x.PeriodStart).WithMessage(KpiErrors.PeriodEndsBeforeStart);
+            m.RuleFor(x => x.PeriodEnd).GreaterThanOrEqualTo(x => x.PeriodStart).WithMessage(KpiErrors.PeriodEndsBeforeStart)
+                .When(x => x.PeriodStart is not null && x.PeriodEnd is not null);
+            m.RuleFor(x => x)
+                .Must(x => (x.PeriodStart is not null && x.PeriodEnd is not null ? 1 : 0) + (x.AsOf is not null ? 1 : 0) + (x.MeasuredAt is not null ? 1 : 0) == 1)
+                .WithName("Measurement")
+                .WithMessage("A measurement needs exactly one of a period, an as-of date or a moment.");
             m.RuleFor(x => x.SampleSize).GreaterThanOrEqualTo(0).When(x => x.SampleSize is not null);
             m.RuleFor(x => x.Note).MaximumLength(KpiMeasurement.NoteMaxLength);
         });

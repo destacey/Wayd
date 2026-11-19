@@ -35,11 +35,12 @@ public sealed class RecordKpiMeasurementCommandHandler(KpiCommandScope scope) : 
         if (kpi.IsFailure)
             return Result.Failure<Guid>(kpi.Error);
 
-        var input = command.Measurement.ToInput(_scope.EmployeeId);
+        var zone = await _scope.SystemZone(cancellationToken);
+        var input = command.Measurement.ToInput(_scope.EmployeeId, zone);
         if (input.IsFailure)
             return Result.Failure<Guid>(input.Error);
 
-        var added = kpi.Value.AddMeasurement(input.Value, _scope.Actor, _scope.Now);
+        var added = kpi.Value.AddMeasurement(input.Value, zone, _scope.Actor, _scope.Now);
         if (added.IsFailure)
             return Result.Failure<Guid>(added.Error);
 
@@ -53,7 +54,12 @@ public sealed class KpiMeasurementValuesInputValidator : CustomValidator<KpiMeas
 {
     public KpiMeasurementValuesInputValidator()
     {
-        RuleFor(m => m.PeriodEnd).GreaterThanOrEqualTo(m => m.PeriodStart).WithMessage(KpiErrors.PeriodEndsBeforeStart);
+        RuleFor(m => m.PeriodEnd).GreaterThanOrEqualTo(m => m.PeriodStart).WithMessage(KpiErrors.PeriodEndsBeforeStart)
+            .When(m => m.PeriodStart is not null && m.PeriodEnd is not null);
+        RuleFor(m => m)
+            .Must(m => (m.PeriodStart is not null || m.PeriodEnd is not null ? 1 : 0) + (m.AsOf is not null ? 1 : 0) + (m.MeasuredAt is not null ? 1 : 0) == 1)
+            .WithName("Measurement")
+            .WithMessage("Give exactly one of a period, an as-of date or a moment, as the KPI's measurement window takes it.");
         RuleFor(m => m.PeriodRecordKind).IsInEnum().When(m => m.PeriodRecordKind is not null);
         RuleFor(m => m.SampleSize).GreaterThanOrEqualTo(0).When(m => m.SampleSize is not null);
         RuleFor(m => m.Note).MaximumLength(KpiMeasurement.NoteMaxLength);

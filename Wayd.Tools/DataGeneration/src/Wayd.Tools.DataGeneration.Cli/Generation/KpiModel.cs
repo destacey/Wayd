@@ -30,12 +30,26 @@ public sealed record KpiModel(
     double TargetValue,
     string? AtRiskKind,
     double? AtRiskValue,
-    bool IsClosed);
+    bool IsClosed,
+    string WindowKind,
+    DateOnly? WindowAnchorDate,
+    int? WindowRollingCount,
+    string? WindowRollingUnit,
+    int? RollingAverageOf);
 
-/// <summary>One month's value of a KPI, named by its KPI's handle.</summary>
+/// <summary>
+/// One value of a KPI, named by its KPI's handle, saying when it was taken the one way its KPI's window takes: a
+/// period, an as-of day, or a moment.
+/// </summary>
 public sealed record KpiMeasurementModel(
     string KpiHandle,
-    DateOnly PeriodStart,
-    DateOnly PeriodEnd,
+    DateOnly? PeriodStart,
+    DateOnly? PeriodEnd,
+    DateOnly? AsOf,
+    DateTimeOffset? MeasuredAt,
     double Value,
-    int? SampleSize);
+    int? SampleSize)
+{
+    /// <summary>The last day the value covers, whichever way it was taken.</summary>
+    public DateOnly LastDay => PeriodEnd ?? AsOf ?? DateOnly.FromDateTime(MeasuredAt!.Value.UtcDateTime);
+}

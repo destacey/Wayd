@@ -65,6 +65,51 @@ public static class KpiErrors
     /// <summary>A covered record given only by kind or only by id.</summary>
     public const string PeriodRecordIncomplete = "A period that covers a sprint, planning interval or release needs both the kind and the id.";
 
+    /// <summary>A cumulative window with no anchor date.</summary>
+    public const string CumulativeAnchorRequired = "A cumulative KPI needs the anchor date its measurements count from.";
+
+    /// <summary>An anchor date on a window that is not cumulative.</summary>
+    public const string AnchorOnlyForCumulative = "Only a cumulative KPI has an anchor date.";
+
+    /// <summary>A rolling window without both its count and its unit.</summary>
+    public const string RollingLengthRequired = "A rolling KPI needs how many units its window covers and what the units are.";
+
+    /// <summary>A rolling window of no units, or of more days than any KPI needs.</summary>
+    public static readonly string RollingCountOutOfRange = $"A rolling window must cover at least one unit and at most {KpiMeasurementWindow.MaxRollingDays} days.";
+
+    /// <summary>A rolling length on a window that is not rolling.</summary>
+    public const string RollingLengthOnlyForRolling = "Only a rolling KPI has a rolling window length.";
+
+    /// <summary>Changing the window of a KPI that already has measurements.</summary>
+    public const string WindowLockedByMeasurements = "A KPI's measurement window cannot change once it has measurements, since they were recorded under the old one. Close it and add a new KPI instead.";
+
+    /// <summary>A per-period KPI's measurement given without a period.</summary>
+    public const string PeriodRequired = "This KPI is measured per period: give the period's first and last day, and not an as-of date or a moment.";
+
+    /// <summary>A cumulative or rolling KPI's measurement given without an as-of date.</summary>
+    public const string AsOfDateRequired = "This KPI's period is worked out from the day a value is taken: give an as-of date, and not a period or a moment.";
+
+    /// <summary>A point-in-time KPI's measurement given without its moment.</summary>
+    public const string MomentRequired = "This KPI is measured at a point in time: give the moment the value describes, and not a period or an as-of date.";
+
+    /// <summary>A cumulative KPI's measurement taken before its anchor date.</summary>
+    public const string AsOfBeforeAnchor = "A cumulative KPI's measurement cannot be taken before its anchor date.";
+
+    /// <summary>A second cumulative or rolling measurement as of the same day.</summary>
+    public const string AsOfTaken = "This KPI already has a measurement as of that day.";
+
+    /// <summary>A second point-in-time measurement at the same moment.</summary>
+    public const string MomentTaken = "This KPI already has a measurement at that moment.";
+
+    /// <summary>A covered record named on a KPI whose window does not take one.</summary>
+    public const string PeriodRecordOnlyPerPeriod = "Only a per-period KPI's measurement can name the sprint, planning interval or release it covers.";
+
+    /// <summary>A rolling average outside the allowed count.</summary>
+    public static readonly string RollingAverageOutOfRange = $"A rolling average must be over {Kpi.MinRollingAverageOf} to {Kpi.MaxRollingAverageOf} measurements.";
+
+    /// <summary>A rolling average on a KPI that is not measured per period.</summary>
+    public const string RollingAverageOnlyPerPeriod = "Only a per-period KPI can be read as a rolling average: other windows already cover a span of their own.";
+
     /// <summary>A reorder whose list is not exactly the subject's KPIs.</summary>
     public const string ReorderMismatch = "The new order must list every KPI on the subject exactly once.";
 }

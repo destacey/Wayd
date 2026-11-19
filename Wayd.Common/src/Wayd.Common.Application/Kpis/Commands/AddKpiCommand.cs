@@ -15,6 +15,8 @@ namespace Wayd.Common.Application.Kpis.Commands;
 /// <param name="ExpressedAs">Which reading the scorecard shows.</param>
 /// <param name="Baseline">Where the KPI started.</param>
 /// <param name="Target">What it aims for.</param>
+/// <param name="Window">How its measurements are windowed; per period when not given.</param>
+/// <param name="RollingAverageOf">How many of the latest measurements the reading averages, or null for the latest alone.</param>
 public sealed record AddKpiCommand(
     string SubjectType,
     Guid SubjectId,
@@ -25,7 +27,9 @@ public sealed record AddKpiCommand(
     string? Suffix,
     KpiExpressedAs ExpressedAs,
     KpiBaselineInput Baseline,
-    KpiTargetInput Target)
+    KpiTargetInput Target,
+    KpiWindowInput? Window = null,
+    int? RollingAverageOf = null)
     : ICommand<ObjectIdAndKey>, IRequireLinkedEmployee;
 
 /// <summary>Rejects malformed input before the record is resolved.</summary>
@@ -44,6 +48,8 @@ public sealed class AddKpiCommandValidator : CustomValidator<AddKpiCommand>
         RuleFor(c => c.Target).NotNull();
         RuleFor(c => c.Target.Direction).IsInEnum().When(c => c.Target is not null);
         RuleFor(c => c.Target.TargetKind).IsInEnum().When(c => c.Target is not null);
+        RuleFor(c => c.Window!.Kind).IsInEnum().When(c => c.Window is not null);
+        RuleFor(c => c.RollingAverageOf).InclusiveBetween(Kpi.MinRollingAverageOf, Kpi.MaxRollingAverageOf).When(c => c.RollingAverageOf is not null);
     }
 }
 
@@ -72,7 +78,8 @@ public sealed class AddKpiCommandHandler(KpiCommandScope scope) : ICommandHandle
 
         var goal = new KpiGoal(command.Target.Direction, baseline.Value, command.Target.ToTarget(), atRisk.Value);
         var definition = new KpiDefinition(
-            command.Name, command.Description, command.CategoryId, command.Prefix, command.Suffix, command.ExpressedAs, goal);
+            command.Name, command.Description, command.CategoryId, command.Prefix, command.Suffix, command.ExpressedAs, goal,
+            command.Window?.ToWindow(), command.RollingAverageOf);
 
         var subjectType = subject.Value.SubjectType;
         var orders = await _scope.DbContext.Kpis

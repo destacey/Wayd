@@ -1288,6 +1288,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("nvarchar(16)");
 
+                    b.Property<int?>("RollingAverageOf")
+                        .HasColumnType("int");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -1360,6 +1363,25 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnType("float")
                         .HasColumnName("TargetValue");
 
+                    b.Property<DateTime?>("_windowAnchorDate")
+                        .HasColumnType("date")
+                        .HasColumnName("WindowAnchorDate");
+
+                    b.Property<string>("_windowKind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar")
+                        .HasColumnName("WindowKind");
+
+                    b.Property<int?>("_windowRollingCount")
+                        .HasColumnType("int")
+                        .HasColumnName("WindowRollingCount");
+
+                    b.Property<string>("_windowRollingUnit")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar")
+                        .HasColumnName("WindowRollingUnit");
+
                     b.HasKey("Id");
 
                     b.HasAlternateKey("Key");
@@ -1421,6 +1443,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("KpiId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("MeasuredAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<Guid?>("MeasuredById")
                         .HasColumnType("uniqueidentifier");
 
@@ -1473,13 +1498,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasIndex("MeasuredById");
 
-                    b.HasIndex("KpiId", "PeriodEnd")
-                        .IsDescending(false, true);
+                    b.HasIndex("KpiId", "PeriodEnd", "MeasuredAt")
+                        .IsUnique()
+                        .IsDescending(false, true, true);
 
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("KpiId", "PeriodEnd"), new[] { "Value" });
-
-                    b.HasIndex("KpiId", "PeriodStart")
-                        .IsUnique();
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("KpiId", "PeriodEnd", "MeasuredAt"), new[] { "Value" });
 
                     b.ToTable("Measurements", "Kpis");
                 });
@@ -11664,7 +11687,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("Wayd.ProductManagement.Domain.Models.IncidentSeverityLevel", null)
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.IncidentSeverityLevel", "SeverityLevel")
                         .WithMany()
                         .HasForeignKey("SeverityLevelId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -11707,6 +11730,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.Navigation("ReportedBy");
 
+                    b.Navigation("SeverityLevel");
+
                     b.Navigation("SubmittedBy");
 
                     b.Navigation("TeamsChat");
@@ -11748,11 +11773,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentSeverityLevel", b =>
                 {
-                    b.HasOne("Wayd.ProductManagement.Domain.Models.IncidentSeveritySet", null)
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.IncidentSeveritySet", "Set")
                         .WithMany("Levels")
                         .HasForeignKey("SetId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Set");
                 });
 
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentTimelineLinkEntry", b =>

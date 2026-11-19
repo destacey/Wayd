@@ -131,6 +131,21 @@ public sealed class UpdateKpiCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldClearTheRollingAverageButKeepTheWindow_WhenBothAreLeftOut()
+    {
+        // Arrange
+        var kpi = _harness.AddKpi(rollingAverageOf: 7);
+
+        // Act
+        var result = await CreateHandler().Handle(Command(kpi.Id, name: "Renamed"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        kpi.RollingAverageOf.Should().BeNull("the update replaces every entered field, as it does the description");
+        kpi.Window.Should().Be(KpiMeasurementWindow.PerPeriod);
+    }
+
+    [Fact]
     public async Task Handle_ShouldSaveNothing_WhenTheGoalFails_EvenThoughTheDetailsHold()
     {
         // Arrange

@@ -375,8 +375,9 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
     public Result<KpiMeasurement> AddMeasurement(KpiMeasurementInput input, DateTimeZone zone, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(input, nameof(input));
+        input = input.AtStoredPrecision();
 
-        var period = CheckMeasurement(input, zone, exceptId: null);
+        var period = CheckMeasurement(input, zone, existing: null);
         if (period.IsFailure)
             return Result.Failure<KpiMeasurement>(period.Error);
 
@@ -391,15 +392,20 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Changes a measurement, failing as <see cref="AddMeasurement"/> does. Raises nothing when nothing changed.
     /// </summary>
+    /// <remarks>
+    /// A point-in-time measurement whose moment is unchanged keeps the day it was stored with, so correcting its value
+    /// or note after the system time zone changed does not move it to another day.
+    /// </remarks>
     public Result ChangeMeasurement(Guid measurementId, KpiMeasurementInput input, DateTimeZone zone, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(input, nameof(input));
+        input = input.AtStoredPrecision();
 
         var measurement = _measurements.FirstOrDefault(m => m.Id == measurementId);
         if (measurement is null)
             return Result.Failure(KpiErrors.MeasurementNotFound);
 
-        var period = CheckMeasurement(input, zone, exceptId: measurementId);
+        var period = CheckMeasurement(input, zone, existing: measurement);
         if (period.IsFailure)
             return Result.Failure(period.Error);
 
@@ -438,7 +444,10 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
         _measurements.OrderByDescending(m => m.PeriodEnd).ThenByDescending(m => m.MeasuredAt).FirstOrDefault();
 
     /// <summary>The period the input covers under the KPI's window, or why it cannot be recorded.</summary>
-    private Result<KpiPeriod> CheckMeasurement(KpiMeasurementInput input, DateTimeZone zone, Guid? exceptId)
+    /// <param name="input">The value and when it was taken.</param>
+    /// <param name="zone">The system time zone, which a new moment's calendar day is read in.</param>
+    /// <param name="existing">The measurement being changed, or null when recording a new one.</param>
+    private Result<KpiPeriod> CheckMeasurement(KpiMeasurementInput input, DateTimeZone zone, KpiMeasurement? existing)
     {
         if (Status == KpiStatus.Closed)
             return Result.Failure<KpiPeriod>(KpiErrors.KpiClosed);
@@ -455,7 +464,10 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
         if (period.IsFailure)
             return period;
 
-        var others = _measurements.Where(m => m.Id != exceptId);
+        if (window.Kind == KpiWindowKind.PointInTime && existing is not null && existing.MeasuredAt == input.Time.At)
+            period = existing.Period;
+
+        var others = _measurements.Where(m => m.Id != existing?.Id);
         var clash = window.Kind switch
         {
             KpiWindowKind.PerPeriod => others.Any(m => m.Period.Overlaps(period.Value)) ? KpiErrors.PeriodOverlaps : null,

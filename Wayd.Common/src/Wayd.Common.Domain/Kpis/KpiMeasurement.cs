@@ -119,6 +119,15 @@ public sealed record KpiMeasurementInput(
     int? SampleSize,
     string? Note)
 {
+    /// <summary>
+    /// This input with its moment cut to the 100-nanosecond ticks the database stores, so two moments the database
+    /// cannot tell apart are compared as the same moment rather than failing on its unique index.
+    /// </summary>
+    internal KpiMeasurementInput AtStoredPrecision() =>
+        Time?.At is { } at
+            ? this with { Time = Time with { At = Instant.FromUnixTimeTicks(at.ToUnixTimeTicks()) } }
+            : this;
+
     /// <summary>Why this input cannot be recorded, or null when it can.</summary>
     internal string? Validate()
     {

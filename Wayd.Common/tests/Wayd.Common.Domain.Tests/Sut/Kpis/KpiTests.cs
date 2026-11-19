@@ -690,6 +690,58 @@ public sealed class KpiTests
         result.Error.Should().Be(KpiErrors.MomentTaken);
     }
 
+    [Fact]
+    public void AddMeasurement_ShouldFail_ForAMomentTheDatabaseCannotTellApartFromAnother()
+    {
+        // Arrange
+        var kpi = WithWindow(KpiMeasurementWindow.PointInTime);
+        var at = Instant.FromUtc(2026, 3, 6, 15, 0);
+        kpi.AddMeasurement(Taken(40, KpiMeasurementTime.AtMoment(at.PlusNanoseconds(10)), Jan1), Zone, Actor, Now);
+
+        // Act
+        var result = kpi.AddMeasurement(Taken(41, KpiMeasurementTime.AtMoment(at.PlusNanoseconds(90)), Jan1), Zone, Actor, Now);
+
+        // Assert
+        result.Error.Should().Be(KpiErrors.MomentTaken);
+        kpi.Measurements.Single().MeasuredAt.Should().Be(at, "a moment is kept to the 100-nanosecond ticks the database stores");
+    }
+
+    [Fact]
+    public void ChangeMeasurement_ShouldKeepAPointInTimeReadingsDay_WhenTheZoneChangedButTheMomentDidNot()
+    {
+        // Arrange
+        var kpi = WithWindow(KpiMeasurementWindow.PointInTime);
+        var at = Instant.FromUtc(2026, 3, 7, 3, 0);
+        var measurement = kpi.AddMeasurement(Taken(40, KpiMeasurementTime.AtMoment(at), Jan1), Zone, Actor, Now).Value;
+        var tokyo = DateTimeZoneProviders.Tzdb["Asia/Tokyo"];
+
+        // Act
+        var result = kpi.ChangeMeasurement(measurement.Id, Taken(41, KpiMeasurementTime.AtMoment(at), Jan1), tokyo, Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        var march6 = new LocalDate(2026, 3, 6);
+        measurement.Period.Should().Be(new KpiPeriod(march6, march6), "the day it was stored with in Chicago stays");
+        measurement.Value.Should().Be(41);
+    }
+
+    [Fact]
+    public void ChangeMeasurement_ShouldReadANewMomentsDayInTheCurrentZone()
+    {
+        // Arrange
+        var kpi = WithWindow(KpiMeasurementWindow.PointInTime);
+        var measurement = kpi.AddMeasurement(Taken(40, KpiMeasurementTime.AtMoment(Instant.FromUtc(2026, 3, 6, 15, 0)), Jan1), Zone, Actor, Now).Value;
+        var tokyo = DateTimeZoneProviders.Tzdb["Asia/Tokyo"];
+
+        // Act
+        var result = kpi.ChangeMeasurement(measurement.Id, Taken(40, KpiMeasurementTime.AtMoment(Instant.FromUtc(2026, 3, 6, 16, 0)), Jan1), tokyo, Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        var march7 = new LocalDate(2026, 3, 7);
+        measurement.Period.Should().Be(new KpiPeriod(march7, march7), "1am on the 7th in Tokyo");
+    }
+
     [Theory]
     [MemberData(nameof(MismatchedTimes))]
     public void AddMeasurement_ShouldFail_WhenTheTimeIsNotTheOneTheWindowTakes(KpiMeasurementWindow window, KpiMeasurementTime time, string error)

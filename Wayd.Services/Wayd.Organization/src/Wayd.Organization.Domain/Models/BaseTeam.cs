@@ -245,8 +245,9 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
     /// <param name="dateRange">The date range.</param>
     /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp">The timestamp.</param>
+    /// <param name="today">Today in the system time zone: the day the team hierarchy is read on to refuse a circular membership.</param>
     /// <returns></returns>
-    public Result<TeamMembership> AddTeamMembership(TeamOfTeams parentTeam, MembershipDateRange dateRange, EventActor actor, Instant timestamp)
+    public Result<TeamMembership> AddTeamMembership(TeamOfTeams parentTeam, MembershipDateRange dateRange, EventActor actor, Instant timestamp, LocalDate today)
     {
         try
         {
@@ -264,7 +265,7 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
 
             if (this is TeamOfTeams teamOfTeams)
             {
-                var descendantIds = teamOfTeams.GetDescendantTeamIdsAsOf(timestamp.InUtc().Date);
+                var descendantIds = teamOfTeams.GetDescendantTeamIdsAsOf(today);
                 if (descendantIds.Contains(parentTeam.Id))
                     return Result.Failure<TeamMembership>($"The parent team {parentTeam.Name} is a descendant of this team.  This would create a circular reference.");
             }

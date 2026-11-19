@@ -49,6 +49,7 @@ public sealed class MoveEmployeeAllocationCommandHandler(
     ICurrentUser currentUser,
     ICurrentPrincipal currentPrincipal,
     IDateTimeProvider dateTimeProvider,
+    ISystemCalendar systemCalendar,
     ILogger<MoveEmployeeAllocationCommandHandler> logger)
     : ICommandHandler<MoveEmployeeAllocationCommand>
 {
@@ -59,6 +60,7 @@ public sealed class MoveEmployeeAllocationCommandHandler(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
     private readonly ILogger<MoveEmployeeAllocationCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(MoveEmployeeAllocationCommand request, CancellationToken cancellationToken)
@@ -77,7 +79,7 @@ public sealed class MoveEmployeeAllocationCommandHandler(
 
             var now = _dateTimeProvider.Now;
             List<Guid> teamIds = [.. targets.Select(t => t.TeamId).Distinct()];
-            var manageable = await _currentPrincipal.TeamsWithManageableAllocations(_dispatcher, teamIds, now.InUtc().Date, cancellationToken);
+            var manageable = await _currentPrincipal.TeamsWithManageableAllocations(_dispatcher, teamIds, await _systemCalendar.DayOf(now, cancellationToken), cancellationToken);
             if (!teamIds.TrueForAll(manageable.Contains))
                 return Result.Failure(TeamAllocationAuthorization.NotAMemberError);
 

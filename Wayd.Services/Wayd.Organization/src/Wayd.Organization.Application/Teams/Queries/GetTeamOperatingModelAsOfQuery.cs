@@ -11,11 +11,11 @@ namespace Wayd.Organization.Application.Teams.Queries;
 public sealed record GetTeamOperatingModelAsOfQuery(Guid TeamId, LocalDate? AsOfDate = null)
     : IQuery<TeamOperatingModelDetailsDto?>;
 
-public sealed class GetTeamOperatingModelAsOfQueryHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider)
+public sealed class GetTeamOperatingModelAsOfQueryHandler(IOrganizationDbContext organizationDbContext, ISystemCalendar systemCalendar)
     : IQueryHandler<GetTeamOperatingModelAsOfQuery, TeamOperatingModelDetailsDto?>
 {
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<TeamOperatingModelDetailsDto?> Handle(GetTeamOperatingModelAsOfQuery request, CancellationToken cancellationToken)
     {
@@ -26,7 +26,7 @@ public sealed class GetTeamOperatingModelAsOfQueryHandler(IOrganizationDbContext
         if (request.AsOfDate is null)
         {
             // Current model: has started and hasn't ended
-            var today = _dateTimeProvider.Today;
+            var today = await _systemCalendar.Today(cancellationToken);
             query = query.Where(x =>
                 x.Model.DateRange.Start <= today &&
                 (x.Model.DateRange.End == null || x.Model.DateRange.End >= today));

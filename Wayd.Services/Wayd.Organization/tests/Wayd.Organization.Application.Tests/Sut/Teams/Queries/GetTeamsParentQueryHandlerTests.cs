@@ -33,7 +33,7 @@ public class GetTeamsParentQueryHandlerTests : IDisposable
     }
 
     private static void Join(BaseTeam child, TeamOfTeams parent, LocalDate start, LocalDate? end = null) =>
-        child.AddTeamMembership(parent, new MembershipDateRange(start, end), EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        child.AddTeamMembership(parent, new MembershipDateRange(start, end), EventActor.System, Timestamp, Timestamp.InUtc().Date).IsSuccess.Should().BeTrue();
 
     [Fact]
     public async Task Handle_ReturnsTheTeamOfTeamsEachTeamBelongsToOnTheDate()

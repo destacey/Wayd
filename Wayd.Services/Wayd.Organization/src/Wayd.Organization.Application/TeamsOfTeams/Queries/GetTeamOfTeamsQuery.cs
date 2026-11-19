@@ -21,12 +21,12 @@ public sealed record GetTeamOfTeamsQuery : IQuery<TeamOfTeamsDetailsDto?>
 public sealed class GetTeamOfTeamsQueryHandler(
     IOrganizationDbContext organizationDbContext,
     ILogger<GetTeamOfTeamsQueryHandler> logger,
-    IDateTimeProvider dateTimeProvider)
+    ISystemCalendar systemCalendar)
     : IQueryHandler<GetTeamOfTeamsQuery, TeamOfTeamsDetailsDto?>
 {
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly ILogger<GetTeamOfTeamsQueryHandler> _logger = logger;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<TeamOfTeamsDetailsDto?> Handle(GetTeamOfTeamsQuery request, CancellationToken cancellationToken)
     {
@@ -50,7 +50,7 @@ public sealed class GetTeamOfTeamsQueryHandler(
             throw exception;
         }
 
-        var today = _dateTimeProvider.Today;
+        var today = await _systemCalendar.Today(cancellationToken);
         var cfg = TeamOfTeamsDetailsDto.CreateTypeAdapterConfig(today);
 
         return await query

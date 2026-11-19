@@ -42,6 +42,7 @@ using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkItems.Queries;
 using Wayd.Work.Application.WorkTeams.Dtos;
 using Wayd.Work.Application.WorkTeams.Queries;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Web.Api.Tests.Sut.Controllers;
 
@@ -356,7 +357,7 @@ public sealed class MeControllerTests
     {
         LinkedTo(Guid.NewGuid());
         _mocker.GetMock<IDateTimeProvider>().Setup(p => p.Now).Returns(now);
-        _mocker.GetMock<IDateTimeProvider>().Setup(p => p.Today).Returns(now.InUtc().Date);
+        _mocker.Use<ISystemCalendar>(new TestingSystemCalendar(_mocker.Get<IDateTimeProvider>()));
         _mocker
             .GetMock<ICurrentPrincipal>()
             .Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -733,7 +734,8 @@ public sealed class MeControllerTests
         dispatcher.Verify(d => d.Send(It.IsAny<GetTeamsScheduleHistoryQuery>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    private static readonly LocalDate SummaryToday = SummaryNow.InUtc().Date;
+    // SummaryNow is 9 November in UTC and still 8 November in the system zone, the day the summary reads.
+    private static readonly LocalDate SummaryToday = new(2026, 11, 8);
 
     private static TeamNavigationDto SummaryTeamOfTeams(string name) =>
         new() { Id = Guid.NewGuid(), Key = Random.Shared.Next(1, 10_000), Name = name, Code = name.ToUpperInvariant(), Type = "Team of Teams" };

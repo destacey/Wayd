@@ -14,6 +14,7 @@ using Wayd.Organization.Application.EmployeeCapacities.Dtos;
 using Wayd.Organization.Application.EmployeeCapacities.Queries;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.IntegrationTests.Infrastructure;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Organization.IntegrationTests.Sut;
 
@@ -179,7 +180,7 @@ public sealed class GetTeamCapacityPlanQueryHandlerTests(SqlServerDbContextFixtu
         }
 
         await using var context = _fixture.CreateContext();
-        var handler = new GetTeamCapacityPlanQueryHandler(context, new Mock<IDispatcher>().Object, Administrator(), Settings(defaultCalendarId, 7.5m), Clock());
+        var handler = new GetTeamCapacityPlanQueryHandler(context, new Mock<IDispatcher>().Object, Administrator(), Settings(defaultCalendarId, 7.5m), Calendar());
 
         // Act
         var plan = await handler.Handle(new GetTeamCapacityPlanQuery(teamId, TeamType.Team, SprintStart, SprintEnd), cancellationToken);
@@ -389,16 +390,16 @@ public sealed class GetTeamCapacityPlanQueryHandlerTests(SqlServerDbContextFixtu
     }
 
     private static GetTeamCapacityPlanQueryHandler PlanHandler(WaydDbContext context, Guid? defaultCalendarId = null) =>
-        new(context, new Mock<IDispatcher>().Object, Administrator(), Settings(defaultCalendarId), Clock());
+        new(context, new Mock<IDispatcher>().Object, Administrator(), Settings(defaultCalendarId), Calendar());
 
     private static GetTeamCapacityQueryHandler CapacityHandler(WaydDbContext context, Guid? defaultCalendarId) =>
-        new(context, new Mock<IDispatcher>().Object, Administrator(), Settings(defaultCalendarId), Clock());
+        new(context, new Mock<IDispatcher>().Object, Administrator(), Settings(defaultCalendarId), Calendar());
 
     private static ChangeEmployeeAllocationsCommandHandler ChangeHandler(WaydDbContext context)
     {
         var currentUser = new Mock<ICurrentUser>();
         currentUser.Setup(u => u.GetUserId()).Returns("user-1");
-        return new(context, new Mock<IDispatcher>().Object, currentUser.Object, Administrator(), Clock(), NullLogger<ChangeEmployeeAllocationsCommandHandler>.Instance);
+        return new(context, new Mock<IDispatcher>().Object, currentUser.Object, Administrator(), Clock(), Calendar(), NullLogger<ChangeEmployeeAllocationsCommandHandler>.Instance);
     }
 
     /// <summary>A caller with every permission, linked to no employee.</summary>
@@ -417,6 +418,8 @@ public sealed class GetTeamCapacityPlanQueryHandlerTests(SqlServerDbContextFixtu
         settings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings { DefaultHolidayCalendarId = defaultCalendarId, WorkingDayHours = workingDayHours });
         return settings.Object;
     }
+
+    private static TestingSystemCalendar Calendar() => new(Clock());
 
     private static IDateTimeProvider Clock()
     {

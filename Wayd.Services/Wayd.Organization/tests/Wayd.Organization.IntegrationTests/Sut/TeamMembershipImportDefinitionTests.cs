@@ -13,6 +13,7 @@ using Wayd.Organization.Application.Teams.Dtos;
 using Wayd.Organization.Application.Teams.Imports;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.IntegrationTests.Infrastructure;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Organization.IntegrationTests.Sut;
 
@@ -48,12 +49,11 @@ public sealed class TeamMembershipImportDefinitionTests
     {
         var dateTimeProvider = new Mock<IDateTimeProvider>();
         dateTimeProvider.SetupGet(d => d.Now).Returns(SqlServerDbContextFixture.FixedNow);
-        dateTimeProvider.SetupGet(d => d.Today).Returns(SqlServerDbContextFixture.FixedNow.InUtc().Date);
 
         var currentUser = new Mock<ICurrentUser>();
         currentUser.Setup(u => u.GetUserId()).Returns("user-1");
 
-        return new TeamMembershipImportDefinition(context, dateTimeProvider.Object, currentUser.Object, new ImportPayloadSerializer());
+        return new TeamMembershipImportDefinition(context, dateTimeProvider.Object, new TestingSystemCalendar(dateTimeProvider.Object), currentUser.Object, new ImportPayloadSerializer());
     }
 
     /// <summary>

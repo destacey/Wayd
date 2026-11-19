@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Events;
@@ -8,6 +9,7 @@ using Wayd.Organization.Application.Persistence;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.IntegrationTests.Infrastructure;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Organization.IntegrationTests.Sut;
 
@@ -42,7 +44,7 @@ public sealed class GetTeamQueryHandlerTests(SqlServerDbContextFixture fixture)
 
     private static GetTeamQueryHandler Handler(IOrganizationDbContext context) =>
         new(context, NullLogger<GetTeamQueryHandler>.Instance,
-            Mock.Of<IDateTimeProvider>(p => p.Today == ActiveDate.PlusDays(10)));
+            new TestingSystemCalendar(new TestingDateTimeProvider(new FakeClock(ActiveDate.PlusDays(10).At(new LocalTime(12, 0)).InUtc().ToInstant()))));
 
     [Fact]
     public async Task Handle_ReturnsTheCurrentModelsCadence()

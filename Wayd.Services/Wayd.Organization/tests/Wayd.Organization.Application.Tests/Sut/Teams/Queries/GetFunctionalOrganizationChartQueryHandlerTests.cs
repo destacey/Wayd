@@ -2,6 +2,7 @@ using System.Reflection;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using NodaTime.Testing;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.Organization;
@@ -12,6 +13,7 @@ using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Organization.Application.Tests.Infrastructure;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.Domain.Tests.Data;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Organization.Application.Tests.Sut.Teams.Queries;
 
@@ -21,18 +23,18 @@ public class GetFunctionalOrganizationChartQueryHandlerTests
     private static readonly LocalDate LastYear = AsOf.PlusYears(-1);
     private static readonly Instant Now = Instant.FromUtc(2026, 6, 1, 0, 0);
 
+    // Already the next day in UTC, still AsOf in the system zone.
+    private static readonly Instant SystemZoneMorningOfAsOf = Instant.FromUtc(2026, 6, 2, 5, 0);
+
     private readonly FakeOrganizationDbContext _dbContext = new();
     private readonly GetFunctionalOrganizationChartQueryHandler _handler;
 
     public GetFunctionalOrganizationChartQueryHandlerTests()
     {
-        var dateTimeProvider = new Mock<IDateTimeProvider>();
-        dateTimeProvider.SetupGet(d => d.Today).Returns(AsOf);
-
         _handler = new GetFunctionalOrganizationChartQueryHandler(
             _dbContext,
             new Mock<ILogger<GetFunctionalOrganizationChartQueryHandler>>().Object,
-            dateTimeProvider.Object);
+            new TestingSystemCalendar(new TestingDateTimeProvider(new FakeClock(SystemZoneMorningOfAsOf))));
     }
 
     [Fact]
@@ -207,9 +209,9 @@ public class GetFunctionalOrganizationChartQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_UsesTodayWhenNoDateIsGiven()
+    public async Task Handle_UsesTodayInTheSystemZoneWhenNoDateIsGiven()
     {
-        // Arrange
+        // Arrange — the clock is already the next day in UTC
         AddTeam("Cards", "TEAM");
 
         // Act
@@ -218,6 +220,22 @@ public class GetFunctionalOrganizationChartQueryHandlerTests
         // Assert
         result.AsOfDate.Should().Be(AsOf);
         result.Total.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_WhenNoDateIsGiven_DoesNotApplyAMembershipStartingOnTheUtcDay()
+    {
+        // Arrange — TEAM joins ART on the day UTC has reached but the system zone has not
+        var art = AddTeamOfTeams("Payments ART", "ART");
+        var team = AddTeam("Cards", "TEAM");
+        Place(team, art, start: AsOf.PlusDays(1));
+
+        // Act
+        var result = await _handler.Handle(new GetFunctionalOrganizationChartQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Organization.Select(u => u.Code).Should().Equal("TEAM", "ART");
+        result.Organization.Should().AllSatisfy(u => u.Children.Should().BeNull());
     }
 
     [Fact]
@@ -249,7 +267,7 @@ public class GetFunctionalOrganizationChartQueryHandlerTests
 
     private static void Place(BaseTeam child, TeamOfTeams parent, LocalDate? start = null, LocalDate? end = null)
     {
-        var placed = child.AddTeamMembership(parent, new MembershipDateRange(start ?? LastYear, end), EventActor.System, Now);
+        var placed = child.AddTeamMembership(parent, new MembershipDateRange(start ?? LastYear, end), EventActor.System, Now, Now.InUtc().Date);
         placed.IsSuccess.Should().BeTrue(placed.IsFailure ? placed.Error : null);
     }
 

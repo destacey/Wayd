@@ -51,7 +51,7 @@ public class GetOperatingModelDefaultsQueryHandlerTests : IDisposable
         parent.SetOperatingModel(ParentMove, "America/Chicago", EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
 
         var team = _teamFaker.WithActiveDate(ParentStart).Generate();
-        team.AddTeamMembership(parent, new MembershipDateRange(JoinDate, LeaveDate), EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        team.AddTeamMembership(parent, new MembershipDateRange(JoinDate, LeaveDate), EventActor.System, Timestamp, Timestamp.InUtc().Date).IsSuccess.Should().BeTrue();
 
         _dbContext.AddTeamOfTeams(parent);
         _dbContext.AddTeam(team);
@@ -103,7 +103,7 @@ public class GetOperatingModelDefaultsQueryHandlerTests : IDisposable
         var (_, parent) = TeamWithAParentThatMoved();
         var child = _teamOfTeamsFaker.WithName("Cards Train").WithActiveDate(ParentStart).Generate();
         child.SetOperatingModel(ParentStart, "UTC", EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
-        child.AddTeamMembership(parent, new MembershipDateRange(ParentStart, null), EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
+        child.AddTeamMembership(parent, new MembershipDateRange(ParentStart, null), EventActor.System, Timestamp, Timestamp.InUtc().Date).IsSuccess.Should().BeTrue();
         _dbContext.AddTeamOfTeams(child);
 
         // Act

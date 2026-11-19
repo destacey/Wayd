@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Moq;
+using NodaTime.Testing;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Events;
@@ -8,6 +9,7 @@ using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Organization.Application.Tests.Infrastructure;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.Domain.Tests.Data;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Organization.Application.Tests.Sut.Teams.Queries;
 
@@ -21,13 +23,10 @@ public class GetTeamMembershipsQueryHandlerTests
 
     public GetTeamMembershipsQueryHandlerTests()
     {
-        var dateTimeProvider = new Mock<IDateTimeProvider>();
-        dateTimeProvider.SetupGet(d => d.Now).Returns(Now);
-
         _handler = new GetTeamMembershipsQueryHandler(
             _dbContext,
             new Mock<ILogger<GetTeamMembershipsQueryHandler>>().Object,
-            dateTimeProvider.Object);
+            new TestingSystemCalendar(new TestingDateTimeProvider(new FakeClock(Now))));
     }
 
     [Fact]
@@ -51,7 +50,7 @@ public class GetTeamMembershipsQueryHandlerTests
         var parent = new TeamOfTeamsFaker(ActiveDate).Generate();
         _dbContext.AddTeam(team);
         _dbContext.AddTeamOfTeams(parent);
-        team.AddTeamMembership(parent, new MembershipDateRange(ActiveDate, null), EventActor.System, Now).IsSuccess.Should().BeTrue();
+        team.AddTeamMembership(parent, new MembershipDateRange(ActiveDate, null), EventActor.System, Now, Now.InUtc().Date).IsSuccess.Should().BeTrue();
 
         // Act
         var result = await _handler.Handle(new GetTeamMembershipsQuery(team.Id), TestContext.Current.CancellationToken);
@@ -62,5 +61,27 @@ public class GetTeamMembershipsQueryHandlerTests
         membership.Parent.Id.Should().Be(parent.Id);
         membership.Start.Should().Be(ActiveDate);
         membership.State.Should().Be("Active");
+    }
+
+    [Fact]
+    public async Task Handle_MembershipStartingOnTheUtcDay_IsFutureUntilThatDayInTheSystemZone()
+    {
+        // Arrange — 05:00 UTC on 1 June is still 31 May in the system zone
+        var team = new TeamFaker(ActiveDate).Generate();
+        var parent = new TeamOfTeamsFaker(ActiveDate).Generate();
+        _dbContext.AddTeam(team);
+        _dbContext.AddTeamOfTeams(parent);
+        var now = Instant.FromUtc(2026, 6, 1, 5, 0);
+        team.AddTeamMembership(parent, new MembershipDateRange(new LocalDate(2026, 6, 1), null), EventActor.System, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
+        var handler = new GetTeamMembershipsQueryHandler(
+            _dbContext,
+            new Mock<ILogger<GetTeamMembershipsQueryHandler>>().Object,
+            new TestingSystemCalendar(new TestingDateTimeProvider(new FakeClock(now))));
+
+        // Act
+        var result = await handler.Handle(new GetTeamMembershipsQuery(team.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().ContainSingle().Which.State.Should().Be("Future");
     }
 }

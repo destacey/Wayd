@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Moq;
+using NodaTime.Testing;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Events;
@@ -8,6 +9,7 @@ using Wayd.Organization.Application.Tests.Infrastructure;
 using Wayd.Organization.Application.TeamsOfTeams.Queries;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.Domain.Tests.Data;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Organization.Application.Tests.Sut.TeamsOfTeams.Queries;
 
@@ -21,13 +23,10 @@ public class GetTeamMembershipsQueryHandlerTests
 
     public GetTeamMembershipsQueryHandlerTests()
     {
-        var dateTimeProvider = new Mock<IDateTimeProvider>();
-        dateTimeProvider.SetupGet(d => d.Now).Returns(Now);
-
         _handler = new GetTeamMembershipsQueryHandler(
             _dbContext,
             new Mock<ILogger<GetTeamMembershipsQueryHandler>>().Object,
-            dateTimeProvider.Object);
+            new TestingSystemCalendar(new TestingDateTimeProvider(new FakeClock(Now))));
     }
 
     [Fact]
@@ -53,8 +52,8 @@ public class GetTeamMembershipsQueryHandlerTests
         _dbContext.AddTeamOfTeams(teamOfTeams);
         _dbContext.AddTeamOfTeams(parent);
         _dbContext.AddTeam(child);
-        teamOfTeams.AddTeamMembership(parent, new MembershipDateRange(ActiveDate, null), EventActor.System, Now).IsSuccess.Should().BeTrue();
-        child.AddTeamMembership(teamOfTeams, new MembershipDateRange(ActiveDate, null), EventActor.System, Now).IsSuccess.Should().BeTrue();
+        teamOfTeams.AddTeamMembership(parent, new MembershipDateRange(ActiveDate, null), EventActor.System, Now, Now.InUtc().Date).IsSuccess.Should().BeTrue();
+        child.AddTeamMembership(teamOfTeams, new MembershipDateRange(ActiveDate, null), EventActor.System, Now, Now.InUtc().Date).IsSuccess.Should().BeTrue();
 
         // Act
         var result = await _handler.Handle(new GetTeamMembershipsQuery(teamOfTeams.Id), TestContext.Current.CancellationToken);

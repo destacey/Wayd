@@ -1,4 +1,5 @@
 using Moq;
+using NodaTime.Testing;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.Organization;
@@ -8,6 +9,7 @@ using Wayd.Organization.Application.Persistence;
 using Wayd.Organization.Application.Teams;
 using Wayd.Organization.Domain.Models;
 using Wayd.Organization.IntegrationTests.Infrastructure;
+using Wayd.Tests.Shared;
 
 namespace Wayd.Organization.IntegrationTests.Sut;
 
@@ -50,8 +52,8 @@ public sealed class TeamKpiSubjectTypeTests(SqlServerDbContextFixture fixture)
             var team = Team.Create("Cards", new TeamCode("CARDS"), null, ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, actor, now);
             await seedContext.TeamOfTeams.AddRangeAsync([portfolio, art], cancellationToken);
             await seedContext.Teams.AddAsync(team, cancellationToken);
-            art.AddTeamMembership(portfolio, new MembershipDateRange(ActiveDate, null), actor, now).IsSuccess.Should().BeTrue();
-            team.AddTeamMembership(art, new MembershipDateRange(ActiveDate, null), actor, now).IsSuccess.Should().BeTrue();
+            art.AddTeamMembership(portfolio, new MembershipDateRange(ActiveDate, null), actor, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
+            team.AddTeamMembership(art, new MembershipDateRange(ActiveDate, null), actor, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
 
             team.AddMember(teamMember, [role.Id], actor, now).IsSuccess.Should().BeTrue();
             portfolio.AddMember(topMember, [role.Id], actor, now).IsSuccess.Should().BeTrue();
@@ -87,10 +89,9 @@ public sealed class TeamKpiSubjectTypeTests(SqlServerDbContextFixture fixture)
         var principal = new Mock<ICurrentPrincipal>();
         principal.Setup(p => p.HoldsPermission(TeamKpiSubjectType.ViewPermission, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
-        var today = new Mock<IDateTimeProvider>();
-        today.SetupGet(d => d.Today).Returns(new LocalDate(2026, 11, 16));
+        var calendar = new TestingSystemCalendar(new TestingDateTimeProvider(new FakeClock(Instant.FromUtc(2026, 11, 16, 12, 0))));
 
-        var access = await new TeamKpiSubjectType(context, principal.Object, today.Object).Resolve(teamId, cancellationToken);
+        var access = await new TeamKpiSubjectType(context, principal.Object, calendar).Resolve(teamId, cancellationToken);
 
         access.Should().NotBeNull();
         return access!.CanManage;

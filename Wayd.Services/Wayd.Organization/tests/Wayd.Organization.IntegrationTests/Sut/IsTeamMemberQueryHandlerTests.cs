@@ -49,7 +49,7 @@ public sealed class IsTeamMemberQueryHandlerTests(SqlServerDbContextFixture fixt
             var team = Team.Create("Cards", new TeamCode("CARDS"), null, ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, actor, now);
             await seedContext.TeamOfTeams.AddAsync(art, cancellationToken);
             await seedContext.Teams.AddAsync(team, cancellationToken);
-            team.AddTeamMembership(art, new MembershipDateRange(JoinDate, LeaveDate), actor, now).IsSuccess.Should().BeTrue();
+            team.AddTeamMembership(art, new MembershipDateRange(JoinDate, LeaveDate), actor, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
 
             team.AddMember(teamMember, [role.Id], actor, now).IsSuccess.Should().BeTrue();
             team.AddMember(removedMember, [role.Id], actor, now).IsSuccess.Should().BeTrue();

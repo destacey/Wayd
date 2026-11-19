@@ -45,8 +45,8 @@ public sealed class GetTeamStructureQueryHandlerTests(SqlServerDbContextFixture 
             await seedContext.TeamOfTeams.AddAsync(art, cancellationToken);
             await seedContext.Teams.AddRangeAsync([team, former], cancellationToken);
 
-            team.AddTeamMembership(art, new MembershipDateRange(ActiveDate, null), EventActor.System, now).IsSuccess.Should().BeTrue();
-            former.AddTeamMembership(art, new MembershipDateRange(ActiveDate, From.PlusDays(-1)), EventActor.System, now).IsSuccess.Should().BeTrue();
+            team.AddTeamMembership(art, new MembershipDateRange(ActiveDate, null), EventActor.System, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
+            former.AddTeamMembership(art, new MembershipDateRange(ActiveDate, From.PlusDays(-1)), EventActor.System, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
 
             await seedContext.SaveChangesAsync(cancellationToken);
             (artId, teamId, formerId) = (art.Id, team.Id, former.Id);

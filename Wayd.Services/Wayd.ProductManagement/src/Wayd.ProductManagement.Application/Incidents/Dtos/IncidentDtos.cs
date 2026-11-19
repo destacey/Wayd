@@ -1,4 +1,5 @@
 using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.ProductManagement;
@@ -32,13 +33,13 @@ public sealed record IncidentSummaryDto
     public Instant? RecoveredAt { get; init; }
 
     /// <summary>The employee who opened the incident.</summary>
-    public NavigationDto SubmittedBy { get; init; } = default!;
+    public EmployeeNavigationDto SubmittedBy { get; init; } = default!;
 
     /// <summary>The employee who reported the incident.</summary>
-    public NavigationDto ReportedBy { get; init; } = default!;
+    public EmployeeNavigationDto ReportedBy { get; init; } = default!;
 
     /// <summary>The employee commanding the response, when one is assigned.</summary>
-    public NavigationDto? Commander { get; init; }
+    public EmployeeNavigationDto? Commander { get; init; }
     public IncidentSeverityLevelNavigationDto SeverityLevel { get; init; } = default!;
     public StatusNavigationDto Status { get; init; } = default!;
     public ProductStatusAlias StatusAlias { get; init; }
@@ -86,13 +87,13 @@ public sealed record IncidentDto
     public string? RootCause { get; init; }
 
     /// <summary>The employee who opened the incident.</summary>
-    public NavigationDto SubmittedBy { get; init; } = default!;
+    public EmployeeNavigationDto SubmittedBy { get; init; } = default!;
 
     /// <summary>The employee who reported the incident.</summary>
-    public NavigationDto ReportedBy { get; init; } = default!;
+    public EmployeeNavigationDto ReportedBy { get; init; } = default!;
 
     /// <summary>The employee commanding the response, when one is assigned.</summary>
-    public NavigationDto? Commander { get; init; }
+    public EmployeeNavigationDto? Commander { get; init; }
     public IncidentSeverityLevelNavigationDto SeverityLevel { get; init; } = default!;
     public Instant NoticedAt { get; init; }
     public Instant? StartedAt { get; init; }
@@ -192,7 +193,7 @@ public sealed record IncidentTimelineNoteDto
     public Guid Id { get; init; }
     public required string Body { get; init; }
     public Instant RecordedAt { get; init; }
-    public NavigationDto Author { get; init; } = default!;
+    public EmployeeNavigationDto Author { get; init; } = default!;
 }
 
 /// <summary>One link add, update, or remove entry on an incident timeline.</summary>
@@ -203,7 +204,7 @@ public sealed record IncidentTimelineLinkEntryDto
     public IncidentTimelineLinkAction Action { get; init; }
     public required string Label { get; init; }
     public Instant RecordedAt { get; init; }
-    public NavigationDto Actor { get; init; } = default!;
+    public EmployeeNavigationDto Actor { get; init; } = default!;
 
     /// <summary>The work item or link this entry is about.</summary>
     public Guid? TargetId { get; init; }
@@ -224,8 +225,22 @@ internal static class IncidentProjections
             Alias = incident.StatusAliasValue,
         };
 
-    internal static NavigationDto Person(Employee employee) =>
-        NavigationDto.Create(employee.Id, employee.Key, employee.Name.FullName);
+    internal static EmployeeNavigationDto Person(Employee employee) => EmployeeNavigationDto.From(employee);
+
+    /// <summary>
+    /// The commander, or null when none is assigned. Not checked like the required people: a deleted
+    /// commander is hidden by the employee query filter and loads as null, which reads as no commander.
+    /// </summary>
+    private static EmployeeNavigationDto? Commander(Incident incident) =>
+        incident.Commander is null ? null : Person(incident.Commander);
+
+    /// <summary>
+    /// A required employee the projection reads, or an exception naming the missing <c>Include</c>. The query
+    /// filter drops an incident whose required employee is deleted, so a null here is always a missing include.
+    /// </summary>
+    private static Employee Loaded(Employee? employee, string navigation) =>
+        employee ?? throw new InvalidOperationException(
+            $"The incident query must include {navigation} before projecting it.");
 
     internal static IncidentSeverityLevelNavigationDto SeverityLevel(IncidentSeverityLevel level) =>
         new()
@@ -244,9 +259,6 @@ internal static class IncidentProjections
 
     internal static IncidentSummaryDto Summary(
         Incident incident,
-        Employee submittedBy,
-        Employee reportedBy,
-        Employee? commander,
         IncidentSeverityLevel level,
         IReadOnlyList<Product> products,
         IReadOnlyList<Release> releases) =>
@@ -258,9 +270,9 @@ internal static class IncidentProjections
             NoticedAt = incident.NoticedAt,
             StartedAt = incident.StartedAt,
             RecoveredAt = incident.RecoveredAt,
-            SubmittedBy = Person(submittedBy),
-            ReportedBy = Person(reportedBy),
-            Commander = commander is null ? null : Person(commander),
+            SubmittedBy = Person(Loaded(incident.SubmittedBy, nameof(Incident.SubmittedBy))),
+            ReportedBy = Person(Loaded(incident.ReportedBy, nameof(Incident.ReportedBy))),
+            Commander = Commander(incident),
             SeverityLevel = SeverityLevel(level),
             Status = Status(incident),
             StatusAlias = incident.StatusAlias,
@@ -270,9 +282,6 @@ internal static class IncidentProjections
 
     internal static IncidentDto Details(
         Incident incident,
-        Employee submittedBy,
-        Employee reportedBy,
-        Employee? commander,
         IncidentSeverityLevel level,
         IReadOnlyList<Product> products,
         IReadOnlyList<Release> releases,
@@ -286,9 +295,9 @@ internal static class IncidentProjections
             Symptoms = incident.Symptoms,
             Remediation = incident.Remediation,
             RootCause = incident.RootCause,
-            SubmittedBy = Person(submittedBy),
-            ReportedBy = Person(reportedBy),
-            Commander = commander is null ? null : Person(commander),
+            SubmittedBy = Person(Loaded(incident.SubmittedBy, nameof(Incident.SubmittedBy))),
+            ReportedBy = Person(Loaded(incident.ReportedBy, nameof(Incident.ReportedBy))),
+            Commander = Commander(incident),
             SeverityLevel = SeverityLevel(level),
             NoticedAt = incident.NoticedAt,
             StartedAt = incident.StartedAt,

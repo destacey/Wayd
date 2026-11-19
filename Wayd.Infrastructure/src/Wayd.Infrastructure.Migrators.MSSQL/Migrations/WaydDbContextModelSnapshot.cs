@@ -1481,6 +1481,36 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("Measurements", "Kpis");
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.Links.Link", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OwnerType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerType", "OwnerId");
+
+                    b.ToTable("Links", "Links");
+                });
+
             modelBuilder.Entity("Wayd.Common.Domain.Models.KeyValueObjectMetadata", b =>
                 {
                     b.Property<Guid>("ObjectId")
@@ -3661,36 +3691,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasFilter("[RevokedAt] IS NULL");
 
                     b.ToTable("UserRefreshTokens", "Identity");
-                });
-
-            modelBuilder.Entity("Wayd.Common.Domain.Links.Link", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<Guid>("OwnerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("OwnerType")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(64)");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerType", "OwnerId");
-
-                    b.ToTable("Links", "Links");
                 });
 
             modelBuilder.Entity("Wayd.Organization.Domain.Models.BaseTeam", b =>
@@ -5932,9 +5932,15 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasAlternateKey("Key");
 
+                    b.HasIndex("CommanderEmployeeId");
+
+                    b.HasIndex("ReportedByEmployeeId");
+
                     b.HasIndex("SeverityLevelId");
 
                     b.HasIndex("StatusWorkflowId");
+
+                    b.HasIndex("SubmittedByEmployeeId");
 
                     b.ToTable("Incidents", "ProductManagement");
                 });
@@ -11644,10 +11650,27 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Incident", b =>
                 {
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "Commander")
+                        .WithMany()
+                        .HasForeignKey("CommanderEmployeeId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "ReportedBy")
+                        .WithMany()
+                        .HasForeignKey("ReportedByEmployeeId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("Wayd.ProductManagement.Domain.Models.IncidentSeverityLevel", null)
                         .WithMany()
                         .HasForeignKey("SeverityLevelId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "SubmittedBy")
+                        .WithMany()
+                        .HasForeignKey("SubmittedByEmployeeId")
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.OwnsOne("Wayd.Common.Domain.Integrations.RecordIntegration", "TeamsChat", b1 =>
@@ -11676,6 +11699,12 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("IncidentId");
                         });
+
+                    b.Navigation("Commander");
+
+                    b.Navigation("ReportedBy");
+
+                    b.Navigation("SubmittedBy");
 
                     b.Navigation("TeamsChat");
                 });

@@ -1,5 +1,5 @@
 using System.Linq.Expressions;
-using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Application.Models;
 using Wayd.ProductManagement.Application.Incidents.Dtos;
 using Wayd.ProductManagement.Domain.Models;
@@ -53,10 +53,7 @@ public sealed class GetIncidentTimelineLinkEntriesQueryHandler(IProductManagemen
                     RecordedAt = entry.RecordedAt,
                     TargetId = entry.TargetId,
                     FromTargetId = entry.FromTargetId,
-                    Actor = NavigationDto.Create(
-                        employee.Id,
-                        employee.Key,
-                        employee.Name.FullName),
+                    Actor = EmployeeNavigationDto.From(employee),
                 })
             .ToListAsync(cancellationToken);
     }

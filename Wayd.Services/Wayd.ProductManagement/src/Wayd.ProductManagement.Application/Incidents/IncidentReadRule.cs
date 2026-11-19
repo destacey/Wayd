@@ -91,9 +91,9 @@ public sealed class IncidentReadRule(
                 i.StatusAliasValue,
                 i.NoticedAt,
                 i.RecoveredAt,
-                SubmittedByName = submitted.Name.FullName,
-                ReportedByName = reported.Name.FullName,
-                CommanderName = commander == null ? null : commander.Name.FullName,
+                SubmittedByName = submitted.Name.DisplayName,
+                ReportedByName = reported.Name.DisplayName,
+                CommanderName = commander == null ? null : commander.Name.DisplayName,
             }).ToListAsync(cancellationToken);
 
         return incidents.ToDictionary(

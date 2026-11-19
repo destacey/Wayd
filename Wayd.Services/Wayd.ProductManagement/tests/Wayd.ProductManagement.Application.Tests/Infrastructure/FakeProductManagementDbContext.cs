@@ -78,7 +78,11 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     public DbSet<IncidentSeverityLevel> IncidentSeverityLevels => _incidentSeverityLevels.AsDbSet();
     public DbSet<IncidentSeveritySetAssignment> IncidentSeveritySetAssignments =>
         _incidentSeveritySetAssignments.AsDbSet();
-    public DbSet<Incident> Incidents => _incidents.AsDbSet();
+    /// <summary>
+    /// The incidents with their employee navigations set from <see cref="Employees"/>, as EF's relationship
+    /// fix-up would. A query that forgets to include them therefore passes here; only a database test catches it.
+    /// </summary>
+    public DbSet<Incident> Incidents => WithEmployees(_incidents).AsDbSet();
     public DbSet<IncidentTimelineNote> IncidentTimelineNotes => _incidentTimelineNotes.AsDbSet();
     public DbSet<IncidentTimelineLinkEntry> IncidentTimelineLinkEntries =>
         _incidentTimelineLinkEntries.AsDbSet();
@@ -176,6 +180,23 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
         _incidentSeveritySetAssignments.Add(assignment);
 
     public void AddIncident(Incident incident) => _incidents.Add(incident);
+
+    private List<Incident> WithEmployees(List<Incident> incidents)
+    {
+        foreach (var incident in incidents)
+        {
+            SetEmployee(incident, nameof(Incident.SubmittedBy), incident.SubmittedByEmployeeId);
+            SetEmployee(incident, nameof(Incident.ReportedBy), incident.ReportedByEmployeeId);
+            SetEmployee(incident, nameof(Incident.Commander), incident.CommanderEmployeeId);
+        }
+
+        return incidents;
+    }
+
+    private void SetEmployee(Incident incident, string navigation, Guid? employeeId) =>
+        typeof(Incident).GetProperty(navigation)!.SetValue(
+            incident,
+            employeeId is Guid id ? _employees.FirstOrDefault(e => e.Id == id) : null);
 
     public void AddStatusWorkflow(StatusWorkflow workflow) => _statusWorkflows.Add(workflow);
     public void AddWorkflowAssignment(WorkflowAssignment assignment) => _workflowAssignments.Add(assignment);

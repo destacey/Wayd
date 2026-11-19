@@ -70061,7 +70061,7 @@
           "submittedBy": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/NavigationDto"
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
               }
             ],
             "description": "The employee who opened the incident."
@@ -70069,7 +70069,7 @@
           "reportedBy": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/NavigationDto"
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
               }
             ],
             "description": "The employee who reported the incident."
@@ -70077,7 +70077,7 @@
           "commander": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/NavigationDto"
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
               },
               {
                 "type": "null"
@@ -70404,7 +70404,7 @@
           "submittedBy": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/NavigationDto"
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
               }
             ],
             "description": "The employee who opened the incident."
@@ -70412,7 +70412,7 @@
           "reportedBy": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/NavigationDto"
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
               }
             ],
             "description": "The employee who reported the incident."
@@ -70420,7 +70420,7 @@
           "commander": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/NavigationDto"
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
               },
               {
                 "type": "null"
@@ -70491,7 +70491,7 @@
             "format": "date-time"
           },
           "actor": {
-            "$ref": "#/components/schemas/NavigationDto"
+            "$ref": "#/components/schemas/EmployeeNavigationDto"
           },
           "targetId": {
             "type": [
@@ -70541,7 +70541,7 @@
             "format": "date-time"
           },
           "author": {
-            "$ref": "#/components/schemas/NavigationDto"
+            "$ref": "#/components/schemas/EmployeeNavigationDto"
           }
         },
         "additionalProperties": false,

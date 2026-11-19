@@ -7889,11 +7889,11 @@ export interface IncidentDto {
      */
   rootCause?: string | null;
   /** The employee who opened the incident. */
-  submittedBy: NavigationDto;
+  submittedBy: EmployeeNavigationDto;
   /** The employee who reported the incident. */
-  reportedBy: NavigationDto;
+  reportedBy: EmployeeNavigationDto;
   /** The employee commanding the response, when one is assigned. */
-  commander?: NavigationDto | null;
+  commander?: EmployeeNavigationDto | null;
   severityLevel: IncidentSeverityLevelNavigationDto;
   noticedAt: string & { readonly __brand: 'Instant' };
   /** @nullable */
@@ -7992,11 +7992,11 @@ export interface IncidentSummaryDto {
   /** @nullable */
   recoveredAt?: string & { readonly __brand: 'Instant' } | null;
   /** The employee who opened the incident. */
-  submittedBy: NavigationDto;
+  submittedBy: EmployeeNavigationDto;
   /** The employee who reported the incident. */
-  reportedBy: NavigationDto;
+  reportedBy: EmployeeNavigationDto;
   /** The employee commanding the response, when one is assigned. */
-  commander?: NavigationDto | null;
+  commander?: EmployeeNavigationDto | null;
   severityLevel: IncidentSeverityLevelNavigationDto;
   status: StatusNavigationDto;
   statusAlias: ProductStatusAlias;
@@ -8031,7 +8031,7 @@ export interface IncidentTimelineLinkEntryDto {
   action: IncidentTimelineLinkAction;
   label: string;
   recordedAt: string & { readonly __brand: 'Instant' };
-  actor: NavigationDto;
+  actor: EmployeeNavigationDto;
   /**
      * The work item or link this entry is about.
      * @nullable
@@ -8051,7 +8051,7 @@ export interface IncidentTimelineNoteDto {
   id: string;
   body: string;
   recordedAt: string & { readonly __brand: 'Instant' };
-  author: NavigationDto;
+  author: EmployeeNavigationDto;
 }
 
 /**

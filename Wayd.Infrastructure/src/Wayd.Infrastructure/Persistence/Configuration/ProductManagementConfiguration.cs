@@ -812,6 +812,23 @@ public class IncidentConfiguration : IEntityTypeConfiguration<Incident>
             .HasForeignKey(i => i.SeverityLevelId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(i => i.SubmittedBy)
+            .WithMany()
+            .HasForeignKey(i => i.SubmittedByEmployeeId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasOne(i => i.ReportedBy)
+            .WithMany()
+            .HasForeignKey(i => i.ReportedByEmployeeId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasOne(i => i.Commander)
+            .WithMany()
+            .HasForeignKey(i => i.CommanderEmployeeId)
+            .OnDelete(DeleteBehavior.NoAction);
+
         builder.Ignore(i => i.StatusAlias);
     }
 }

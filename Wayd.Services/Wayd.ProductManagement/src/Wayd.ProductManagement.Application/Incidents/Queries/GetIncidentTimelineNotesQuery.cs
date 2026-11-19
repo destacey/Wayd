@@ -1,5 +1,5 @@
 using System.Linq.Expressions;
-using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Application.Models;
 using Wayd.ProductManagement.Application.Incidents.Dtos;
 using Wayd.ProductManagement.Domain.Models;
@@ -49,10 +49,7 @@ public sealed class GetIncidentTimelineNotesQueryHandler(IProductManagementDbCon
                     Id = note.Id,
                     Body = note.Body,
                     RecordedAt = note.RecordedAt,
-                    Author = NavigationDto.Create(
-                        employee.Id,
-                        employee.Key,
-                        employee.Name.FullName),
+                    Author = EmployeeNavigationDto.From(employee),
                 })
             .ToListAsync(cancellationToken);
     }

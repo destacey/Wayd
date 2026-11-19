@@ -48,14 +48,15 @@ public sealed class EndProductDependencyCommandHandler(
                 return Result.Failure("Product not found.");
             }
 
-            var today = await _systemCalendar.Today(cancellationToken);
+            var now = _dateTimeProvider.Now;
+            var today = await _systemCalendar.DayOf(now, cancellationToken);
 
             var endResult = product.EndDependency(
                 request.DependencyId,
                 request.EndsOn ?? today,
                 today,
                 EventActor.User(_currentUser.GetUserId()),
-                _dateTimeProvider.Now);
+                now);
 
             if (endResult.IsFailure)
             {

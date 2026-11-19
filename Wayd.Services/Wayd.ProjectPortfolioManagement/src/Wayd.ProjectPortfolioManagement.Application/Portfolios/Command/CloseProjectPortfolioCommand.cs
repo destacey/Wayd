@@ -45,7 +45,8 @@ public sealed class CloseProjectPortfolioCommandHandler(
                 return Result.Failure("Project Portfolio not found.");
             }
 
-            var closeResult = portfolio.Close(actor, await _systemCalendar.Today(cancellationToken), _dateTimeProvider.Now);
+            var now = _dateTimeProvider.Now;
+            var closeResult = portfolio.Close(actor, await _systemCalendar.DayOf(now, cancellationToken), now);
             if (closeResult.IsFailure)
             {
                 // Reset the entity

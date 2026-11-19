@@ -95,7 +95,8 @@ public sealed class AddProductDependencyCommandHandler(
                 return Result.Failure<Guid>(dependsOnAncestors.Error);
             }
 
-            var today = await _systemCalendar.Today(cancellationToken);
+            var now = _dateTimeProvider.Now;
+            var today = await _systemCalendar.DayOf(now, cancellationToken);
 
             var addResult = product.AddDependency(
                 request.DependsOnProductId,
@@ -107,7 +108,7 @@ public sealed class AddProductDependencyCommandHandler(
                 dependsOnAncestors.Value,
                 today,
                 EventActor.User(_currentUser.GetUserId()),
-                _dateTimeProvider.Now);
+                now);
 
             if (addResult.IsFailure)
             {

@@ -75,7 +75,8 @@ public sealed class ChangeProductDependencyTermsCommandHandler(
                 return Result.Failure<Guid>("Product not found.");
             }
 
-            var today = await _systemCalendar.Today(cancellationToken);
+            var now = _dateTimeProvider.Now;
+            var today = await _systemCalendar.DayOf(now, cancellationToken);
 
             var changeResult = product.ChangeDependencyTerms(
                 request.DependencyId,
@@ -84,7 +85,7 @@ public sealed class ChangeProductDependencyTermsCommandHandler(
                 request.ChangedOn ?? today,
                 today,
                 EventActor.User(_currentUser.GetUserId()),
-                _dateTimeProvider.Now);
+                now);
 
             if (changeResult.IsFailure)
             {

@@ -19,9 +19,9 @@
     <!--
       Production code may not call the APIs in BannedSymbols.txt; reading a moment's calendar day in UTC is the
       first of them, because "today" and every day derived from a moment is read in the system time zone. Limited
-      to projects under a src folder: tests choose their own moments and days.
+      to projects under a src folder of the repository (the clone's own path does not count): tests choose their own moments and days.
     -->
-    <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.csproj' And $([System.String]::Copy('$(MSBuildProjectDirectory)').Replace('\', '/').Contains('/src/'))">
+    <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.csproj' And $([System.String]::Copy('$([MSBuild]::MakeRelative($(RepoRoot), $(MSBuildProjectDirectory)))').Replace('\', '/').Contains('/src/'))">
         <WaydBansApis>true</WaydBansApis>
         <WarningsAsErrors>$(WarningsAsErrors);RS0030</WarningsAsErrors>
     </PropertyGroup>

@@ -10,6 +10,34 @@ export interface FilterOption {
   value: string
 }
 
+/** One request a column's {@link FilterOptionsSource} answers. */
+export interface FilterOptionsRequest {
+  /** Text the labels must contain, trimmed; empty for the first values. */
+  search: string
+  /** Aborted when the answer is no longer wanted (the search changed). */
+  signal: AbortSignal
+}
+
+/** The values a {@link FilterOptionsSource} offers for one request. */
+export interface FilterOptionsPage {
+  options: FilterOption[]
+  /** More values match than were returned; the panel asks the user to narrow. */
+  hasMore: boolean
+}
+
+/**
+ * Where a set filter loads the values it offers, for a column whose values are
+ * not all in the loaded rows (any column in server mode) or are too many to list
+ * up front. The panel calls `load` when it opens and again as the user types,
+ * and works by inclusion: nothing is checked until the user picks values.
+ */
+export interface FilterOptionsSource {
+  /** Loads the values whose labels contain the request's search. */
+  load: (request: FilterOptionsRequest) => Promise<FilterOptionsPage>
+  /** Offers (Blanks), for rows with no value: an unassigned commander, say. */
+  includeBlank?: boolean
+}
+
 /**
  * Built-in column types, referenced declaratively via `meta.columnType` (like
  * AG Grid's `type: 'dateOnly'`). The grid resolves each type's display, sort,
@@ -73,6 +101,12 @@ export interface WaydGridColumnMeta {
   align?: 'left' | 'right'
   /** Options for the 'set' (aka legacy 'select') filter type. */
   filterOptions?: FilterOption[]
+  /**
+   * Loads the set filter's values instead of listing them up front: the panel
+   * searches them as the user types and the user picks the ones to include.
+   * Takes precedence over {@link filterOptions}. See {@link FilterOptionsSource}.
+   */
+  filterOptionsSource?: FilterOptionsSource
   /**
    * Marks a "multi-value" set column — one whose row holds several values
    * (e.g. a Tags column). The grid builds the set filter's checkbox list from

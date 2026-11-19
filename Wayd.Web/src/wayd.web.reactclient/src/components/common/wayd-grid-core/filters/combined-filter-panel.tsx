@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { DownOutlined, RightOutlined } from '@ant-design/icons'
 
 import styles from './combined-filter-panel.module.css'
-import type { FilterOption } from '../types'
+import type { FilterOption, FilterOptionsSource } from '../types'
 import FilterPopup from './filter-popup'
+import RemoteSetFilterPanel from './remote-set-filter-panel'
 import SetFilterPanel from './set-filter-panel'
 import type { ColumnFilterModel } from './filter-model'
 
@@ -14,6 +15,11 @@ export interface CombinedFilterPanelProps {
   allValues: string[]
   /** Optional label lookup for set values. */
   labels?: FilterOption[]
+  /**
+   * Loads the set section's values instead of `allValues`, which it then
+   * ignores: the section becomes a {@link RemoteSetFilterPanel}.
+   */
+  source?: FilterOptionsSource
   /** Current descriptor, or undefined when unfiltered. */
   value: ColumnFilterModel | undefined
   onChange: (next: ColumnFilterModel | undefined) => void
@@ -37,6 +43,7 @@ export interface CombinedFilterPanelProps {
 const CombinedFilterPanel = ({
   allValues,
   labels,
+  source,
   value,
   onChange,
   maxConditions,
@@ -76,13 +83,22 @@ const CombinedFilterPanel = ({
       )}
 
       <div className={styles.setSection}>
-        <SetFilterPanel
-          allValues={allValues}
-          labels={labels}
-          value={setValue}
-          onChange={onChange}
-          onCommit={onCommit}
-        />
+        {source ? (
+          <RemoteSetFilterPanel
+            source={source}
+            value={setValue}
+            onChange={onChange}
+            onCommit={onCommit}
+          />
+        ) : (
+          <SetFilterPanel
+            allValues={allValues}
+            labels={labels}
+            value={setValue}
+            onChange={onChange}
+            onCommit={onCommit}
+          />
+        )}
       </div>
     </div>
   )

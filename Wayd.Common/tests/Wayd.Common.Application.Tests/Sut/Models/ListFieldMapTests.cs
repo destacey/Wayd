@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NodaTime;
 using Wayd.Common.Application.Models;
+using Wayd.Tests.Shared.Infrastructure;
 
 namespace Wayd.Common.Application.Tests.Sut.Models;
 
@@ -13,6 +14,51 @@ public sealed class ListFieldMapTests
     public enum Stage { Draft, Active, Closed }
 
     public sealed record Item(int Id, string Name, string? Note, Stage Stage, int Score, Instant? At, LocalDate? Due);
+
+    public sealed record Person(Guid Id, string Name);
+
+    /// <summary>A row with people and tags, for the fields that filter by one member and sort or list by another.</summary>
+    public sealed class Case
+    {
+        public required int Id { get; init; }
+        public required Person Owner { get; init; }
+        public Person? Lead { get; init; }
+        public required Stage Stage { get; init; }
+        public List<Person> Watchers { get; init; } = [];
+    }
+
+    private static readonly Person Ada = new(Guid.Parse("0196a8d5-0000-7000-8000-0000000000aa"), "Ada Lovelace");
+    private static readonly Person Grace = new(Guid.Parse("0196a8d5-0000-7000-8000-000000000011"), "Grace Hopper");
+    private static readonly Person Alan = new(Guid.Parse("0196a8d5-0000-7000-8000-0000000000cc"), "Alan Turing");
+
+    private static readonly ListFieldMap<Case> CaseMap =
+        ListFieldMap<Case>.Create("id", c => c.Id)
+            .Map("id", c => c.Id)
+            .Map("owner", c => c.Owner.Id, c => c.Owner.Name)
+            .Map("lead", c => c.Lead == null ? (Guid?)null : c.Lead.Id)
+            .Map("stage", c => c.Stage)
+            .MapMany("watchers", c => c.Watchers.Select(w => w.Id))
+            .Options("owner", cases => cases.Select(c => new ListFilterOptionRow<Guid> { Value = c.Owner.Id, Label = c.Owner.Name, Rank = 0, Detail = null }))
+            .Options("stage", cases => cases.Select(c => new ListFilterOptionRow<Stage>
+            {
+                Value = c.Stage,
+                Label = c.Stage.ToString(),
+                Rank = c.Stage == Stage.Closed ? 0 : 1,
+                Detail = null,
+            }))
+            .Options("watchers", cases => cases
+                .SelectMany(c => c.Watchers)
+                .Select(w => new ListFilterOptionRow<Guid> { Value = w.Id, Label = w.Name, Rank = 0, Detail = null }));
+
+    private static readonly List<Case> Cases =
+    [
+        new() { Id = 1, Owner = Grace, Lead = null, Stage = Stage.Active, Watchers = [Ada] },
+        new() { Id = 2, Owner = Ada, Lead = Grace, Stage = Stage.Draft, Watchers = [Ada, Alan] },
+        new() { Id = 3, Owner = Grace, Lead = Ada, Stage = Stage.Closed, Watchers = [] },
+    ];
+
+    private static List<int> FilterCases(string filter) =>
+        [.. CaseMap.ApplyFilter(Cases.AsQueryable(), filter).Select(c => c.Id)];
 
     private static readonly ListFieldMap<Item> Map =
         ListFieldMap<Item>.Create("name", i => i.Id)
@@ -354,5 +400,259 @@ public sealed class ListFieldMapTests
 
         // Assert
         error.Should().NotBeNull().And.NotContain("System.").And.NotContain("Wayd.");
+    }
+
+    [Fact]
+    public void ApplyFilter_MatchesAFieldByTheMemberItFiltersBy()
+    {
+        // Act
+        var ids = FilterCases($"owner={Grace.Id}");
+
+        // Assert
+        ids.Should().BeEquivalentTo([1, 3]);
+    }
+
+    [Fact]
+    public void ApplySort_OrdersAFieldByTheMemberItSortsBy()
+    {
+        // Act
+        var ids = CaseMap.ApplySort(Cases.AsQueryable(), "owner asc").Select(c => c.Id).ToList();
+
+        // Assert — Ada (2) before Grace (1, 3), though Grace's id is the smaller
+        ids.Should().Equal(2, 1, 3);
+    }
+
+    [Fact]
+    public void ApplyFilter_MatchesAnIdIgnoringCase()
+    {
+        // Act
+        var ids = FilterCases($"owner={Ada.Id.ToString().ToUpperInvariant()}");
+
+        // Assert
+        ids.Should().Equal(2);
+    }
+
+    [Fact]
+    public void ApplyFilter_MatchesABlankId()
+    {
+        // Act
+        var ids = FilterCases($"lead=|lead={Ada.Id}");
+
+        // Assert
+        ids.Should().BeEquivalentTo([1, 3]);
+    }
+
+    [Theory]
+    [InlineData("owner=nope")]
+    [InlineData("owner=0196a8d50000700080000000000000aa")]
+    public void FilterError_RefusesAValueThatIsNotAnId(string filter)
+    {
+        // Act
+        var error = CaseMap.FilterError(filter);
+
+        // Assert
+        error.Should().Contain("is not an id");
+    }
+
+    [Theory]
+    [InlineData("watchers=0196a8d5-0000-7000-8000-0000000000aa", new[] { 1, 2 })]
+    [InlineData("watchers=0196a8d5-0000-7000-8000-0000000000cc", new[] { 2 })]
+    [InlineData("watchers!=", new[] { 1, 2 })]
+    public void ApplyFilter_MatchesARowHoldingAnyOfACollectionsValues(string filter, int[] expected)
+    {
+        // Act
+        var ids = FilterCases(filter);
+
+        // Assert
+        ids.Should().BeEquivalentTo(expected);
+    }
+
+    [Theory]
+    [InlineData("watchers=")]
+    [InlineData("stage=Active|watchers=")]
+    [InlineData("(watchers= ,stage=Draft)")]
+    public void FilterError_RefusesComparingACollectionWithBlank(string filter)
+    {
+        // Act
+        var error = CaseMap.FilterError(filter);
+
+        // Assert
+        error.Should().Contain("compares watchers with blank");
+    }
+
+    [Theory]
+    [InlineData("watchers!=0196a8d5-0000-7000-8000-0000000000aa", "!=")]
+    [InlineData("stage=Draft,watchers!*0196", "!*")]
+    [InlineData("(watchers^0196|stage=Active)", "^")]
+    [InlineData("watchers>0196a8d5-0000-7000-8000-0000000000aa", ">")]
+    public void FilterError_RefusesAComparisonACollectionCannotMean(string filter, string op)
+    {
+        // Act — Gridify reads each per item, so `watchers!=ada` would match a row holding Ada and Alan
+        var error = CaseMap.FilterError(filter);
+
+        // Assert
+        error.Should().Contain($"compares watchers with '{op}'");
+    }
+
+    [Theory]
+    [InlineData("watchers=0196a8d5-0000-7000-8000-0000000000aa")]
+    [InlineData("watchers!=")]
+    [InlineData("(watchers=0196a8d5-0000-7000-8000-0000000000aa|watchers=0196a8d5-0000-7000-8000-0000000000cc),lead!=")]
+    public void FilterError_AllowsTheComparisonsACollectionMeans(string filter)
+    {
+        // Act
+        var error = CaseMap.FilterError(filter);
+
+        // Assert
+        error.Should().BeNull();
+    }
+
+    [Fact]
+    public void FilterError_AllowsAnyComparisonOnAFieldThatIsNotACollection()
+    {
+        // Act
+        var error = CaseMap.FilterError($"owner!={Ada.Id},lead!=,stage!=Draft");
+
+        // Assert
+        error.Should().BeNull();
+    }
+
+    [Fact]
+    public void FilterError_AllowsComparingAFieldWithBlank()
+    {
+        // Act
+        var error = CaseMap.FilterError("lead=");
+
+        // Assert
+        error.Should().BeNull();
+    }
+
+    [Fact]
+    public void SortError_RefusesSortingByACollection()
+    {
+        // Act
+        var error = CaseMap.SortError("stage asc, watchers desc");
+
+        // Assert
+        error.Should().Contain("names watchers, which this list filters by but cannot sort by");
+    }
+
+    [Fact]
+    public async Task ReadOptions_ListsEachValueOnceInLabelOrder()
+    {
+        // Act
+        var options = await CaseMap.ReadOptions(
+            Cases.AsDbSet(), "watchers", null, 10, TestContext.Current.CancellationToken);
+
+        // Assert
+        options.Options.Should().Equal(
+            new ListFilterOptionDto { Value = "0196a8d5-0000-7000-8000-0000000000aa", Label = "Ada Lovelace" },
+            new ListFilterOptionDto { Value = "0196a8d5-0000-7000-8000-0000000000cc", Label = "Alan Turing" });
+        options.HasMore.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ReadOptions_OrdersByRankBeforeLabel()
+    {
+        // Act
+        var options = await CaseMap.ReadOptions(
+            Cases.AsDbSet(), "stage", null, 10, TestContext.Current.CancellationToken);
+
+        // Assert — values are codes, which the field's filter reads back
+        options.Options.Select(o => o.Value).Should().Equal("Closed", "Active", "Draft");
+    }
+
+    [Fact]
+    public async Task ReadOptions_KeepsOnlyLabelsContainingTheSearch()
+    {
+        // Act
+        var options = await CaseMap.ReadOptions(
+            Cases.AsDbSet(), "owner", " Hop ", 10, TestContext.Current.CancellationToken);
+
+        // Assert
+        options.Options.Should().ContainSingle().Which.Label.Should().Be("Grace Hopper");
+    }
+
+    [Fact]
+    public async Task ReadOptions_StopsAtTheLimitAndSaysThereAreMore()
+    {
+        // Act
+        var options = await CaseMap.ReadOptions(
+            Cases.AsDbSet(), "owner", null, 1, TestContext.Current.CancellationToken);
+
+        // Assert
+        options.Options.Should().ContainSingle().Which.Label.Should().Be("Ada Lovelace");
+        options.HasMore.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ReadOptions_SaysThereAreNoMoreWhenTheLimitIsExactlyReached()
+    {
+        // Act
+        var options = await CaseMap.ReadOptions(
+            Cases.AsDbSet(), "owner", null, 2, TestContext.Current.CancellationToken);
+
+        // Assert
+        options.Options.Should().HaveCount(2);
+        options.HasMore.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("owner", true)]
+    [InlineData("OWNER", true)]
+    [InlineData("lead", false)]
+    [InlineData(null, false)]
+    public void OptionsError_AcceptsOnlyAFieldWithOptions(string? field, bool accepted)
+    {
+        // Act
+        var error = CaseMap.OptionsError(field);
+
+        // Assert
+        if (accepted)
+            error.Should().BeNull();
+        else
+            error.Should().Contain("owner, stage, watchers");
+    }
+
+    [Fact]
+    public void Options_RefusesAFieldTheMapDoesNotFilterBy()
+    {
+        // Act
+        var act = () => ListFieldMap<Case>.Create("id", c => c.Id)
+            .Map("id", c => c.Id)
+            .Options("owner", cases => cases.Select(c => new ListFilterOptionRow<Guid> { Value = c.Owner.Id, Label = c.Owner.Name, Rank = 0, Detail = null }));
+
+        // Assert
+        act.Should().Throw<ArgumentException>().WithMessage("*'owner' is not a field of this map*");
+    }
+
+    [Fact]
+    public async Task ReadOptions_TellsApartValuesThatShareALabel()
+    {
+        // Arrange — two people named Ada Lovelace, and one named Grace Hopper
+        var twin = new Person(Guid.Parse("0196a8d5-0000-7000-8000-0000000000ee"), "Ada Lovelace");
+        var map = ListFieldMap<Case>.Create("id", c => c.Id)
+            .Map("owner", c => c.Owner.Id)
+            .Options("owner", cases => cases.Select(c => new ListFilterOptionRow<Guid>
+            {
+                Value = c.Owner.Id,
+                Label = c.Owner.Name,
+                Rank = 0,
+                Detail = c.Owner == twin ? "E-2" : c.Owner == Ada ? "E-1" : "E-3",
+            }));
+        List<Case> cases =
+        [
+            new() { Id = 1, Owner = Ada, Stage = Stage.Active },
+            new() { Id = 2, Owner = twin, Stage = Stage.Active },
+            new() { Id = 3, Owner = Grace, Stage = Stage.Active },
+            new() { Id = 4, Owner = Ada, Stage = Stage.Draft },
+        ];
+
+        // Act
+        var options = await map.ReadOptions(cases.AsDbSet(), "owner", null, 10, TestContext.Current.CancellationToken);
+
+        // Assert — only the shared label carries its detail
+        options.Options.Select(o => o.Label).Should().Equal(
+            "Ada Lovelace (E-1)", "Ada Lovelace (E-2)", "Grace Hopper");
     }
 }

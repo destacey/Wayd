@@ -4,25 +4,28 @@ import {
   incidentsCreate,
   incidentsCreateTeamsChat,
   incidentsGetIncident,
+  incidentsGetFilterOptions,
   incidentsGetIncidentFigures,
   incidentsGetIncidentTimelineLinkEntries,
   incidentsGetIncidentTimelineNotes,
   incidentsGetIncidentWorkItems,
   incidentsGetIncidentWorkflowActions,
-  incidentsGetIncidents,
   incidentsGetStatusWorkflow,
   incidentsLinkTeamsChat,
   incidentsManageIncidentWorkItems,
   incidentsUpdateDetails,
 } from '@/src/services/api/incidents'
+import type { FilterOptionsSource } from '@/src/components/common/wayd-grid'
+import { useAppDispatch } from '@/src/hooks'
 import { apiSlice } from '../apiSlice'
+import { filterOptionsLoader } from '../common/filter-options-source'
 import { QueryTags } from '../query-tags'
 import type {
   CreateIncidentRequest,
   IncidentDto,
   ManageIncidentWorkItemsRequest,
   IncidentFiguresDto,
-  PagedResponseOfIncidentSummaryDto,
+  ListFilterOptionsDto,
   ObjectIdAndKey,
   CreateIncidentTeamsChatRequest,
   LinkIncidentTeamsChatRequest,
@@ -37,47 +40,45 @@ import type {
   StatusWorkflowDetailsDto,
 } from '@/src/services/api/wayd.schemas'
 
-export interface GetIncidentsRequest {
-  page?: number
-  pageSize?: number
+/** The incidents filter bar's filters, which the figures and the grid share. */
+export interface IncidentListFilters {
   statuses?: ProductStatusAlias[]
   severityLevelIds?: string[]
 }
 
+/** The incidents grid columns whose values `GET incidents/filter-options` lists. */
+export type IncidentFilterField =
+  'severity' | 'state' | 'products' | 'releases' | 'reportedBy' | 'commander'
+
+export interface GetIncidentFilterOptionsRequest {
+  field: IncidentFilterField
+  search: string
+}
+
 export const incidentsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getIncidents: builder.query<
-      PagedResponseOfIncidentSummaryDto,
-      GetIncidentsRequest | undefined
+    getIncidentFilterOptions: builder.query<
+      ListFilterOptionsDto,
+      GetIncidentFilterOptionsRequest
     >({
-      queryFn: async (args) => {
+      queryFn: async ({ field, search }, { signal }) => {
         try {
-          const data = await incidentsGetIncidents({
-            page: args?.page,
-            pageSize: args?.pageSize,
-            status: args?.statuses,
-            severityLevelId: args?.severityLevelIds,
-          })
+          const data = await incidentsGetFilterOptions(
+            { field, search: search || undefined },
+            { signal },
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
         }
       },
-      providesTags: (result) =>
-        result?.items
-          ? [
-              ...result.items.map(({ id }) => ({
-                type: QueryTags.Incident as const,
-                id,
-              })),
-              { type: QueryTags.Incident, id: 'LIST' },
-            ]
-          : [{ type: QueryTags.Incident, id: 'LIST' }],
+      // A new or changed incident may bring a value the cached answer lacks.
+      providesTags: [{ type: QueryTags.Incident, id: 'LIST' }],
     }),
     getIncidentFigures: builder.query<
       IncidentFiguresDto,
-      Pick<GetIncidentsRequest, 'statuses' | 'severityLevelIds'> | undefined
+      IncidentListFilters | undefined
     >({
       queryFn: async (args) => {
         try {
@@ -329,7 +330,6 @@ export const incidentsApi = apiSlice.injectEndpoints({
 })
 
 export const {
-  useGetIncidentsQuery,
   useGetIncidentFiguresQuery,
   useGetIncidentQuery,
   useCreateIncidentMutation,
@@ -345,3 +345,22 @@ export const {
   useGetIncidentWorkflowActionsQuery,
   useApplyIncidentWorkflowActionMutation,
 } = incidentsApi
+
+/**
+ * The set filter source for one incidents grid column, read through
+ * `getIncidentFilterOptions` so each search is cached.
+ */
+export const useIncidentFilterOptions = () => {
+  const dispatch = useAppDispatch()
+  return (
+    field: IncidentFilterField,
+    extra: Omit<FilterOptionsSource, 'load'> = {},
+  ): FilterOptionsSource => ({
+    load: filterOptionsLoader(
+      dispatch,
+      incidentsApi.endpoints.getIncidentFilterOptions,
+      (search) => ({ field, search }),
+    ),
+    ...extra,
+  })
+}

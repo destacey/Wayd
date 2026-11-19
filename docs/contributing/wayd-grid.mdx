@@ -108,6 +108,7 @@ Where a variant sets a flag, that is the starting point — the defaults below d
   isLoading={isLoading}
   onRefresh={() => refetch()}        // shows the toolbar refresh button
   emptyMessage="No widgets found"    // default 'No records found'
+  emptyFilteredMessage="No widgets match the filters." // when filters or search hide every row; default 'No rows match the filters.'
   csvFileName="widgets"              // CSV download name prefix; default 'grid-export'
   persistStateKey="ppm-widgets"      // opt-in column persistence (see below)
   initialSorting={[{ id: 'name', desc: false }]}
@@ -183,6 +184,7 @@ Columns are TanStack `ColumnDef`s. The most common shape:
 | `hiddenByDefault` | Starts the column hidden but leaves it in Choose Columns, so the user owns it from there. A user's choice wins; Reset Columns returns it to hidden |
 | `filterType` | Filter/data type: `'text' \| 'number' \| 'date' \| 'dateTime' \| 'set'` (aliases `'select'`→`set`, `'numericRange'`→`number`). Defaults to `'text'` |
 | `filterOptions` | `{ label, value }[]` for a `set` filter (stable order + labels) |
+| `filterOptionsSource` | `{ load, includeBlank? }`: loads a `set` filter's values as the user searches, instead of listing them up front (see [Where a set filter's values come from](#where-a-set-filters-values-come-from)) |
 | `filterEnableSet` | On a text column, also offer the Excel-style checkbox set filter alongside the text filter |
 | `multiValues` | `(row) => string[]` for a column whose row holds several values; the set filter lists the individual values read from each row, so a value containing a comma stays whole. `createCsvColumn` sets it (see [Multi-value columns](#multi-value-columns)) |
 | `filterPlaceholder` | Placeholder for text and number filter inputs |
@@ -282,6 +284,7 @@ const fetchRows = async ({ page, pageSize, filter, sort }: ServerPageRequest) =>
     listKey: [importProcess.id, status],
     fields: ['rowNumber', 'importId', 'status', 'error', 'warning', 'attemptedOn'],
     noun: 'rows',
+    nounOne: 'row', // "1 row" rather than "1 rows"
     refreshInterval: running ? 5000 : undefined,
     refreshKey: importProcess.status,
   }}
@@ -302,16 +305,67 @@ const fetchRows = async ({ page, pageSize, filter, sort }: ServerPageRequest) =>
   date column one of the two. Server mode infers no type from the rows — they are a window that empties on every
   new query — so a number column declares `meta: { filterType: 'number' }`, and an undeclared column filters as
   text.
-- **A set filter lists `meta.filterOptions`**, whose values are what the server compares — an enum's codes, with
-  the labels to show. The loaded rows are a window of the list, so their values are not the column's.
+- **A set filter lists only the values it is given**, never the loaded rows' values: those are a window of the
+  list. See [Where a set filter's values come from](#where-a-set-filters-values-come-from).
 - **Quick search shows only with `search: true`**, for a list that takes a `search` parameter.
-- **Off in server mode:** grouping, tree mode, row reorder, cell editing, the chart pane, the date tree and CSV
-  export. Each needs the whole list (or a server operation of its own), which the grid does not have.
+- **CSV export reads the whole list**, page by page at 500 rows, under the filter, sort and search the grid
+  shows, then writes it through the same columns as a client-side export. It stops at `exportLimit` rows (10,000
+  by default) and says how many it left out. A message shows its progress, and pressing the button again cancels
+  it; leaving the page cancels it too. It reads by page number, so a row added or removed while it reads can shift
+  a later page by one and appear twice or not at all — the file is a reading of a moving list, not a snapshot.
+- **Off in server mode:** grouping, tree mode, row reorder, cell editing, the chart pane and the date tree. Each
+  needs the whole list (or a server operation of its own), which the grid does not have.
 - **Rows need an `id`** (or `getRowId`): rows arrive page by page, so a row's place in the table moves while its id
   must not. A row with neither falls back to its place in the table, with a warning in development.
 
-Lists that page but do not yet sort or filter on the server (background jobs, dead letters, incidents, the import
-process list) still use `WaydGridPager` in the toolbar's `rightSlot`, with `useGridPaging` holding the page; the
+### Where a set filter's values come from
+
+Every set filter in server mode gets its values one of three ways, and the values are what the server's field
+compares — an enum's code or a record's id, never a name:
+
+- **A closed set (an enum)** lists its codes with `enumFilterOptions(ProductStatusAlias, labels?, only?)` as
+  `meta.filterOptions`. No request: the client already knows every code.
+- **Values the page already holds** (the severity levels its filter bar loaded, say) are passed as
+  `meta.filterOptions` directly.
+- **Anything else** loads them with `meta.filterOptionsSource`, from the list's `filter-options` endpoint (see
+  [The values a filter offers](./api.mdx#the-values-a-filter-offers)), through an RTK Query endpoint so each
+  search is cached. `filterOptionsLoader` (`store/features/common/filter-options-source.ts`) turns that endpoint
+  into a source's `load`, aborting the request when the panel drops it. The list's API file wraps it in a hook
+  that the grid calls once, as `useIncidentFilterOptions` does:
+
+```tsx
+// incidents-api.ts
+export const useIncidentFilterOptions = () => {
+  const dispatch = useAppDispatch()
+  return (field: IncidentFilterField, extra: Omit<FilterOptionsSource, 'load'> = {}) => ({
+    load: filterOptionsLoader(dispatch, incidentsApi.endpoints.getIncidentFilterOptions, (search) => ({
+      field,
+      search,
+    })),
+    ...extra,
+  })
+}
+
+// incidents-grid.tsx
+const sourceFor = useIncidentFilterOptions()
+meta: { filterType: 'set', filterOptionsSource: sourceFor('commander', { includeBlank: true }) }
+```
+
+The options endpoint provides the list's `LIST` tag, so creating or changing a record drops the cached values.
+A column over a field the server filters but cannot sort (a collection) sets `enableSorting: false` itself;
+`fields` alone turns both on.
+
+The panel calls `load` only when the filter opens and again, debounced, as the user types, aborting the request a
+new search replaces. It works **by inclusion**: nothing is checked until the user picks values, because a column
+whose values are not all known cannot say "every value but these". Picked values stay listed above the matches,
+with their labels, whatever the search returns, and the filter keeps those labels so the header can name its
+value. When the source has more than it returned, the panel says so and asks the user to narrow. `includeBlank`
+offers (Blanks) for a field the server compares with blank (`commander=`). In client mode a source's values must be the
+column's own values, the ones its accessor returns, since the grid matches rows against them; a server's ids
+would match no row.
+
+Lists that page but do not yet sort or filter on the server (background jobs, dead letters, the import process
+list) still use `WaydGridPager` in the toolbar's `rightSlot`, with `useGridPaging` holding the page; the
 grid's sort, search, filters and export act only on the page it holds there. Each moves to server mode in turn,
 and the pager goes with the last of them.
 
@@ -514,7 +568,7 @@ Providing `grouping` (column ids, outermost first) groups a **flat** grid: each 
 
 ## CSV export
 
-The toolbar export button downloads the **currently visible** columns (respecting hide/pinning/order) and the **filtered + sorted** rows, in display order. Grouped headers export as band rows above the leaf headers. Control it per column with `meta.enableExport`, `meta.exportHeader`, and `meta.exportFormatter`; name the file with the `csvFileName` prop (default `grid-export`), to which the download adds a timestamp.
+The toolbar export button downloads the **currently visible** columns (respecting hide/pinning/order) and the **filtered + sorted** rows, in display order. Grouped headers export as band rows above the leaf headers. Control it per column with `meta.enableExport`, `meta.exportHeader`, and `meta.exportFormatter`; name the file with the `csvFileName` prop (default `grid-export`), to which the download adds a timestamp. In server mode the rows are the whole list rather than those loaded; see [Server-paged lists](#server-paged-lists).
 
 ## Conventions
 

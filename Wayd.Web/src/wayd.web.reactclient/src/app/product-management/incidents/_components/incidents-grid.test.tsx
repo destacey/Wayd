@@ -1,7 +1,59 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
+import type { Mock } from 'vitest'
 import userEvent from '@testing-library/user-event'
-import { IncidentSummaryDto } from '@/src/services/api/wayd.schemas'
+import type { FilterOptionsSource } from '@/src/components/common/wayd-grid'
+import {
+  IncidentSummaryDto,
+  ProductStatusAlias,
+} from '@/src/services/api/wayd.schemas'
+import type { IncidentFilterField } from '@/src/store/features/product-management/incidents-api'
+import { downloadCsvWithTimestamp } from '@/src/utils/csv-utils'
 import IncidentsGrid from './incidents-grid'
+
+vi.mock(import('@/src/utils/csv-utils'), async (importOriginal) => ({
+  ...(await importOriginal()),
+  downloadCsvWithTimestamp: vi.fn(),
+}))
+
+const { incidentsGetIncidents, loads } = vi.hoisted(() => ({
+  incidentsGetIncidents: vi.fn(),
+  loads: new Map<string, Mock<FilterOptionsSource['load']>>(),
+}))
+
+vi.mock(import('@/src/services/api/incidents'), async (importOriginal) => ({
+  ...(await importOriginal()),
+  incidentsGetIncidents,
+}))
+
+const OPTIONS: Record<string, { value: string; label: string }[]> = {
+  products: [
+    { value: 'p1', label: 'API Gateway' },
+    { value: 'p2', label: 'Pricing Portal' },
+  ],
+  commander: [{ value: 'c1', label: 'Addison Waldow' }],
+}
+
+vi.mock(
+  import('@/src/store/features/product-management/incidents-api'),
+  async (importOriginal) => ({
+    ...(await importOriginal()),
+    useIncidentFilterOptions:
+      () =>
+      (
+        field: IncidentFilterField,
+        extra: Omit<FilterOptionsSource, 'load'> = {},
+      ): FilterOptionsSource => {
+        const load =
+          loads.get(field) ??
+          vi.fn<FilterOptionsSource['load']>(async () => ({
+            options: OPTIONS[field] ?? [],
+            hasMore: false,
+          }))
+        loads.set(field, load)
+        return { load, ...extra }
+      },
+  }),
+)
 
 const incident = (
   key: number,
@@ -13,7 +65,7 @@ const incident = (
     id: `i${key}`,
     key,
     title,
-    noticedAt: new Date('2026-11-10T12:00:00Z'),
+    noticedAt: '2026-11-10T12:00:00Z',
     commander: { id: 'c1', key: 1, name: 'Addison Waldow' },
     submittedBy: { id: 's1', key: 2, name: 'Casey Submitter' },
     reportedBy: { id: 'r1', key: 3, name: 'Riley Reporter' },
@@ -28,62 +80,202 @@ const incident = (
     releases,
   }) as unknown as IncidentSummaryDto
 
+const ROWS = [
+  incident(
+    2,
+    'Checkout down',
+    [{ id: 'p1', key: 20, name: 'API Gateway' }],
+    [{ id: 'r1', key: 3, name: 'Fulfillment Suite Q1 2025' }],
+  ),
+  {
+    ...incident(1, 'Quiet', [{ id: 'p3', key: 22, name: 'Messaging Catalog' }]),
+    commander: null,
+  } as unknown as IncidentSummaryDto,
+]
+
 const filterToggleOf = (header: string) => {
-  const selector = '[class*="filterButton"], .anticon-filter'
   const th = screen.getByText(header).closest('th')!
   const index = Array.from(th.parentElement!.children).indexOf(th)
-  const below = th.parentElement!.nextElementSibling?.children[index]
-  const toggle =
-    th.querySelector(selector) ?? below?.querySelector(selector) ?? null
-  expect(toggle).toBeTruthy()
-  return toggle as Element
+  const below = th.parentElement!.nextElementSibling!.children[index]
+  return within(below as HTMLElement).getByRole('button', {
+    name: /Filter column/,
+  })
 }
 
+const lastRequest = () => incidentsGetIncidents.mock.calls.at(-1)?.[0]
+
 describe('IncidentsGrid', () => {
-  it('filters by each linked product and release', async () => {
-    // Arrange
+  beforeEach(() => {
+    loads.clear()
+    incidentsGetIncidents.mockReset()
+    incidentsGetIncidents.mockResolvedValue({ items: ROWS, totalCount: 2 })
+  })
+
+  it('reads the incidents the filter bar names and links each product and release', async () => {
+    // Act
     render(
       <IncidentsGrid
-        isLoading={false}
-        incidents={[
-          incident(
-            1,
-            'Checkout down',
-            [
-              { id: 'p1', key: 20, name: 'API Gateway' },
-              { id: 'p2', key: 21, name: 'Pricing Portal' },
-            ],
-            [
-              { id: 'r1', key: 3, name: 'Fulfillment Suite Q1 2025' },
-              { id: 'r2', key: 1, name: 'Fulfillment Suite Q4 2024' },
-            ],
-          ),
-          incident(2, 'Quiet', [{ id: 'p3', key: 22, name: 'Messaging Catalog' }]),
-        ]}
+        statuses={[ProductStatusAlias.Open]}
+        severityLevelIds={['sev']}
       />,
     )
 
-    // Act
-    await userEvent.click(filterToggleOf('Products'))
-
-    // Assert — the collapsed "Name +1" label cannot be filtered; each product is its own value
-    expect(await screen.findByRole('checkbox', { name: 'API Gateway' })).toBeInTheDocument()
-    expect(screen.getByRole('checkbox', { name: 'Pricing Portal' })).toBeInTheDocument()
-    expect(screen.getByRole('checkbox', { name: 'Messaging Catalog' })).toBeInTheDocument()
+    // Assert
+    expect(await screen.findByText('Checkout down')).toBeInTheDocument()
+    expect(lastRequest()).toMatchObject({
+      page: 1,
+      status: ['Open'],
+      severityLevelId: ['sev'],
+    })
     expect(screen.getByRole('link', { name: 'API Gateway' })).toHaveAttribute(
       'href',
       '/product-management/products/20',
     )
-
-    await userEvent.click(filterToggleOf('Releases'))
-    expect(
-      await screen.findByRole('checkbox', { name: 'Fulfillment Suite Q1 2025' }),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('checkbox', { name: 'Fulfillment Suite Q4 2024' }),
-    ).toBeInTheDocument()
     expect(
       screen.getByRole('link', { name: 'Fulfillment Suite Q1 2025' }),
     ).toHaveAttribute('href', '/product-management/releases/3')
+    expect(screen.getByText('2 incidents')).toBeInTheDocument()
+  })
+
+  it('sends no state or severity when the filter bar names none', async () => {
+    // Act
+    render(<IncidentsGrid statuses={[]} severityLevelIds={[]} />)
+    await screen.findByText('Checkout down')
+
+    // Assert
+    expect(lastRequest()).toMatchObject({
+      status: undefined,
+      severityLevelId: undefined,
+    })
+  })
+
+  it('filters by a product its filter loads, matched by id', async () => {
+    // Arrange
+    render(<IncidentsGrid statuses={[]} severityLevelIds={[]} />)
+    await screen.findByText('Checkout down')
+
+    // Act
+    await userEvent.click(filterToggleOf('Products'))
+    const option = await screen.findByText('Pricing Portal')
+    await userEvent.click(
+      within(option.closest('label')!).getByRole('checkbox'),
+    )
+
+    // Assert
+    expect(loads.get('products')).toHaveBeenCalled()
+    expect(loads.get('reportedBy')).not.toHaveBeenCalled()
+    await waitFor(() =>
+      expect(lastRequest()).toMatchObject({ filter: 'products=p2' }),
+    )
+  })
+
+  it('filters to incidents with no commander', async () => {
+    // Arrange
+    render(<IncidentsGrid statuses={[]} severityLevelIds={[]} />)
+    await screen.findByText('Checkout down')
+
+    // Act
+    await userEvent.click(filterToggleOf('Commander'))
+    const blanks = await screen.findByText('(Blanks)')
+    await userEvent.click(
+      within(blanks.closest('label')!).getByRole('checkbox'),
+    )
+
+    // Assert
+    await waitFor(() =>
+      expect(lastRequest()).toMatchObject({ filter: 'commander=' }),
+    )
+  })
+
+  it('sorts by a person on the server, and not by products', async () => {
+    // Arrange
+    render(<IncidentsGrid statuses={[]} severityLevelIds={[]} />)
+    await screen.findByText('Checkout down')
+
+    // Act
+    await userEvent.click(screen.getByText('Products'))
+    await userEvent.click(screen.getByText('Reported by'))
+
+    // Assert
+    await waitFor(() =>
+      expect(lastRequest()).toMatchObject({ sort: 'reportedBy asc' }),
+    )
+    expect(
+      incidentsGetIncidents.mock.calls.some(([request]) =>
+        request.sort?.includes('products'),
+      ),
+    ).toBe(false)
+  })
+
+  it('links each person to their employee record, and leaves no commander blank', async () => {
+    // Act
+    render(<IncidentsGrid statuses={[]} severityLevelIds={[]} />)
+    await screen.findByText('Checkout down')
+
+    // Assert
+    expect(
+      screen.getAllByRole('link', { name: 'Riley Reporter' })[0],
+    ).toHaveAttribute('href', '/organizations/employees/3')
+    expect(
+      screen.getByRole('link', { name: 'Addison Waldow' }),
+    ).toHaveAttribute('href', '/organizations/employees/1')
+  })
+
+  it('counts a single incident in the singular', async () => {
+    // Arrange
+    incidentsGetIncidents.mockResolvedValue({ items: [ROWS[0]], totalCount: 1 })
+
+    // Act
+    render(<IncidentsGrid statuses={[]} severityLevelIds={[]} />)
+
+    // Assert
+    expect(await screen.findByText('1 incident')).toBeInTheDocument()
+  })
+
+  it('says none match, not none yet, when the filter bar narrows the list', async () => {
+    // Arrange
+    incidentsGetIncidents.mockResolvedValue({ items: [], totalCount: 0 })
+
+    // Act
+    render(
+      <IncidentsGrid
+        statuses={[ProductStatusAlias.Closed]}
+        severityLevelIds={[]}
+      />,
+    )
+
+    // Assert
+    expect(
+      await screen.findByText('No incidents match the filters.'),
+    ).toBeInTheDocument()
+  })
+
+  it('says there are none yet when nothing narrows the list', async () => {
+    // Arrange
+    incidentsGetIncidents.mockResolvedValue({ items: [], totalCount: 0 })
+
+    // Act
+    render(<IncidentsGrid statuses={[]} severityLevelIds={[]} />)
+
+    // Assert
+    expect(await screen.findByText('No incidents yet.')).toBeInTheDocument()
+  })
+
+  it('exports an incident’s age as it is shown, not as milliseconds', async () => {
+    // Arrange
+    render(<IncidentsGrid statuses={[]} severityLevelIds={[]} />)
+    await screen.findByText('Checkout down')
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Export to CSV' }))
+
+    // Assert
+    await waitFor(() => expect(downloadCsvWithTimestamp).toHaveBeenCalled())
+    const [header, first] = vi
+      .mocked(downloadCsvWithTimestamp)
+      .mock.calls.at(-1)![0]
+      .split('\n')
+    const age = header.split(',').indexOf('Age')
+    expect(first.split(',')[age]).not.toMatch(/^\d+$/)
   })
 })

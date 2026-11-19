@@ -5955,9 +5955,15 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasAlternateKey("Key");
 
+                    b.HasIndex("CommanderEmployeeId");
+
+                    b.HasIndex("ReportedByEmployeeId");
+
                     b.HasIndex("SeverityLevelId");
 
                     b.HasIndex("StatusWorkflowId");
+
+                    b.HasIndex("SubmittedByEmployeeId");
 
                     b.ToTable("Incidents", "ProductManagement");
                 });
@@ -11667,10 +11673,27 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Incident", b =>
                 {
-                    b.HasOne("Wayd.ProductManagement.Domain.Models.IncidentSeverityLevel", null)
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "Commander")
+                        .WithMany()
+                        .HasForeignKey("CommanderEmployeeId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "ReportedBy")
+                        .WithMany()
+                        .HasForeignKey("ReportedByEmployeeId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.IncidentSeverityLevel", "SeverityLevel")
                         .WithMany()
                         .HasForeignKey("SeverityLevelId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "SubmittedBy")
+                        .WithMany()
+                        .HasForeignKey("SubmittedByEmployeeId")
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.OwnsOne("Wayd.Common.Domain.Integrations.RecordIntegration", "TeamsChat", b1 =>
@@ -11699,6 +11722,14 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("IncidentId");
                         });
+
+                    b.Navigation("Commander");
+
+                    b.Navigation("ReportedBy");
+
+                    b.Navigation("SeverityLevel");
+
+                    b.Navigation("SubmittedBy");
 
                     b.Navigation("TeamsChat");
                 });
@@ -11739,11 +11770,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentSeverityLevel", b =>
                 {
-                    b.HasOne("Wayd.ProductManagement.Domain.Models.IncidentSeveritySet", null)
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.IncidentSeveritySet", "Set")
                         .WithMany("Levels")
                         .HasForeignKey("SetId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Set");
                 });
 
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentTimelineLinkEntry", b =>

@@ -1,5 +1,5 @@
 using System.Linq.Expressions;
-using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Application.Models;
 using Wayd.ProductManagement.Application.Incidents.Dtos;
 using Wayd.ProductManagement.Domain.Models;
@@ -41,7 +41,8 @@ public sealed class GetIncidentTimelineNotesQueryHandler(IProductManagementDbCon
             .Where(n => n.IncidentId == incidentId)
             .OrderBy(n => n.RecordedAt)
             .Join(
-                _context.Employees.AsNoTracking(),
+                // A deleted employee's entries stay on the timeline, under their name.
+                _context.Employees.AsNoTracking().IgnoreQueryFilters(),
                 note => note.AuthorEmployeeId,
                 employee => employee.Id,
                 (note, employee) => new IncidentTimelineNoteDto
@@ -49,10 +50,7 @@ public sealed class GetIncidentTimelineNotesQueryHandler(IProductManagementDbCon
                     Id = note.Id,
                     Body = note.Body,
                     RecordedAt = note.RecordedAt,
-                    Author = NavigationDto.Create(
-                        employee.Id,
-                        employee.Key,
-                        employee.Name.FullName),
+                    Author = EmployeeNavigationDto.From(employee),
                 })
             .ToListAsync(cancellationToken);
     }

@@ -52,3 +52,8 @@
   padding-top: var(--ant-margin-xxs);
   border-top: 1px solid var(--ant-color-border-secondary);
 }
+
+.divider {
+  margin: var(--ant-margin-xxs) 0;
+  border-top: 1px solid var(--ant-color-border-secondary);
+}

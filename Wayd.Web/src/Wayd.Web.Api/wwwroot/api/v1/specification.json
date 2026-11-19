@@ -13021,8 +13021,8 @@
         "tags": [
           "Incidents"
         ],
-        "summary": "List incidents, highest key first.",
-        "description": "One page of the incidents matching the state and severity filters.",
+        "summary": "List incidents, filtered and sorted, highest key first by default.",
+        "description": "One page of the incidents matching the state and severity filters. `filter` and `sort` use Gridify syntax over `key`, `title`, `severity`, `state`, `products`, `releases`, `reportedBy`, `commander` and `noticedAt`: `filter=title=*checkout` (contains), `^` starts with, `$` ends with, `!=` not equal, `field=` blank, `,` and, `|` or, parentheses to group, `\\` before any other character to match it literally. `severity`, `products`, `releases`, `reportedBy` and `commander` match by id (`reportedBy=0196a8d5-…`), `state` by status name, and `noticedAt` takes ISO instants (`noticedAt>=2026-03-01T00:00:00Z`). `products` and `releases` match an incident holding any of the ids, cannot be sorted by, and cannot be compared with blank. `sort=severity asc, noticedAt desc`: severity sorts by its rank and people by name. A field outside that list fails with a 422. The values each filterable column holds come from `GET filter-options`.",
         "operationId": "Incidents_GetIncidents",
         "parameters": [
           {
@@ -13068,6 +13068,26 @@
                 "type": "string",
                 "format": "uuid"
               }
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "schema": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": [
+                "null",
+                "string"
+              ]
             }
           }
         ],
@@ -13133,6 +13153,74 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incidents/filter-options": {
+      "get": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "List the values one incidents column holds, for its filter.",
+        "description": "The distinct values `field` holds across every incident, each with the `value` to send as `field=value` in the list's `filter` and the `label` to show for it. `field` is one of `severity` (in rank order), `state`, `products`, `releases`, `reportedBy` or `commander`; the others are in label order. `search` keeps the labels containing it, ignoring case. At most `limit` values (1 to 200, 100 by default) are returned; `hasMore` is true when more match, so narrow them with `search`. An unknown field fails with a 422.",
+        "operationId": "Incidents_GetFilterOptions",
+        "parameters": [
+          {
+            "name": "field",
+            "in": "query",
+            "schema": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListFilterOptionsDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -70134,7 +70222,7 @@
           "submittedBy": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/NavigationDto"
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
               }
             ],
             "description": "The employee who opened the incident."
@@ -70142,7 +70230,7 @@
           "reportedBy": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/NavigationDto"
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
               }
             ],
             "description": "The employee who reported the incident."
@@ -70150,7 +70238,7 @@
           "commander": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/NavigationDto"
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
               },
               {
                 "type": "null"
@@ -70477,7 +70565,7 @@
           "submittedBy": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/NavigationDto"
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
               }
             ],
             "description": "The employee who opened the incident."
@@ -70485,7 +70573,7 @@
           "reportedBy": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/NavigationDto"
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
               }
             ],
             "description": "The employee who reported the incident."
@@ -70493,7 +70581,7 @@
           "commander": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/NavigationDto"
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
               },
               {
                 "type": "null"
@@ -70564,7 +70652,7 @@
             "format": "date-time"
           },
           "actor": {
-            "$ref": "#/components/schemas/NavigationDto"
+            "$ref": "#/components/schemas/EmployeeNavigationDto"
           },
           "targetId": {
             "type": [
@@ -70614,7 +70702,7 @@
             "format": "date-time"
           },
           "author": {
-            "$ref": "#/components/schemas/NavigationDto"
+            "$ref": "#/components/schemas/EmployeeNavigationDto"
           }
         },
         "additionalProperties": false,
@@ -74368,6 +74456,47 @@
           }
         },
         "additionalProperties": false
+      },
+      "ListFilterOptionDto": {
+        "required": [
+          "value",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "The value to send in the list's `filter` for this column: `field=value`."
+          },
+          "label": {
+            "type": "string",
+            "description": "What to show for the value. When two values share a label, each carries what tells it apart."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One value a person can pick in a list column's filter."
+      },
+      "ListFilterOptionsDto": {
+        "required": [
+          "options",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ListFilterOptionDto"
+            },
+            "description": "The values, in the column's order: by rank where it has one, then by label."
+          },
+          "hasMore": {
+            "type": "boolean",
+            "description": "True when more values match than were returned; narrow them with a search."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The values a list column's filter offers, as far as one request reads them."
       },
       "LocalScheduleDto": {
         "required": [

@@ -278,6 +278,7 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
           listKey: [importProcess.id, rowFilter],
           fields: ROW_FIELDS,
           noun: 'rows',
+          nounOne: 'row',
           // The rows change while a run goes, and once more when it finishes:
           // the last poll can land just before.
           refreshInterval: running ? POLLING_INTERVAL_MS : undefined,

@@ -1,6 +1,9 @@
 // Types
 export type {
   FilterOption,
+  FilterOptionsPage,
+  FilterOptionsRequest,
+  FilterOptionsSource,
   WaydGridColumnMeta,
   WaydGridProps,
   WaydGridHandle,
@@ -53,6 +56,10 @@ export {
   workStatusCategorySort,
 } from '../wayd-grid-core/grid-sorting'
 
+// Set filter options for a column on a closed set (an enum), listed without a
+// request — the counterpart of meta.filterOptionsSource for open sets.
+export { enumFilterOptions } from '../wayd-grid-core/filter-options'
+
 // Multi-value set filter (set panel over individual values, e.g. a Roles column
 // whose accessor is the comma-joined names). Pair with meta.filterOptions.
 export { createMultiValueSetFilter } from '../wayd-grid-core/filters'
@@ -103,6 +110,7 @@ export {
   renderUserLink,
   renderWorkItemLink,
   renderAssignedToLink,
+  renderEmployeeLink,
   renderWorkStatusTag,
   renderDependencyHealthTag,
 } from '../wayd-grid-core/cell-renderers'
@@ -113,6 +121,7 @@ export type {
   UserLinkTarget,
   WorkItemLinkTarget,
   AssignedToLinkTarget,
+  EmployeeLinkTarget,
   WorkStatusTagTarget,
   DependencyHealthTarget,
 } from '../wayd-grid-core/cell-renderers'

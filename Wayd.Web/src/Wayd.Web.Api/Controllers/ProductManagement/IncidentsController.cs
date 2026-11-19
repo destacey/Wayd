@@ -34,8 +34,9 @@ public class IncidentsController(IDispatcher dispatcher, IWorkDbContext workDbCo
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Incidents)]
-    [EndpointSummary("List incidents, highest key first.")]
-    [EndpointDescription("One page of the incidents matching the state and severity filters.")]
+    [EndpointSummary("List incidents, filtered and sorted, highest key first by default.")]
+    [EndpointDescription(
+        "One page of the incidents matching the state and severity filters. `filter` and `sort` use Gridify syntax over `key`, `title`, `severity`, `state`, `products`, `releases`, `reportedBy`, `commander` and `noticedAt`: `filter=title=*checkout` (contains), `^` starts with, `$` ends with, `!=` not equal, `field=` blank, `,` and, `|` or, parentheses to group, `\\` before any other character to match it literally. `severity`, `products`, `releases`, `reportedBy` and `commander` match by id (`reportedBy=0196a8d5-…`), `state` by status name, and `noticedAt` takes ISO instants (`noticedAt>=2026-03-01T00:00:00Z`). `products` and `releases` match an incident holding any of the ids, cannot be sorted by, and cannot be compared with blank. `sort=severity asc, noticedAt desc`: severity sorts by its rank and people by name. A field outside that list fails with a 422. The values each filterable column holds come from `GET filter-options`.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<PagedResponse<IncidentSummaryDto>>> GetIncidents(
@@ -43,13 +44,35 @@ public class IncidentsController(IDispatcher dispatcher, IWorkDbContext workDbCo
         [FromQuery] int pageSize = PageSizes.Default,
         [FromQuery] ProductStatusAlias[]? status = null,
         [FromQuery] Guid[]? severityLevelId = null,
+        [FromQuery] string? filter = null,
+        [FromQuery] string? sort = null,
         CancellationToken cancellationToken = default)
     {
         var incidents = await _dispatcher.Send(
-            new GetIncidentsQuery(new PageRequest(page, pageSize), status, severityLevelId),
+            new GetIncidentsQuery(new PageRequest(page, pageSize), status, severityLevelId, filter, sort),
             cancellationToken);
 
         return Ok(incidents);
+    }
+
+    [HttpGet("filter-options")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Incidents)]
+    [EndpointSummary("List the values one incidents column holds, for its filter.")]
+    [EndpointDescription(
+        "The distinct values `field` holds across every incident, each with the `value` to send as `field=value` in the list's `filter` and the `label` to show for it. `field` is one of `severity` (in rank order), `state`, `products`, `releases`, `reportedBy` or `commander`; the others are in label order. `search` keeps the labels containing it, ignoring case. At most `limit` values (1 to 200, 100 by default) are returned; `hasMore` is true when more match, so narrow them with `search`. An unknown field fails with a 422.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<ListFilterOptionsDto>> GetFilterOptions(
+        [FromQuery] string? field = null,
+        [FromQuery] string? search = null,
+        [FromQuery] int limit = 100,
+        CancellationToken cancellationToken = default)
+    {
+        var options = await _dispatcher.Send(
+            new GetIncidentFilterOptionsQuery(field, search, limit),
+            cancellationToken);
+
+        return Ok(options);
     }
 
     [HttpGet("figures")]

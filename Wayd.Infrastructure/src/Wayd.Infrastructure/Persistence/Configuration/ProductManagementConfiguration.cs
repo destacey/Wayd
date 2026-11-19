@@ -698,7 +698,7 @@ public class IncidentSeveritySetConfiguration : IEntityTypeConfiguration<Inciden
         builder.Property(s => s.IsActive).IsRequired();
 
         builder.HasMany(s => s.Levels)
-            .WithOne()
+            .WithOne(l => l.Set)
             .HasForeignKey(l => l.SetId)
             .OnDelete(DeleteBehavior.Cascade);
 
@@ -807,10 +807,28 @@ public class IncidentConfiguration : IEntityTypeConfiguration<Incident>
             .HasField("_timelineLinkEntries")
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        builder.HasOne<IncidentSeverityLevel>()
+        builder.HasOne(i => i.SeverityLevel)
             .WithMany()
             .HasForeignKey(i => i.SeverityLevelId)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(i => i.SubmittedBy)
+            .WithMany()
+            .HasForeignKey(i => i.SubmittedByEmployeeId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasOne(i => i.ReportedBy)
+            .WithMany()
+            .HasForeignKey(i => i.ReportedByEmployeeId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasOne(i => i.Commander)
+            .WithMany()
+            .HasForeignKey(i => i.CommanderEmployeeId)
+            .OnDelete(DeleteBehavior.NoAction);
 
         builder.Ignore(i => i.StatusAlias);
     }

@@ -1,6 +1,7 @@
 using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using NodaTime;
+using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
@@ -87,14 +88,37 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
     /// <summary>The employee who opened the incident. Set once, when it is created.</summary>
     public Guid SubmittedByEmployeeId { get; private init; }
 
+    /// <summary>
+    /// The employee who opened the incident. Loaded only when a query asks for it; the aggregate reads
+    /// <see cref="SubmittedByEmployeeId"/>.
+    /// </summary>
+    public Employee? SubmittedBy { get; private init; }
+
     /// <summary>The employee who reported the incident.</summary>
     public Guid ReportedByEmployeeId { get; private set; }
+
+    /// <summary>
+    /// The employee who reported the incident. Loaded only when a query asks for it; the aggregate reads
+    /// <see cref="ReportedByEmployeeId"/>.
+    /// </summary>
+    public Employee? ReportedBy { get; private set; }
 
     /// <summary>The employee commanding the response, when one is assigned.</summary>
     public Guid? CommanderEmployeeId { get; private set; }
 
+    /// <summary>
+    /// The employee commanding the response. Loaded only when a query asks for it, and null when no
+    /// commander is assigned; the aggregate reads <see cref="CommanderEmployeeId"/>.
+    /// </summary>
+    public Employee? Commander { get; private set; }
+
     /// <summary>The severity level from the organization's selected scale.</summary>
     public Guid SeverityLevelId { get; private set; }
+
+    /// <summary>
+    /// The severity level. Loaded only when a query asks for it; the aggregate reads <see cref="SeverityLevelId"/>.
+    /// </summary>
+    public IncidentSeverityLevel? SeverityLevel { get; private set; }
 
     /// <summary>When the incident was first noticed.</summary>
     public Instant NoticedAt { get; private set; }

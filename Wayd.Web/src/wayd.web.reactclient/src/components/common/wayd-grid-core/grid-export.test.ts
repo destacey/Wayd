@@ -60,6 +60,38 @@ describe('grid-export', () => {
       expect(csv).toBe('Name,Status\nWidget,Active\nGadget,Closed')
     })
 
+    it('exports given rows instead of the table’s, through the visible columns and formatters', () => {
+      // Arrange — a server-mode grid holds only its window, so it passes the rows it read
+      const columns: ColumnDef<Item, any>[] = [
+        { id: 'name', accessorKey: 'name', header: 'Name' },
+        { id: 'status', accessorKey: 'status.name', header: 'Status' },
+        {
+          id: 'points',
+          accessorKey: 'points',
+          header: 'Points',
+          meta: {
+            exportFormatter: (value) =>
+              value == null ? 'none' : `${value} pts`,
+          },
+        },
+      ]
+      const table = buildHeadlessTable<Item>(data, columns, {
+        columnVisibility: { status: false },
+      })
+      const rows: Item[] = [
+        { name: 'Sprocket', status: { name: 'Draft' }, points: 5 },
+        { name: 'Cog', status: { name: 'Active' }, points: null },
+      ]
+
+      // Act
+      exportGridToCsv(table, 'test-export', rows)
+
+      // Assert
+      expect(mockDownloadCsv.mock.calls.at(-1)?.[0]).toBe(
+        'Name,Points\nSprocket,5 pts\nCog,none',
+      )
+    })
+
     it('excludes hidden columns from the export', () => {
       // Arrange
       const columns: ColumnDef<Item, any>[] = [

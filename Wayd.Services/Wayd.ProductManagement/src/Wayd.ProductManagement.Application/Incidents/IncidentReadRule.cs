@@ -76,9 +76,10 @@ public sealed class IncidentReadRule(
     {
         var incidents = await (
             from i in _productManagementDbContext.Incidents
-            join submitted in _productManagementDbContext.Employees on i.SubmittedByEmployeeId equals submitted.Id
-            join reported in _productManagementDbContext.Employees on i.ReportedByEmployeeId equals reported.Id
-            join commander in _productManagementDbContext.Employees on i.CommanderEmployeeId equals (Guid?)commander.Id into commanders
+            // A deleted employee still names the incident's people rather than dropping the incident.
+            join submitted in _productManagementDbContext.Employees.IgnoreQueryFilters() on i.SubmittedByEmployeeId equals submitted.Id
+            join reported in _productManagementDbContext.Employees.IgnoreQueryFilters() on i.ReportedByEmployeeId equals reported.Id
+            join commander in _productManagementDbContext.Employees.IgnoreQueryFilters() on i.CommanderEmployeeId equals (Guid?)commander.Id into commanders
             from commander in commanders.DefaultIfEmpty()
             where ids.Contains(i.Id)
             select new
@@ -91,9 +92,9 @@ public sealed class IncidentReadRule(
                 i.StatusAliasValue,
                 i.NoticedAt,
                 i.RecoveredAt,
-                SubmittedByName = submitted.Name.FullName,
-                ReportedByName = reported.Name.FullName,
-                CommanderName = commander == null ? null : commander.Name.FullName,
+                SubmittedByName = submitted.Name.DisplayName,
+                ReportedByName = reported.Name.DisplayName,
+                CommanderName = commander == null ? null : commander.Name.DisplayName,
             }).ToListAsync(cancellationToken);
 
         return incidents.ToDictionary(

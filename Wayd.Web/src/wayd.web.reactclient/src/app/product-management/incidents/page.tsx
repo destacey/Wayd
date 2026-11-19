@@ -1,15 +1,11 @@
 'use client'
 
 import { PageTitle } from '@/src/components/common'
-import { useGridPaging, WaydGridPager } from '@/src/components/common/wayd-grid'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
-import {
-  useGetIncidentFiguresQuery,
-  useGetIncidentsQuery,
-} from '@/src/store/features/product-management/incidents-api'
+import { useGetIncidentFiguresQuery } from '@/src/store/features/product-management/incidents-api'
 import { useGetIncidentSeveritySetsQuery } from '@/src/store/features/product-management/incident-severity-sets-api'
 import { ProductStatusAlias } from '@/src/services/api/wayd.schemas'
 import { Button } from 'antd'
@@ -32,7 +28,7 @@ const IncidentsPage: FC = () => {
   const [openCreateForm, setOpenCreateForm] = useState(false)
   const [statuses, setStatuses] = useState<ProductStatusAlias[]>([])
   const [severityLevelIds, setSeverityLevelIds] = useState<string[]>([])
-  const paging = useGridPaging()
+  const [created, setCreated] = useState(0)
 
   const messageApi = useMessage()
   const { hasPermissionClaim } = useAuth()
@@ -45,11 +41,6 @@ const IncidentsPage: FC = () => {
       severityLevelIds.length > 0 ? severityLevelIds : undefined,
   }
 
-  const { data, isLoading, error, refetch } = useGetIncidentsQuery({
-    page: paging.page,
-    pageSize: paging.pageSize,
-    ...filters,
-  })
   const {
     data: figures,
     isLoading: figuresLoading,
@@ -57,17 +48,12 @@ const IncidentsPage: FC = () => {
     refetch: refetchFigures,
   } = useGetIncidentFiguresQuery(filters)
 
-  paging.keepInRange(data?.totalPages)
-
   useEffect(() => {
-    if (error) {
-      console.error(error)
-      messageApi.error('Failed to load incidents.')
-    } else if (figuresError) {
+    if (figuresError) {
       console.error(figuresError)
       messageApi.error('Failed to load incident figures.')
     }
-  }, [error, figuresError, messageApi])
+  }, [figuresError, messageApi])
 
   const actions = canCreate ? (
     <Button type="primary" onClick={() => setOpenCreateForm(true)}>
@@ -81,10 +67,7 @@ const IncidentsPage: FC = () => {
       <IncidentFilterBar
         statuses={STATE_OPTIONS}
         selectedStatuses={statuses}
-        onStatusesChange={(next) => {
-          setStatuses(next)
-          paging.resetPage()
-        }}
+        onStatusesChange={setStatuses}
         severities={(
           severitySets?.find((set) => set.isSelected)?.levels ?? []
         ).map((level) => ({
@@ -93,10 +76,7 @@ const IncidentsPage: FC = () => {
           color: level.color,
         }))}
         selectedSeverities={severityLevelIds}
-        onSeveritiesChange={(next) => {
-          setSeverityLevelIds(next)
-          paging.resetPage()
-        }}
+        onSeveritiesChange={setSeverityLevelIds}
       />
       <IncidentGridFigures
         activeCount={figures?.activeCount ?? null}
@@ -105,22 +85,16 @@ const IncidentsPage: FC = () => {
         loading={figuresLoading}
       />
       <IncidentsGrid
-        incidents={data?.items ?? []}
-        isLoading={isLoading}
-        refetch={refetch}
-        rightSlot={
-          <WaydGridPager
-            paging={paging}
-            totalCount={data?.totalCount}
-            noun="incidents"
-          />
-        }
+        statuses={statuses}
+        severityLevelIds={severityLevelIds}
+        refreshKey={created}
+        onRefresh={refetchFigures}
       />
       {openCreateForm && (
         <CreateIncidentForm
           onFormComplete={() => {
             setOpenCreateForm(false)
-            refetch()
+            setCreated((n) => n + 1)
             refetchFigures()
           }}
           onFormCancel={() => setOpenCreateForm(false)}

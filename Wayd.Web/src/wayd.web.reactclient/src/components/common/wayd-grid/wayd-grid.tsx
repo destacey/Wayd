@@ -12,6 +12,7 @@ import {
   useImperativeHandle,
   useLayoutEffect,
   useMemo,
+  useId,
   useRef,
   useState,
 } from 'react'
@@ -46,6 +47,7 @@ import { WaydEmpty } from '@/src/components/common'
 import { useRemainingHeight } from '@/src/hooks'
 import {
   CombinedFilterPanel,
+  RemoteSetFilterPanel,
   DateFilterPanel,
   FilterPopup,
   FloatingFilter,
@@ -146,6 +148,10 @@ import {
   toGridifySort,
 } from '../wayd-grid-core/server/gridify-query'
 import { restrictToServerFields } from '../wayd-grid-core/server/server-columns'
+import {
+  DEFAULT_SERVER_EXPORT_LIMIT,
+  fetchAllServerRows,
+} from '../wayd-grid-core/server/server-export'
 import {
   DEFAULT_SERVER_PAGE_SIZE,
   isPlaceholderRow,
@@ -1043,6 +1049,7 @@ function WaydGridInner<T extends RowData>(
     actionsSlot,
     rightSlot,
     emptyMessage = 'No records found',
+    emptyFilteredMessage = 'No rows match the filters.',
     csvFileName = 'grid-export',
     includeIdColumn = true,
     height,
@@ -2108,6 +2115,82 @@ function WaydGridInner<T extends RowData>(
     exportGridToCsv(table, csvFileName)
   }, [table, csvFileName])
 
+  // Server mode holds only the rows in view, so its export reads the whole list
+  // under the query the grid shows, then writes it through the same columns.
+  // Pressing export again while it reads cancels it.
+  const serverExport = useRef<AbortController | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
+  // Leaving the page cancels an export and closes its message, which is the
+  // app's rather than the grid's and would otherwise outlive the page.
+  const unmounted = useRef(false)
+  const closeExportMessage = useRef<(() => void) | null>(null)
+  useEffect(() => {
+    unmounted.current = false
+    return () => {
+      unmounted.current = true
+      serverExport.current?.abort()
+      closeExportMessage.current?.()
+    }
+  }, [])
+  const exportMessageKey = `wayd-grid-export-${useId()}`
+
+  const onExportServerCsv = async () => {
+    if (!server) return
+    if (serverExport.current) {
+      serverExport.current.abort()
+      return
+    }
+    const controller = new AbortController()
+    serverExport.current = controller
+    setIsExporting(true)
+    const noun = server.noun ?? 'rows'
+    const limit = server.exportLimit ?? DEFAULT_SERVER_EXPORT_LIMIT
+    const key = exportMessageKey
+    closeExportMessage.current = () => messageApi?.destroy(key)
+    const showProgress = (content: string) =>
+      messageApi?.open({ key, type: 'loading', content, duration: 0 })
+    showProgress(`Exporting ${noun}…`)
+    try {
+      const { rows, totalCount } = await fetchAllServerRows(
+        server.fetchPage,
+        {
+          filter: serverFilter,
+          sort: toGridifySort(gridState.sorting),
+          search: serverSearch,
+        },
+        {
+          limit,
+          signal: controller.signal,
+          onProgress: (loaded, total) =>
+            showProgress(
+              `Exporting ${loaded.toLocaleString()} of ${Math.min(total, limit).toLocaleString()} ${noun}…`,
+            ),
+        },
+      )
+      exportGridToCsv(table, csvFileName, rows)
+      if (totalCount > rows.length) {
+        messageApi?.open({
+          key,
+          type: 'warning',
+          content: `Exported the first ${rows.length.toLocaleString()} of ${totalCount.toLocaleString()} ${noun}. Filter the list to export the rest.`,
+        })
+      } else {
+        messageApi?.destroy(key)
+      }
+    } catch {
+      if (unmounted.current) return
+      messageApi?.open(
+        controller.signal.aborted
+          ? { key, type: 'info', content: 'Export canceled.' }
+          : { key, type: 'error', content: `Could not export the ${noun}.` },
+      )
+    } finally {
+      serverExport.current = null
+      closeExportMessage.current = null
+      if (!unmounted.current) setIsExporting(false)
+    }
+  }
+
   const showColumnFilters = useMemo(
     () =>
       includeColumnFilters &&
@@ -2173,8 +2256,11 @@ function WaydGridInner<T extends RowData>(
               />
             ) : combined ? (
               <CombinedFilterPanel
-                allValues={getSetValues(header)}
+                allValues={
+                  meta?.filterOptionsSource ? [] : getSetValues(header)
+                }
                 labels={meta?.filterOptions}
+                source={meta?.filterOptionsSource}
                 value={filterValue}
                 maxConditions={meta?.maxFilterConditions}
                 onChange={(next) => header.column.setFilterValue(next)}
@@ -2278,19 +2364,26 @@ function WaydGridInner<T extends RowData>(
     const filterValue = column.getFilterValue() as ColumnFilterModel | undefined
     const isFiltered = filterValue !== undefined
     const isFilterOpen = openFilterColumnId === column.id
+    const source = meta?.filterOptionsSource
 
-    const allValues = getSetValues(header)
+    // A loaded source picks values in; a listed one checks every value and
+    // unchecks the ones left out.
+    const allValues = source ? [] : getSetValues(header)
 
     const selected =
       filterValue?.type === 'set' ? filterValue.values : allValues
     const summary =
-      !isFiltered || selected.length === allValues.length
+      !isFiltered || (!source && selected.length === allValues.length)
         ? ''
         : selected.length === 1
           ? selected[0] === SET_FILTER_BLANK
             ? SET_FILTER_BLANK_LABEL
-            : (meta?.filterOptions?.find((o) => o.value === selected[0])
-                ?.label ?? selected[0])
+            : ((filterValue?.type === 'set'
+                ? filterValue.labels?.[selected[0]]
+                : undefined) ??
+              meta?.filterOptions?.find((o) => o.value === selected[0])
+                ?.label ??
+              selected[0])
           : `${selected.length} selected`
 
     return (
@@ -2305,13 +2398,22 @@ function WaydGridInner<T extends RowData>(
         destroyOnHidden
         content={
           <div onClick={(e) => e.stopPropagation()}>
-            <SetFilterPanel
-              allValues={allValues}
-              labels={meta?.filterOptions}
-              value={filterValue}
-              onChange={(next) => column.setFilterValue(next)}
-              onCommit={() => setOpenFilterColumnId(null)}
-            />
+            {source ? (
+              <RemoteSetFilterPanel
+                source={source}
+                value={filterValue}
+                onChange={(next) => column.setFilterValue(next)}
+                onCommit={() => setOpenFilterColumnId(null)}
+              />
+            ) : (
+              <SetFilterPanel
+                allValues={allValues}
+                labels={meta?.filterOptions}
+                value={filterValue}
+                onChange={(next) => column.setFilterValue(next)}
+                onCommit={() => setOpenFilterColumnId(null)}
+              />
+            )}
           </div>
         }
       >
@@ -2688,7 +2790,12 @@ function WaydGridInner<T extends RowData>(
         onBarTrackScroll={handleBarTrackScroll}
         colGroup={colGroup}
         isLoading={isLoading}
-        emptyMessage={serverFailureMessage ?? emptyMessage}
+        emptyMessage={
+          serverFailureMessage ??
+          (searchValue.trim() || gridState.columnFilters.length > 0
+            ? emptyFilteredMessage
+            : emptyMessage)
+        }
         visibleColumnCount={visibleColumnCount}
         columnIds={orderedVisibleLeafColumns.map((column) => column.id)}
         headerRowCount={headerRowCount}
@@ -2747,16 +2854,25 @@ function WaydGridInner<T extends RowData>(
           }
           onClearFilters={onClearFilters}
           hasActiveFilters={hasActiveFilters}
-          // Server mode holds only the rows in view, so an export would be
-          // part of the list presented as all of it.
           onExportCsv={
-            includeExportButton && !isServer ? onExportCsv : undefined
+            includeExportButton
+              ? isServer
+                ? onExportServerCsv
+                : onExportCsv
+              : undefined
           }
+          isExporting={isExporting}
           isLoading={isLoading}
           includeGlobalSearch={
             includeGlobalSearch && (!isServer || !!server?.search)
           }
-          rowNoun={isServer ? (server?.noun ?? 'rows') : undefined}
+          rowNoun={
+            isServer
+              ? serverTotal === 1 && server?.nounOne
+                ? server.nounOne
+                : (server?.noun ?? 'rows')
+              : undefined
+          }
           leftSlot={resolvedLeftSlot}
           helpContent={
             helpContent ??

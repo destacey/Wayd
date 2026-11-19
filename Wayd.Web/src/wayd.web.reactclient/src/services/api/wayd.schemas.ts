@@ -7935,11 +7935,11 @@ export interface IncidentDto {
      */
   rootCause?: string | null;
   /** The employee who opened the incident. */
-  submittedBy: NavigationDto;
+  submittedBy: EmployeeNavigationDto;
   /** The employee who reported the incident. */
-  reportedBy: NavigationDto;
+  reportedBy: EmployeeNavigationDto;
   /** The employee commanding the response, when one is assigned. */
-  commander?: NavigationDto | null;
+  commander?: EmployeeNavigationDto | null;
   severityLevel: IncidentSeverityLevelNavigationDto;
   noticedAt: string & { readonly __brand: 'Instant' };
   /** @nullable */
@@ -8038,11 +8038,11 @@ export interface IncidentSummaryDto {
   /** @nullable */
   recoveredAt?: string & { readonly __brand: 'Instant' } | null;
   /** The employee who opened the incident. */
-  submittedBy: NavigationDto;
+  submittedBy: EmployeeNavigationDto;
   /** The employee who reported the incident. */
-  reportedBy: NavigationDto;
+  reportedBy: EmployeeNavigationDto;
   /** The employee commanding the response, when one is assigned. */
-  commander?: NavigationDto | null;
+  commander?: EmployeeNavigationDto | null;
   severityLevel: IncidentSeverityLevelNavigationDto;
   status: StatusNavigationDto;
   statusAlias: ProductStatusAlias;
@@ -8077,7 +8077,7 @@ export interface IncidentTimelineLinkEntryDto {
   action: IncidentTimelineLinkAction;
   label: string;
   recordedAt: string & { readonly __brand: 'Instant' };
-  actor: NavigationDto;
+  actor: EmployeeNavigationDto;
   /**
      * The work item or link this entry is about.
      * @nullable
@@ -8097,7 +8097,7 @@ export interface IncidentTimelineNoteDto {
   id: string;
   body: string;
   recordedAt: string & { readonly __brand: 'Instant' };
-  author: NavigationDto;
+  author: EmployeeNavigationDto;
 }
 
 /**
@@ -9950,6 +9950,26 @@ export interface LinkRequest {
 export interface LinkWorkItemRequest {
   /** @exclusiveMinimum 0 */
   workItemId: number;
+}
+
+/**
+ * One value a person can pick in a list column's filter.
+ */
+export interface ListFilterOptionDto {
+  /** The value to send in the list's `filter` for this column: `field=value`. */
+  value: string;
+  /** What to show for the value. When two values share a label, each carries what tells it apart. */
+  label: string;
+}
+
+/**
+ * The values a list column's filter offers, as far as one request reads them.
+ */
+export interface ListFilterOptionsDto {
+  /** The values, in the column's order: by rank where it has one, then by label. */
+  options: ListFilterOptionDto[];
+  /** True when more values match than were returned; narrow them with a search. */
+  hasMore: boolean;
 }
 
 export interface LocalScheduleDto {
@@ -20669,6 +20689,14 @@ export type IncidentsGetIncidentsParams = {
   pageSize?: number;
   status?: ProductStatusAlias[];
   severityLevelId?: string[];
+  filter?: string;
+  sort?: string;
+};
+
+export type IncidentsGetFilterOptionsParams = {
+  field?: string;
+  search?: string;
+  limit?: number;
 };
 
 export type IncidentsGetIncidentFiguresParams = {

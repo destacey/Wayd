@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
+using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Enums.Organization;
@@ -12,6 +13,7 @@ using Wayd.Common.Domain.Settings;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain.Models;
+using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Extensions;
 
 // The delivery artifact record, not System.Version.
@@ -37,6 +39,12 @@ public abstract class ProductCommandTestBase
     protected readonly Mock<ICurrentUser> CurrentUser = new();
     protected readonly Mock<ICurrentPrincipal> CurrentPrincipal = new();
     protected readonly Mock<IDateTimeProvider> DateTimeProvider = new();
+
+    /// <summary>
+    /// The system calendar, standing on 2 April in UTC and still on <see cref="Today"/> in the system zone, so a
+    /// handler that reads today in UTC fails.
+    /// </summary>
+    protected readonly ISystemCalendar SystemCalendar = new TestingSystemCalendar(new TestingDateTimeProvider(new FakeClock(Instant.FromUtc(2026, 4, 2, 5, 0))));
 
     /// <summary>The product tag settings in effect: free tags off, as a new install has them.</summary>
     protected readonly Mock<ISettings<ProductTagSettings>> TagSettings = new();

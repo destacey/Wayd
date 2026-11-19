@@ -24,7 +24,7 @@ public sealed record ImportProductDependencyDto(
 
 public sealed class ImportProductDependencyDtoValidator : AbstractValidator<ImportProductDependencyDto>
 {
-    public ImportProductDependencyDtoValidator(IDateTimeProvider dateTimeProvider)
+    public ImportProductDependencyDtoValidator(ISystemCalendar systemCalendar)
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
@@ -51,7 +51,7 @@ public sealed class ImportProductDependencyDtoValidator : AbstractValidator<Impo
         // A blank start is today, so an end before today is an end before the start — the domain would refuse
         // it once the run reached the row, and a file-shaped mistake is better named before the run starts.
         RuleFor(d => d.EndsOn)
-            .Must((row, endsOn) => endsOn is null || endsOn >= (row.StartsOn ?? dateTimeProvider.Today))
+            .MustAsync(async (row, endsOn, cancellationToken) => endsOn is null || endsOn >= (row.StartsOn ?? await systemCalendar.Today(cancellationToken)))
                 .WithMessage("A dependency cannot end before it started. A blank StartsOn means today.");
     }
 }

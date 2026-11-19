@@ -100,7 +100,7 @@ public sealed class ImportProductDependencyRequest
 
 public sealed class ImportProductDependencyRequestValidator : CustomValidator<ImportProductDependencyRequest>
 {
-    public ImportProductDependencyRequestValidator(IDateTimeProvider dateTimeProvider)
+    public ImportProductDependencyRequestValidator(ISystemCalendar systemCalendar)
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
@@ -127,7 +127,7 @@ public sealed class ImportProductDependencyRequestValidator : CustomValidator<Im
 
         // A blank start is today, so an end before today is an end before the start.
         RuleFor(d => d.EndsOn)
-            .Must((row, endsOn) => endsOn is null || endsOn.Value.ToLocalDate() >= (row.StartsOn?.ToLocalDate() ?? dateTimeProvider.Today))
+            .MustAsync(async (row, endsOn, cancellationToken) => endsOn is null || endsOn.Value.ToLocalDate() >= (row.StartsOn?.ToLocalDate() ?? await systemCalendar.Today(cancellationToken)))
                 .WithMessage("A dependency cannot end before it started. A blank StartsOn means today.");
     }
 }

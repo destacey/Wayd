@@ -9,7 +9,7 @@ namespace Wayd.ProductManagement.Application.Tests.Sut.Products.Commands;
 public sealed class ChangeProductDependencyTermsCommandHandlerTests : ProductCommandTestBase
 {
     private ChangeProductDependencyTermsCommandHandler CreateSut() =>
-        new(DbContext, CurrentUser.Object, Logger<ChangeProductDependencyTermsCommandHandler>(), DateTimeProvider.Object);
+        new(DbContext, CurrentUser.Object, Logger<ChangeProductDependencyTermsCommandHandler>(), DateTimeProvider.Object, SystemCalendar);
 
     [Fact]
     public async Task Handle_ShouldReturnTheIdOfTheLinkNowOpen()

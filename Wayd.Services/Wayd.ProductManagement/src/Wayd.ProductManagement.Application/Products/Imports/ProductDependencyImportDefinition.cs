@@ -32,6 +32,7 @@ public sealed class ProductDependencyImportDefinition(
     IProductManagementDbContext productManagementDbContext,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
+    ISystemCalendar systemCalendar,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportProductDependencyDto>(serializer)
 {
     public const string ImportKey = "product-management.product-dependencies";
@@ -39,6 +40,7 @@ public sealed class ProductDependencyImportDefinition(
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public override string Key => ImportKey;
 
@@ -75,7 +77,7 @@ public sealed class ProductDependencyImportDefinition(
         ImportPassContext<ImportProductDependencyDto> context, CancellationToken cancellationToken)
     {
         var timestamp = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
+        var today = await _systemCalendar.DayOf(timestamp, cancellationToken);
         var actor = EventActor.Import(_currentUser.GetUserId());
 
         var productIds = context.Rows.Select(r => r.Data.ProductId).ToHashSet();

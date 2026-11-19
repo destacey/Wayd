@@ -49,7 +49,8 @@ public sealed class AddProductDependencyCommandHandler(
     IProductManagementDbContext productManagementDbContext,
     ICurrentUser currentUser,
     ILogger<AddProductDependencyCommandHandler> logger,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    ISystemCalendar systemCalendar)
     : ICommandHandler<AddProductDependencyCommand, Guid>
 {
     private const string AppRequestName = nameof(AddProductDependencyCommand);
@@ -58,6 +59,7 @@ public sealed class AddProductDependencyCommandHandler(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<AddProductDependencyCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<Result<Guid>> Handle(AddProductDependencyCommand request, CancellationToken cancellationToken)
     {
@@ -93,7 +95,7 @@ public sealed class AddProductDependencyCommandHandler(
                 return Result.Failure<Guid>(dependsOnAncestors.Error);
             }
 
-            var today = _dateTimeProvider.Today;
+            var today = await _systemCalendar.Today(cancellationToken);
 
             var addResult = product.AddDependency(
                 request.DependsOnProductId,

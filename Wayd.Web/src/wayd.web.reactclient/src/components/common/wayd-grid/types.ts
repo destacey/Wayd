@@ -114,8 +114,8 @@ export interface WaydGridProps<T extends RowData> {
    * window as the user scrolls. See {@link WaydGridServerSource}.
    *
    * Decided on mount; a grid does not switch modes. In server mode `data`,
-   * grouping, tree mode, row reorder, cell editing, the chart pane and CSV
-   * export are off, the date tree is hidden, and a set filter lists only
+   * grouping, tree mode, row reorder, cell editing and the chart pane are off,
+   * CSV export reads the whole list page by page (see `exportLimit`), the date tree is hidden, and a set filter lists only
    * `meta.filterOptions`, or loads its values from `meta.filterOptionsSource`.
    */
   server?: WaydGridServerSource<T>
@@ -406,6 +406,12 @@ export interface WaydGridServerSource<T extends RowData> {
   search?: boolean
   /** What the list holds, plural, for the toolbar's total ("3,120 rows"). */
   noun?: string
+  /**
+   * The most rows a CSV export reads, page by page, under the grid's current
+   * filter, sort and search. 10,000 by default; the export says so when the
+   * list holds more.
+   */
+  exportLimit?: number
   /**
    * Refetches the pages in view this often (ms) while the tab is visible, for
    * a list that changes while it is open. Off by default.

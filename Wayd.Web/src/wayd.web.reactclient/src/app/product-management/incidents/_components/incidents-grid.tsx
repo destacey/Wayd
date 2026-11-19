@@ -243,6 +243,7 @@ const IncidentsGrid = ({
         refreshKey,
       }}
       onRefresh={onRefresh}
+      csvFileName="incidents"
       persistStateKey="product-management-incidents"
       emptyMessage="No incidents yet."
       rightSlot={rightSlot}

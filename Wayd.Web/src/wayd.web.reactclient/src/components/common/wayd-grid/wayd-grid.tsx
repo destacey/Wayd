@@ -148,6 +148,10 @@ import {
 } from '../wayd-grid-core/server/gridify-query'
 import { restrictToServerFields } from '../wayd-grid-core/server/server-columns'
 import {
+  DEFAULT_SERVER_EXPORT_LIMIT,
+  fetchAllServerRows,
+} from '../wayd-grid-core/server/server-export'
+import {
   DEFAULT_SERVER_PAGE_SIZE,
   isPlaceholderRow,
   toServerDisplayRows,
@@ -2109,6 +2113,67 @@ function WaydGridInner<T extends RowData>(
     exportGridToCsv(table, csvFileName)
   }, [table, csvFileName])
 
+  // Server mode holds only the rows in view, so its export reads the whole list
+  // under the query the grid shows, then writes it through the same columns.
+  // Pressing export again while it reads cancels it.
+  const serverExport = useRef<AbortController | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
+  useEffect(() => () => serverExport.current?.abort(), [])
+
+  const onExportServerCsv = async () => {
+    if (!server) return
+    if (serverExport.current) {
+      serverExport.current.abort()
+      return
+    }
+    const controller = new AbortController()
+    serverExport.current = controller
+    setIsExporting(true)
+    const noun = server.noun ?? 'rows'
+    const limit = server.exportLimit ?? DEFAULT_SERVER_EXPORT_LIMIT
+    const key = `wayd-grid-export-${csvFileName}`
+    const showProgress = (content: string) =>
+      messageApi?.open({ key, type: 'loading', content, duration: 0 })
+    showProgress(`Exporting ${noun}…`)
+    try {
+      const { rows, totalCount } = await fetchAllServerRows(
+        server.fetchPage,
+        {
+          filter: serverFilter,
+          sort: toGridifySort(gridState.sorting),
+          search: serverSearch,
+        },
+        {
+          limit,
+          signal: controller.signal,
+          onProgress: (loaded, total) =>
+            showProgress(
+              `Exporting ${loaded.toLocaleString()} of ${Math.min(total, limit).toLocaleString()} ${noun}…`,
+            ),
+        },
+      )
+      exportGridToCsv(table, csvFileName, rows)
+      if (totalCount > rows.length) {
+        messageApi?.open({
+          key,
+          type: 'warning',
+          content: `Exported the first ${rows.length.toLocaleString()} of ${totalCount.toLocaleString()} ${noun}. Filter the list to export the rest.`,
+        })
+      } else {
+        messageApi?.destroy(key)
+      }
+    } catch {
+      messageApi?.open(
+        controller.signal.aborted
+          ? { key, type: 'info', content: 'Export canceled.' }
+          : { key, type: 'error', content: `Could not export the ${noun}.` },
+      )
+    } finally {
+      serverExport.current = null
+      setIsExporting(false)
+    }
+  }
+
   const showColumnFilters = useMemo(
     () =>
       includeColumnFilters &&
@@ -2767,11 +2832,14 @@ function WaydGridInner<T extends RowData>(
           }
           onClearFilters={onClearFilters}
           hasActiveFilters={hasActiveFilters}
-          // Server mode holds only the rows in view, so an export would be
-          // part of the list presented as all of it.
           onExportCsv={
-            includeExportButton && !isServer ? onExportCsv : undefined
+            includeExportButton
+              ? isServer
+                ? onExportServerCsv
+                : onExportCsv
+              : undefined
           }
+          isExporting={isExporting}
           isLoading={isLoading}
           includeGlobalSearch={
             includeGlobalSearch && (!isServer || !!server?.search)

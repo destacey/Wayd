@@ -52,10 +52,14 @@ const ancestorAtDepth = <T extends RowData>(
  *
  * Column meta hooks: `enableExport: false` excludes a column, `exportHeader`
  * overrides the header text, and `exportFormatter` maps each value.
+ *
+ * `rows`, when given, are exported instead of the table's: a server-mode grid
+ * holds only the rows in view, so it reads the whole list and passes it here.
  */
 export function exportGridToCsv<T extends RowData>(
   table: Table<T>,
   csvFileName: string,
+  rows?: readonly T[],
 ): void {
   const isExportable = (column: {
     columnDef: { meta?: { enableExport?: boolean } }
@@ -114,19 +118,29 @@ export function exportGridToCsv<T extends RowData>(
   // Every row regardless of expansion, minus group headings: a heading is a
   // value the rows under it already carry, and its `original` is borrowed from
   // its first row, so exporting it would duplicate that row.
-  const exportRows = table
-    .getPreExpandedRowModel()
-    .flatRows.filter((row) => !row.getIsGrouped())
-    .map((row) =>
-      exportableColumns.map((column) => {
-        const meta = column.columnDef.meta
-        const value = row.getValue(column.id)
-        if (meta?.exportFormatter) {
-          return meta.exportFormatter(value, row.original)
-        }
-        return value ?? ''
-      }),
-    )
+  const cells = (
+    original: T,
+    valueOf: (column: Column<T, unknown>) => unknown,
+  ) =>
+    exportableColumns.map((column) => {
+      const meta = column.columnDef.meta
+      const value = valueOf(column)
+      if (meta?.exportFormatter) {
+        return meta.exportFormatter(value, original)
+      }
+      return value ?? ''
+    })
+
+  // Given rows (a server-mode list read in full) are not in the table, so their
+  // values come from each column's accessor, the one row.getValue reads through.
+  const exportRows = rows
+    ? rows.map((original, index) =>
+        cells(original, (column) => column.accessorFn!(original, index)),
+      )
+    : table
+        .getPreExpandedRowModel()
+        .flatRows.filter((row) => !row.getIsGrouped())
+        .map((row) => cells(row.original, (column) => row.getValue(column.id)))
 
   const csvBody = generateCsv(headers, exportRows)
   const csv =

@@ -11,6 +11,12 @@ import type { ColumnDef } from '../wayd-grid-core'
 import WaydGrid from './wayd-grid'
 import type { WaydGridColumnMeta, WaydGridServerSource } from './types'
 import type { ServerPageRequest } from '../wayd-grid-core/server/server-page-cache'
+import { downloadCsvWithTimestamp } from '@/src/utils/csv-utils'
+
+vi.mock(import('@/src/utils/csv-utils'), async (importOriginal) => ({
+  ...(await importOriginal()),
+  downloadCsvWithTimestamp: vi.fn(),
+}))
 
 interface Item {
   id: string
@@ -204,19 +210,84 @@ describe('WaydGrid — server mode', () => {
     }
   })
 
-  it('offers no CSV export, and no quick search unless the list takes one', async () => {
+  it('offers no quick search unless the list takes one', async () => {
     // Arrange / Act
-    const { container, unmount } = renderServerGrid({ fetchPage: serverOf() })
+    const { unmount } = renderServerGrid({ fetchPage: serverOf() })
     await settle()
 
     // Assert
-    expect(container.querySelector('[aria-label="download"]')).toBeNull()
     expect(screen.queryByPlaceholderText('Search')).toBeNull()
     unmount()
 
     renderServerGrid({ fetchPage: serverOf(), search: true })
     await settle()
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument()
+  })
+
+  it('exports the whole list under its filter, not only the rows in view', async () => {
+    // Arrange — 1,000 rows on the server, a window of 5 in view
+    const fetchPage = serverOf(() => true)
+    renderServerGrid({ fetchPage, exportLimit: 12 })
+    await settle()
+    fireEvent.change(
+      document.querySelector('tr[data-role="floating-filters"] input')!,
+      { target: { value: 'Item' } },
+    )
+    await waitFor(() =>
+      expect(fetchPage.mock.calls.at(-1)?.[0].filter).toBe('name=*Item'),
+    )
+    fetchPage.mockClear()
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Export to CSV' }))
+
+    // Assert
+    await waitFor(() => expect(downloadCsvWithTimestamp).toHaveBeenCalled())
+    const csv = vi.mocked(downloadCsvWithTimestamp).mock.calls.at(-1)![0]
+    const lines = csv.split('\n')
+    expect(lines[0]).toBe('Name,Stage,Note')
+    expect(lines).toHaveLength(13)
+    expect(lines[12]).toBe('Item 12,Draft,')
+    expect(fetchPage.mock.calls.map(([r]) => r)).toEqual([
+      expect.objectContaining({ page: 1, pageSize: 500, filter: 'name=*Item' }),
+    ])
+  })
+
+  it('cancels an export when its button is pressed again', async () => {
+    // Arrange — page 1 answers the view; the export's read never does
+    let viewAnswered = false
+    const fetchPage = vi.fn(({ pageSize, signal }: ServerPageRequest) => {
+      if (!viewAnswered) {
+        viewAnswered = true
+        return Promise.resolve({
+          items: Array.from({ length: pageSize }, (_, i) => ({
+            id: `item-${i + 1}`,
+            name: `Item ${i + 1}`,
+            stage: 'Draft',
+            note: '',
+          })),
+          totalCount: TOTAL,
+        })
+      }
+      return new Promise<never>((_, reject) =>
+        signal.addEventListener('abort', () => reject(signal.reason)),
+      )
+    })
+    renderServerGrid({ fetchPage })
+    await settle()
+    vi.mocked(downloadCsvWithTimestamp).mockClear()
+    await userEvent.click(screen.getByRole('button', { name: 'Export to CSV' }))
+    const exportRead = fetchPage.mock.calls.at(-1)![0]
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel export' }))
+
+    // Assert
+    expect(exportRead.signal.aborted).toBe(true)
+    expect(
+      await screen.findByRole('button', { name: 'Export to CSV' }),
+    ).toBeInTheDocument()
+    expect(downloadCsvWithTimestamp).not.toHaveBeenCalled()
   })
 
   it('starts over when the list key changes, and not when only the fetcher does', async () => {

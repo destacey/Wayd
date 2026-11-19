@@ -6,6 +6,7 @@ import WaydTooltip from '@/src/components/common/wayd-tooltip'
 import {
   ClearOutlined,
   DownloadOutlined,
+  LoadingOutlined,
   QuestionCircleOutlined,
   ReloadOutlined,
   SearchOutlined,
@@ -22,6 +23,11 @@ export interface GridToolbarProps {
   onClearFilters: () => void
   hasActiveFilters: boolean
   onExportCsv?: () => void
+  /**
+   * An export is reading the list (server mode). The export button then shows
+   * progress and cancels the export when pressed.
+   */
+  isExporting?: boolean
   isLoading: boolean
   /** Whether to show the global search input. Default: true. */
   includeGlobalSearch?: boolean
@@ -58,6 +64,7 @@ const GridToolbar = ({
   onClearFilters,
   hasActiveFilters,
   onExportCsv,
+  isExporting = false,
   actionsSlot,
   isLoading,
   includeGlobalSearch = true,
@@ -114,13 +121,18 @@ const GridToolbar = ({
         {onExportCsv && (
           <>
             <span className={styles.toolbarDivider} />
-            <WaydTooltip title="Export to CSV">
+            <WaydTooltip
+              title={isExporting ? 'Cancel export' : 'Export to CSV'}
+            >
               <Button
                 type="text"
                 shape="circle"
-                icon={<DownloadOutlined />}
+                aria-label={isExporting ? 'Cancel export' : 'Export to CSV'}
+                icon={isExporting ? <LoadingOutlined /> : <DownloadOutlined />}
                 onClick={onExportCsv}
-                disabled={isLoading || displayedRowCount === 0}
+                disabled={
+                  !isExporting && (isLoading || displayedRowCount === 0)
+                }
               />
             </WaydTooltip>
           </>

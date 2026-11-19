@@ -115,6 +115,11 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
     /// <summary>The severity level from the organization's selected scale.</summary>
     public Guid SeverityLevelId { get; private set; }
 
+    /// <summary>
+    /// The severity level. Loaded only when a query asks for it; the aggregate reads <see cref="SeverityLevelId"/>.
+    /// </summary>
+    public IncidentSeverityLevel? SeverityLevel { get; private set; }
+
     /// <summary>When the incident was first noticed.</summary>
     public Instant NoticedAt { get; private set; }
 

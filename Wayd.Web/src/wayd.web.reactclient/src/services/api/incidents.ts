@@ -15,11 +15,13 @@ import type {
   IncidentTimelineLinkEntryDto,
   IncidentTimelineNoteDto,
   IncidentWorkflowActionDto,
+  IncidentsGetFilterOptionsParams,
   IncidentsGetIncidentFiguresParams,
   IncidentsGetIncidentsParams,
   IncidentsImportBody,
   IncidentsImportParams,
   LinkIncidentTeamsChatRequest,
+  ListFilterOptionsDto,
   ManageIncidentWorkItemsRequest,
   ObjectIdAndKey,
   PagedResponseOfIncidentSummaryDto,
@@ -75,7 +77,7 @@ export const getIncidentsGetIncidentsUrl = (params?: IncidentsGetIncidentsParams
 }
 
 /**
- * One page of the incidents matching the state and severity filters.
+ * One page of the incidents matching the state and severity filters. `filter` and `sort` use Gridify syntax over `key`, `title`, `severity`, `state`, `products`, `releases`, `reportedBy`, `commander` and `noticedAt`: `filter=title=*checkout` (contains), `^` starts with, `$` ends with, `!=` not equal, `field=` blank, `,` and, `|` or, parentheses to group, `\` before any other character to match it literally. `severity`, `products`, `releases`, `reportedBy` and `commander` match by id (`reportedBy=0196a8d5-…`), `state` by status name, and `noticedAt` takes ISO instants (`noticedAt>=2026-03-01T00:00:00Z`). `products` and `releases` match an incident holding any of the ids, cannot be sorted by, and cannot be compared with blank. `sort=severity asc, noticedAt desc`: severity sorts by its rank and people by name. A field outside that list fails with a 422. The values each filterable column holds come from `GET filter-options`.
  * @summary List incidents, highest key first.
  */
 export const incidentsGetIncidents = async (params?: IncidentsGetIncidentsParams, options?: Parameters<typeof apiFetch>[1]): Promise<PagedResponseOfIncidentSummaryDto> => {
@@ -110,6 +112,37 @@ export const incidentsCreate = async (createIncidentRequest: CreateIncidentReque
     method: 'POST',
     headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
     body: JSON.stringify(createIncidentRequest)
+  }
+);}
+
+
+export const getIncidentsGetFilterOptionsUrl = (params?: IncidentsGetFilterOptionsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/product-management/incidents/filter-options?${stringifiedParams}` : `/api/product-management/incidents/filter-options`
+}
+
+/**
+ * The distinct values `field` holds across every incident, each with the `value` to send as `field=value` in the list's `filter` and the `label` to show for it. `field` is one of `severity` (in rank order), `state`, `products`, `releases`, `reportedBy` or `commander`; the others are in label order. `search` keeps the labels containing it, ignoring case. At most `limit` values (1 to 200, 100 by default) are returned; `hasMore` is true when more match, so narrow them with `search`. An unknown field fails with a 422.
+ * @summary List the values one incidents column holds, for its filter.
+ */
+export const incidentsGetFilterOptions = async (params?: IncidentsGetFilterOptionsParams, options?: Parameters<typeof apiFetch>[1]): Promise<ListFilterOptionsDto> => {
+
+  return apiFetch<ListFilterOptionsDto>(getIncidentsGetFilterOptionsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
   }
 );}
 

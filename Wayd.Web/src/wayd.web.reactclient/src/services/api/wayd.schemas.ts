@@ -9789,6 +9789,26 @@ export interface LinkWorkItemRequest {
   workItemId: number;
 }
 
+/**
+ * One value a person can pick in a list column's filter.
+ */
+export interface ListFilterOptionDto {
+  /** The value to send in the list's `filter` for this column: `field=value`. */
+  value: string;
+  /** What to show for the value. */
+  label: string;
+}
+
+/**
+ * The values a list column's filter offers, as far as one request reads them.
+ */
+export interface ListFilterOptionsDto {
+  /** The values, in the column's order: by rank where it has one, then by label. */
+  options: ListFilterOptionDto[];
+  /** True when more values match than were returned; narrow them with a search. */
+  hasMore: boolean;
+}
+
 export interface LocalScheduleDto {
   id: string;
   key: number;
@@ -20506,6 +20526,14 @@ export type IncidentsGetIncidentsParams = {
   pageSize?: number;
   status?: ProductStatusAlias[];
   severityLevelId?: string[];
+  filter?: string;
+  sort?: string;
+};
+
+export type IncidentsGetFilterOptionsParams = {
+  field?: string;
+  search?: string;
+  limit?: number;
 };
 
 export type IncidentsGetIncidentFiguresParams = {

@@ -807,9 +807,10 @@ public class IncidentConfiguration : IEntityTypeConfiguration<Incident>
             .HasField("_timelineLinkEntries")
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        builder.HasOne<IncidentSeverityLevel>()
+        builder.HasOne(i => i.SeverityLevel)
             .WithMany()
             .HasForeignKey(i => i.SeverityLevelId)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(i => i.SubmittedBy)

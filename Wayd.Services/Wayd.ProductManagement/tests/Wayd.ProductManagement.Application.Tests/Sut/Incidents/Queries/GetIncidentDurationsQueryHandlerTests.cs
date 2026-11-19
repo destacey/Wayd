@@ -242,6 +242,28 @@ public sealed class GetIncidentDurationsQueryHandlerTests : ProductCommandTestBa
     private GetIncidentFiguresQueryHandler FiguresHandler() =>
         new(DbContext, DateTimeProvider.Object);
 
+    [Fact]
+    public async Task Handle_ShouldCountAndPageOnlyTheIncidentsTheFilterMatches()
+    {
+        // Arrange
+        var reporter = AddEmployee(7, new PersonName("Grace", null, "Hopper"));
+        var first = Open("Checkout down", Now.Minus(Duration.FromMinutes(30)), reportedBy: reporter.Id);
+        SetKey(first, 1);
+        var second = Open("Search slow", Now.Minus(Duration.FromMinutes(20)), reportedBy: reporter.Id);
+        SetKey(second, 2);
+        var other = Open("Login loop", Now.Minus(Duration.FromMinutes(10)));
+        SetKey(other, 3);
+
+        // Act
+        var page = await ListHandler().Handle(
+            new GetIncidentsQuery(new PageRequest(1, 1), Filter: $"reportedBy={reporter.Id}", Sort: "key asc"),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        page.TotalCount.Should().Be(2);
+        page.Items.Should().ContainSingle().Which.Key.Should().Be(1);
+    }
+
     private Employee AddEmployee(int key, PersonName name)
     {
         var employee = new PrivateConstructorFaker<Employee>()

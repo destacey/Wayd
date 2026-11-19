@@ -330,6 +330,46 @@ to taking both and answering with `PagedResponse<T>`; `PagingTests` holds every 
 validator. Over an in-memory fake a text operator other than equality throws on a null value, so prove a new
 map's translation against SQL Server, as `ImportRowListTranslationIntegrationTests` does.
 
+A record another record references (a person, a product, a severity level) is matched by **id**, never by its
+name: two people may share a name, and a rename must not break a saved filter. An id is sent in its hyphenated
+form and anything else is refused. Such a field usually sorts by something other than what it filters by, so
+`Map(field, filterBy, sortBy)` takes both: `.Map("reportedBy", i => i.ReportedByEmployeeId, i =>
+i.ReportedBy!.Name.FirstName + " " + i.ReportedBy.Name.LastName)` filters by the id and sorts by the name, and
+`.Map("severity", i => i.SeverityLevelId, i => i.SeverityLevel!.SortOrder)` sorts by rank. A field over a
+collection uses `MapMany(field, i => i.ProductLinks.Select(l => l.ProductId))`: `products=<id>` matches a row
+holding that id, `products!=` a row holding any. It cannot be sorted by, and `products=` is refused, because
+Gridify reads it as "holds a null" rather than "holds nothing".
+
+##### The values a filter offers
+
+A grid in server mode holds only the rows on screen, so its set filters cannot list a column's values from the
+data the way a client-side grid does. A list whose columns need them serves them itself: the map declares, per
+field, how to read the values its rows hold, and a `GET {list}/filter-options?field=&search=&limit=` endpoint
+returns them.
+
+```csharp
+.Options("reportedBy", incidents => incidents.Select(i => new ListFilterOptionRow<Guid>
+{
+    Value = i.ReportedByEmployeeId,
+    Label = i.ReportedBy!.Name.FirstName + " " + i.ReportedBy.Name.LastName,
+    Rank = 0,
+}))
+```
+
+`ReadOptions` removes duplicates, keeps the labels containing `search`, orders by `Rank` and then `Label`, and
+returns at most `limit` values (200 at most) with `hasMore` when there are more. Each value is formatted the way the
+field's filter reads it back: an id hyphenated, an enum by its code. Every projection assigns `Rank`, which is
+required because EF cannot translate reading a member an initializer leaves out; only a column with an order of
+its own, such as severity, ranks. The query implements `IListFilterOptionsQuery`, its validator derives from
+`ListFilterOptionsQueryValidator<TQuery, TEntity>` with the same map, and the handler passes the list's entity
+set to `ReadOptions` (`GetIncidentFilterOptionsQuery`).
+
+The values come from the list itself, so a filter offers only what some row holds, including a person no longer
+active, and the answer grows with the values the list uses rather than with the size of the table they come from.
+A column on a closed set (an enum) needs no endpoint: the client lists its codes. A column whose values the page
+already holds can pass them directly. Prove each projection against SQL Server, as `IncidentListTests` does:
+in-memory LINQ accepts projections EF cannot translate.
+
 An action that reads its page without a query, because it reads host plumbing outside the handler pipeline
 (background jobs from Hangfire, dead letters from Wolverine), checks the `PageRequest` it builds with
 `PageRequestValidation.IsValid` and answers 422 on failure, so it holds the same bounds as a query would.

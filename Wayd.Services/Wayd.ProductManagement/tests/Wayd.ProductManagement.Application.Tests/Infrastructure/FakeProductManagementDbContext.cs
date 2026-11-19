@@ -79,10 +79,11 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     public DbSet<IncidentSeveritySetAssignment> IncidentSeveritySetAssignments =>
         _incidentSeveritySetAssignments.AsDbSet();
     /// <summary>
-    /// The incidents with their employee navigations set from <see cref="Employees"/>, as EF's relationship
-    /// fix-up would. A query that forgets to include them therefore passes here; only a database test catches it.
+    /// The incidents with their employee, severity, product and release navigations set from this context's sets,
+    /// as EF's relationship fix-up would. A query that forgets to include them therefore passes here; only a
+    /// database test catches it.
     /// </summary>
-    public DbSet<Incident> Incidents => WithEmployees(_incidents).AsDbSet();
+    public DbSet<Incident> Incidents => WithNavigations(_incidents).AsDbSet();
     public DbSet<IncidentTimelineNote> IncidentTimelineNotes => _incidentTimelineNotes.AsDbSet();
     public DbSet<IncidentTimelineLinkEntry> IncidentTimelineLinkEntries =>
         _incidentTimelineLinkEntries.AsDbSet();
@@ -181,22 +182,29 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
 
     public void AddIncident(Incident incident) => _incidents.Add(incident);
 
-    private List<Incident> WithEmployees(List<Incident> incidents)
+    private List<Incident> WithNavigations(List<Incident> incidents)
     {
         foreach (var incident in incidents)
         {
-            SetEmployee(incident, nameof(Incident.SubmittedBy), incident.SubmittedByEmployeeId);
-            SetEmployee(incident, nameof(Incident.ReportedBy), incident.ReportedByEmployeeId);
-            SetEmployee(incident, nameof(Incident.Commander), incident.CommanderEmployeeId);
+            Set(incident, nameof(Incident.SubmittedBy), Employee(incident.SubmittedByEmployeeId));
+            Set(incident, nameof(Incident.ReportedBy), Employee(incident.ReportedByEmployeeId));
+            Set(incident, nameof(Incident.Commander), Employee(incident.CommanderEmployeeId));
+            Set(incident, nameof(Incident.SeverityLevel),
+                _incidentSeverityLevels.FirstOrDefault(l => l.Id == incident.SeverityLevelId));
+            foreach (var link in incident.ProductLinks)
+                Set(link, nameof(IncidentProductLink.Product), _products.FirstOrDefault(p => p.Id == link.ProductId));
+            foreach (var link in incident.ReleaseLinks)
+                Set(link, nameof(IncidentReleaseLink.Release), _releases.FirstOrDefault(r => r.Id == link.ReleaseId));
         }
 
         return incidents;
     }
 
-    private void SetEmployee(Incident incident, string navigation, Guid? employeeId) =>
-        typeof(Incident).GetProperty(navigation)!.SetValue(
-            incident,
-            employeeId is Guid id ? _employees.FirstOrDefault(e => e.Id == id) : null);
+    private Employee? Employee(Guid? employeeId) =>
+        employeeId is Guid id ? _employees.FirstOrDefault(e => e.Id == id) : null;
+
+    private static void Set(object entity, string navigation, object? value) =>
+        entity.GetType().GetProperty(navigation)!.SetValue(entity, value);
 
     public void AddStatusWorkflow(StatusWorkflow workflow) => _statusWorkflows.Add(workflow);
     public void AddWorkflowAssignment(WorkflowAssignment assignment) => _workflowAssignments.Add(assignment);

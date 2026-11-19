@@ -1,15 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Application.Employees.Commands;
-using Wayd.Common.Application.FeatureManagement;
-using Wayd.Common.Application.FeatureManagement.Commands;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Enums.ProductManagement;
-using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Models;
 using Wayd.Infrastructure.Auth;
 using Wayd.ProductManagement.Application;
@@ -173,20 +170,5 @@ public sealed class IncidentImportTests(WaydSqlServerApiFactory factory)
             null,
             null);
 
-    private async Task SetIncidentFlags(bool enabled)
-    {
-        using var scope = _factory.Services.CreateScope();
-        await scope.ActAsHarnessAdministrator();
-        var ids = await scope.ServiceProvider.GetRequiredService<IFeatureManagementDbContext>().FeatureFlags
-            .Where(f => f.Name == FeatureFlags.Names.ProductManagement || f.Name == FeatureFlags.Names.IncidentManagement)
-            .Select(f => f.Id)
-            .ToListAsync(TestContext.Current.CancellationToken);
-
-        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
-        foreach (var id in ids)
-        {
-            var toggled = await dispatcher.Send(new ToggleFeatureFlagCommand(id, enabled), TestContext.Current.CancellationToken);
-            Assert.True(toggled.IsSuccess, toggled.IsFailure ? toggled.Error : null);
-        }
-    }
+    private Task SetIncidentFlags(bool enabled) => IncidentFeatureFlags.Set(_factory, enabled);
 }

@@ -226,7 +226,7 @@ Every comment must be valuable, never narrative. Full rules and examples:
 
 ### .NET Backend
 
-- **Time handling**: NodaTime (`Instant`, `LocalDate`). Never use `DateTime.UtcNow` — always inject `IDateTimeProvider`. Migrations are the sole exception (no DI); there, format timestamps interpolated into `migrationBuilder.Sql(...)` with `CultureInfo.InvariantCulture` and `"yyyy-MM-ddTHH:mm:ss.fff"` — the current culture's default format is not parseable by SQL Server on non-Windows hosts (ICU 72+ emits `U+202F` before AM/PM, failing with error 241).
+- **Time handling**: NodaTime (`Instant`, `LocalDate`). Never use `DateTime.UtcNow` — always inject `IDateTimeProvider`. A calendar day comes from `ISystemCalendar` (the system time zone) or a team's zone, never UTC: `Instant.InUtc()` is banned in production code (`RS0030`), and tests use `TestingSystemCalendar` at a moment where the UTC day differs. Migrations are the sole exception (no DI); there, format timestamps interpolated into `migrationBuilder.Sql(...)` with `CultureInfo.InvariantCulture` and `"yyyy-MM-ddTHH:mm:ss.fff"` — the current culture's default format is not parseable by SQL Server on non-Windows hosts (ICU 72+ emits `U+202F` before AM/PM, failing with error 241).
 - **Async naming**: Do NOT use `Async` suffix for new async methods.
 - **Validation**: FluentValidation, run by the Wolverine handler pipeline (`WolverineFx.FluentValidation`).
 - **Mapping**: Mapster for DTOs.

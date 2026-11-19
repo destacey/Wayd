@@ -878,7 +878,7 @@ Each service: Domain (entities, value objects) → Application (commands, querie
 Application layer organized by aggregate root: {Feature}/Commands/, {Feature}/Queries/, {Feature}/Dtos/.
 
 ### Time Handling
-NodaTime types (Instant, LocalDate). Never DateTime.UtcNow — always inject IDateTimeProvider.
+NodaTime types (Instant, LocalDate). Never DateTime.UtcNow — always inject IDateTimeProvider. A calendar day ("today", the day a moment falls on) comes from ISystemCalendar, read in the system time zone (GeneralSettings.TimeZone), or from a team's own zone; Instant.InUtc() is banned in production code.
 
 ### Frontend Patterns
 - Orval-generated typed functions for API calls (src/services/api/; never a hand-written fetch)

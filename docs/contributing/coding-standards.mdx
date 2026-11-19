@@ -99,6 +99,8 @@ Always use **NodaTime** types instead of `DateTime`:
 
 Never use `DateTime.UtcNow`. Always inject `IDateTimeProvider` for the current time.
 
+A calendar day comes from a zone, never from UTC. Inject `ISystemCalendar` for today (`Today`) or the day a moment falls on (`DayOf`) in the system time zone, or read the team's zone where a team owns the record. Code that cannot await, such as a DTO factory or a domain method, takes the day or the zone as a parameter. `Instant.InUtc()` is banned in production code (`BannedSymbols.txt`, error `RS0030`); where a day really is UTC, such as a date that arrives as midnight UTC, suppress the error at that line and say why. In tests, use `TestingSystemCalendar` rather than a mock, and set the clock to a moment where the UTC day and the system zone's day differ, or the test cannot tell them apart.
+
 ### Result Pattern
 
 Return `Result<T>` or `Result` from command handlers; `CqrsPatternTests` fails one that returns anything else. Query handlers return their response type: usually a nullable DTO, and a `Result<TDto>` when the query can fail for a reason other than finding nothing. Never throw exceptions for business logic failures.

@@ -269,7 +269,10 @@ Wayd reads a calendar day in the system time zone wherever no team's own time zo
 - the day an employee is deactivated, which ends their allocations, is that day in it;
 - a version or package date sent through the API without a time is read as a day in it.
 
-Delivery forecasts are the exception: they count completed work by UTC day, so a completion near midnight can fall on the neighbouring day.
+Two features still read days in UTC, so a completion near midnight can fall on the neighbouring day:
+
+- [delivery forecasts](../work-management/delivery-forecasting.mdx) count completed work by UTC day;
+- the [cycle time report](../work-management/cycle-time-report.mdx)'s **Done From** date starts at midnight UTC.
 
 A team's own time zone, on its [operating model](../organizations/index.mdx#operating-model), always wins for that team. Changing the system time zone does not change any existing team, and dates already saved keep the day they were saved as, but it moves **today** for every rule above at once, so saving a different zone asks you to confirm. Other Wayd servers in the same deployment pick up the change within five minutes.
 

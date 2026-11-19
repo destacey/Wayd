@@ -2,10 +2,8 @@
 using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Kpis;
-using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Kpis;
-using Wayd.Common.Domain.Settings;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Infrastructure;
 
@@ -26,7 +24,6 @@ public sealed class KpiTestHarness
         SubjectType.Setup(t => t.SubjectType).Returns(Gadget.Key);
         CurrentUser.Setup(u => u.GetUserId()).Returns("user-1");
         CurrentUser.Setup(u => u.GetEmployeeId()).Returns(EmployeeId);
-        GeneralSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new GeneralSettings { TimeZone = Zone.Id });
         Subject(canManage: true);
     }
 
@@ -43,8 +40,8 @@ public sealed class KpiTestHarness
     /// <summary>The system time zone every test runs under: behind UTC, so a moment's day there is not its UTC day.</summary>
     public static DateTimeZone Zone { get; } = DateTimeZoneProviders.Tzdb["America/Chicago"];
 
-    /// <summary>The system settings, naming <see cref="Zone"/>.</summary>
-    public Mock<ISettings<GeneralSettings>> GeneralSettings { get; } = new();
+    /// <summary>The system calendar, in <see cref="Zone"/>.</summary>
+    public TestingSystemCalendar SystemCalendar => new(DateTimeProvider, Zone.Id);
 
     /// <summary>The caller's linked employee.</summary>
     public Guid EmployeeId { get; } = Guid.NewGuid();
@@ -87,5 +84,5 @@ public sealed class KpiTestHarness
 
     public KpiSubjectAccessResolver Resolver() => new([SubjectType.Object], CurrentPrincipal.Object);
 
-    public KpiCommandScope Scope() => new(Resolver(), DbContext, CurrentUser.Object, DateTimeProvider, GeneralSettings.Object);
+    public KpiCommandScope Scope() => new(Resolver(), DbContext, CurrentUser.Object, DateTimeProvider, SystemCalendar);
 }

@@ -2,12 +2,10 @@ using System.Globalization;
 using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Persistence;
-using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.Kpis;
-using Wayd.Common.Domain.Settings;
 
 namespace Wayd.Common.Application.Kpis.Imports;
 
@@ -30,7 +28,7 @@ public sealed class KpiImportDefinition(
     IFeatureFlags featureFlags,
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser,
-    ISettings<GeneralSettings> generalSettings,
+    ISystemCalendar systemCalendar,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportKpiDto>(serializer)
 {
     public const string ImportKey = "kpis.kpis";
@@ -40,7 +38,7 @@ public sealed class KpiImportDefinition(
     private readonly IFeatureFlags _featureFlags = featureFlags;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUser _currentUser = currentUser;
-    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public override string Key => ImportKey;
     public override string DisplayName => "KPIs";
@@ -93,7 +91,7 @@ public sealed class KpiImportDefinition(
     {
         var timestamp = _dateTimeProvider.Now;
         var actor = EventActor.Import(_currentUser.GetUserId());
-        var zone = (await _generalSettings.Get(cancellationToken)).Zone();
+        var zone = await _systemCalendar.Zone(cancellationToken);
 
         var subjects = await ResolveSubjects(context, cancellationToken);
         var categories = await ResolveCategories(context, cancellationToken);

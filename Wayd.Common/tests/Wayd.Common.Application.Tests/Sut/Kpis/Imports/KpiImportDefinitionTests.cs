@@ -35,7 +35,7 @@ public sealed class KpiImportDefinitionTests
             _featureFlags.Object,
             _harness.DateTimeProvider,
             _harness.CurrentUser.Object,
-            _harness.GeneralSettings.Object,
+            _harness.SystemCalendar,
             new ImportPayloadSerializer());
     }
 

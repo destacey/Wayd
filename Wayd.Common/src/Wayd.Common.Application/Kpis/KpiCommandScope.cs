@@ -1,7 +1,5 @@
 using Wayd.Common.Application.Persistence;
-using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Kpis;
-using Wayd.Common.Domain.Settings;
 
 namespace Wayd.Common.Application.Kpis;
 
@@ -19,13 +17,13 @@ public sealed class KpiCommandScope(
     IKpisDbContext dbContext,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
-    ISettings<GeneralSettings> generalSettings)
+    ISystemCalendar systemCalendar)
 {
     private readonly KpiSubjectAccessResolver _accessResolver = accessResolver;
     private readonly IKpisDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     /// <summary>The KPI tables.</summary>
     public IKpisDbContext DbContext => _dbContext;
@@ -43,8 +41,7 @@ public sealed class KpiCommandScope(
     /// The system time zone, which a measurement's calendar days are read in: the day a point-in-time moment falls on,
     /// and the day a value was taken when the caller does not say.
     /// </summary>
-    public async Task<DateTimeZone> SystemZone(CancellationToken cancellationToken) =>
-        (await _generalSettings.Get(cancellationToken)).Zone();
+    public Task<DateTimeZone> SystemZone(CancellationToken cancellationToken) => _systemCalendar.Zone(cancellationToken);
 
     /// <summary>
     /// The record, when it exists, the caller can read it and may manage its KPIs.

@@ -102,7 +102,7 @@ public static class ProjectPortfolioFakerExtensions
     /// </summary>
     public static ProjectPortfolio AsActive(this ProjectPortfolioFaker faker, TestingDateTimeProvider dateTimeProvider)
     {
-        var now = dateTimeProvider.Today;
+        var now = dateTimeProvider.Now.InUtc().Date;
         var defaultStartDate = now.PlusDays(-10);
 
         return faker.WithStatus(ProjectPortfolioStatus.Active).WithDateRange(new FlexibleDateRange(defaultStartDate)).Generate();
@@ -113,7 +113,7 @@ public static class ProjectPortfolioFakerExtensions
     /// </summary>
     public static ProjectPortfolio AsClosed(this ProjectPortfolioFaker faker, TestingDateTimeProvider dateTimeProvider)
     {
-        var now = dateTimeProvider.Today;
+        var now = dateTimeProvider.Now.InUtc().Date;
         var defaultStartDate = now.PlusDays(-20);
         var defaultEndDate = now.PlusDays(-10);
 
@@ -125,7 +125,7 @@ public static class ProjectPortfolioFakerExtensions
     /// </summary>
     public static ProjectPortfolio AsArchived(this ProjectPortfolioFaker faker, TestingDateTimeProvider dateTimeProvider)
     {
-        var now = dateTimeProvider.Today;
+        var now = dateTimeProvider.Now.InUtc().Date;
         var defaultStartDate = now.PlusDays(-20);
         var defaultEndDate = now.PlusDays(-10);
 

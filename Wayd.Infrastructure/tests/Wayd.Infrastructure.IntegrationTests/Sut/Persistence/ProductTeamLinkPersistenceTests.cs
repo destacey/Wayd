@@ -100,7 +100,6 @@ public sealed class ProductTeamLinkPersistenceTests(SqlServerDbContextFixture fi
 
         var otherRequestRan = false;
         var clock = new Mock<IDateTimeProvider>();
-        clock.SetupGet(d => d.Today).Returns(Today);
         clock.SetupGet(d => d.Now).Returns(() =>
         {
             if (!otherRequestRan)
@@ -375,7 +374,6 @@ public sealed class ProductTeamLinkPersistenceTests(SqlServerDbContextFixture fi
     {
         var provider = new Mock<IDateTimeProvider>();
         provider.SetupGet(d => d.Now).Returns(Now);
-        provider.SetupGet(d => d.Today).Returns(Today);
         return provider.Object;
     }
 

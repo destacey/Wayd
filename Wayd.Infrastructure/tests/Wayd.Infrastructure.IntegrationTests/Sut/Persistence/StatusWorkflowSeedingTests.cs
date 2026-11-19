@@ -34,7 +34,6 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
     {
         var provider = new Mock<IDateTimeProvider>();
         provider.SetupGet(d => d.Now).Returns(Instant.FromUtc(2026, 1, 15, 9, 30, 0));
-        provider.SetupGet(d => d.Today).Returns(new LocalDate(2026, 1, 15));
 
         return provider.Object;
     }

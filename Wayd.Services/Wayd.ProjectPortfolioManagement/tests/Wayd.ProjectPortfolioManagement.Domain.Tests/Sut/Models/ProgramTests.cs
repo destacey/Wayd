@@ -91,7 +91,7 @@ public class ProgramTests
         // Arrange
         var program = _programFaker
             .WithStatus(ProgramStatus.Proposed)
-            .WithDateRange(new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30)))
+            .WithDateRange(new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(30)))
             .Generate();
         program.ClearDomainEvents();
 
@@ -114,7 +114,7 @@ public class ProgramTests
         // Proposed, activated so projects can be imported into it, then completed.
         var program = _programFaker
             .WithStatus(ProgramStatus.Proposed)
-            .WithDateRange(new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30)))
+            .WithDateRange(new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(30)))
             .Generate();
         program.ClearDomainEvents();
 
@@ -149,8 +149,8 @@ public class ProgramTests
     public void UpdateTimeline_OnAChangedRange_RaisesATimelineChangedEventCarryingBothEnds()
     {
         // Arrange
-        var oldRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30));
-        var newRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(45));
+        var oldRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(30));
+        var newRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(45));
         var program = _programFaker.WithDateRange(oldRange).Generate();
         program.ClearDomainEvents();
 
@@ -168,7 +168,7 @@ public class ProgramTests
     public void UpdateTimeline_SettingTheFirstRange_RaisesATimelineChangedEventWithNoPreviousRange()
     {
         // Arrange
-        var newRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(45));
+        var newRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(45));
         var program = _programFaker.WithDateRange(null).Generate();
         program.ClearDomainEvents();
 
@@ -186,7 +186,7 @@ public class ProgramTests
     public void UpdateTimeline_OnAnUnchangedRange_RaisesNothing()
     {
         // Arrange
-        var range = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(45));
+        var range = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(45));
         var program = _programFaker.WithDateRange(range).Generate();
         program.ClearDomainEvents();
 
@@ -310,7 +310,7 @@ public class ProgramTests
     {
         // Arrange — what the program import does: create Proposed, then activate it so projects can be
         // imported into it, all before one save
-        var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30));
+        var dateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(30));
         var program = Program.Create("Atlas", "Atlas program", dateRange, Guid.NewGuid(), null, null, EventActor.System, _dateTimeProvider.Now);
 
         // Act
@@ -359,8 +359,8 @@ public class ProgramTests
     {
         // Arrange
         var program = _programFaker.Generate();
-        var startDate = _dateTimeProvider.Today;
-        var endDate = _dateTimeProvider.Today.PlusDays(30);
+        var startDate = _dateTimeProvider.Now.InUtc().Date;
+        var endDate = _dateTimeProvider.Now.InUtc().Date.PlusDays(30);
         var dateRange = new LocalDateRange(startDate, endDate);
 
         // Act
@@ -406,8 +406,8 @@ public class ProgramTests
     {
         // Arrange
         var program = _programFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
-        var startDate = _dateTimeProvider.Today;
-        var endDate = _dateTimeProvider.Today.PlusDays(60);
+        var startDate = _dateTimeProvider.Now.InUtc().Date;
+        var endDate = _dateTimeProvider.Now.InUtc().Date.PlusDays(60);
         var dateRange = new LocalDateRange(startDate, endDate);
 
         // Act
@@ -520,7 +520,7 @@ public class ProgramTests
     public void Activate_ShouldActivateProposedProgramSuccessfully()
     {
         // Arrange
-        var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3));
+        var dateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusMonths(3));
         var program = _programFaker.WithDateRange(dateRange).Generate();
 
         // Act
@@ -723,7 +723,7 @@ public class ProgramTests
     public void Activate_ShouldFail_WhenActorHoldsNoRole()
     {
         // Arrange
-        var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3));
+        var dateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusMonths(3));
         var program = _programFaker.WithStatus(ProgramStatus.Proposed).WithDateRange(dateRange).Generate();
 
         // Act
@@ -788,7 +788,7 @@ public class ProgramTests
     {
         // Arrange
         var program = _programFaker.WithDateRange(null).Generate();
-        var newRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(1));
+        var newRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusMonths(1));
 
         // Act
         var result = program.UpdateTimeline(AnUnauthorizedActor(), NoProgramAncestry(), newRange, _dateTimeProvider.Now);

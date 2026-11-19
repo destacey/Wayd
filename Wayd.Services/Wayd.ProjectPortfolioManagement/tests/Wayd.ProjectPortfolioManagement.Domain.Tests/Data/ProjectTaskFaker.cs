@@ -150,7 +150,7 @@ public static class ProjectTaskFakerExtensions
     /// </summary>
     public static ProjectTask AsNotStarted(this ProjectTaskFaker faker, TestingDateTimeProvider dateTimeProvider, Guid projectId, ProjectKey projectKey)
     {
-        var now = dateTimeProvider.Today;
+        var now = dateTimeProvider.Now.InUtc().Date;
         var startDate = now.PlusDays(5);
         var endDate = startDate.PlusDays(10);
         var progress = new Progress(Decimal.Zero);
@@ -163,7 +163,7 @@ public static class ProjectTaskFakerExtensions
     /// </summary>
     public static ProjectTask AsInProgress(this ProjectTaskFaker faker, TestingDateTimeProvider dateTimeProvider, Guid projectId, ProjectKey projectKey)
     {
-        var now = dateTimeProvider.Today;
+        var now = dateTimeProvider.Now.InUtc().Date;
         var startDate = now.PlusDays(-5);
         var endDate = now.PlusDays(10);
         var progress = new Progress(0.25m);
@@ -176,7 +176,7 @@ public static class ProjectTaskFakerExtensions
     /// </summary>
     public static ProjectTask AsCompleted(this ProjectTaskFaker faker, TestingDateTimeProvider dateTimeProvider, Guid projectId, ProjectKey projectKey)
     {
-        var now = dateTimeProvider.Today;
+        var now = dateTimeProvider.Now.InUtc().Date;
         var startDate = now.PlusDays(-15);
         var endDate = now.PlusDays(-5);
         var progress = Progress.Completed();
@@ -189,7 +189,7 @@ public static class ProjectTaskFakerExtensions
     /// </summary>
     public static ProjectTask AsMilestone(this ProjectTaskFaker faker, TestingDateTimeProvider dateTimeProvider, Guid projectId, ProjectKey projectKey)
     {
-        var now = dateTimeProvider.Today;
+        var now = dateTimeProvider.Now.InUtc().Date;
         var milestoneDate = now.PlusDays(30);
 
         return faker.WithProjectId(projectId).WithKey(new ProjectTaskKey(projectKey, new Random().Next(1, 999))).WithType(ProjectTaskType.Milestone).WithPlannedDate(milestoneDate).Generate();

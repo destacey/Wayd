@@ -166,7 +166,6 @@ public sealed class AssignPortfolioScoringModelCommandHandlerTests
 
         var dateTimeProvider = new Mock<IDateTimeProvider>();
         dateTimeProvider.SetupGet(d => d.Now).Returns(SqlServerDbContextFixture.FixedNow);
-        dateTimeProvider.SetupGet(d => d.Today).Returns(SqlServerDbContextFixture.FixedNow.InUtc().Date);
 
         return new AssignPortfolioScoringModelCommandHandler(
             context,

@@ -137,7 +137,7 @@ public class ProjectTests
         var createdOn = _dateTimeProvider.Now;
         var activatedOn = createdOn.Plus(Duration.FromDays(30));
         var closedOn = createdOn.Plus(Duration.FromDays(120));
-        var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(120));
+        var dateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(120));
 
         var project = Project.Create(
             "Atlas", "desc", new ProjectKey("ATLAS"), 1, dateRange, Guid.CreateVersion7(), 1000d,
@@ -196,7 +196,7 @@ public class ProjectTests
         // Arrange
         var project = _projectFaker.Generate();
         project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), new ProjectLifecycleFaker().AsActiveWithStages(("Discover", "Framing the problem")), _dateTimeProvider.Now);
-        project.UpdateTimeline(AnAuthorizedActor(), NoProjectAncestry(), new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30)), _dateTimeProvider.Now);
+        project.UpdateTimeline(AnAuthorizedActor(), NoProjectAncestry(), new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(30)), _dateTimeProvider.Now);
         project.ClearDomainEvents();
 
         // Act
@@ -257,8 +257,8 @@ public class ProjectTests
     public void UpdateTimeline_OnAChangedRange_RaisesATimelineChangedEventCarryingBothEnds()
     {
         // Arrange
-        var oldRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30));
-        var newRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(45));
+        var oldRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(30));
+        var newRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(45));
         var project = _projectFaker.WithDateRange(oldRange).Generate();
         project.ClearDomainEvents();
 
@@ -276,7 +276,7 @@ public class ProjectTests
     public void UpdateTimeline_SettingTheFirstRange_RaisesATimelineChangedEventWithNoPreviousRange()
     {
         // Arrange
-        var newRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(45));
+        var newRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(45));
         var project = _projectFaker.WithDateRange(null).Generate();
         project.ClearDomainEvents();
 
@@ -317,7 +317,7 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.Generate();
-        var range = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(45));
+        var range = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(45));
         project.UpdateTimeline(AnAuthorizedActor(), NoProjectAncestry(), range, _dateTimeProvider.Now);
         project.ClearDomainEvents();
 
@@ -407,8 +407,8 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.Generate();
-        var startDate = _dateTimeProvider.Today;
-        var endDate = _dateTimeProvider.Today.PlusDays(30);
+        var startDate = _dateTimeProvider.Now.InUtc().Date;
+        var endDate = _dateTimeProvider.Now.InUtc().Date.PlusDays(30);
         var dateRange = new LocalDateRange(startDate, endDate);
 
         // Act
@@ -454,8 +454,8 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
-        var startDate = _dateTimeProvider.Today;
-        var endDate = _dateTimeProvider.Today.PlusDays(60);
+        var startDate = _dateTimeProvider.Now.InUtc().Date;
+        var endDate = _dateTimeProvider.Now.InUtc().Date.PlusDays(60);
         var dateRange = new LocalDateRange(startDate, endDate);
 
         // Act
@@ -568,7 +568,7 @@ public class ProjectTests
     public void Activate_ShouldActivateProposedProjectSuccessfully()
     {
         // Arrange
-        var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3));
+        var dateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusMonths(3));
         var project = _projectFaker.WithDateRange(dateRange).Generate();
 
         // Act
@@ -686,7 +686,7 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.Generate();
-        var endDate = _dateTimeProvider.Today.PlusDays(10);
+        var endDate = _dateTimeProvider.Now.InUtc().Date.PlusDays(10);
 
         // Act
         var result = project.Complete(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
@@ -772,7 +772,7 @@ public class ProjectTests
     {
         // Arrange
         var project = _projectFaker.AsCanceled(_dateTimeProvider, Guid.NewGuid());
-        var endDate = _dateTimeProvider.Today.PlusDays(10);
+        var endDate = _dateTimeProvider.Now.InUtc().Date.PlusDays(10);
 
         // Act
         var result = project.Cancel(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
@@ -881,7 +881,7 @@ public class ProjectTests
     public void StatusHistory_ShouldRecordEveryTransition_InOrder()
     {
         // Arrange
-        var project = _projectFaker.WithDateRange(new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3))).Generate();
+        var project = _projectFaker.WithDateRange(new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusMonths(3))).Generate();
         var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Plan stage"));
         project.AssignLifecycle(AnAuthorizedActor(), NoProjectAncestry(), lifecycle, _dateTimeProvider.Now);
 
@@ -939,7 +939,7 @@ public class ProjectTests
         // Arrange
         var project = _projectFaker
             .WithStatus(status)
-            .WithDateRange(new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3)))
+            .WithDateRange(new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusMonths(3)))
             .Generate();
 
         // Act
@@ -1040,7 +1040,7 @@ public class ProjectTests
     /// </summary>
     private LocalDateRange ADeliveredDateRange()
     {
-        var start = _dateTimeProvider.Today.PlusDays(-20);
+        var start = _dateTimeProvider.Now.InUtc().Date.PlusDays(-20);
 
         return new LocalDateRange(start, start.PlusMonths(2));
     }
@@ -1363,7 +1363,7 @@ public class ProjectTests
         // both paths maintain the count.
         var project = Project.Create(
             "Counted", "Keeps its transition count in step", new ProjectKey("COUNT"), 1,
-            new LocalDateRange(_dateTimeProvider.Today.PlusDays(-20), _dateTimeProvider.Today.PlusMonths(2)),
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(-20), _dateTimeProvider.Now.InUtc().Date.PlusMonths(2)),
             Guid.NewGuid(), rank: 1, programId: null, businessCase: null, expectedBenefits: null,
             roles: null, strategicThemes: null, timestamp: _dateTimeProvider.Now, actor: PpmActor.System);
 
@@ -1643,7 +1643,7 @@ public class ProjectTests
     public void Activate_ShouldFail_WhenActorHoldsNoRole()
     {
         // Arrange
-        var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(3));
+        var dateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusMonths(3));
         var project = _projectFaker.WithDateRange(dateRange).Generate();
 
         // Act
@@ -1709,7 +1709,7 @@ public class ProjectTests
     {
         // Arrange — timelines are gated because lifecycle guards read them.
         var project = _projectFaker.WithDateRange(null).Generate();
-        var newRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusMonths(1));
+        var newRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusMonths(1));
 
         // Act
         var result = project.UpdateTimeline(AnUnauthorizedActor(), NoProjectAncestry(), newRange, _dateTimeProvider.Now);
@@ -2240,7 +2240,7 @@ public class ProjectTests
         var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
         var stageId = stages[0].Id;
 
-        var milestoneTask = project.CreateTask(1, "Milestone", null, ProjectTaskType.Milestone, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, stageId, null, _dateTimeProvider.Today.PlusDays(30), null, null).Value;
+        var milestoneTask = project.CreateTask(1, "Milestone", null, ProjectTaskType.Milestone, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, stageId, null, _dateTimeProvider.Now.InUtc().Date.PlusDays(30), null, null).Value;
         var regularTask = project.CreateTask(2, "Regular Task", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, stageId, null, null, null, null).Value;
 
         // Act

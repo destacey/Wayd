@@ -49,7 +49,6 @@ public sealed class ReassignWorkflowIntegrationTests(SqlServerDbContextFixture f
     {
         var provider = new Mock<IDateTimeProvider>();
         provider.SetupGet(d => d.Now).Returns(Timestamp);
-        provider.SetupGet(d => d.Today).Returns(new LocalDate(2026, 5, 4));
 
         return provider.Object;
     }

@@ -129,7 +129,7 @@ public class IterationTests
     public void Update_BeforeTheFirstSave_WaitsForTheKey()
     {
         // Arrange
-        var range = new IterationDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(13));
+        var range = new IterationDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(13));
         var iteration = Iteration.Create("Sprint 1", IterationType.Sprint, range, null,
             OwnershipInfo.CreateWaydOwned(), [], EventActor.System, _dateTimeProvider.Now);
 

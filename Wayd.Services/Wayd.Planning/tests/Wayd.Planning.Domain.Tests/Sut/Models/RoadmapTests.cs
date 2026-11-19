@@ -33,10 +33,10 @@ public class RoadmapTests
     public RoadmapTests()
     {
         _dateTimeProvider = new(new FakeClock(DateTime.UtcNow.ToInstant()));
-        _faker = new RoadmapFaker(_dateTimeProvider.Today);
-        _activityFaker = new RoadmapActivityFaker(localDate: _dateTimeProvider.Today);
-        _milestoneFaker = new RoadmapMilestoneFaker(localDate: _dateTimeProvider.Today);
-        _timeboxFaker = new RoadmapTimeboxFaker(localDate: _dateTimeProvider.Today);
+        _faker = new RoadmapFaker(_dateTimeProvider.Now.InUtc().Date);
+        _activityFaker = new RoadmapActivityFaker(localDate: _dateTimeProvider.Now.InUtc().Date);
+        _milestoneFaker = new RoadmapMilestoneFaker(localDate: _dateTimeProvider.Now.InUtc().Date);
+        _timeboxFaker = new RoadmapTimeboxFaker(localDate: _dateTimeProvider.Now.InUtc().Date);
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public class RoadmapTests
 
         var newName = "Updated Name";
         var newDescription = "Updated Description";
-        var newDateRange = new LocalDateRange(_dateTimeProvider.Today.PlusDays(1), _dateTimeProvider.Today.PlusDays(11));
+        var newDateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(1), _dateTimeProvider.Now.InUtc().Date.PlusDays(11));
         var newVisibility = Visibility.Private;
 
         // Act
@@ -108,7 +108,7 @@ public class RoadmapTests
         var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
         // Act
-        var result = roadmap.Update("Updated Name", "Updated Description", new LocalDateRange(_dateTimeProvider.Today.PlusDays(1), _dateTimeProvider.Today.PlusDays(11)), [ownerId], Visibility.Private, As(Guid.NewGuid()), Actor, Now);
+        var result = roadmap.Update("Updated Name", "Updated Description", new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(1), _dateTimeProvider.Now.InUtc().Date.PlusDays(11)), [ownerId], Visibility.Private, As(Guid.NewGuid()), Actor, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -807,7 +807,7 @@ public class RoadmapTests
         createResult.IsSuccess.Should().BeTrue();
 
         var updateActivity = new TestUpsertRoadmapActivity(_activityFaker
-            .WithName("Updated Activity").WithDescription("Updated Description").WithDateRange(new LocalDateRange(_dateTimeProvider.Today.PlusDays(1), _dateTimeProvider.Today.PlusDays(5)))
+            .WithName("Updated Activity").WithDescription("Updated Description").WithDateRange(new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(1), _dateTimeProvider.Now.InUtc().Date.PlusDays(5)))
             .Generate());
 
         // Act
@@ -818,8 +818,8 @@ public class RoadmapTests
         var updatedActivity = roadmap.Items.OfType<RoadmapActivity>().First();
         updatedActivity.Name.Should().Be("Updated Activity");
         updatedActivity.Description.Should().Be("Updated Description");
-        updatedActivity.DateRange.Start.Should().Be(_dateTimeProvider.Today.PlusDays(1));
-        updatedActivity.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(5));
+        updatedActivity.DateRange.Start.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(1));
+        updatedActivity.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(5));
     }
 
     [Fact]
@@ -963,7 +963,7 @@ public class RoadmapTests
         createResult.Value.SetPrivate(x => x.Id, Guid.NewGuid());
 
         var updateMilestone = new TestUpsertRoadmapMilestone(_milestoneFaker
-            .WithName("Updated Milestone").WithDescription("Updated Description").WithDate(_dateTimeProvider.Today.PlusDays(1))
+            .WithName("Updated Milestone").WithDescription("Updated Description").WithDate(_dateTimeProvider.Now.InUtc().Date.PlusDays(1))
             .Generate());
 
         // Act
@@ -974,7 +974,7 @@ public class RoadmapTests
         var updatedMilestone = roadmap.Items.OfType<RoadmapMilestone>().First(i => i.Id == createResult.Value.Id);
         updatedMilestone.Name.Should().Be("Updated Milestone");
         updatedMilestone.Description.Should().Be("Updated Description");
-        updatedMilestone.Date.Should().Be(_dateTimeProvider.Today.PlusDays(1));
+        updatedMilestone.Date.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(1));
     }
 
     [Fact]
@@ -1068,7 +1068,7 @@ public class RoadmapTests
         createResult.Value.SetPrivate(x => x.Id, Guid.NewGuid());
 
         var updateTimebox = new TestUpsertRoadmapTimebox(_timeboxFaker
-            .WithName("Updated Timebox").WithDescription("Updated Description").WithDateRange(new LocalDateRange(_dateTimeProvider.Today.PlusDays(1), _dateTimeProvider.Today.PlusDays(5)))
+            .WithName("Updated Timebox").WithDescription("Updated Description").WithDateRange(new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(1), _dateTimeProvider.Now.InUtc().Date.PlusDays(5)))
             .Generate());
 
         // Act
@@ -1080,8 +1080,8 @@ public class RoadmapTests
         updatedTimebox.Name.Should().Be("Updated Timebox");
         updatedTimebox.Description.Should().Be("Updated Description");
         updatedTimebox.ParentId.Should().BeNull();
-        updatedTimebox.DateRange.Start.Should().Be(_dateTimeProvider.Today.PlusDays(1));
-        updatedTimebox.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(5));
+        updatedTimebox.DateRange.Start.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(1));
+        updatedTimebox.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(5));
     }
 
 
@@ -1138,7 +1138,7 @@ public class RoadmapTests
         var createResult = roadmap.CreateActivity(upsertActivity, As(ownerId), Actor, Now);
         createResult.IsSuccess.Should().BeTrue();
 
-        var newDateRange = new LocalDateRange(_dateTimeProvider.Today.PlusDays(2), _dateTimeProvider.Today.PlusDays(10));
+        var newDateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(2), _dateTimeProvider.Now.InUtc().Date.PlusDays(10));
         var dateUpdate = OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange>.FromT0(
             new TestUpsertRoadmapActivityDateRange(newDateRange)
         );
@@ -1164,7 +1164,7 @@ public class RoadmapTests
         var createResult = roadmap.CreateMilestone(upsertMilestone, As(ownerId), Actor, Now);
         createResult.IsSuccess.Should().BeTrue();
 
-        var newDate = _dateTimeProvider.Today.PlusDays(5);
+        var newDate = _dateTimeProvider.Now.InUtc().Date.PlusDays(5);
         var dateUpdate = OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange>.FromT1(
             new TestUpsertRoadmapMilestoneDate(newDate)
         );
@@ -1190,7 +1190,7 @@ public class RoadmapTests
         var createResult = roadmap.CreateTimebox(upsertTimebox, As(ownerId), Actor, Now);
         createResult.IsSuccess.Should().BeTrue();
 
-        var newDateRange = new LocalDateRange(_dateTimeProvider.Today.PlusDays(3), _dateTimeProvider.Today.PlusDays(8));
+        var newDateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(3), _dateTimeProvider.Now.InUtc().Date.PlusDays(8));
         var dateUpdate = OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange>.FromT2(
             new TestUpsertRoadmapTimeboxDateRange(newDateRange)
         );
@@ -1216,7 +1216,7 @@ public class RoadmapTests
         var createResult = roadmap.CreateActivity(upsertActivity, As(ownerId), Actor, Now);
         createResult.IsSuccess.Should().BeTrue();
 
-        var newDateRange = new LocalDateRange(_dateTimeProvider.Today.PlusDays(2), _dateTimeProvider.Today.PlusDays(10));
+        var newDateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(2), _dateTimeProvider.Now.InUtc().Date.PlusDays(10));
         var dateUpdate = OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange>.FromT0(
             new TestUpsertRoadmapActivityDateRange(newDateRange)
         );
@@ -1238,7 +1238,7 @@ public class RoadmapTests
         var ownerId = Guid.NewGuid();
         var roadmap = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, [ownerId], Actor, Now).Value;
 
-        var newDateRange = new LocalDateRange(_dateTimeProvider.Today.PlusDays(2), _dateTimeProvider.Today.PlusDays(10));
+        var newDateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(2), _dateTimeProvider.Now.InUtc().Date.PlusDays(10));
         var dateUpdate = OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange>.FromT0(
             new TestUpsertRoadmapActivityDateRange(newDateRange)
         );
@@ -1263,7 +1263,7 @@ public class RoadmapTests
         var createResult = roadmap.CreateActivity(upsertActivity, As(ownerId), Actor, Now);
         createResult.IsSuccess.Should().BeTrue();
 
-        var milestoneDate = _dateTimeProvider.Today.PlusDays(5);
+        var milestoneDate = _dateTimeProvider.Now.InUtc().Date.PlusDays(5);
         var dateUpdate = OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange>.FromT1(
             new TestUpsertRoadmapMilestoneDate(milestoneDate)
         );
@@ -1301,16 +1301,16 @@ public class RoadmapTests
         // Arrange
         var roadmap = CreateRoadmapWithOwner(out var ownerId);
         var parent = CreateActivity(roadmap, ownerId,
-            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(10)));
 
         // Act
         CreateActivity(roadmap, ownerId,
-            new LocalDateRange(_dateTimeProvider.Today.PlusDays(5), _dateTimeProvider.Today.PlusDays(20)),
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(5), _dateTimeProvider.Now.InUtc().Date.PlusDays(20)),
             parent.Id);
 
         // Assert
-        parent.DateRange.Start.Should().Be(_dateTimeProvider.Today);
-        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(20));
+        parent.DateRange.Start.Should().Be(_dateTimeProvider.Now.InUtc().Date);
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(20));
     }
 
     [Fact]
@@ -1319,16 +1319,16 @@ public class RoadmapTests
         // Arrange
         var roadmap = CreateRoadmapWithOwner(out var ownerId);
         var parent = CreateActivity(roadmap, ownerId,
-            new LocalDateRange(_dateTimeProvider.Today.PlusDays(10), _dateTimeProvider.Today.PlusDays(20)));
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(10), _dateTimeProvider.Now.InUtc().Date.PlusDays(20)));
 
         // Act
         CreateActivity(roadmap, ownerId,
-            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(15)),
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(15)),
             parent.Id);
 
         // Assert
-        parent.DateRange.Start.Should().Be(_dateTimeProvider.Today);
-        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(20));
+        parent.DateRange.Start.Should().Be(_dateTimeProvider.Now.InUtc().Date);
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(20));
     }
 
     [Fact]
@@ -1336,12 +1336,12 @@ public class RoadmapTests
     {
         // Arrange
         var roadmap = CreateRoadmapWithOwner(out var ownerId);
-        var parentRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30));
+        var parentRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(30));
         var parent = CreateActivity(roadmap, ownerId, parentRange);
 
         // Act
         CreateActivity(roadmap, ownerId,
-            new LocalDateRange(_dateTimeProvider.Today.PlusDays(5), _dateTimeProvider.Today.PlusDays(10)),
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(5), _dateTimeProvider.Now.InUtc().Date.PlusDays(10)),
             parent.Id);
 
         // Assert
@@ -1354,8 +1354,8 @@ public class RoadmapTests
         // Arrange
         var roadmap = CreateRoadmapWithOwner(out var ownerId);
         var parent = CreateActivity(roadmap, ownerId,
-            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
-        var milestoneDate = _dateTimeProvider.Today.PlusDays(25);
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(10)));
+        var milestoneDate = _dateTimeProvider.Now.InUtc().Date.PlusDays(25);
         var milestone = _milestoneFaker.WithDate(milestoneDate).WithParentId(parent.Id).Generate();
 
         // Act
@@ -1363,7 +1363,7 @@ public class RoadmapTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        parent.DateRange.Start.Should().Be(_dateTimeProvider.Today);
+        parent.DateRange.Start.Should().Be(_dateTimeProvider.Now.InUtc().Date);
         parent.DateRange.End.Should().Be(milestoneDate);
     }
 
@@ -1373,8 +1373,8 @@ public class RoadmapTests
         // Arrange
         var roadmap = CreateRoadmapWithOwner(out var ownerId);
         var parent = CreateActivity(roadmap, ownerId,
-            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
-        var timeboxRange = new LocalDateRange(_dateTimeProvider.Today.PlusDays(8), _dateTimeProvider.Today.PlusDays(18));
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(10)));
+        var timeboxRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(8), _dateTimeProvider.Now.InUtc().Date.PlusDays(18));
         var timebox = _timeboxFaker.WithDateRange(timeboxRange).WithParentId(parent.Id).Generate();
 
         // Act
@@ -1382,8 +1382,8 @@ public class RoadmapTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        parent.DateRange.Start.Should().Be(_dateTimeProvider.Today);
-        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(18));
+        parent.DateRange.Start.Should().Be(_dateTimeProvider.Now.InUtc().Date);
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(18));
     }
 
     [Fact]
@@ -1392,15 +1392,15 @@ public class RoadmapTests
         // Arrange
         var roadmap = CreateRoadmapWithOwner(out var ownerId);
         var grandparent = CreateActivity(roadmap, ownerId,
-            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(10)));
         var parent = CreateActivity(roadmap, ownerId,
-            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)),
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(10)),
             grandparent.Id);
         var child = CreateActivity(roadmap, ownerId,
-            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)),
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(10)),
             parent.Id);
 
-        var newChildRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(40));
+        var newChildRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(40));
         var dateUpdate = OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange>.FromT0(
             new TestUpsertRoadmapActivityDateRange(newChildRange));
 
@@ -1409,8 +1409,8 @@ public class RoadmapTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(40));
-        grandparent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(40));
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(40));
+        grandparent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(40));
     }
 
     [Fact]
@@ -1419,9 +1419,9 @@ public class RoadmapTests
         // Arrange
         var roadmap = CreateRoadmapWithOwner(out var ownerId);
         var activity = CreateActivity(roadmap, ownerId,
-            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(10)));
 
-        var newRange = new LocalDateRange(_dateTimeProvider.Today.PlusDays(2), _dateTimeProvider.Today.PlusDays(6));
+        var newRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(2), _dateTimeProvider.Now.InUtc().Date.PlusDays(6));
         var dateUpdate = OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange>.FromT0(
             new TestUpsertRoadmapActivityDateRange(newRange));
 
@@ -1439,13 +1439,13 @@ public class RoadmapTests
         // Arrange
         var roadmap = CreateRoadmapWithOwner(out var ownerId);
         var parent = CreateActivity(roadmap, ownerId,
-            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(10)));
         CreateActivity(roadmap, ownerId,
-            new LocalDateRange(_dateTimeProvider.Today.PlusDays(2), _dateTimeProvider.Today.PlusDays(6)),
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(2), _dateTimeProvider.Now.InUtc().Date.PlusDays(6)),
             parent.Id);
 
         // Set the parent wider than its child
-        var widerRange = new LocalDateRange(_dateTimeProvider.Today.PlusDays(-5), _dateTimeProvider.Today.PlusDays(30));
+        var widerRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(-5), _dateTimeProvider.Now.InUtc().Date.PlusDays(30));
         var dateUpdate = OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange>.FromT0(
             new TestUpsertRoadmapActivityDateRange(widerRange));
 
@@ -1463,16 +1463,16 @@ public class RoadmapTests
         // Arrange
         var roadmap = CreateRoadmapWithOwner(out var ownerId);
         var parent = CreateActivity(roadmap, ownerId,
-            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(10)));
         var child = CreateActivity(roadmap, ownerId,
-            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)),
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(10)),
             parent.Id);
 
         // Form update that widens the child past the parent's end
         var updateChild = new TestUpsertRoadmapActivity(child)
         {
             ParentId = parent.Id,
-            DateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(35))
+            DateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(35))
         };
 
         // Act
@@ -1480,7 +1480,7 @@ public class RoadmapTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(35));
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(35));
     }
 
     [Fact]
@@ -1491,15 +1491,15 @@ public class RoadmapTests
         roadmap.SetPrivate(x => x.Id, Guid.NewGuid());
 
         var originalParent = CreateActivity(roadmap, ownerId,
-            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(40)));
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(40)));
         originalParent.SetPrivate(x => x.Id, Guid.NewGuid());
 
         var newParent = CreateActivity(roadmap, ownerId,
-            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(10)));
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(10)));
         newParent.SetPrivate(x => x.Id, Guid.NewGuid());
 
         var child = CreateActivity(roadmap, ownerId,
-            new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(30)),
+            new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(30)),
             originalParent.Id);
         child.SetPrivate(x => x.Id, Guid.NewGuid());
         child.SetPrivate(x => x.Parent, originalParent);
@@ -1509,7 +1509,7 @@ public class RoadmapTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        newParent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(30));
+        newParent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(30));
     }
 
     #endregion Date Rollup Tests
@@ -1756,7 +1756,7 @@ public class RoadmapTests
 
     private Roadmap SavedRoadmap()
     {
-        var roadmap = Roadmap.Create("Platform", "Platform work", new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(90)), Visibility.Public, [EventOwnerId], Actor, Now).Value;
+        var roadmap = Roadmap.Create("Platform", "Platform work", new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(90)), Visibility.Public, [EventOwnerId], Actor, Now).Value;
         roadmap.SetPrivate(r => r.Key, 7);
         roadmap.ExecutePostPersistenceActions();
         roadmap.ClearDomainEvents();
@@ -1764,7 +1764,7 @@ public class RoadmapTests
         return roadmap;
     }
 
-    private LocalDateRange Days(int start, int end) => new(_dateTimeProvider.Today.PlusDays(start), _dateTimeProvider.Today.PlusDays(end));
+    private LocalDateRange Days(int start, int end) => new(_dateTimeProvider.Now.InUtc().Date.PlusDays(start), _dateTimeProvider.Now.InUtc().Date.PlusDays(end));
 
     private TestUpsertRoadmapActivity ActivityUpsert(string name, LocalDateRange dateRange, Guid? parentId = null) =>
         new(_activityFaker.WithName(name).WithDateRange(dateRange).WithColor(null).Generate()) { ParentId = parentId };
@@ -1853,7 +1853,7 @@ public class RoadmapTests
         // Arrange
         var source = SavedRoadmap();
         var parent = AddActivity(source, "Parent", Days(1, 30));
-        AddMilestone(source, _dateTimeProvider.Today.PlusDays(5), parent.Id);
+        AddMilestone(source, _dateTimeProvider.Now.InUtc().Date.PlusDays(5), parent.Id);
 
         // Act
         var copy = source.Copy("Copy", [EventOwnerId], Visibility.Private, Actor, Now).Value;
@@ -2104,7 +2104,7 @@ public class RoadmapTests
     {
         // Arrange
         var roadmap = SavedRoadmap();
-        var upsert = new TestUpsertRoadmapMilestone(_milestoneFaker.Generate()) { Date = _dateTimeProvider.Today.PlusDays(3), ParentId = null };
+        var upsert = new TestUpsertRoadmapMilestone(_milestoneFaker.Generate()) { Date = _dateTimeProvider.Now.InUtc().Date.PlusDays(3), ParentId = null };
 
         // Act
         var milestone = roadmap.CreateMilestone(upsert, As(EventOwnerId), Actor, Now).Value;
@@ -2112,7 +2112,7 @@ public class RoadmapTests
         // Assert
         var added = roadmap.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<RoadmapMilestoneAddedEvent>().Subject;
         added.MilestoneId.Should().Be(milestone.Id);
-        added.Date.Should().Be(_dateTimeProvider.Today.PlusDays(3));
+        added.Date.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(3));
         added.ParentId.Should().BeNull();
     }
 
@@ -2122,7 +2122,7 @@ public class RoadmapTests
         // Arrange
         var roadmap = SavedRoadmap();
         var parent = AddActivity(roadmap, "Parent", Days(1, 10));
-        var milestone = AddMilestone(roadmap, _dateTimeProvider.Today.PlusDays(5), parent.Id);
+        var milestone = AddMilestone(roadmap, _dateTimeProvider.Now.InUtc().Date.PlusDays(5), parent.Id);
 
         // Act
         roadmap.UpdateRoadmapItemDates(parent.Id, new TestUpsertRoadmapActivityDateRange(Days(3, 12)), As(EventOwnerId), Actor, Now);
@@ -2245,7 +2245,7 @@ public class RoadmapTests
         var roadmap = SavedRoadmap();
         var parent = AddActivity(roadmap, "Parent", Days(1, 30));
         var child = AddActivity(roadmap, "Child", Days(2, 10), parent.Id);
-        var milestone = AddMilestone(roadmap, _dateTimeProvider.Today.PlusDays(5), child.Id);
+        var milestone = AddMilestone(roadmap, _dateTimeProvider.Now.InUtc().Date.PlusDays(5), child.Id);
 
         // Act
         roadmap.DeleteItem(parent.Id, As(EventOwnerId), Actor, Now);

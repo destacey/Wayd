@@ -218,7 +218,6 @@ public sealed class ActivityLogRelatedAggregateTests(SqlServerDbContextFixture f
     {
         var provider = new Mock<IDateTimeProvider>();
         provider.SetupGet(d => d.Now).Returns(CreatedAt);
-        provider.SetupGet(d => d.Today).Returns(new LocalDate(2026, 5, 1));
 
         return provider.Object;
     }

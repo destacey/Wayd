@@ -56,7 +56,6 @@ public abstract class ProductCommandTestBase
             .Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>()))
             .ReturnsAsync(ActingEmployeeId);
         DateTimeProvider.SetupGet(d => d.Now).Returns(Now);
-        DateTimeProvider.SetupGet(d => d.Today).Returns(Today);
         TagSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new ProductTagSettings());
     }
 

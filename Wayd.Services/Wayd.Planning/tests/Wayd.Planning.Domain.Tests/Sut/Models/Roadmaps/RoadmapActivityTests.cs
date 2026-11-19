@@ -18,16 +18,16 @@ public class RoadmapActivityTests
     public RoadmapActivityTests()
     {
         _dateTimeProvider = new(new FakeClock(DateTime.UtcNow.ToInstant()));
-        _activityFaker = new RoadmapActivityFaker(Guid.NewGuid(), _dateTimeProvider.Today);
-        _milestoneFaker = new RoadmapMilestoneFaker(localDate: _dateTimeProvider.Today);
-        _timeboxFaker = new RoadmapTimeboxFaker(localDate: _dateTimeProvider.Today);
+        _activityFaker = new RoadmapActivityFaker(Guid.NewGuid(), _dateTimeProvider.Now.InUtc().Date);
+        _milestoneFaker = new RoadmapMilestoneFaker(localDate: _dateTimeProvider.Now.InUtc().Date);
+        _timeboxFaker = new RoadmapTimeboxFaker(localDate: _dateTimeProvider.Now.InUtc().Date);
     }
 
     private RoadmapActivity GenerateActivity(LocalDateRange dateRange) =>
         _activityFaker.WithDateRange(dateRange).Generate();
 
     private LocalDateRange Range(int startOffsetDays, int endOffsetDays) =>
-        new(_dateTimeProvider.Today.PlusDays(startOffsetDays), _dateTimeProvider.Today.PlusDays(endOffsetDays));
+        new(_dateTimeProvider.Now.InUtc().Date.PlusDays(startOffsetDays), _dateTimeProvider.Now.InUtc().Date.PlusDays(endOffsetDays));
 
     #region CreateChildActivity Rollup
 
@@ -42,8 +42,8 @@ public class RoadmapActivityTests
         parent.CreateChildActivity(new TestUpsertRoadmapActivity(child));
 
         // Assert
-        parent.DateRange.Start.Should().Be(_dateTimeProvider.Today);
-        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(20));
+        parent.DateRange.Start.Should().Be(_dateTimeProvider.Now.InUtc().Date);
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(20));
     }
 
     [Fact]
@@ -57,8 +57,8 @@ public class RoadmapActivityTests
         parent.CreateChildActivity(new TestUpsertRoadmapActivity(child));
 
         // Assert
-        parent.DateRange.Start.Should().Be(_dateTimeProvider.Today);
-        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(20));
+        parent.DateRange.Start.Should().Be(_dateTimeProvider.Now.InUtc().Date);
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(20));
     }
 
     [Fact]
@@ -100,14 +100,14 @@ public class RoadmapActivityTests
     {
         // Arrange
         var parent = GenerateActivity(Range(0, 10));
-        var milestone = _milestoneFaker.WithDate(_dateTimeProvider.Today.PlusDays(25)).Generate();
+        var milestone = _milestoneFaker.WithDate(_dateTimeProvider.Now.InUtc().Date.PlusDays(25)).Generate();
 
         // Act
         parent.CreateChildMilestone(new TestUpsertRoadmapMilestone(milestone));
 
         // Assert
-        parent.DateRange.Start.Should().Be(_dateTimeProvider.Today);
-        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(25));
+        parent.DateRange.Start.Should().Be(_dateTimeProvider.Now.InUtc().Date);
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(25));
     }
 
     [Fact]
@@ -115,14 +115,14 @@ public class RoadmapActivityTests
     {
         // Arrange
         var parent = GenerateActivity(Range(10, 20));
-        var milestone = _milestoneFaker.WithDate(_dateTimeProvider.Today.PlusDays(2)).Generate();
+        var milestone = _milestoneFaker.WithDate(_dateTimeProvider.Now.InUtc().Date.PlusDays(2)).Generate();
 
         // Act
         parent.CreateChildMilestone(new TestUpsertRoadmapMilestone(milestone));
 
         // Assert
-        parent.DateRange.Start.Should().Be(_dateTimeProvider.Today.PlusDays(2));
-        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(20));
+        parent.DateRange.Start.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(2));
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(20));
     }
 
     [Fact]
@@ -136,8 +136,8 @@ public class RoadmapActivityTests
         parent.CreateChildTimebox(new TestUpsertRoadmapTimebox(timebox));
 
         // Assert
-        parent.DateRange.Start.Should().Be(_dateTimeProvider.Today);
-        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(18));
+        parent.DateRange.Start.Should().Be(_dateTimeProvider.Now.InUtc().Date);
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(18));
     }
 
     #endregion CreateChildMilestone / CreateChildTimebox Rollup
@@ -242,8 +242,8 @@ public class RoadmapActivityTests
         child.UpdateDateRange(new TestUpsertRoadmapActivityDateRange(Range(0, 40)));
 
         // Assert - growth bubbled all the way to the root
-        parent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(40));
-        grandparent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(40));
+        parent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(40));
+        grandparent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(40));
     }
 
     [Fact]
@@ -306,7 +306,7 @@ public class RoadmapActivityTests
         var timebox = parent.CreateChildTimebox(
             new TestUpsertRoadmapTimebox(_timeboxFaker.WithDateRange(Range(2, 8)).Generate()));
         var milestone = parent.CreateChildMilestone(
-            new TestUpsertRoadmapMilestone(_milestoneFaker.WithDate(_dateTimeProvider.Today.PlusDays(15)).Generate()));
+            new TestUpsertRoadmapMilestone(_milestoneFaker.WithDate(_dateTimeProvider.Now.InUtc().Date.PlusDays(15)).Generate()));
 
         // Act - shift the parent forward by 10 days
         var result = parent.UpdateDateRange(new TestUpsertRoadmapActivityDateRange(Range(10, 40)));
@@ -314,7 +314,7 @@ public class RoadmapActivityTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         timebox.DateRange.Should().Be(Range(12, 18));
-        milestone.Date.Should().Be(_dateTimeProvider.Today.PlusDays(25));
+        milestone.Date.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(25));
     }
 
     [Fact]
@@ -362,7 +362,7 @@ public class RoadmapActivityTests
         // Assert - the grandparent grew to contain the shifted subtree
         result.IsSuccess.Should().BeTrue();
         parent.DateRange.Should().Be(Range(15, 35));
-        grandparent.DateRange.End.Should().Be(_dateTimeProvider.Today.PlusDays(35));
+        grandparent.DateRange.End.Should().Be(_dateTimeProvider.Now.InUtc().Date.PlusDays(35));
     }
 
     #endregion Subtree Shift

@@ -34,7 +34,6 @@ public sealed class StatusHistoryPersistenceTests(SqlServerDbContextFixture fixt
     {
         var provider = new Mock<IDateTimeProvider>();
         provider.SetupGet(d => d.Now).Returns(Timestamp);
-        provider.SetupGet(d => d.Today).Returns(new LocalDate(2026, 3, 4));
 
         return provider.Object;
     }

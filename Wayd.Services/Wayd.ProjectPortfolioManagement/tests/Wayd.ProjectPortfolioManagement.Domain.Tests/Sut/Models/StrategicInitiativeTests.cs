@@ -966,7 +966,7 @@ public sealed class StrategicInitiativeTests
     {
         // An import creates an initiative and walks it to its status before the save that assigns its key.
         // Arrange
-        var dateRange = new LocalDateRange(_dateTimeProvider.Today, _dateTimeProvider.Today.PlusDays(90));
+        var dateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(90));
         var initiative = StrategicInitiative.Create("Atlas", "Before", dateRange, Guid.NewGuid(), null, EventActor.System, _dateTimeProvider.Now);
 
         // Act

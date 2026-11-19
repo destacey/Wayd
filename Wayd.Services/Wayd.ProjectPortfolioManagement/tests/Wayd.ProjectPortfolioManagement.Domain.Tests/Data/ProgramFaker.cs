@@ -112,7 +112,7 @@ public static class ProgramFakerExtensions
     /// </summary>
     public static Program AsActive(this ProgramFaker faker, TestingDateTimeProvider dateTimeProvider, Guid? portfolioId = null)
     {
-        var now = dateTimeProvider.Today;
+        var now = dateTimeProvider.Now.InUtc().Date;
         var startDate = now.PlusDays(-10);
         var endDate = startDate.PlusDays(10);
 
@@ -128,7 +128,7 @@ public static class ProgramFakerExtensions
     /// </summary>
     public static Program AsCompleted(this ProgramFaker faker, TestingDateTimeProvider dateTimeProvider, Guid? portfolioId = null)
     {
-        var now = dateTimeProvider.Today;
+        var now = dateTimeProvider.Now.InUtc().Date;
         var startDate = now.PlusDays(-20);
         var endDate = startDate.PlusDays(5);
 
@@ -144,7 +144,7 @@ public static class ProgramFakerExtensions
     /// </summary>
     public static Program AsCanceled(this ProgramFaker faker, TestingDateTimeProvider dateTimeProvider, Guid? portfolioId = null)
     {
-        var now = dateTimeProvider.Today;
+        var now = dateTimeProvider.Now.InUtc().Date;
         var startDate = now.PlusDays(-15);
         var endDate = startDate.PlusDays(5);
 

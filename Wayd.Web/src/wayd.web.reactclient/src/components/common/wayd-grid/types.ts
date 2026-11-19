@@ -159,7 +159,14 @@ export interface WaydGridProps<T extends RowData> {
   actionsSlot?: React.ReactNode
   /** Slot for actions rendered on the far right of the toolbar. */
   rightSlot?: React.ReactNode
+  /** What an empty grid shows when nothing filters it. */
   emptyMessage?: string
+  /**
+   * What the grid shows when its column filters or quick search hide every
+   * row, where "nothing yet" would mislead. "No rows match the filters." by
+   * default.
+   */
+  emptyFilteredMessage?: string
   /** Fixed height in pixels. When omitted, the grid auto-sizes to fill the remaining viewport height. */
   height?: number
   /** The least height in pixels a `variant="simple"` grid fits its rows to,
@@ -406,6 +413,8 @@ export interface WaydGridServerSource<T extends RowData> {
   search?: boolean
   /** What the list holds, plural, for the toolbar's total ("3,120 rows"). */
   noun?: string
+  /** What one of them is, for a total of one ("1 row"); `noun` otherwise. */
+  nounOne?: string
   /**
    * The most rows a CSV export reads, page by page, under the grid's current
    * filter, sort and search. 10,000 by default; the export says so when the

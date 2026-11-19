@@ -7,7 +7,13 @@ import {
   ProductStatusAlias,
 } from '@/src/services/api/wayd.schemas'
 import type { IncidentFilterField } from '@/src/store/features/product-management/incidents-api'
+import { downloadCsvWithTimestamp } from '@/src/utils/csv-utils'
 import IncidentsGrid from './incidents-grid'
+
+vi.mock(import('@/src/utils/csv-utils'), async (importOriginal) => ({
+  ...(await importOriginal()),
+  downloadCsvWithTimestamp: vi.fn(),
+}))
 
 const { incidentsGetIncidents, loads } = vi.hoisted(() => ({
   incidentsGetIncidents: vi.fn(),
@@ -81,7 +87,10 @@ const ROWS = [
     [{ id: 'p1', key: 20, name: 'API Gateway' }],
     [{ id: 'r1', key: 3, name: 'Fulfillment Suite Q1 2025' }],
   ),
-  incident(1, 'Quiet', [{ id: 'p3', key: 22, name: 'Messaging Catalog' }]),
+  {
+    ...incident(1, 'Quiet', [{ id: 'p3', key: 22, name: 'Messaging Catalog' }]),
+    commander: null,
+  } as unknown as IncidentSummaryDto,
 ]
 
 const filterToggleOf = (header: string) => {
@@ -196,5 +205,77 @@ describe('IncidentsGrid', () => {
         request.sort?.includes('products'),
       ),
     ).toBe(false)
+  })
+
+  it('links each person to their employee record, and leaves no commander blank', async () => {
+    // Act
+    render(<IncidentsGrid statuses={[]} severityLevelIds={[]} />)
+    await screen.findByText('Checkout down')
+
+    // Assert
+    expect(
+      screen.getAllByRole('link', { name: 'Riley Reporter' })[0],
+    ).toHaveAttribute('href', '/organizations/employees/3')
+    expect(
+      screen.getByRole('link', { name: 'Addison Waldow' }),
+    ).toHaveAttribute('href', '/organizations/employees/1')
+  })
+
+  it('counts a single incident in the singular', async () => {
+    // Arrange
+    incidentsGetIncidents.mockResolvedValue({ items: [ROWS[0]], totalCount: 1 })
+
+    // Act
+    render(<IncidentsGrid statuses={[]} severityLevelIds={[]} />)
+
+    // Assert
+    expect(await screen.findByText('1 incident')).toBeInTheDocument()
+  })
+
+  it('says none match, not none yet, when the filter bar narrows the list', async () => {
+    // Arrange
+    incidentsGetIncidents.mockResolvedValue({ items: [], totalCount: 0 })
+
+    // Act
+    render(
+      <IncidentsGrid
+        statuses={[ProductStatusAlias.Closed]}
+        severityLevelIds={[]}
+      />,
+    )
+
+    // Assert
+    expect(
+      await screen.findByText('No incidents match the filters.'),
+    ).toBeInTheDocument()
+  })
+
+  it('says there are none yet when nothing narrows the list', async () => {
+    // Arrange
+    incidentsGetIncidents.mockResolvedValue({ items: [], totalCount: 0 })
+
+    // Act
+    render(<IncidentsGrid statuses={[]} severityLevelIds={[]} />)
+
+    // Assert
+    expect(await screen.findByText('No incidents yet.')).toBeInTheDocument()
+  })
+
+  it('exports an incident’s age as it is shown, not as milliseconds', async () => {
+    // Arrange
+    render(<IncidentsGrid statuses={[]} severityLevelIds={[]} />)
+    await screen.findByText('Checkout down')
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Export to CSV' }))
+
+    // Assert
+    await waitFor(() => expect(downloadCsvWithTimestamp).toHaveBeenCalled())
+    const [header, first] = vi
+      .mocked(downloadCsvWithTimestamp)
+      .mock.calls.at(-1)![0]
+      .split('\n')
+    const age = header.split(',').indexOf('Age')
+    expect(first.split(',')[age]).not.toMatch(/^\d+$/)
   })
 })

@@ -214,6 +214,17 @@ export interface AssignedToLinkTarget {
   name?: string | null
 }
 
+/** An employee reference: keyed, labeled by name. */
+export type EmployeeLinkTarget = AssignedToLinkTarget
+
+/**
+ * Renders an employee as a link to their organization page, labeled by name.
+ * Returns `null` when there is none, such as an unassigned commander.
+ */
+export const renderEmployeeLink = (
+  employee: EmployeeLinkTarget | null | undefined,
+): ReactNode => renderAssignedToLink(employee)
+
 /**
  * Renders an assigned employee as a link to their organization page. Returns
  * `null` when unassigned. (Employees route by `key` here, unlike the user-

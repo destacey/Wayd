@@ -108,6 +108,7 @@ Where a variant sets a flag, that is the starting point — the defaults below d
   isLoading={isLoading}
   onRefresh={() => refetch()}        // shows the toolbar refresh button
   emptyMessage="No widgets found"    // default 'No records found'
+  emptyFilteredMessage="No widgets match the filters." // when filters or search hide every row; default 'No rows match the filters.'
   csvFileName="widgets"              // CSV download name prefix; default 'grid-export'
   persistStateKey="ppm-widgets"      // opt-in column persistence (see below)
   initialSorting={[{ id: 'name', desc: false }]}
@@ -283,6 +284,7 @@ const fetchRows = async ({ page, pageSize, filter, sort }: ServerPageRequest) =>
     listKey: [importProcess.id, status],
     fields: ['rowNumber', 'importId', 'status', 'error', 'warning', 'attemptedOn'],
     noun: 'rows',
+    nounOne: 'row', // "1 row" rather than "1 rows"
     refreshInterval: running ? 5000 : undefined,
     refreshKey: importProcess.status,
   }}

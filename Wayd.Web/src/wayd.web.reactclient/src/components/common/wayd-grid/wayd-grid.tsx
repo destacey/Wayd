@@ -1049,6 +1049,7 @@ function WaydGridInner<T extends RowData>(
     actionsSlot,
     rightSlot,
     emptyMessage = 'No records found',
+    emptyFilteredMessage = 'No rows match the filters.',
     csvFileName = 'grid-export',
     includeIdColumn = true,
     height,
@@ -2789,7 +2790,12 @@ function WaydGridInner<T extends RowData>(
         onBarTrackScroll={handleBarTrackScroll}
         colGroup={colGroup}
         isLoading={isLoading}
-        emptyMessage={serverFailureMessage ?? emptyMessage}
+        emptyMessage={
+          serverFailureMessage ??
+          (searchValue.trim() || gridState.columnFilters.length > 0
+            ? emptyFilteredMessage
+            : emptyMessage)
+        }
         visibleColumnCount={visibleColumnCount}
         columnIds={orderedVisibleLeafColumns.map((column) => column.id)}
         headerRowCount={headerRowCount}
@@ -2860,7 +2866,13 @@ function WaydGridInner<T extends RowData>(
           includeGlobalSearch={
             includeGlobalSearch && (!isServer || !!server?.search)
           }
-          rowNoun={isServer ? (server?.noun ?? 'rows') : undefined}
+          rowNoun={
+            isServer
+              ? serverTotal === 1 && server?.nounOne
+                ? server.nounOne
+                : (server?.noun ?? 'rows')
+              : undefined
+          }
           leftSlot={resolvedLeftSlot}
           helpContent={
             helpContent ??

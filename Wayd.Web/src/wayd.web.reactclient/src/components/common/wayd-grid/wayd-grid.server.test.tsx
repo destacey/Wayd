@@ -376,6 +376,33 @@ describe('WaydGrid — server mode', () => {
     expect(screen.queryByText('Export canceled.')).not.toBeInTheDocument()
   })
 
+  it('says no rows match when its filters empty the list, and what is empty otherwise', async () => {
+    // Arrange
+    const fetchPage = vi.fn(() =>
+      Promise.resolve({ items: [] as Item[], totalCount: 0 }),
+    )
+    render(
+      <WaydGrid<Item>
+        aria-label="Items"
+        columns={columns}
+        emptyMessage="No items yet."
+        server={{ fields: ['name', 'stage'], pageSize: 5, fetchPage }}
+      />,
+    )
+    expect(await screen.findByText('No items yet.')).toBeInTheDocument()
+
+    // Act
+    fireEvent.change(
+      document.querySelector('tr[data-role="floating-filters"] input')!,
+      { target: { value: 'nothing' } },
+    )
+
+    // Assert
+    expect(
+      await screen.findByText('No rows match the filters.'),
+    ).toBeInTheDocument()
+  })
+
   it('cancels an export when its button is pressed again', async () => {
     // Arrange — page 1 answers the view; the export's read never does
     let viewAnswered = false

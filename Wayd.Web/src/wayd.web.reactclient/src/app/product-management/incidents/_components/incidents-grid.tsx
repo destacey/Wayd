@@ -7,6 +7,7 @@ import {
   type ServerPageRequest,
 } from '@/src/components/common/wayd-grid'
 import {
+  renderEmployeeLink,
   renderProductLink,
   renderReleaseLink,
   type ColumnDef,
@@ -158,6 +159,11 @@ const columnsWith = (
     header: 'Age',
     size: 90,
     cell: ({ row }) => formatIncidentAge(row.original.noticedAt),
+    // The accessor is milliseconds, for sorting; a spreadsheet wants what is shown.
+    meta: {
+      exportFormatter: (_value, row: IncidentSummaryDto) =>
+        formatIncidentAge(row.noticedAt),
+    },
   },
   {
     id: 'noticedAt',
@@ -172,6 +178,7 @@ const columnsWith = (
     header: 'Reported by',
     size: 180,
     meta: { filterType: 'set', filterOptionsSource: sourceFor('reportedBy') },
+    cell: ({ row }) => renderEmployeeLink(row.original.reportedBy),
   },
   {
     id: 'commander',
@@ -182,6 +189,7 @@ const columnsWith = (
       filterType: 'set',
       filterOptionsSource: sourceFor('commander', { includeBlank: true }),
     },
+    cell: ({ row }) => renderEmployeeLink(row.original.commander),
   },
 ]
 
@@ -238,12 +246,18 @@ const IncidentsGrid = ({
         listKey: [statuses, severityLevelIds],
         fields: INCIDENT_FIELDS,
         noun: 'incidents',
+        nounOne: 'incident',
         refreshKey,
       }}
       onRefresh={onRefresh}
       csvFileName="incidents"
       persistStateKey="product-management-incidents"
-      emptyMessage="No incidents yet."
+      emptyMessage={
+        statuses.length > 0 || severityLevelIds.length > 0
+          ? 'No incidents match the filters.'
+          : 'No incidents yet.'
+      }
+      emptyFilteredMessage="No incidents match the filters."
     />
   )
 }

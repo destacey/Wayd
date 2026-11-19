@@ -130,6 +130,7 @@ export {
   renderDeploymentLink,
   renderSprintLink,
   renderUserLink,
+  renderEmployeeLink,
   renderDependencyHealthTag,
 } from './cell-renderers'
 export type {
@@ -137,6 +138,7 @@ export type {
   NavLinkTarget,
   SprintLinkTarget,
   UserLinkTarget,
+  EmployeeLinkTarget,
   DependencyHealthTarget,
 } from './cell-renderers'
 

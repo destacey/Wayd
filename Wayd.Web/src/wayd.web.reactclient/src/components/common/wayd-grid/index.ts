@@ -110,6 +110,7 @@ export {
   renderUserLink,
   renderWorkItemLink,
   renderAssignedToLink,
+  renderEmployeeLink,
   renderWorkStatusTag,
   renderDependencyHealthTag,
 } from '../wayd-grid-core/cell-renderers'
@@ -120,6 +121,7 @@ export type {
   UserLinkTarget,
   WorkItemLinkTarget,
   AssignedToLinkTarget,
+  EmployeeLinkTarget,
   WorkStatusTagTarget,
   DependencyHealthTarget,
 } from '../wayd-grid-core/cell-renderers'

@@ -25,6 +25,9 @@ public sealed class IncidentSeverityLevel : BaseAuditableEntity
     /// <summary>The scale this level belongs to.</summary>
     public Guid SetId { get; private init; }
 
+    /// <summary>The scale this level belongs to. Loaded only when a query asks for it.</summary>
+    public IncidentSeveritySet? Set { get; private init; }
+
     /// <summary>The label shown when opening or editing an incident.</summary>
     public string Name
     {

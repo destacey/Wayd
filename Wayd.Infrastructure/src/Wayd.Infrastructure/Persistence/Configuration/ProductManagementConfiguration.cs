@@ -698,7 +698,7 @@ public class IncidentSeveritySetConfiguration : IEntityTypeConfiguration<Inciden
         builder.Property(s => s.IsActive).IsRequired();
 
         builder.HasMany(s => s.Levels)
-            .WithOne()
+            .WithOne(l => l.Set)
             .HasForeignKey(l => l.SetId)
             .OnDelete(DeleteBehavior.Cascade);
 

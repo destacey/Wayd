@@ -496,4 +496,67 @@ describe('RemoteSetFilterPanel', () => {
     expect(first.load).toHaveBeenCalledTimes(1)
     expect(second.load).not.toHaveBeenCalled()
   })
+
+  it('closes on Enter when every match is already picked', async () => {
+    // Arrange
+    const onChange = vi.fn()
+    const onCommit = vi.fn()
+    const value: ColumnFilterModel = {
+      type: 'set',
+      values: ['id-grace'],
+      labels: { 'id-grace': 'Grace Hopper' },
+    }
+    render(
+      <RemoteSetFilterPanel
+        source={sourceOver()}
+        value={value}
+        onChange={onChange}
+        onCommit={onCommit}
+      />,
+    )
+    await userEvent.type(screen.getByPlaceholderText('Search...'), 'gra')
+    await waitFor(() =>
+      expect(screen.queryByText('Loading values…')).not.toBeInTheDocument(),
+    )
+
+    // Act
+    await userEvent.type(screen.getByPlaceholderText('Search...'), '{Enter}')
+
+    // Assert
+    expect(onCommit).toHaveBeenCalled()
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('does not pick for an Enter whose search failed when a later retry succeeds', async () => {
+    // Arrange — the search Enter was pressed on fails, and its retry succeeds
+    const onChange = vi.fn()
+    const onCommit = vi.fn()
+    const load = vi.fn<FilterOptionsSource['load']>(async ({ search }) => {
+      if (
+        search === 'gra' &&
+        load.mock.calls.filter(([r]) => r.search === 'gra').length === 1
+      )
+        throw new Error('offline')
+      return { options: search ? [GRACE] : PEOPLE, hasMore: false }
+    })
+    render(
+      <RemoteSetFilterPanel
+        source={{ load }}
+        value={undefined}
+        onChange={onChange}
+        onCommit={onCommit}
+      />,
+    )
+    await screen.findByText('Grace Hopper')
+    await userEvent.type(screen.getByPlaceholderText('Search...'), 'gra{Enter}')
+    await screen.findByRole('button', { name: 'Retry' })
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+    // Assert
+    expect(await screen.findByText('Grace Hopper')).toBeInTheDocument()
+    expect(onChange).not.toHaveBeenCalled()
+    expect(onCommit).not.toHaveBeenCalled()
+  })
 })

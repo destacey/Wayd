@@ -7,13 +7,13 @@ public sealed class ListFilterOptionsQueryValidatorTests
 {
     public sealed record Row(int Id, string Name, string Note);
 
-    public sealed record Query(string Field, string? Search = null, int Limit = 100) : IListFilterOptionsQuery;
+    public sealed record Query(string? Field, string? Search = null, int Limit = 100) : IListFilterOptionsQuery;
 
     private static readonly ListFieldMap<Row> Map =
         ListFieldMap<Row>.Create("name", r => r.Id)
             .Map("name", r => r.Name)
             .Map("note", r => r.Note)
-            .Options("name", rows => rows.Select(r => new ListFilterOptionRow<string> { Value = r.Name, Label = r.Name, Rank = 0 }));
+            .Options("name", rows => rows.Select(r => new ListFilterOptionRow<string> { Value = r.Name, Label = r.Name, Rank = 0, Detail = null }));
 
     private sealed class Validator() : ListFilterOptionsQueryValidator<Query, Row>(Map);
 
@@ -30,7 +30,8 @@ public sealed class ListFilterOptionsQueryValidatorTests
     [Theory]
     [InlineData("note")]
     [InlineData("missing")]
-    public void Validate_RefusesAFieldWithoutOptions(string field)
+    [InlineData(null)]
+    public void Validate_RefusesAFieldWithoutOptions(string? field)
     {
         // Act
         var result = new Validator().Validate(new Query(field));

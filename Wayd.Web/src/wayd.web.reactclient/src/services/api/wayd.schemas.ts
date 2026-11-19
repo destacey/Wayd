@@ -9795,7 +9795,7 @@ export interface LinkWorkItemRequest {
 export interface ListFilterOptionDto {
   /** The value to send in the list's `filter` for this column: `field=value`. */
   value: string;
-  /** What to show for the value. */
+  /** What to show for the value. When two values share a label, each carries what tells it apart. */
   label: string;
 }
 

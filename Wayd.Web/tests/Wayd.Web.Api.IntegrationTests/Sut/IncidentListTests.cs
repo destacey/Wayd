@@ -204,8 +204,10 @@ public sealed class IncidentListTests(WaydSqlServerApiFactory factory)
         }
     }
 
-    [Fact]
-    public async Task FilterOptions_RefusesAFieldWithoutOptions()
+    [Theory]
+    [InlineData("?field=title")]
+    [InlineData("")]
+    public async Task FilterOptions_RefusesAFieldWithoutOptions(string query)
     {
         // Arrange
         await IncidentFeatureFlags.Set(_factory, true);
@@ -216,7 +218,7 @@ public sealed class IncidentListTests(WaydSqlServerApiFactory factory)
 
             // Act
             var response = await user.Client.GetAsync(
-                "/api/product-management/incidents/filter-options?field=title",
+                $"/api/product-management/incidents/filter-options{query}",
                 TestContext.Current.CancellationToken);
 
             // Assert

@@ -328,6 +328,54 @@ describe('WaydGrid — server mode', () => {
     expect(downloadCsvWithTimestamp).not.toHaveBeenCalled()
   })
 
+  it('closes its progress message when the grid goes away mid-export', async () => {
+    // Arrange — the view answers; the export's read never does
+    let calls = 0
+    const fetchPage = vi.fn(({ pageSize }: ServerPageRequest) => {
+      calls++
+      return calls === 1
+        ? Promise.resolve({
+            items: Array.from({ length: pageSize }, (_, i) => ({
+              id: `item-${i + 1}`,
+              name: `Item ${i + 1}`,
+              stage: 'Draft',
+              note: '',
+            })),
+            totalCount: TOTAL,
+          })
+        : new Promise<never>(() => {})
+    })
+    const Page = ({ showGrid }: { showGrid: boolean }) => (
+      <MessageProvider>
+        {showGrid && (
+          <WaydGrid<Item>
+            aria-label="Items"
+            columns={columns}
+            server={{
+              fields: ['name', 'stage'],
+              pageSize: 5,
+              fetchPage,
+              noun: 'items',
+            }}
+          />
+        )}
+      </MessageProvider>
+    )
+    const { rerender } = render(<Page showGrid />)
+    await settle()
+    await userEvent.click(screen.getByRole('button', { name: 'Export to CSV' }))
+    expect(await screen.findByText('Exporting items…')).toBeInTheDocument()
+
+    // Act
+    rerender(<Page showGrid={false} />)
+
+    // Assert
+    await waitFor(() =>
+      expect(screen.queryByText(/Exporting/)).not.toBeInTheDocument(),
+    )
+    expect(screen.queryByText('Export canceled.')).not.toBeInTheDocument()
+  })
+
   it('cancels an export when its button is pressed again', async () => {
     // Arrange — page 1 answers the view; the export's read never does
     let viewAnswered = false

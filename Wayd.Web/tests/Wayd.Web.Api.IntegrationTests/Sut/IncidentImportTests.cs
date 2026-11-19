@@ -135,7 +135,7 @@ public sealed class IncidentImportTests(WaydSqlServerApiFactory factory)
                 new GetIncidentQuery(new IdOrKey(incidentId.ToString())),
                 TestContext.Current.CancellationToken);
             var page = await dispatcher.Send(
-                new GetIncidentsQuery(new PageRequest(1, 500)),
+                new GetIncidentsQuery(new PageRequest(1, 50), Filter: $"title=*{suffix}"),
                 TestContext.Current.CancellationToken);
 
             // Assert

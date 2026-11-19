@@ -69,8 +69,7 @@ export const incidentsApi = apiSlice.injectEndpoints({
           )
           return { data }
         } catch (error) {
-          // A search the user typed past is aborted, which is not a failure.
-          if (!signal.aborted) console.error('API Error:', error)
+          console.error('API Error:', error)
           return { error }
         }
       },

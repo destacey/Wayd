@@ -10,11 +10,6 @@ const setup = () => {
       { search }: { search: string },
       { signal }: { signal: AbortSignal },
     ) => {
-      if (search === 'slow') {
-        await new Promise((_, reject) =>
-          signal.addEventListener('abort', () => reject(new Error('aborted'))),
-        )
-      }
       const data: ListFilterOptionsDto = {
         options: [{ value: `id-${search}`, label: `Label ${search}` }],
         hasMore: search === 'many',
@@ -89,18 +84,23 @@ describe('filterOptionsLoader', () => {
     expect(queryFn).toHaveBeenCalledTimes(2)
   })
 
-  it('aborts the request when the panel’s signal aborts', async () => {
-    // Arrange
+  it('answers a search the panel cancels and asks for again at once', async () => {
+    // Arrange — React's StrictMode mounts the panel, cleans it up and mounts it again
     const { load, queryFn } = setup()
-    const controller = new AbortController()
-    const pending = load({ search: 'slow', signal: controller.signal })
-    await vi.waitFor(() => expect(queryFn).toHaveBeenCalled())
+    const first = new AbortController()
+    const cancelled = load({ search: 'slow-free', signal: first.signal })
+    first.abort()
 
     // Act
-    controller.abort()
+    const page = await load({
+      search: 'slow-free',
+      signal: new AbortController().signal,
+    })
 
     // Assert
-    await expect(pending).rejects.toBeDefined()
-    expect(queryFn.mock.calls[0][1].signal.aborted).toBe(true)
+    expect(page.options[0].label).toBe('Label slow-free')
+    await expect(cancelled).resolves.toBeDefined()
+    expect(queryFn).toHaveBeenCalledTimes(1)
+    expect(queryFn.mock.calls[0][1].signal.aborted).toBe(false)
   })
 })

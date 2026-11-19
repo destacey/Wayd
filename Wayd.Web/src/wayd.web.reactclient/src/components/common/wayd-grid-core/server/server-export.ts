@@ -30,6 +30,26 @@ export interface ServerExportResult<T> {
 }
 
 /**
+ * Settles with `promise`, or rejects as soon as `signal` aborts, so an export
+ * stops at once even when a page's fetch ignores the signal.
+ */
+const untilAborted = <T>(promise: Promise<T>, signal: AbortSignal) =>
+  new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason)
+    signal.addEventListener('abort', onAbort, { once: true })
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort)
+        resolve(value)
+      },
+      (error) => {
+        signal.removeEventListener('abort', onAbort)
+        reject(error)
+      },
+    )
+  })
+
+/**
  * Reads a server-paged list page by page under the grid's current filter, sort
  * and search, for an export of the whole list rather than the rows in view.
  * Stops at the server's total, at `limit`, or at a page that comes back empty
@@ -49,8 +69,10 @@ export const fetchAllServerRows = async <T>(
   let totalCount = 0
   for (let page = 1; ; page++) {
     signal.throwIfAborted()
-    const result = await fetchPage({ ...query, page, pageSize, signal })
-    signal.throwIfAborted()
+    const result = await untilAborted(
+      fetchPage({ ...query, page, pageSize, signal }),
+      signal,
+    )
     totalCount = result.totalCount
     rows.push(...result.items)
     const wanted = Math.min(totalCount, limit)

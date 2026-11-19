@@ -353,14 +353,17 @@ returns them.
     Value = i.ReportedByEmployeeId,
     Label = i.ReportedBy!.Name.FirstName + " " + i.ReportedBy.Name.LastName,
     Rank = 0,
+    Detail = i.ReportedBy.EmployeeNumber,
 }))
 ```
 
 `ReadOptions` removes duplicates, keeps the labels containing `search`, orders by `Rank` and then `Label`, and
 returns at most `limit` values (200 at most) with `hasMore` when there are more. Each value is formatted the way the
-field's filter reads it back: an id hyphenated, an enum by its code. Every projection assigns `Rank`, which is
-required because EF cannot translate reading a member an initializer leaves out; only a column with an order of
-its own, such as severity, ranks. The query implements `IListFilterOptionsQuery`, its validator derives from
+field's filter reads it back: an id hyphenated, an enum by its code. Every projection assigns `Rank` and `Detail`, which
+are required because EF cannot translate reading a member an initializer leaves out; only a column with an order
+of its own, such as severity, ranks. `Detail` tells apart values that share a label — an employee number, the
+severity scale a level belongs to, a product's key — and is added to the label, in parentheses, only when two
+values in one answer share it, so a list of people normally reads as names alone. The query implements `IListFilterOptionsQuery`, its validator derives from
 `ListFilterOptionsQueryValidator<TQuery, TEntity>` with the same map, and the handler passes the list's entity
 set to `ReadOptions` (`GetIncidentFilterOptionsQuery`).
 

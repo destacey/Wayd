@@ -13178,7 +13178,10 @@
             "name": "field",
             "in": "query",
             "schema": {
-              "type": "string"
+              "type": [
+                "null",
+                "string"
+              ]
             }
           },
           {
@@ -74201,7 +74204,7 @@
           },
           "label": {
             "type": "string",
-            "description": "What to show for the value."
+            "description": "What to show for the value. When two values share a label, each carries what tells it apart."
           }
         },
         "additionalProperties": false,

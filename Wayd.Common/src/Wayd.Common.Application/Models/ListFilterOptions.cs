@@ -19,6 +19,13 @@ public sealed record ListFilterOptionRow<TValue>
     /// rest. Required so every projection assigns it: EF cannot translate reading a member an initializer leaves out.
     /// </summary>
     public required int Rank { get; init; }
+
+    /// <summary>
+    /// What tells this value apart from another with the same label (an employee number, a scale's name), added to
+    /// the label only when two values in one answer share it; null when nothing does. Required for the same reason
+    /// as <see cref="Rank"/>.
+    /// </summary>
+    public required string? Detail { get; init; }
 }
 
 /// <summary>One value a person can pick in a list column's filter.</summary>
@@ -27,7 +34,7 @@ public sealed record ListFilterOptionDto
     /// <summary>The value to send in the list's <c>filter</c> for this column: <c>field=value</c>.</summary>
     public required string Value { get; init; }
 
-    /// <summary>What to show for the value.</summary>
+    /// <summary>What to show for the value. When two values share a label, each carries what tells it apart.</summary>
     public required string Label { get; init; }
 }
 
@@ -46,8 +53,11 @@ public sealed record ListFilterOptionsDto
 /// </summary>
 public interface IListFilterOptionsQuery
 {
-    /// <summary>The field whose values to list, one of the map's <see cref="ListFieldMap{TEntity}.OptionFields"/>.</summary>
-    string Field { get; }
+    /// <summary>
+    /// The field whose values to list, one of the map's <see cref="ListFieldMap{TEntity}.OptionFields"/>. Null when
+    /// the caller sent none, which the validator refuses with the fields it may name.
+    /// </summary>
+    string? Field { get; }
 
     /// <summary>Text the labels must contain, ignoring case; null for every value.</summary>
     string? Search { get; }

@@ -63,7 +63,7 @@ public class IncidentsController(IDispatcher dispatcher, IWorkDbContext workDbCo
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<ListFilterOptionsDto>> GetFilterOptions(
-        [FromQuery] string field,
+        [FromQuery] string? field = null,
         [FromQuery] string? search = null,
         [FromQuery] int limit = 100,
         CancellationToken cancellationToken = default)

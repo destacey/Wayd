@@ -2119,13 +2119,16 @@ function WaydGridInner<T extends RowData>(
   // Pressing export again while it reads cancels it.
   const serverExport = useRef<AbortController | null>(null)
   const [isExporting, setIsExporting] = useState(false)
-  // Leaving the page cancels an export without a message on the next one.
+  // Leaving the page cancels an export and closes its message, which is the
+  // app's rather than the grid's and would otherwise outlive the page.
   const unmounted = useRef(false)
+  const closeExportMessage = useRef<(() => void) | null>(null)
   useEffect(() => {
     unmounted.current = false
     return () => {
       unmounted.current = true
       serverExport.current?.abort()
+      closeExportMessage.current?.()
     }
   }, [])
   const exportMessageKey = `wayd-grid-export-${useId()}`
@@ -2142,6 +2145,7 @@ function WaydGridInner<T extends RowData>(
     const noun = server.noun ?? 'rows'
     const limit = server.exportLimit ?? DEFAULT_SERVER_EXPORT_LIMIT
     const key = exportMessageKey
+    closeExportMessage.current = () => messageApi?.destroy(key)
     const showProgress = (content: string) =>
       messageApi?.open({ key, type: 'loading', content, duration: 0 })
     showProgress(`Exporting ${noun}…`)
@@ -2181,7 +2185,8 @@ function WaydGridInner<T extends RowData>(
       )
     } finally {
       serverExport.current = null
-      setIsExporting(false)
+      closeExportMessage.current = null
+      if (!unmounted.current) setIsExporting(false)
     }
   }
 

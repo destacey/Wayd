@@ -169,8 +169,16 @@ const RemoteSetFilterPanel = ({
    * it returned: picking those alone would filter to part of what was typed.
    */
   const pickAll = (page: FilterOptionsPage, forSearch: string) => {
+    if (page.hasMore) return
     const found = matchesIn(page, forSearch)
-    if (page.hasMore || found.length === 0) return
+    if (found.length === 0) {
+      // Every match is picked already: Enter has done its work, so close.
+      if (page.options.length > 0) {
+        setSearch('')
+        onCommit?.()
+      }
+      return
+    }
     const labels = { ...pickedLabels }
     for (const o of found) labels[o.value] = o.label
     emit([...picked, ...found.map((o) => o.value)], labels)
@@ -228,7 +236,7 @@ const RemoteSetFilterPanel = ({
 
         {matches.map((o) => (
           <label key={o.value} className={styles.row}>
-            <Checkbox onChange={() => toggle(o, true)} />
+            <Checkbox checked={false} onChange={() => toggle(o, true)} />
             <span className={styles.label}>{o.label}</span>
           </label>
         ))}
@@ -247,6 +255,9 @@ const RemoteSetFilterPanel = ({
                 size="small"
                 type="link"
                 onClick={() => {
+                  // An Enter that waited on the failed search is dropped, so
+                  // the retry's answer is not picked long after it.
+                  pendingCommit.current = null
                   setFailedQuery(null)
                   setAttempt((n) => n + 1)
                 }}

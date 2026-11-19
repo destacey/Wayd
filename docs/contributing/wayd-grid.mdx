@@ -309,7 +309,8 @@ const fetchRows = async ({ page, pageSize, filter, sort }: ServerPageRequest) =>
 - **CSV export reads the whole list**, page by page at 500 rows, under the filter, sort and search the grid
   shows, then writes it through the same columns as a client-side export. It stops at `exportLimit` rows (10,000
   by default) and says how many it left out. A message shows its progress, and pressing the button again cancels
-  it.
+  it; leaving the page cancels it too. It reads by page number, so a row added or removed while it reads can shift
+  a later page by one and appear twice or not at all — the file is a reading of a moving list, not a snapshot.
 - **Off in server mode:** grouping, tree mode, row reorder, cell editing, the chart pane and the date tree. Each
   needs the whole list (or a server operation of its own), which the grid does not have.
 - **Rows need an `id`** (or `getRowId`): rows arrive page by page, so a row's place in the table moves while its id

@@ -38,16 +38,17 @@ public sealed class ListFieldMapTests
             .Map("lead", c => c.Lead == null ? (Guid?)null : c.Lead.Id)
             .Map("stage", c => c.Stage)
             .MapMany("watchers", c => c.Watchers.Select(w => w.Id))
-            .Options("owner", cases => cases.Select(c => new ListFilterOptionRow<Guid> { Value = c.Owner.Id, Label = c.Owner.Name, Rank = 0 }))
+            .Options("owner", cases => cases.Select(c => new ListFilterOptionRow<Guid> { Value = c.Owner.Id, Label = c.Owner.Name, Rank = 0, Detail = null }))
             .Options("stage", cases => cases.Select(c => new ListFilterOptionRow<Stage>
             {
                 Value = c.Stage,
                 Label = c.Stage.ToString(),
                 Rank = c.Stage == Stage.Closed ? 0 : 1,
+                Detail = null,
             }))
             .Options("watchers", cases => cases
                 .SelectMany(c => c.Watchers)
-                .Select(w => new ListFilterOptionRow<Guid> { Value = w.Id, Label = w.Name, Rank = 0 }));
+                .Select(w => new ListFilterOptionRow<Guid> { Value = w.Id, Label = w.Name, Rank = 0, Detail = null }));
 
     private static readonly List<Case> Cases =
     [
@@ -619,9 +620,39 @@ public sealed class ListFieldMapTests
         // Act
         var act = () => ListFieldMap<Case>.Create("id", c => c.Id)
             .Map("id", c => c.Id)
-            .Options("owner", cases => cases.Select(c => new ListFilterOptionRow<Guid> { Value = c.Owner.Id, Label = c.Owner.Name, Rank = 0 }));
+            .Options("owner", cases => cases.Select(c => new ListFilterOptionRow<Guid> { Value = c.Owner.Id, Label = c.Owner.Name, Rank = 0, Detail = null }));
 
         // Assert
         act.Should().Throw<ArgumentException>().WithMessage("*'owner' is not a field of this map*");
+    }
+
+    [Fact]
+    public async Task ReadOptions_TellsApartValuesThatShareALabel()
+    {
+        // Arrange — two people named Ada Lovelace, and one named Grace Hopper
+        var twin = new Person(Guid.Parse("0196a8d5-0000-7000-8000-0000000000ee"), "Ada Lovelace");
+        var map = ListFieldMap<Case>.Create("id", c => c.Id)
+            .Map("owner", c => c.Owner.Id)
+            .Options("owner", cases => cases.Select(c => new ListFilterOptionRow<Guid>
+            {
+                Value = c.Owner.Id,
+                Label = c.Owner.Name,
+                Rank = 0,
+                Detail = c.Owner == twin ? "E-2" : c.Owner == Ada ? "E-1" : "E-3",
+            }));
+        List<Case> cases =
+        [
+            new() { Id = 1, Owner = Ada, Stage = Stage.Active },
+            new() { Id = 2, Owner = twin, Stage = Stage.Active },
+            new() { Id = 3, Owner = Grace, Stage = Stage.Active },
+            new() { Id = 4, Owner = Ada, Stage = Stage.Draft },
+        ];
+
+        // Act
+        var options = await map.ReadOptions(cases.AsDbSet(), "owner", null, 10, TestContext.Current.CancellationToken);
+
+        // Assert — only the shared label carries its detail
+        options.Options.Select(o => o.Label).Should().Equal(
+            "Ada Lovelace (E-1)", "Ada Lovelace (E-2)", "Grace Hopper");
     }
 }

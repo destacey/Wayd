@@ -43,16 +43,25 @@ public sealed record GetIncidentsQuery(
                 Value = i.SeverityLevelId,
                 Label = i.SeverityLevel!.Name,
                 Rank = i.SeverityLevel.SortOrder,
+                // An incident keeps a level of the scale it was opened under, so two scales' "SEV-1" can both appear.
+                Detail = i.SeverityLevel.Set!.Name,
             }))
             .Options("state", incidents => incidents.Select(i => new ListFilterOptionRow<string>
             {
                 Value = i.StatusName,
                 Label = i.StatusName,
                 Rank = 0,
+                Detail = null,
             }))
             .Options("products", incidents => incidents
                 .SelectMany(i => i.ProductLinks)
-                .Select(l => new ListFilterOptionRow<Guid> { Value = l.ProductId, Label = l.Product!.Name, Rank = 0 }))
+                .Select(l => new ListFilterOptionRow<Guid>
+                {
+                    Value = l.ProductId,
+                    Label = l.Product!.Name,
+                    Rank = 0,
+                    Detail = "#" + l.Product.Key,
+                }))
             .Options("releases", incidents => incidents
                 .SelectMany(i => i.ReleaseLinks)
                 .Select(l => new ListFilterOptionRow<Guid>
@@ -60,12 +69,14 @@ public sealed record GetIncidentsQuery(
                     Value = l.ReleaseId,
                     Label = string.IsNullOrWhiteSpace(l.Release!.Name) ? l.Release.Version : l.Release.Name,
                     Rank = 0,
+                    Detail = l.Release.Product != null ? l.Release.Product.Name : "#" + l.Release.Key,
                 }))
             .Options("reportedBy", incidents => incidents.Select(i => new ListFilterOptionRow<Guid>
             {
                 Value = i.ReportedByEmployeeId,
                 Label = i.ReportedBy!.Name.FirstName + " " + i.ReportedBy.Name.LastName,
                 Rank = 0,
+                Detail = i.ReportedBy.EmployeeNumber,
             }))
             .Options("commander", incidents => incidents
                 .Where(i => i.Commander != null)
@@ -74,6 +85,7 @@ public sealed record GetIncidentsQuery(
                     Value = i.Commander!.Id,
                     Label = i.Commander.Name.FirstName + " " + i.Commander.Name.LastName,
                     Rank = 0,
+                    Detail = i.Commander.EmployeeNumber,
                 }));
 }
 
@@ -139,7 +151,7 @@ public sealed class GetIncidentsQueryHandler(IProductManagementDbContext context
 /// The values one incidents grid column holds across every incident, for its set filter: at most
 /// <see cref="Limit"/>, whose labels contain <see cref="Search"/> when one is given.
 /// </summary>
-public sealed record GetIncidentFilterOptionsQuery(string Field, string? Search = null, int Limit = 100)
+public sealed record GetIncidentFilterOptionsQuery(string? Field, string? Search = null, int Limit = 100)
     : IQuery<ListFilterOptionsDto>, IListFilterOptionsQuery;
 
 /// <summary>Refuses a field whose values incidents do not list, and a limit or search out of bounds.</summary>
@@ -156,7 +168,7 @@ public sealed class GetIncidentFilterOptionsQueryHandler(IProductManagementDbCon
         // Without the soft-delete filter, as the list reads, so a deleted employee is still a value to filter by.
         GetIncidentsQuery.Fields.ReadOptions(
             _context.Incidents.AsNoTracking().IgnoreQueryFilters(),
-            request.Field,
+            request.Field!,
             request.Search,
             request.Limit,
             cancellationToken);
@@ -193,6 +205,7 @@ public sealed class GetIncidentQueryHandler(
             .Include(i => i.Commander)
             .Include(i => i.ProductLinks)
             .Include(i => i.ReleaseLinks)
+            .AsSplitQuery()
             .Where(query.IdOrKeyFilter)
             .FirstOrDefaultAsync(cancellationToken);
 

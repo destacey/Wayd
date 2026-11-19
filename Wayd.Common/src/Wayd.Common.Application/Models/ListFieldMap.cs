@@ -198,12 +198,21 @@ public sealed partial class ListFieldMap<TEntity>
                 .Take(limit + 1)
                 .ToListAsync(cancellationToken);
 
+            var kept = page.Take(limit).ToList();
+            var shared = kept
+                .GroupBy(r => r.Label)
+                .Where(g => g.Select(r => r.Value).Distinct().Skip(1).Any())
+                .Select(g => g.Key)
+                .ToHashSet();
+
             return new ListFilterOptionsDto
             {
-                Options = [.. page.Take(limit).Select(r => new ListFilterOptionDto
+                Options = [.. kept.Select(r => new ListFilterOptionDto
                 {
                     Value = FormatValue(r.Value),
-                    Label = r.Label,
+                    Label = shared.Contains(r.Label) && !string.IsNullOrWhiteSpace(r.Detail)
+                        ? $"{r.Label} ({r.Detail})"
+                        : r.Label,
                 })],
                 HasMore = page.Count > limit,
             };

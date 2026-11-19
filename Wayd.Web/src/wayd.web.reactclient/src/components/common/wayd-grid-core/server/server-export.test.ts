@@ -129,4 +129,24 @@ describe('fetchAllServerRows', () => {
     await expect(result).rejects.toBeDefined()
     expect(fetchPage).toHaveBeenCalledTimes(1)
   })
+
+  it('stops at once when aborted, even while a page’s fetch ignores the signal', async () => {
+    // Arrange
+    const controller = new AbortController()
+    const fetchPage = vi.fn(() => new Promise<never>(() => {}))
+    const result = fetchAllServerRows(
+      fetchPage,
+      {},
+      {
+        limit: 100,
+        signal: controller.signal,
+      },
+    )
+
+    // Act
+    controller.abort()
+
+    // Assert
+    await expect(result).rejects.toBeDefined()
+  })
 })

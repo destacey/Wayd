@@ -14,15 +14,19 @@ export interface FilterOptionsEndpoint<TArgs> {
     dispatch: AppDispatch,
     // RTK's thunk also takes getState and an extra argument, which the loader never passes.
     ...rest: any[]
-  ) => { unwrap: () => Promise<ListFilterOptionsDto>; abort: () => void }
+  ) => { unwrap: () => Promise<ListFilterOptionsDto> }
 }
 
 /**
  * A set filter's `load` over an RTK Query endpoint, so each search is cached
  * like any other query: reopening a filter, or the same filter on another grid,
  * within the endpoint's `keepUnusedDataFor` reads the cache instead of the API.
- * The request is aborted when the panel's signal is, which a search the user
- * has typed past does.
+ *
+ * The panel's signal is not passed on. RTK shares one request per search, so
+ * aborting it would also fail the next request for that search made before it
+ * settled — the second mount React's StrictMode makes, or a quick reopen. The
+ * panel drops an answer it no longer wants, and the finished answer fills the
+ * cache.
  *
  * @param dispatch The store's dispatch (`useAppDispatch()`).
  * @param endpoint The endpoint, `incidentsApi.endpoints.getIncidentFilterOptions`.
@@ -34,11 +38,9 @@ export const filterOptionsLoader =
     endpoint: FilterOptionsEndpoint<TArgs>,
     argsFor: (search: string) => TArgs,
   ): FilterOptionsSource['load'] =>
-  async ({ search, signal }) => {
-    const request = dispatch(
+  async ({ search }) => {
+    const { options, hasMore } = await dispatch(
       endpoint.initiate(argsFor(search), { subscribe: false }),
-    )
-    signal.addEventListener('abort', () => request.abort(), { once: true })
-    const { options, hasMore } = await request.unwrap()
+    ).unwrap()
     return { options: [...options], hasMore }
   }

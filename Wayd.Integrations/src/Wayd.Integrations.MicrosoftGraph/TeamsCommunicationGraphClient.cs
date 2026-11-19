@@ -30,23 +30,23 @@ public sealed class TeamsCommunicationGraphClient : ITeamsCommunicationGraphClie
     private static readonly string[] _userLookupProperties = ["mail", "userPrincipalName"];
 
     private readonly ILogger<TeamsCommunicationGraphClient> _logger;
-    private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar;
     private readonly Func<TeamsGraphCredentials, GraphServiceClient> _clientFactory;
 
     public TeamsCommunicationGraphClient(
         ILogger<TeamsCommunicationGraphClient> logger,
-        IDateTimeProvider dateTimeProvider)
-        : this(logger, dateTimeProvider, BuildAppClient)
+        ISystemCalendar systemCalendar)
+        : this(logger, systemCalendar, BuildAppClient)
     {
     }
 
     internal TeamsCommunicationGraphClient(
         ILogger<TeamsCommunicationGraphClient> logger,
-        IDateTimeProvider dateTimeProvider,
+        ISystemCalendar systemCalendar,
         Func<TeamsGraphCredentials, GraphServiceClient> clientFactory)
     {
         _logger = logger;
-        _dateTimeProvider = dateTimeProvider;
+        _systemCalendar = systemCalendar;
         _clientFactory = clientFactory;
     }
 
@@ -265,8 +265,9 @@ public sealed class TeamsCommunicationGraphClient : ITeamsCommunicationGraphClie
         CancellationToken cancellationToken)
     {
         // Graph rejects a date-only value for an all-day event. The day starts at midnight and the
-        // end is the next midnight; the time zone is carried separately, so the timestamp has no offset.
-        var startDate = _dateTimeProvider.Today;
+        // end is the next midnight; the time zone is carried separately, so the timestamp has no offset. The day is
+        // today in the system zone, the organization's day.
+        var startDate = await _systemCalendar.Today(cancellationToken);
         var calendarEvent = new Event
         {
             Subject = HelloWorldEventSubject,

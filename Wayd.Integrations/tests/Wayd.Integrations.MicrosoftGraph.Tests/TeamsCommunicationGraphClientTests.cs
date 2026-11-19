@@ -18,8 +18,9 @@ public sealed class TeamsCommunicationGraphClientTests
 {
     private const string Recipient = "admin@contoso.com";
 
-    private static readonly TestingDateTimeProvider _clock =
-        new(new DateTime(2026, 3, 15, 18, 30, 0, DateTimeKind.Utc));
+    // 16 March in UTC, still 15 March in the system zone: the day the test event is booked on.
+    private static readonly TestingSystemCalendar _calendar =
+        new(new TestingDateTimeProvider(new DateTime(2026, 3, 16, 5, 30, 0, DateTimeKind.Utc)));
 
     [Fact]
     public async Task RunHelloWorldTest_WhenGraphRejectsTheMailFilter_LooksUpByUserPrincipalName()
@@ -64,7 +65,7 @@ public sealed class TeamsCommunicationGraphClientTests
         dateTimes.Should().BeEquivalentTo("2026-03-15T00:00:00", "2026-03-16T00:00:00");
         dateTimes.Should().OnlyContain(value =>
             Regex.IsMatch(value, @"^\d{4}-\d{2}-\d{2}T00:00:00$"));
-        body.Should().NotContain("18:30:00");
+        body.Should().NotContain("05:30:00");
     }
 
     [Fact]
@@ -174,7 +175,7 @@ public sealed class TeamsCommunicationGraphClientTests
     private static TeamsCommunicationGraphClient CreateClient(RecordingGraphAdapter adapter) =>
         new(
             NullLogger<TeamsCommunicationGraphClient>.Instance,
-            _clock,
+            _calendar,
             _ => new GraphServiceClient(adapter, "https://graph.microsoft.com/v1.0"));
 
     private sealed class RecordingGraphAdapter : IRequestAdapter

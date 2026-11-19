@@ -100,7 +100,7 @@ public sealed class ImportProductDependencyRequest
 
 public sealed class ImportProductDependencyRequestValidator : CustomValidator<ImportProductDependencyRequest>
 {
-    public ImportProductDependencyRequestValidator(ISystemCalendar systemCalendar)
+    public ImportProductDependencyRequestValidator()
     {
         RuleLevelCascadeMode = CascadeMode.Stop;
 
@@ -125,9 +125,11 @@ public sealed class ImportProductDependencyRequestValidator : CustomValidator<Im
         RuleFor(d => d.Description)
             .MaximumLength(1024);
 
-        // A blank start is today, so an end before today is an end before the start.
+        // A blank start is today in the system zone, which ImportProductDependencyDtoValidator judges. This
+        // validator takes no dependencies: the OpenAPI document builds it from the container to read its rules,
+        // and if it needs the database and cannot be built, its rules silently drop out of the document.
         RuleFor(d => d.EndsOn)
-            .MustAsync(async (row, endsOn, cancellationToken) => endsOn is null || endsOn.Value.ToLocalDate() >= (row.StartsOn?.ToLocalDate() ?? await systemCalendar.Today(cancellationToken)))
-                .WithMessage("A dependency cannot end before it started. A blank StartsOn means today.");
+            .Must((row, endsOn) => endsOn is null || row.StartsOn is null || endsOn.Value.ToLocalDate() >= row.StartsOn.Value.ToLocalDate())
+                .WithMessage("A dependency cannot end before it started.");
     }
 }

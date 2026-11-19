@@ -12,6 +12,7 @@ import WaydGrid from './wayd-grid'
 import type { WaydGridColumnMeta, WaydGridServerSource } from './types'
 import type { ServerPageRequest } from '../wayd-grid-core/server/server-page-cache'
 import { downloadCsvWithTimestamp } from '@/src/utils/csv-utils'
+import { MessageProvider } from '@/src/components/contexts/messaging/messaging-context'
 
 vi.mock(import('@/src/utils/csv-utils'), async (importOriginal) => ({
   ...(await importOriginal()),
@@ -251,6 +252,80 @@ describe('WaydGrid — server mode', () => {
     expect(fetchPage.mock.calls.map(([r]) => r)).toEqual([
       expect.objectContaining({ page: 1, pageSize: 500, filter: 'name=*Item' }),
     ])
+  })
+
+  it('says how many rows it left out when the list holds more than it exports', async () => {
+    // Arrange
+    render(
+      <MessageProvider>
+        <WaydGrid<Item>
+          aria-label="Items"
+          columns={columns}
+          server={{
+            fields: ['name', 'stage'],
+            pageSize: 5,
+            fetchPage: serverOf(() => true),
+            noun: 'items',
+            exportLimit: 7,
+          }}
+        />
+      </MessageProvider>,
+    )
+    await settle()
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Export to CSV' }))
+
+    // Assert
+    expect(
+      await screen.findByText(
+        'Exported the first 7 of 1,000 items. Filter the list to export the rest.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('says so when the export cannot read the list', async () => {
+    // Arrange — the view's page answers; the export's read fails
+    let calls = 0
+    const fetchPage = vi.fn(({ pageSize }: ServerPageRequest) => {
+      calls++
+      return calls === 1
+        ? Promise.resolve({
+            items: Array.from({ length: pageSize }, (_, i) => ({
+              id: `item-${i + 1}`,
+              name: `Item ${i + 1}`,
+              stage: 'Draft',
+              note: '',
+            })),
+            totalCount: TOTAL,
+          })
+        : Promise.reject(new Error('offline'))
+    })
+    render(
+      <MessageProvider>
+        <WaydGrid<Item>
+          aria-label="Items"
+          columns={columns}
+          server={{
+            fields: ['name', 'stage'],
+            pageSize: 5,
+            fetchPage,
+            noun: 'items',
+          }}
+        />
+      </MessageProvider>,
+    )
+    await settle()
+    vi.mocked(downloadCsvWithTimestamp).mockClear()
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Export to CSV' }))
+
+    // Assert
+    expect(
+      await screen.findByText('Could not export the items.'),
+    ).toBeInTheDocument()
+    expect(downloadCsvWithTimestamp).not.toHaveBeenCalled()
   })
 
   it('cancels an export when its button is pressed again', async () => {

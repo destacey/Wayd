@@ -228,15 +228,17 @@ internal static class IncidentProjections
     internal static EmployeeNavigationDto Person(Employee employee) => EmployeeNavigationDto.From(employee);
 
     /// <summary>
-    /// The commander, or null when none is assigned. Not checked like the required people: a deleted
-    /// commander is hidden by the employee query filter and loads as null, which reads as no commander.
+    /// The commander, or null when none is assigned. Throws when one is assigned but the query did not
+    /// include it, which would otherwise read as no commander.
     /// </summary>
     private static EmployeeNavigationDto? Commander(Incident incident) =>
-        incident.Commander is null ? null : Person(incident.Commander);
+        incident.CommanderEmployeeId is null
+            ? null
+            : Person(Loaded(incident.Commander, nameof(Incident.Commander)));
 
     /// <summary>
-    /// A required employee the projection reads, or an exception naming the missing <c>Include</c>. The query
-    /// filter drops an incident whose required employee is deleted, so a null here is always a missing include.
+    /// An employee the projection reads, or an exception naming the missing <c>Include</c>. The incident reads
+    /// ignore the soft-delete filter, so an assigned employee always loads and a null here is a missing include.
     /// </summary>
     private static Employee Loaded(Employee? employee, string navigation) =>
         employee ?? throw new InvalidOperationException(

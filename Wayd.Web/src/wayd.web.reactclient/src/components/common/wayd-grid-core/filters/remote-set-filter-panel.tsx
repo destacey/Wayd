@@ -58,6 +58,12 @@ const RemoteSetFilterPanel = ({
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [failedQuery, setFailedQuery] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
+  // The search Enter was pressed on before its values arrived, picked by the
+  // load that answers it through the latest pickAll.
+  const pendingCommit = useRef<string | null>(null)
+  const pickAllRef = useRef<
+    ((page: FilterOptionsPage, forSearch: string) => void) | null
+  >(null)
 
   // A host may build its columns, and so the source, on every render; reading
   // the latest load through a ref keeps that from refetching each time.
@@ -90,6 +96,10 @@ const RemoteSetFilterPanel = ({
         if (controller.signal.aborted) return
         setLoaded({ search: query, page })
         setFailedQuery(null)
+        if (pendingCommit.current === query) {
+          pendingCommit.current = null
+          pickAllRef.current?.(page, query)
+        }
       },
       () => {
         if (!controller.signal.aborted) setFailedQuery(query)
@@ -116,17 +126,17 @@ const RemoteSetFilterPanel = ({
       ? SET_FILTER_BLANK_LABEL
       : (pickedLabels[v] ?? loadedLabel(v) ?? v)
 
-  const offerBlank =
-    !!source.includeBlank &&
-    SET_FILTER_BLANK_LABEL.toLowerCase().includes(search.trim().toLowerCase())
-  const matches: FilterOption[] = current
-    ? [
-        ...(offerBlank
-          ? [{ value: SET_FILTER_BLANK, label: SET_FILTER_BLANK_LABEL }]
-          : []),
-        ...current.options,
-      ].filter((o) => !pickedSet.has(o.value))
-    : []
+  /** The values a page offers for a search, less those already picked. */
+  const matchesIn = (page: FilterOptionsPage, forSearch: string) =>
+    [
+      ...(source.includeBlank &&
+      SET_FILTER_BLANK_LABEL.toLowerCase().includes(forSearch.toLowerCase())
+        ? [{ value: SET_FILTER_BLANK, label: SET_FILTER_BLANK_LABEL }]
+        : []),
+      ...page.options,
+    ].filter((o) => !pickedSet.has(o.value))
+
+  const matches: FilterOption[] = current ? matchesIn(current, query) : []
 
   /** Emits the picked values with their labels; none picked is no filter. */
   const emit = (values: string[], labels: Record<string, string>) => {
@@ -153,15 +163,35 @@ const RemoteSetFilterPanel = ({
     }
   }
 
-  // Enter picks every value the search shows, the way the plain set filter's
-  // Enter filters to what was typed.
-  const commitSearch = () => {
-    if (!search.trim() || matches.length === 0) return
+  /**
+   * Picks every match a page holds, the way the plain set filter's Enter
+   * filters to what was typed. Refused when the source holds more matches than
+   * it returned: picking those alone would filter to part of what was typed.
+   */
+  const pickAll = (page: FilterOptionsPage, forSearch: string) => {
+    const found = matchesIn(page, forSearch)
+    if (page.hasMore || found.length === 0) return
     const labels = { ...pickedLabels }
-    for (const o of matches) labels[o.value] = o.label
-    emit([...picked, ...matches.map((o) => o.value)], labels)
+    for (const o of found) labels[o.value] = o.label
+    emit([...picked, ...found.map((o) => o.value)], labels)
     setSearch('')
     onCommit?.()
+  }
+
+  useEffect(() => {
+    pickAllRef.current = pickAll
+  })
+
+  const commitSearch = () => {
+    const trimmed = search.trim()
+    if (!trimmed) return
+    if (current && query === trimmed) {
+      pickAll(current, trimmed)
+      return
+    }
+    // Skip the rest of the debounce and pick when the answer arrives.
+    pendingCommit.current = trimmed
+    setQuery(trimmed)
   }
 
   return (
@@ -173,7 +203,10 @@ const RemoteSetFilterPanel = ({
         placeholder="Search..."
         prefix={<SearchOutlined />}
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={(e) => {
+          setSearch(e.target.value)
+          pendingCommit.current = null
+        }}
         onPressEnter={commitSearch}
         className={styles.search}
       />
@@ -200,34 +233,39 @@ const RemoteSetFilterPanel = ({
           </label>
         ))}
 
-        {loading && (
-          <div className={styles.empty}>
-            <Spin size="small" /> Loading values…
-          </div>
-        )}
+        <div role="status" aria-live="polite">
+          {loading && (
+            <div className={styles.empty}>
+              <Spin size="small" /> Loading values…
+            </div>
+          )}
 
-        {failed && (
-          <div className={styles.empty}>
-            Could not load the values.{' '}
-            <Button
-              size="small"
-              type="link"
-              onClick={() => setAttempt((n) => n + 1)}
-            >
-              Retry
-            </Button>
-          </div>
-        )}
+          {failed && (
+            <div className={styles.empty}>
+              Could not load the values.{' '}
+              <Button
+                size="small"
+                type="link"
+                onClick={() => {
+                  setFailedQuery(null)
+                  setAttempt((n) => n + 1)
+                }}
+              >
+                Retry
+              </Button>
+            </div>
+          )}
 
-        {current && matches.length === 0 && picked.length === 0 && (
-          <div className={styles.empty}>No matches</div>
-        )}
+          {current && matches.length === 0 && picked.length === 0 && (
+            <div className={styles.empty}>No matches</div>
+          )}
 
-        {current?.hasMore && (
-          <div className={styles.empty}>
-            Showing the first {current.options.length}. Type to narrow.
-          </div>
-        )}
+          {current?.hasMore && (
+            <div className={styles.empty}>
+              Showing the first {current.options.length}. Type to narrow.
+            </div>
+          )}
+        </div>
       </div>
 
       <div className={styles.footer}>

@@ -12,6 +12,7 @@ import {
   useImperativeHandle,
   useLayoutEffect,
   useMemo,
+  useId,
   useRef,
   useState,
 } from 'react'
@@ -2118,7 +2119,16 @@ function WaydGridInner<T extends RowData>(
   // Pressing export again while it reads cancels it.
   const serverExport = useRef<AbortController | null>(null)
   const [isExporting, setIsExporting] = useState(false)
-  useEffect(() => () => serverExport.current?.abort(), [])
+  // Leaving the page cancels an export without a message on the next one.
+  const unmounted = useRef(false)
+  useEffect(() => {
+    unmounted.current = false
+    return () => {
+      unmounted.current = true
+      serverExport.current?.abort()
+    }
+  }, [])
+  const exportMessageKey = `wayd-grid-export-${useId()}`
 
   const onExportServerCsv = async () => {
     if (!server) return
@@ -2131,7 +2141,7 @@ function WaydGridInner<T extends RowData>(
     setIsExporting(true)
     const noun = server.noun ?? 'rows'
     const limit = server.exportLimit ?? DEFAULT_SERVER_EXPORT_LIMIT
-    const key = `wayd-grid-export-${csvFileName}`
+    const key = exportMessageKey
     const showProgress = (content: string) =>
       messageApi?.open({ key, type: 'loading', content, duration: 0 })
     showProgress(`Exporting ${noun}…`)
@@ -2163,6 +2173,7 @@ function WaydGridInner<T extends RowData>(
         messageApi?.destroy(key)
       }
     } catch {
+      if (unmounted.current) return
       messageApi?.open(
         controller.signal.aborted
           ? { key, type: 'info', content: 'Export canceled.' }

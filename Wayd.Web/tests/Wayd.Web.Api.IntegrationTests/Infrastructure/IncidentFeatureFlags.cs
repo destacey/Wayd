@@ -13,6 +13,7 @@ namespace Wayd.Web.Api.IntegrationTests.Infrastructure;
 /// </summary>
 public static class IncidentFeatureFlags
 {
+    /// <summary>Turns both flags to <paramref name="enabled"/>, acting as the harness administrator.</summary>
     public static async Task Set(WaydSqlServerApiFactory factory, bool enabled)
     {
         using var scope = factory.Services.CreateScope();

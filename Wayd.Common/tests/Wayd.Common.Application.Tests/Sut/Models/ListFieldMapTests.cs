@@ -479,6 +479,43 @@ public sealed class ListFieldMapTests
         error.Should().Contain("compares watchers with blank");
     }
 
+    [Theory]
+    [InlineData("watchers!=0196a8d5-0000-7000-8000-0000000000aa", "!=")]
+    [InlineData("stage=Draft,watchers!*0196", "!*")]
+    [InlineData("(watchers^0196|stage=Active)", "^")]
+    [InlineData("watchers>0196a8d5-0000-7000-8000-0000000000aa", ">")]
+    public void FilterError_RefusesAComparisonACollectionCannotMean(string filter, string op)
+    {
+        // Act — Gridify reads each per item, so `watchers!=ada` would match a row holding Ada and Alan
+        var error = CaseMap.FilterError(filter);
+
+        // Assert
+        error.Should().Contain($"compares watchers with '{op}'");
+    }
+
+    [Theory]
+    [InlineData("watchers=0196a8d5-0000-7000-8000-0000000000aa")]
+    [InlineData("watchers!=")]
+    [InlineData("(watchers=0196a8d5-0000-7000-8000-0000000000aa|watchers=0196a8d5-0000-7000-8000-0000000000cc),lead!=")]
+    public void FilterError_AllowsTheComparisonsACollectionMeans(string filter)
+    {
+        // Act
+        var error = CaseMap.FilterError(filter);
+
+        // Assert
+        error.Should().BeNull();
+    }
+
+    [Fact]
+    public void FilterError_AllowsAnyComparisonOnAFieldThatIsNotACollection()
+    {
+        // Act
+        var error = CaseMap.FilterError($"owner!={Ada.Id},lead!=,stage!=Draft");
+
+        // Assert
+        error.Should().BeNull();
+    }
+
     [Fact]
     public void FilterError_AllowsComparingAFieldWithBlank()
     {

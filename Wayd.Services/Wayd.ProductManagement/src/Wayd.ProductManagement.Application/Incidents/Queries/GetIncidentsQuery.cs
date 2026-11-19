@@ -81,6 +81,10 @@ public sealed record GetIncidentsQuery(
 public sealed class GetIncidentsQueryValidator()
     : FilteredPagedQueryValidator<GetIncidentsQuery, Incident>(GetIncidentsQuery.Fields);
 
+/// <summary>
+/// Reads a page of incidents with their people, severity, products and releases, counting every incident the
+/// filters match.
+/// </summary>
 public sealed class GetIncidentsQueryHandler(IProductManagementDbContext context)
     : IQueryHandler<GetIncidentsQuery, PagedResponse<IncidentSummaryDto>>
 {
@@ -90,8 +94,13 @@ public sealed class GetIncidentsQueryHandler(IProductManagementDbContext context
         GetIncidentsQuery request,
         CancellationToken cancellationToken)
     {
+        // Without the soft-delete filter: a deleted employee's incidents stay listed, under their name, and the
+        // count matches the rows the page returns. Employees are the only soft-deleted records these reads reach.
         var query = GetIncidentsQuery.Fields.ApplyFilter(
-            IncidentQuery.Matching(_context.Incidents.AsNoTracking(), request.Statuses, request.SeverityLevelIds),
+            IncidentQuery.Matching(
+                _context.Incidents.AsNoTracking().IgnoreQueryFilters(),
+                request.Statuses,
+                request.SeverityLevelIds),
             request.Filter);
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -137,14 +146,16 @@ public sealed record GetIncidentFilterOptionsQuery(string Field, string? Search 
 public sealed class GetIncidentFilterOptionsQueryValidator()
     : ListFilterOptionsQueryValidator<GetIncidentFilterOptionsQuery, Incident>(GetIncidentsQuery.Fields);
 
+/// <summary>Lists one incidents field's values through <see cref="GetIncidentsQuery.Fields"/>.</summary>
 public sealed class GetIncidentFilterOptionsQueryHandler(IProductManagementDbContext context)
     : IQueryHandler<GetIncidentFilterOptionsQuery, ListFilterOptionsDto>
 {
     private readonly IProductManagementDbContext _context = context;
 
     public Task<ListFilterOptionsDto> Handle(GetIncidentFilterOptionsQuery request, CancellationToken cancellationToken) =>
+        // Without the soft-delete filter, as the list reads, so a deleted employee is still a value to filter by.
         GetIncidentsQuery.Fields.ReadOptions(
-            _context.Incidents.AsNoTracking(),
+            _context.Incidents.AsNoTracking().IgnoreQueryFilters(),
             request.Field,
             request.Search,
             request.Limit,
@@ -173,8 +184,10 @@ public sealed class GetIncidentQueryHandler(
 
     public async Task<IncidentDto?> Handle(GetIncidentQuery query, CancellationToken cancellationToken)
     {
+        // Without the soft-delete filter, so an incident whose reporter was deleted still opens.
         var incident = await _context.Incidents
             .AsNoTracking()
+            .IgnoreQueryFilters()
             .Include(i => i.SubmittedBy)
             .Include(i => i.ReportedBy)
             .Include(i => i.Commander)

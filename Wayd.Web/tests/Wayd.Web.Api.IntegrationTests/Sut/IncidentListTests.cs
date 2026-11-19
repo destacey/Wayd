@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Application.Employees.Commands;
@@ -92,9 +93,10 @@ public sealed class IncidentListTests(WaydSqlServerApiFactory factory)
             var reporterDescending = await Titles(dispatcher, ours, "reportedBy desc");
             var commanderAscending = await Titles(dispatcher, ours, "commander asc");
             var severityDescending = await Titles(dispatcher, ours, "severity desc");
-            var otherSorts = await Task.WhenAll(
-                new[] { "key asc", "title asc", "state asc", "noticedAt desc" }
-                    .Select(sort => Titles(dispatcher, ours, sort)));
+            // One at a time: the queries share this scope's context.
+            var otherSorts = new List<List<string>>();
+            foreach (var sort in new[] { "key asc", "title asc", "state asc", "noticedAt desc" })
+                otherSorts.Add(await Titles(dispatcher, ours, sort));
 
             var reporters = await Options(dispatcher, "reportedBy", suffix);
             var commanders = await Options(dispatcher, "commander", suffix);
@@ -135,6 +137,92 @@ public sealed class IncidentListTests(WaydSqlServerApiFactory factory)
                 severities.Options.Select(o => o.Label).Take(2),
                 ["SEV-1", "SEV-2"]);
             Assert.Contains(states.Options, o => o.Value == "Open" && o.Label == "Open");
+        }
+        finally
+        {
+            await IncidentFeatureFlags.Set(_factory, false);
+        }
+    }
+
+    [Fact]
+    public async Task Reads_KeepAnIncidentWhoseReporterWasDeleted()
+    {
+        // Arrange
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+
+        await IncidentFeatureFlags.Set(_factory, true);
+        try
+        {
+            using var scope = _factory.Services.CreateScope();
+            var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
+            var submitter = await CreateEmployee(dispatcher, new PersonName("Sam", null, $"Submitter{suffix}"), suffix);
+            var reporter = await CreateEmployee(dispatcher, new PersonName("Rae", null, $"Leaver{suffix}"), suffix);
+
+            var user = await _factory.CreateAuthenticatedClient(
+                submitter,
+                ApplicationPermission.NameFor(ApplicationAction.Import, ApplicationResource.Incidents));
+            scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId(user.UserId);
+
+            var title = $"Left behind {suffix}";
+            var run = await ImportRuns.SubmitAndWait(scope, new ImportIncidentsCommand(
+            [
+                new SubmittedImportRow<ImportIncidentDto>("left", new ImportIncidentDto(
+                    $"row-left-{suffix}", title, null, null, null, "SEV-1", ProductStatusAlias.Open,
+                    reporter, reporter, [], [], null, null, null)),
+            ]));
+            Assert.Equal(ImportProcessStatus.Succeeded, run.Status);
+
+            var deleted = await dispatcher.Send(new DeleteEmployeeCommand(reporter), TestContext.Current.CancellationToken);
+            Assert.True(deleted.IsSuccess, deleted.IsFailure ? deleted.Error : null);
+
+            var incidentId = await scope.ServiceProvider.GetRequiredService<IProductManagementDbContext>().Incidents
+                .Where(i => i.Title == title)
+                .Select(i => i.Id)
+                .SingleAsync(TestContext.Current.CancellationToken);
+
+            // Act
+            var page = await dispatcher.Send(
+                new GetIncidentsQuery(new PageRequest(1, 50), Filter: $"title=*{suffix}"),
+                TestContext.Current.CancellationToken);
+            var details = await dispatcher.Send(
+                new GetIncidentQuery(new IdOrKey(incidentId.ToString())),
+                TestContext.Current.CancellationToken);
+            var reporters = await Options(dispatcher, "reportedBy", $"Leaver{suffix}");
+
+            // Assert — the count and the rows agree, and the person still has a name
+            Assert.Equal(1, page.TotalCount);
+            var listed = Assert.Single(page.Items);
+            Assert.Equal($"Rae Leaver{suffix}", listed.ReportedBy.Name);
+            Assert.Equal($"Rae Leaver{suffix}", listed.Commander?.Name);
+            Assert.NotNull(details);
+            Assert.Equal($"Rae Leaver{suffix}", details.ReportedBy.Name);
+            Assert.Equal(reporter.ToString(), Assert.Single(reporters.Options).Value);
+        }
+        finally
+        {
+            await IncidentFeatureFlags.Set(_factory, false);
+        }
+    }
+
+    [Fact]
+    public async Task FilterOptions_RefusesAFieldWithoutOptions()
+    {
+        // Arrange
+        await IncidentFeatureFlags.Set(_factory, true);
+        try
+        {
+            var user = await _factory.CreateAuthenticatedClient(
+                ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Incidents));
+
+            // Act
+            var response = await user.Client.GetAsync(
+                "/api/product-management/incidents/filter-options?field=title",
+                TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+            Assert.Contains("severity, state, products, releases, reportedBy, commander",
+                await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         }
         finally
         {

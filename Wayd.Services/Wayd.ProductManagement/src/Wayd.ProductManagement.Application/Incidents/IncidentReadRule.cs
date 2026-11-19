@@ -76,9 +76,10 @@ public sealed class IncidentReadRule(
     {
         var incidents = await (
             from i in _productManagementDbContext.Incidents
-            join submitted in _productManagementDbContext.Employees on i.SubmittedByEmployeeId equals submitted.Id
-            join reported in _productManagementDbContext.Employees on i.ReportedByEmployeeId equals reported.Id
-            join commander in _productManagementDbContext.Employees on i.CommanderEmployeeId equals (Guid?)commander.Id into commanders
+            // A deleted employee still names the incident's people rather than dropping the incident.
+            join submitted in _productManagementDbContext.Employees.IgnoreQueryFilters() on i.SubmittedByEmployeeId equals submitted.Id
+            join reported in _productManagementDbContext.Employees.IgnoreQueryFilters() on i.ReportedByEmployeeId equals reported.Id
+            join commander in _productManagementDbContext.Employees.IgnoreQueryFilters() on i.CommanderEmployeeId equals (Guid?)commander.Id into commanders
             from commander in commanders.DefaultIfEmpty()
             where ids.Contains(i.Id)
             select new

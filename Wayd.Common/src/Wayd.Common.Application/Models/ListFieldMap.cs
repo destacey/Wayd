@@ -47,6 +47,9 @@ public sealed partial class ListFieldMap<TEntity>
     /// <summary>The longest sort string a list accepts.</summary>
     public const int MaxSortLength = 1000;
 
+    /// <summary>The most options one request for a field's values may return.</summary>
+    public const int MaxOptionsLimit = 200;
+
     /// <summary>Reads one field's options: the list's rows, the search text, and the most to return.</summary>
     private delegate Task<ListFilterOptionsDto> OptionsReader(
         IQueryable<TEntity> source,
@@ -57,15 +60,13 @@ public sealed partial class ListFieldMap<TEntity>
     /// <summary>An empty source to build a filter or sort against, which runs every value conversion without a query.</summary>
     private static readonly IQueryable<TEntity> Probe = Array.Empty<TEntity>().AsQueryable();
 
-    /// <summary>The most options one request for a field's values may return.</summary>
-    public const int MaxOptionsLimit = 200;
-
     private readonly GridifyMapper<TEntity> _filterMapper = NewMapper();
     private readonly GridifyMapper<TEntity> _sortMapper = NewMapper();
 
     private readonly List<string> _fields = [];
     private readonly HashSet<string> _collectionFields = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, OptionsReader> _options = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<string> _optionFields = [];
     private readonly string _defaultSort;
     private readonly Func<IOrderedQueryable<TEntity>, IOrderedQueryable<TEntity>> _tiebreaker;
 
@@ -101,7 +102,7 @@ public sealed partial class ListFieldMap<TEntity>
     public IReadOnlyCollection<string> FilterOnlyFields => _collectionFields;
 
     /// <summary>The fields whose values <see cref="ReadOptions"/> lists, in the order they were added.</summary>
-    public IReadOnlyList<string> OptionFields => [.. _options.Keys];
+    public IReadOnlyList<string> OptionFields => _optionFields;
 
     /// <summary>
     /// Allows sorting and filtering on <paramref name="field"/>, read from <paramref name="property"/>.
@@ -146,8 +147,9 @@ public sealed partial class ListFieldMap<TEntity>
 
     /// <summary>
     /// Allows filtering on <paramref name="field"/> by the values of a collection: <c>products=id</c> matches a
-    /// row holding that value among its <paramref name="items"/>. The field cannot be sorted by, and cannot be
-    /// compared with blank (<c>products=</c>), which Gridify would read as a null item rather than no items.
+    /// row holding that value among its <paramref name="items"/>, and <c>products!=</c> a row holding any. Every
+    /// other comparison is refused, because Gridify reads it per item: <c>products!=id</c> would match a row
+    /// holding something besides that value, and <c>products=</c> a row holding a null. The field cannot be sorted.
     /// </summary>
     /// <typeparam name="TItem">The type of each value, read as for <see cref="Map{TValue}"/>.</typeparam>
     /// <param name="field">The name callers use, which the grid uses as its column id.</param>
@@ -177,6 +179,8 @@ public sealed partial class ListFieldMap<TEntity>
         if (!_fields.Contains(field, StringComparer.OrdinalIgnoreCase))
             throw new ArgumentException($"'{field}' is not a field of this map; map it before listing its options.", nameof(field));
 
+        if (!_options.ContainsKey(field))
+            _optionFields.Add(field);
         _options[field] = async (source, search, limit, cancellationToken) =>
         {
             var rows = project(source);
@@ -213,7 +217,7 @@ public sealed partial class ListFieldMap<TEntity>
     public string? OptionsError(string? field) =>
         field is not null && _options.ContainsKey(field)
             ? null
-            : $"'field' must name a field whose values this list lists: {string.Join(", ", _options.Keys)}.";
+            : $"'field' must name a field whose values this list lists: {string.Join(", ", _optionFields)}.";
 
     /// <summary>
     /// The values <paramref name="field"/> holds across <paramref name="source"/>, whose labels contain
@@ -239,7 +243,7 @@ public sealed partial class ListFieldMap<TEntity>
         if (filter.Length > MaxFilterLength)
             return $"'filter' is longer than {MaxFilterLength} characters.";
 
-        var (conditions, depth, caseFlag, blanks) = Measure(filter);
+        var (conditions, depth, caseFlag, comparisons) = Measure(filter);
         if (conditions > MaxFilterConditions)
             return $"'filter' joins more than {MaxFilterConditions} conditions.";
         if (depth > MaxFilterDepth)
@@ -247,8 +251,10 @@ public sealed partial class ListFieldMap<TEntity>
         // Text already compares ignoring case; the flag only wraps the column in LOWER(), which no index serves.
         if (caseFlag)
             return @"'filter' uses the /i flag, which this list does not take: text already compares ignoring case. Send \/ to match a slash.";
-        if (blanks.FirstOrDefault(_collectionFields.Contains) is { } collection)
-            return $"'filter' compares {collection} with blank, which this list cannot: {collection} holds several values. Use {collection}!= for rows holding any.";
+        if (comparisons.FirstOrDefault(c => _collectionFields.Contains(c.Field) && !IsCollectionComparison(c)) is { } bad)
+            return bad.Operator == "=" && bad.IsBlank
+                ? $"'filter' compares {bad.Field} with blank, which this list cannot: {bad.Field} holds several values. Use {bad.Field}!= for rows holding any."
+                : $"'filter' compares {bad.Field} with '{bad.Operator}', which this list cannot: {bad.Field} holds several values. Use {bad.Field}=value for rows holding that value, or {bad.Field}!= for rows holding any.";
 
         return Attempt(() => Probe.ApplyFiltering(filter, _filterMapper), "filter");
     }
@@ -324,14 +330,13 @@ public sealed partial class ListFieldMap<TEntity>
 
     /// <summary>
     /// Counts the conditions a filter joins and how deeply it nests, finds Gridify's <c>/i</c> flag (an unescaped
-    /// <c>/i</c> ending a value), and names each field compared equal to blank (<c>field=</c>), skipping escaped
-    /// characters.
+    /// <c>/i</c> ending a value), and reads each condition's field and operator, skipping escaped characters.
     /// </summary>
-    private static (int Conditions, int Depth, bool CaseFlag, List<string> Blanks) Measure(string filter)
+    private static (int Conditions, int Depth, bool CaseFlag, List<Comparison> Comparisons) Measure(string filter)
     {
         int conditions = 1, depth = 0, maxDepth = 0, start = 0;
         var caseFlag = false;
-        var blanks = new List<string>();
+        var comparisons = new List<Comparison>();
         for (var i = 0; i < filter.Length; i++)
         {
             switch (filter[i])
@@ -343,7 +348,7 @@ public sealed partial class ListFieldMap<TEntity>
                     caseFlag = true;
                     break;
                 case ',' or '|':
-                    AddBlank(filter[start..i], blanks);
+                    AddComparison(filter[start..i], comparisons);
                     start = i + 1;
                     conditions++;
                     break;
@@ -352,24 +357,43 @@ public sealed partial class ListFieldMap<TEntity>
                     maxDepth = Math.Max(maxDepth, ++depth);
                     break;
                 case ')':
-                    AddBlank(filter[start..i], blanks);
+                    AddComparison(filter[start..i], comparisons);
                     start = i + 1;
                     depth--;
                     break;
             }
         }
 
-        AddBlank(filter[start..], blanks);
-        return (conditions, maxDepth, caseFlag, blanks);
+        AddComparison(filter[start..], comparisons);
+        return (conditions, maxDepth, caseFlag, comparisons);
     }
 
-    /// <summary>Adds the field <paramref name="condition"/> compares equal to blank, when it does.</summary>
-    private static void AddBlank(string condition, List<string> blanks)
+    /// <summary>One condition of a filter: the field it names, its operator, and whether its value is blank.</summary>
+    private sealed record Comparison(string Field, string Operator, bool IsBlank);
+
+    /// <summary>Adds the comparison <paramref name="condition"/> makes, when it reads as one.</summary>
+    private static void AddComparison(string condition, List<Comparison> comparisons)
     {
-        var match = BlankComparison().Match(condition);
+        var match = ComparisonPattern().Match(condition);
         if (match.Success)
-            blanks.Add(match.Groups["field"].Value);
+            comparisons.Add(new Comparison(
+                match.Groups["field"].Value,
+                match.Groups["op"].Value,
+                string.IsNullOrWhiteSpace(match.Groups["value"].Value)));
     }
+
+    /// <summary>
+    /// Whether a comparison means what it says on a collection: <c>field=value</c> (holds that value) and
+    /// <c>field!=</c> (holds any). Gridify reads every other operator as "holds some item that compares so", which
+    /// turns <c>field!=value</c> into "holds something besides it" and <c>field=</c> into "holds a null".
+    /// </summary>
+    private static bool IsCollectionComparison(Comparison comparison) =>
+        comparison.Operator switch
+        {
+            "=" => !comparison.IsBlank,
+            "!=" => comparison.IsBlank,
+            _ => false,
+        };
 
     /// <summary>Whether a value ends at <paramref name="index"/>: only whitespace before a separator or the end.</summary>
     private static bool EndsValue(string filter, int index)
@@ -388,8 +412,8 @@ public sealed partial class ListFieldMap<TEntity>
     [GeneratedRegex(@"(?<=\S\s+)(asc|desc)(?=\s*(,|$))", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex SortDirection();
 
-    [GeneratedRegex(@"^\s*(?<field>[A-Za-z_][A-Za-z0-9_.]*)\s*=\s*$", RegexOptions.CultureInvariant)]
-    private static partial Regex BlankComparison();
+    [GeneratedRegex(@"^\s*(?<field>[A-Za-z_][A-Za-z0-9_.]*)\s*(?<op>!=|<=|>=|=\*|!\*|!\^|!\$|=|<|>|\^|\$)(?<value>.*)$", RegexOptions.CultureInvariant | RegexOptions.Singleline)]
+    private static partial Regex ComparisonPattern();
 
     private static GridifyMapper<TEntity> NewMapper() => new(c =>
     {

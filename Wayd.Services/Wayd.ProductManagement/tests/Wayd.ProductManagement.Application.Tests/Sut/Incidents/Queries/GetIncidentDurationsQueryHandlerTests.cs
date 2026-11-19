@@ -179,61 +179,6 @@ public sealed class GetIncidentDurationsQueryHandlerTests : ProductCommandTestBa
         figures.LongestActive.Title.Should().Be("Lower key");
     }
 
-    [Fact]
-    public async Task Handle_ShouldNameTheIncidentsPeopleByDisplayName()
-    {
-        // Arrange
-        var reporter = AddEmployee(7, new PersonName("Grace", "Brewster", "Hopper", "Jr.", "Rear Admiral"));
-        var commander = AddEmployee(8, new PersonName("Alan", "Mathison", "Turing", title: "Dr."));
-        var incident = Open(
-            "Checkout down",
-            Now.Minus(Duration.FromMinutes(5)),
-            reportedBy: reporter.Id,
-            commander: commander.Id);
-        DateTimeProvider.SetupGet(d => d.Now).Returns(Now);
-
-        // Act
-        var dto = await IncidentHandler().Handle(
-            new GetIncidentQuery(new IdOrKey(incident.Id.ToString())),
-            TestContext.Current.CancellationToken);
-
-        // Assert
-        dto!.SubmittedBy.Name.Should().Be("Ada Lovelace");
-        dto.ReportedBy.Id.Should().Be(reporter.Id);
-        dto.ReportedBy.Key.Should().Be(7);
-        dto.ReportedBy.Name.Should().Be("Grace Hopper");
-        dto.Commander!.Key.Should().Be(8);
-        dto.Commander.Name.Should().Be("Alan Turing");
-    }
-
-    [Fact]
-    public async Task Handle_ShouldNameEachListedIncidentsPeopleByDisplayName()
-    {
-        // Arrange
-        var reporter = AddEmployee(7, new PersonName("Grace", "Brewster", "Hopper", "Jr.", "Rear Admiral"));
-        var commander = AddEmployee(8, new PersonName("Alan", "Mathison", "Turing", title: "Dr."));
-        var commanded = Open(
-            "Checkout down",
-            Now.Minus(Duration.FromMinutes(5)),
-            reportedBy: reporter.Id,
-            commander: commander.Id);
-        SetKey(commanded, 2);
-        var unassigned = Open("Search slow", Now.Minus(Duration.FromMinutes(10)));
-        SetKey(unassigned, 1);
-
-        // Act
-        var page = await ListHandler().Handle(
-            new GetIncidentsQuery(new PageRequest(1, 10)),
-            TestContext.Current.CancellationToken);
-
-        // Assert
-        page.Items.Select(i => i.Key).Should().Equal(2, 1);
-        page.Items[0].ReportedBy.Name.Should().Be("Grace Hopper");
-        page.Items[0].Commander!.Name.Should().Be("Alan Turing");
-        page.Items[1].ReportedBy.Name.Should().Be("Ada Lovelace");
-        page.Items[1].Commander.Should().BeNull();
-    }
-
     private GetIncidentQueryHandler IncidentHandler() =>
         new(DbContext, _dispatcher.Object, DateTimeProvider.Object);
 
@@ -242,52 +187,13 @@ public sealed class GetIncidentDurationsQueryHandlerTests : ProductCommandTestBa
     private GetIncidentFiguresQueryHandler FiguresHandler() =>
         new(DbContext, DateTimeProvider.Object);
 
-    [Fact]
-    public async Task Handle_ShouldCountAndPageOnlyTheIncidentsTheFilterMatches()
-    {
-        // Arrange
-        var reporter = AddEmployee(7, new PersonName("Grace", null, "Hopper"));
-        var first = Open("Checkout down", Now.Minus(Duration.FromMinutes(30)), reportedBy: reporter.Id);
-        SetKey(first, 1);
-        var second = Open("Search slow", Now.Minus(Duration.FromMinutes(20)), reportedBy: reporter.Id);
-        SetKey(second, 2);
-        var other = Open("Login loop", Now.Minus(Duration.FromMinutes(10)));
-        SetKey(other, 3);
-
-        // Act
-        var page = await ListHandler().Handle(
-            new GetIncidentsQuery(new PageRequest(1, 1), Filter: $"reportedBy={reporter.Id}", Sort: "key asc"),
-            TestContext.Current.CancellationToken);
-
-        // Assert
-        page.TotalCount.Should().Be(2);
-        page.Items.Should().ContainSingle().Which.Key.Should().Be(1);
-    }
-
-    private Employee AddEmployee(int key, PersonName name)
-    {
-        var employee = new PrivateConstructorFaker<Employee>()
-            .RuleFor(e => e.Id, Guid.CreateVersion7())
-            .RuleFor(e => e.Key, key)
-            .RuleFor(e => e.Name, name)
-            .Generate();
-        DbContext.Employees.Add(employee);
-        return employee;
-    }
-
-    private Incident Open(
-        string title,
-        Instant noticed,
-        Instant? started = null,
-        Instant? recovered = null,
-        Guid? reportedBy = null,
-        Guid? commander = null)
+    private Incident Open(string title, Instant noticed, Instant? started = null, Instant? recovered = null)
     {
         var incident = Incident.Create(
             title,
             null,
             null,
-            commanderEmployeeId: commander,
+            commanderEmployeeId: null,
             _levelId,
             noticed,
             started,
@@ -297,7 +203,7 @@ public sealed class GetIncidentDurationsQueryHandlerTests : ProductCommandTestBa
             EventActor.System,
             Now,
             _employeeId,
-            reportedBy ?? _employeeId).Value;
+            _employeeId).Value;
         DbContext.AddIncident(incident);
         return incident;
     }

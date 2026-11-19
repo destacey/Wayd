@@ -41,7 +41,8 @@ public sealed class GetIncidentTimelineLinkEntriesQueryHandler(IProductManagemen
             .Where(e => e.IncidentId == incidentId)
             .OrderBy(e => e.RecordedAt)
             .Join(
-                _context.Employees.AsNoTracking(),
+                // A deleted employee's entries stay on the timeline, under their name.
+                _context.Employees.AsNoTracking().IgnoreQueryFilters(),
                 entry => entry.ActorEmployeeId,
                 employee => employee.Id,
                 (entry, employee) => new IncidentTimelineLinkEntryDto

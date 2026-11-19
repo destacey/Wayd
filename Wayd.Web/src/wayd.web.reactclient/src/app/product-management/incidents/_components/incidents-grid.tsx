@@ -26,7 +26,7 @@ import {
 } from '@/src/store/features/product-management/incidents-api'
 import { Tooltip } from 'antd'
 import Link from 'next/link'
-import { Fragment, ReactNode } from 'react'
+import { Fragment } from 'react'
 import { formatIncidentAge, instantToEpochMs } from './incident-format'
 import { IncidentSeverityRank } from './incident-severity-rank'
 import styles from './incidents.module.css'
@@ -194,7 +194,6 @@ export interface IncidentsGridProps {
   refreshKey?: unknown
   /** Called by the toolbar's refresh, beside refetching the rows. */
   onRefresh?: () => void
-  rightSlot?: ReactNode
 }
 
 /**
@@ -206,7 +205,6 @@ const IncidentsGrid = ({
   severityLevelIds,
   refreshKey,
   onRefresh,
-  rightSlot,
 }: IncidentsGridProps) => {
   const sourceFor = useIncidentFilterOptions()
 
@@ -246,7 +244,6 @@ const IncidentsGrid = ({
       csvFileName="incidents"
       persistStateKey="product-management-incidents"
       emptyMessage="No incidents yet."
-      rightSlot={rightSlot}
     />
   )
 }

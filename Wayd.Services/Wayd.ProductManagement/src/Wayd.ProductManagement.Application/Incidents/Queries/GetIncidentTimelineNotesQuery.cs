@@ -41,7 +41,8 @@ public sealed class GetIncidentTimelineNotesQueryHandler(IProductManagementDbCon
             .Where(n => n.IncidentId == incidentId)
             .OrderBy(n => n.RecordedAt)
             .Join(
-                _context.Employees.AsNoTracking(),
+                // A deleted employee's entries stay on the timeline, under their name.
+                _context.Employees.AsNoTracking().IgnoreQueryFilters(),
                 note => note.AuthorEmployeeId,
                 employee => employee.Id,
                 (note, employee) => new IncidentTimelineNoteDto

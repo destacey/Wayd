@@ -360,4 +360,140 @@ describe('RemoteSetFilterPanel', () => {
     // Assert
     expect(onChange).toHaveBeenCalledWith(undefined)
   })
+
+  it('picks the matches of a search Enter was pressed on before they arrived', async () => {
+    // Arrange
+    const onChange = vi.fn()
+    const onCommit = vi.fn()
+    render(
+      <RemoteSetFilterPanel
+        source={sourceOver()}
+        value={undefined}
+        onChange={onChange}
+        onCommit={onCommit}
+      />,
+    )
+    await screen.findByText('Grace Hopper')
+
+    // Act — typed and entered well inside the debounce
+    await userEvent.type(screen.getByPlaceholderText('Search...'), 'gra{Enter}')
+
+    // Assert
+    await waitFor(() =>
+      expect(onChange).toHaveBeenCalledWith({
+        type: 'set',
+        values: ['id-grace'],
+        labels: { 'id-grace': 'Grace Hopper' },
+      }),
+    )
+    expect(onCommit).toHaveBeenCalled()
+  })
+
+  it('picks nothing on Enter when the source holds more matches than it returned', async () => {
+    // Arrange
+    const onChange = vi.fn()
+    const onCommit = vi.fn()
+    const source: FilterOptionsSource = {
+      load: async () => ({ options: [ADA, ALAN], hasMore: true }),
+    }
+    render(
+      <RemoteSetFilterPanel
+        source={source}
+        value={undefined}
+        onChange={onChange}
+        onCommit={onCommit}
+      />,
+    )
+    await userEvent.type(screen.getByPlaceholderText('Search...'), 'a')
+    await screen.findByText('Showing the first 2. Type to narrow.')
+
+    // Act
+    await userEvent.type(screen.getByPlaceholderText('Search...'), '{Enter}')
+
+    // Assert
+    expect(onChange).not.toHaveBeenCalled()
+    expect(onCommit).not.toHaveBeenCalled()
+  })
+
+  it('shows it is loading again while a retry runs', async () => {
+    // Arrange
+    const load = vi
+      .fn<FilterOptionsSource['load']>()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockReturnValue(new Promise(() => {}))
+    render(
+      <RemoteSetFilterPanel
+        source={{ load }}
+        value={undefined}
+        onChange={vi.fn()}
+      />,
+    )
+
+    // Act
+    await userEvent.click(await screen.findByRole('button', { name: 'Retry' }))
+
+    // Assert
+    expect(screen.getByText('Loading values…')).toBeInTheDocument()
+    expect(
+      screen.queryByText(/Could not load the values/),
+    ).not.toBeInTheDocument()
+  })
+
+  it('drops an answer that arrives after a newer search', async () => {
+    // Arrange — each search answers when the test says
+    const answers = new Map<string, (page: FilterOptionsPage) => void>()
+    const load = vi.fn<FilterOptionsSource['load']>(
+      ({ search }) =>
+        new Promise((resolve) => {
+          answers.set(search, resolve)
+        }),
+    )
+    render(
+      <RemoteSetFilterPanel
+        source={{ load }}
+        value={undefined}
+        onChange={vi.fn()}
+      />,
+    )
+    await userEvent.type(screen.getByPlaceholderText('Search...'), 'gra')
+    await waitFor(() => expect(answers.has('gra')).toBe(true))
+
+    // Act — the newer search answers first, then the first one
+    answers.get('gra')!({ options: [GRACE], hasMore: false })
+    await screen.findByText('Grace Hopper')
+    answers.get('')!({ options: [ADA], hasMore: false })
+
+    // Assert
+    await new Promise((r) => setTimeout(r, 0))
+    expect(screen.queryByText('Ada Lovelace')).not.toBeInTheDocument()
+    expect(screen.getByText('Grace Hopper')).toBeInTheDocument()
+  })
+
+  it('does not ask again when re-rendered with a new source object', async () => {
+    // Arrange
+    const first = sourceOver()
+    const { rerender } = render(
+      <RemoteSetFilterPanel
+        source={first}
+        value={undefined}
+        onChange={vi.fn()}
+      />,
+    )
+    await screen.findByText('Grace Hopper')
+    const second = sourceOver()
+
+    // Act
+    rerender(
+      <RemoteSetFilterPanel
+        source={second}
+        value={undefined}
+        onChange={vi.fn()}
+      />,
+    )
+    await new Promise((r) => setTimeout(r, 300))
+
+    // Assert
+    expect(first.load).toHaveBeenCalledTimes(1)
+    expect(second.load).not.toHaveBeenCalled()
+  })
 })

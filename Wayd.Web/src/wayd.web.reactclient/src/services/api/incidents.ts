@@ -78,7 +78,7 @@ export const getIncidentsGetIncidentsUrl = (params?: IncidentsGetIncidentsParams
 
 /**
  * One page of the incidents matching the state and severity filters. `filter` and `sort` use Gridify syntax over `key`, `title`, `severity`, `state`, `products`, `releases`, `reportedBy`, `commander` and `noticedAt`: `filter=title=*checkout` (contains), `^` starts with, `$` ends with, `!=` not equal, `field=` blank, `,` and, `|` or, parentheses to group, `\` before any other character to match it literally. `severity`, `products`, `releases`, `reportedBy` and `commander` match by id (`reportedBy=0196a8d5-…`), `state` by status name, and `noticedAt` takes ISO instants (`noticedAt>=2026-03-01T00:00:00Z`). `products` and `releases` match an incident holding any of the ids, cannot be sorted by, and cannot be compared with blank. `sort=severity asc, noticedAt desc`: severity sorts by its rank and people by name. A field outside that list fails with a 422. The values each filterable column holds come from `GET filter-options`.
- * @summary List incidents, highest key first.
+ * @summary List incidents, filtered and sorted, highest key first by default.
  */
 export const incidentsGetIncidents = async (params?: IncidentsGetIncidentsParams, options?: Parameters<typeof apiFetch>[1]): Promise<PagedResponseOfIncidentSummaryDto> => {
 

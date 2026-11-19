@@ -357,8 +357,9 @@ new search replaces. It works **by inclusion**: nothing is checked until the use
 whose values are not all known cannot say "every value but these". Picked values stay listed above the matches,
 with their labels, whatever the search returns, and the filter keeps those labels so the header can name its
 value. When the source has more than it returned, the panel says so and asks the user to narrow. `includeBlank`
-offers (Blanks) for a field the server compares with blank (`commander=`). A source also works in client mode,
-for a column with too many values to list.
+offers (Blanks) for a field the server compares with blank (`commander=`). In client mode a source's values must be the
+column's own values, the ones its accessor returns, since the grid matches rows against them; a server's ids
+would match no row.
 
 Lists that page but do not yet sort or filter on the server (background jobs, dead letters, the import process
 list) still use `WaydGridPager` in the toolbar's `rightSlot`, with `useGridPaging` holding the page; the

@@ -51,6 +51,7 @@ public sealed class LinkRegistrationTests
         services.AddScoped(_ => new Mock<ICurrentUser>().Object);
         services.AddScoped(_ => new Mock<IDispatcher>().Object);
         services.AddScoped(_ => new Mock<IDateTimeProvider>().Object);
+        services.AddScoped(_ => new Mock<ISystemCalendar>().Object);
 
         services.AddLinks();
 

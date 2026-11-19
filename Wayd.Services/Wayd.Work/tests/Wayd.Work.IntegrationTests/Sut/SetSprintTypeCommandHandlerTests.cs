@@ -90,6 +90,7 @@ public sealed class SetSprintTypeCommandHandlerTests(SqlServerDbContextFixture f
             currentUser.Object,
             currentPrincipal.Object,
             Mock.Of<IDateTimeProvider>(p => p.Now == SqlServerDbContextFixture.FixedNow),
+            new Wayd.Tests.Shared.TestingSystemCalendar(Mock.Of<IDateTimeProvider>(p => p.Now == SqlServerDbContextFixture.FixedNow)),
             NullLogger<SetSprintTypeCommandHandler>.Instance);
     }
 

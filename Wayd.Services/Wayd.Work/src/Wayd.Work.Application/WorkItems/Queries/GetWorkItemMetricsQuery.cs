@@ -25,13 +25,13 @@ public sealed record GetWorkItemMetricsQuery : IQuery<Result<IReadOnlyCollection
     public WorkItemKey WorkItemKey { get; }
 }
 
-public sealed class GetWorkItemMetricsQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkItemMetricsQueryHandler> logger, IDateTimeProvider dateTimeProvider) : IQueryHandler<GetWorkItemMetricsQuery, Result<IReadOnlyCollection<WorkItemProgressDailyRollupDto>>>
+public sealed class GetWorkItemMetricsQueryHandler(IWorkDbContext workDbContext, ILogger<GetWorkItemMetricsQueryHandler> logger, ISystemCalendar systemCalendar) : IQueryHandler<GetWorkItemMetricsQuery, Result<IReadOnlyCollection<WorkItemProgressDailyRollupDto>>>
 {
     private const string AppRequestName = nameof(GetExternalObjectWorkItemMetricsQuery);
 
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly ILogger<GetWorkItemMetricsQueryHandler> _logger = logger;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<Result<IReadOnlyCollection<WorkItemProgressDailyRollupDto>>> Handle(GetWorkItemMetricsQuery request, CancellationToken cancellationToken)
     {
@@ -68,20 +68,23 @@ public sealed class GetWorkItemMetricsQueryHandler(IWorkDbContext workDbContext,
             return new List<WorkItemProgressDailyRollupDto>(0);
         }
 
-        var firstCreated = progress.Min(p => p.Created);
-        var start = firstCreated < workItem.Created ? firstCreated.ToDateOnly() : workItem.Created.ToDateOnly();
+        var zone = await _systemCalendar.Zone(cancellationToken);
+        DateOnly DayOf(Instant instant) => instant.InZone(zone).Date.ToDateOnly();
 
-        var end = workItem.DoneTimestamp?.ToDateOnly() ?? _dateTimeProvider.Now.ToDateOnly();
+        var firstCreated = progress.Min(p => p.Created);
+        var start = DayOf(firstCreated < workItem.Created ? firstCreated : workItem.Created);
+
+        var end = workItem.DoneTimestamp is { } done ? DayOf(done) : (await _systemCalendar.Today(cancellationToken)).ToDateOnly();
         // if all items are done, use the last done date as the end date if it is later than the work item done date
         if (workItem.DoneTimestamp.HasValue && progress.All(p => p.StatusCategory == StatusCategory.Done))
         {
-            var latestChildDone = progress.Max(p => p.DoneTimestamp!.Value).ToDateOnly();
+            var latestChildDone = DayOf(progress.Max(p => p.DoneTimestamp!.Value));
             if (end < latestChildDone)
             {
                 end = latestChildDone;
             }
         }
 
-        return WorkItemProgressDailyRollupDto.CreateList(start, end, progress);
+        return WorkItemProgressDailyRollupDto.CreateList(start, end, progress, zone);
     }
 }

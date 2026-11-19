@@ -24,7 +24,7 @@ public sealed class SprintLinkOwnerType(
     IWorkDbContext dbContext,
     ICurrentPrincipal currentPrincipal,
     IDispatcher dispatcher,
-    IDateTimeProvider dateTimeProvider) : ILinkOwnerType
+    ISystemCalendar systemCalendar) : ILinkOwnerType
 {
     /// <summary>The permission reading a sprint needs.</summary>
     public static readonly string ViewPermission = ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Iterations);
@@ -32,7 +32,7 @@ public sealed class SprintLinkOwnerType(
     private readonly IWorkDbContext _dbContext = dbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDispatcher _dispatcher = dispatcher;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     /// <inheritdoc/>
     public string OwnerType => WorkLinkOwners.Sprint.Key;
@@ -55,6 +55,6 @@ public sealed class SprintLinkOwnerType(
             return new LinkOwnerAccess(false);
 
         return new LinkOwnerAccess(await _currentPrincipal.CanManageTeamSprints(
-            _dispatcher, teamId, _dateTimeProvider.Now.InUtc().Date, cancellationToken));
+            _dispatcher, teamId, await _systemCalendar.Today(cancellationToken), cancellationToken));
     }
 }

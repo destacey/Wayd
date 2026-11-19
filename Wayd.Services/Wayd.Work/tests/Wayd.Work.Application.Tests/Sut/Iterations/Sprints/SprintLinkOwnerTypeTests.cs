@@ -20,7 +20,7 @@ public sealed class SprintLinkOwnerTypeTests : IDisposable
     }
 
     private SprintLinkOwnerType CreateSut() =>
-        new(_scenario.DbContext, _scenario.CurrentPrincipal.Object, _scenario.Dispatcher.Object, _scenario.DateTimeProvider);
+        new(_scenario.DbContext, _scenario.CurrentPrincipal.Object, _scenario.Dispatcher.Object, _scenario.SystemCalendar);
 
     private void CanView(bool holds) =>
         _scenario.CurrentPrincipal
@@ -60,6 +60,23 @@ public sealed class SprintLinkOwnerTypeTests : IDisposable
 
         // Assert
         access.Should().Be(new LinkOwnerAccess(expected));
+    }
+
+    [Fact]
+    public async Task Resolve_ShouldReadTeamMembershipOnTodayInTheSystemZone()
+    {
+        // Arrange — 05:00 UTC on 2 March is still 1 March in the system zone
+        _scenario.Clock.Reset(NodaTime.Instant.FromUtc(2026, 3, 2, 5, 0));
+        _scenario.CanUpdate = true;
+        _scenario.IsMember = true;
+
+        // Act
+        await Resolve(_scenario.Sprint1.Id);
+
+        // Assert
+        _scenario.Dispatcher.Verify(d => d.Send(
+            It.Is<Wayd.Common.Application.Requests.Organization.IsTeamMemberQuery>(q => q.AsOf == new NodaTime.LocalDate(2026, 3, 1)),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Theory]

@@ -29,6 +29,7 @@ public sealed class SetSprintTypeCommandHandler(
     ICurrentUser currentUser,
     ICurrentPrincipal currentPrincipal,
     IDateTimeProvider dateTimeProvider,
+    ISystemCalendar systemCalendar,
     ILogger<SetSprintTypeCommandHandler> logger)
     : ICommandHandler<SetSprintTypeCommand>
 {
@@ -39,6 +40,7 @@ public sealed class SetSprintTypeCommandHandler(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
     private readonly ILogger<SetSprintTypeCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(SetSprintTypeCommand request, CancellationToken cancellationToken)
@@ -54,7 +56,7 @@ public sealed class SetSprintTypeCommandHandler(
                 return Result.Failure("The sprint's team is not mapped to a Wayd team.");
 
             var now = _dateTimeProvider.Now;
-            if (!await _currentPrincipal.CanManageTeamSprints(_dispatcher, teamId, now.InUtc().Date, cancellationToken))
+            if (!await _currentPrincipal.CanManageTeamSprints(_dispatcher, teamId, await _systemCalendar.DayOf(now, cancellationToken), cancellationToken))
                 return Result.Failure("Only members of the sprint's team, or of its team of teams, can change its sprint type.");
 
             var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);

@@ -34,6 +34,7 @@ public sealed class SetSprintTeamDaysOffCommandHandler(
     ICurrentUser currentUser,
     ICurrentPrincipal currentPrincipal,
     IDateTimeProvider dateTimeProvider,
+    ISystemCalendar systemCalendar,
     ILogger<SetSprintTeamDaysOffCommandHandler> logger)
     : ICommandHandler<SetSprintTeamDaysOffCommand>
 {
@@ -44,6 +45,7 @@ public sealed class SetSprintTeamDaysOffCommandHandler(
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
     private readonly ILogger<SetSprintTeamDaysOffCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(SetSprintTeamDaysOffCommand request, CancellationToken cancellationToken)
@@ -59,7 +61,7 @@ public sealed class SetSprintTeamDaysOffCommandHandler(
                 return Result.Failure("The sprint's team is not mapped to a Wayd team.");
 
             var now = _dateTimeProvider.Now;
-            if (!await _currentPrincipal.CanManageTeamSprints(_dispatcher, teamId, now.InUtc().Date, cancellationToken))
+            if (!await _currentPrincipal.CanManageTeamSprints(_dispatcher, teamId, await _systemCalendar.DayOf(now, cancellationToken), cancellationToken))
                 return Result.Failure("Only members of the sprint's team, or of its team of teams, can change its team days off.");
 
             var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);

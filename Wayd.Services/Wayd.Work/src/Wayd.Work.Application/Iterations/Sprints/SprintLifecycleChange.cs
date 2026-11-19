@@ -25,6 +25,7 @@ internal static class SprintLifecycleChange
         ICurrentUser currentUser,
         ICurrentPrincipal currentPrincipal,
         IDateTimeProvider dateTimeProvider,
+        ISystemCalendar systemCalendar,
         ILogger logger,
         Guid sprintId,
         string action,
@@ -45,7 +46,7 @@ internal static class SprintLifecycleChange
 
         var now = dateTimeProvider.Now;
 
-        if (!await currentPrincipal.CanManageTeamSprints(dispatcher, teamId, now.InUtc().Date, cancellationToken))
+        if (!await currentPrincipal.CanManageTeamSprints(dispatcher, teamId, await systemCalendar.DayOf(now, cancellationToken), cancellationToken))
         {
             logger.LogInformation("The caller may not {Action} sprint {SprintId}.", action, sprintId);
             return Result.Failure(SprintAuthorization.NotAMemberError);

@@ -27,7 +27,8 @@ public sealed class GetSprintQueryHandler(
     ISettings<SchedulingSettings> schedulingSettings,
     ISettings<GeneralSettings> generalSettings,
     ICurrentPrincipal currentPrincipal,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    ISystemCalendar systemCalendar)
     : IQueryHandler<GetSprintQuery, SprintDetailsDto?>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
@@ -36,6 +37,7 @@ public sealed class GetSprintQueryHandler(
     private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar = systemCalendar;
 
     public async Task<SprintDetailsDto?> Handle(GetSprintQuery request, CancellationToken cancellationToken)
     {
@@ -64,7 +66,7 @@ public sealed class GetSprintQueryHandler(
         }
 
         var timeline = await _workDbContext.LoadTeamSprintTimeline(_dispatcher, _schedulingSettings, _generalSettings, teamId, tracked: false, cancellationToken);
-        await details.Resolve(sprint, timeline, _currentPrincipal, _dispatcher, now, cancellationToken);
+        await details.Resolve(sprint, timeline, _currentPrincipal, _dispatcher, now, await _systemCalendar.DayOf(now, cancellationToken), cancellationToken);
 
         return details;
     }

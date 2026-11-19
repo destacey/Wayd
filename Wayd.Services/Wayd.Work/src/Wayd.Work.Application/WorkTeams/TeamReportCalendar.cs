@@ -66,7 +66,8 @@ public sealed class TeamReportCalendar
     {
         var date = instant.InZone(ZoneOn(instant.InUtc().Date)).Date;
 
-        // Near a change of zone the guess can be a day out; no two zones are more than two days apart.
+        // The UTC day only picks the zone to try first. Near a change of zone the guess can be a day out; no two
+        // zones are more than two days apart.
         for (var i = 0; i < 2 && StartOf(date) > instant; i++)
             date = date.PlusDays(-1);
         for (var i = 0; i < 2 && StartOf(date.PlusDays(1)) <= instant; i++)

@@ -105,6 +105,7 @@ public sealed class StartSprintCommandHandlerTests(SqlServerDbContextFixture fix
             currentUser.Object,
             currentPrincipal.Object,
             Mock.Of<IDateTimeProvider>(p => p.Now == now),
+            new Wayd.Tests.Shared.TestingSystemCalendar(Mock.Of<IDateTimeProvider>(p => p.Now == now)),
             NullLogger<StartSprintCommandHandler>.Instance);
     }
 

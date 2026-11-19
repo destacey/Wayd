@@ -23,7 +23,12 @@ public sealed record WorkItemProgressDailyRollupDto : WorkItemProgressRollupDto
         return Create(date, 0, 0, 0);
     }
 
-    public static List<WorkItemProgressDailyRollupDto> CreateList(DateOnly startDate, DateOnly endDate, List<WorkItemProgressStateDto> workItems)
+    /// <summary>
+    /// One rollup per day from <paramref name="startDate"/> to <paramref name="endDate"/>, each counting the items
+    /// proposed, active and done by the end of it. Timestamps fall on the day they read as in <paramref name="zone"/>,
+    /// the zone the window's days are named in.
+    /// </summary>
+    public static List<WorkItemProgressDailyRollupDto> CreateList(DateOnly startDate, DateOnly endDate, List<WorkItemProgressStateDto> workItems, DateTimeZone zone)
     {
         if (startDate > endDate)
             throw new ArgumentException("Start date must be less than or equal to end date");
@@ -43,12 +48,12 @@ public sealed record WorkItemProgressDailyRollupDto : WorkItemProgressRollupDto
             if ((workItem.StatusCategory is StatusCategory.Done or StatusCategory.Removed) && !workItem.DoneTimestamp.HasValue)
                 throw new ArgumentException("Work item is in a terminal state but does not have a done timestamp");
 
-            var created = workItem.Created.ToDateOnly();
+            var created = DayOf(workItem.Created, zone);
             DateOnly? activatedTimestamp = workItem.ActivatedTimestamp.HasValue
-                ? workItem.ActivatedTimestamp.Value.ToDateOnly()
+                ? DayOf(workItem.ActivatedTimestamp.Value, zone)
                 : null;
             DateOnly? doneTimestamp = workItem.DoneTimestamp.HasValue
-                ? workItem.DoneTimestamp.Value.ToDateOnly()
+                ? DayOf(workItem.DoneTimestamp.Value, zone)
                 : null;
 
             int startIndex = Math.Max(0, created.DayNumber - startDate.DayNumber);
@@ -76,4 +81,6 @@ public sealed record WorkItemProgressDailyRollupDto : WorkItemProgressRollupDto
 
         return data;
     }
+
+    private static DateOnly DayOf(Instant instant, DateTimeZone zone) => instant.InZone(zone).Date.ToDateOnly();
 }

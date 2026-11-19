@@ -26,7 +26,8 @@ public class GetSprintQueryHandlerTests : IDisposable
             _scenario.SchedulingSettings.Object,
             _scenario.GeneralSettings.Object,
             _scenario.CurrentPrincipal.Object,
-            _scenario.DateTimeProvider);
+            _scenario.DateTimeProvider,
+            _scenario.SystemCalendar);
     }
 
     public void Dispose() => _scenario.Dispose();

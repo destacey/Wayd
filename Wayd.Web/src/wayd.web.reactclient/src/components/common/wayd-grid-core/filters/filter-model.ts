@@ -108,6 +108,12 @@ export interface SetFilterModel {
   type: 'set'
   /** Selected values; empty array means "no filter" (all pass). */
   values: string[]
+  /**
+   * Labels of the selected values, for a column whose values are loaded from a
+   * `filterOptionsSource`: the panel may not hold a chosen value's label
+   * again (a later search did not return it), so the filter keeps it.
+   */
+  labels?: Record<string, string>
 }
 
 /**

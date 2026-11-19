@@ -46,6 +46,7 @@ import { WaydEmpty } from '@/src/components/common'
 import { useRemainingHeight } from '@/src/hooks'
 import {
   CombinedFilterPanel,
+  RemoteSetFilterPanel,
   DateFilterPanel,
   FilterPopup,
   FloatingFilter,
@@ -2173,8 +2174,11 @@ function WaydGridInner<T extends RowData>(
               />
             ) : combined ? (
               <CombinedFilterPanel
-                allValues={getSetValues(header)}
+                allValues={
+                  meta?.filterOptionsSource ? [] : getSetValues(header)
+                }
                 labels={meta?.filterOptions}
+                source={meta?.filterOptionsSource}
                 value={filterValue}
                 maxConditions={meta?.maxFilterConditions}
                 onChange={(next) => header.column.setFilterValue(next)}
@@ -2278,19 +2282,26 @@ function WaydGridInner<T extends RowData>(
     const filterValue = column.getFilterValue() as ColumnFilterModel | undefined
     const isFiltered = filterValue !== undefined
     const isFilterOpen = openFilterColumnId === column.id
+    const source = meta?.filterOptionsSource
 
-    const allValues = getSetValues(header)
+    // A loaded source picks values in; a listed one checks every value and
+    // unchecks the ones left out.
+    const allValues = source ? [] : getSetValues(header)
 
     const selected =
       filterValue?.type === 'set' ? filterValue.values : allValues
     const summary =
-      !isFiltered || selected.length === allValues.length
+      !isFiltered || (!source && selected.length === allValues.length)
         ? ''
         : selected.length === 1
           ? selected[0] === SET_FILTER_BLANK
             ? SET_FILTER_BLANK_LABEL
-            : (meta?.filterOptions?.find((o) => o.value === selected[0])
-                ?.label ?? selected[0])
+            : ((filterValue?.type === 'set'
+                ? filterValue.labels?.[selected[0]]
+                : undefined) ??
+              meta?.filterOptions?.find((o) => o.value === selected[0])
+                ?.label ??
+              selected[0])
           : `${selected.length} selected`
 
     return (
@@ -2305,13 +2316,22 @@ function WaydGridInner<T extends RowData>(
         destroyOnHidden
         content={
           <div onClick={(e) => e.stopPropagation()}>
-            <SetFilterPanel
-              allValues={allValues}
-              labels={meta?.filterOptions}
-              value={filterValue}
-              onChange={(next) => column.setFilterValue(next)}
-              onCommit={() => setOpenFilterColumnId(null)}
-            />
+            {source ? (
+              <RemoteSetFilterPanel
+                source={source}
+                value={filterValue}
+                onChange={(next) => column.setFilterValue(next)}
+                onCommit={() => setOpenFilterColumnId(null)}
+              />
+            ) : (
+              <SetFilterPanel
+                allValues={allValues}
+                labels={meta?.filterOptions}
+                value={filterValue}
+                onChange={(next) => column.setFilterValue(next)}
+                onCommit={() => setOpenFilterColumnId(null)}
+              />
+            )}
           </div>
         }
       >

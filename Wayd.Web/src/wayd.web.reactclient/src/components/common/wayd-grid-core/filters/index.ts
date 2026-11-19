@@ -67,6 +67,13 @@ export type { FloatingFilterProps } from './floating-filter'
 export { default as SetFilterPanel } from './set-filter-panel'
 export type { SetFilterPanelProps } from './set-filter-panel'
 
+// Set filter over values loaded as the user searches (meta.filterOptionsSource)
+export {
+  default as RemoteSetFilterPanel,
+  REMOTE_SET_FILTER_DEBOUNCE_MS,
+} from './remote-set-filter-panel'
+export type { RemoteSetFilterPanelProps } from './remote-set-filter-panel'
+
 // Combined text + set filter panel (Text Filter expander over the set list)
 export { default as CombinedFilterPanel } from './combined-filter-panel'
 export type { CombinedFilterPanelProps } from './combined-filter-panel'

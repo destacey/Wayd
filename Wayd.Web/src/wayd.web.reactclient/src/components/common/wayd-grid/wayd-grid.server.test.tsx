@@ -1,4 +1,12 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { ColumnDef } from '../wayd-grid-core'
 import WaydGrid from './wayd-grid'
 import type { WaydGridColumnMeta, WaydGridServerSource } from './types'
@@ -274,6 +282,56 @@ describe('WaydGrid — server mode', () => {
     )
     expect(filters[0]).not.toHaveAttribute('role', 'spinbutton')
     expect(filters[1]).toHaveAttribute('role', 'spinbutton')
+  })
+
+  it('filters by a value its set filter loads, and names it in the header', async () => {
+    // Arrange
+    type Owned = { id: string; owner: string }
+    const fetchPage = vi.fn((_request: ServerPageRequest) =>
+      Promise.resolve({
+        items: [{ id: 'a', owner: 'Ada' }] as Owned[],
+        totalCount: 1,
+      }),
+    )
+    const load = vi.fn(async () => ({
+      options: [
+        { value: 'id-ada', label: 'Ada Lovelace' },
+        { value: 'id-grace', label: 'Grace Hopper' },
+      ],
+      hasMore: false,
+    }))
+    render(
+      <WaydGrid<Owned>
+        columns={[
+          {
+            id: 'owner',
+            accessorKey: 'owner',
+            header: 'Owner',
+            meta: { filterType: 'set', filterOptionsSource: { load } },
+          },
+        ]}
+        server={{ fields: ['owner'], fetchPage }}
+      />,
+    )
+    await settle()
+    expect(load).not.toHaveBeenCalled()
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Filter column' }))
+    const option = await screen.findByText('Grace Hopper')
+    await userEvent.click(
+      within(option.closest('label')!).getByRole('checkbox'),
+    )
+
+    // Assert
+    await waitFor(() =>
+      expect(fetchPage.mock.calls.at(-1)?.[0]).toMatchObject({
+        filter: 'owner=id\\-grace',
+      }),
+    )
+    expect(
+      screen.getByRole('button', { name: 'Filter column (active)' }),
+    ).toHaveTextContent('Grace Hopper')
   })
 
   it('shows the server’s reasons when it refuses the filter', async () => {

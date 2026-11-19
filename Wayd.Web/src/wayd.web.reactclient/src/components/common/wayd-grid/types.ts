@@ -9,6 +9,9 @@ import type { FetchServerPage } from '../wayd-grid-core/server/server-page-cache
 // consumers keep a single import surface.
 export type {
   FilterOption,
+  FilterOptionsPage,
+  FilterOptionsRequest,
+  FilterOptionsSource,
   WaydColumnType,
   WaydGridColumnMeta,
 } from '../wayd-grid-core/types'
@@ -112,8 +115,8 @@ export interface WaydGridProps<T extends RowData> {
    *
    * Decided on mount; a grid does not switch modes. In server mode `data`,
    * grouping, tree mode, row reorder, cell editing, the chart pane and CSV
-   * export are off, the date tree is hidden, and set filters list only
-   * `meta.filterOptions`.
+   * export are off, the date tree is hidden, and a set filter lists only
+   * `meta.filterOptions`, or loads its values from `meta.filterOptionsSource`.
    */
   server?: WaydGridServerSource<T>
   /**

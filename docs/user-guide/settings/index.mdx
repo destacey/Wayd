@@ -271,7 +271,7 @@ Wayd reads a calendar day in the system time zone wherever no team's own time zo
 
 Delivery forecasts are the exception: they count completed work by UTC day, which moves a sample by at most a few hours at each end.
 
-A team's own time zone, on its [operating model](../organizations/index.mdx#operating-model), always wins for that team. Changing the system time zone does not change any existing team, and dates already saved keep the day they were saved as, but it moves **today** for every rule above at once. Other Wayd servers in the same deployment pick up the change within five minutes.
+A team's own time zone, on its [operating model](../organizations/index.mdx#operating-model), always wins for that team. Changing the system time zone does not change any existing team, and dates already saved keep the day they were saved as, but it moves **today** for every rule above at once, so saving a different zone asks you to confirm. Other Wayd servers in the same deployment pick up the change within five minutes.
 
 Every change is recorded in the page's **Activity** section, with who made it and the values before and after. The system time zone used to be set on the Scheduling page. A zone other than UTC saved there was carried over to this page, as the first entry in its Activity.
 

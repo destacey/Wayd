@@ -23,8 +23,9 @@ public sealed record KpiAddedEvent : DomainEvent<KpiAddedEvent>, IDomainEventDes
         KpiSource source,
         int order,
         EventActor actor,
-        Instant timestamp)
-        : base(actor, "1.0")
+        Instant timestamp,
+        KpiMeasurementWindow? window = null)
+        : base(actor, "1.1")
     {
         Id = id;
         Key = key;
@@ -34,6 +35,7 @@ public sealed record KpiAddedEvent : DomainEvent<KpiAddedEvent>, IDomainEventDes
         Goal = goal;
         Source = source;
         Order = order;
+        Window = window ?? KpiMeasurementWindow.PerPeriod;
 
         Timestamp = timestamp;
     }
@@ -61,6 +63,12 @@ public sealed record KpiAddedEvent : DomainEvent<KpiAddedEvent>, IDomainEventDes
 
     /// <summary>Its position on the scorecard, lowest first.</summary>
     public int Order { get; }
+
+    /// <summary>
+    /// How its measurements are windowed. Per period in events recorded before windows existed, which is what every
+    /// KPI was then.
+    /// </summary>
+    public KpiMeasurementWindow Window { get; }
 
     [JsonIgnore]
     public string AggregateType => "Kpi";

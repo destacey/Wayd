@@ -56,7 +56,7 @@ public sealed class GetKpiQueryHandler(KpiSubjectAccessResolver accessResolver, 
                 .FirstOrDefaultAsync(cancellationToken)
             : null;
 
-        var newestFirst = kpi.Measurements.OrderByDescending(m => m.PeriodEnd).ToList();
+        var newestFirst = kpi.Measurements.OrderByDescending(m => m.PeriodEnd).ThenByDescending(m => m.MeasuredAt).ToList();
 
         var takerIds = newestFirst.Where(m => m.MeasuredById.HasValue).Select(m => m.MeasuredById!.Value).Distinct().ToList();
         var takers = takerIds.Count == 0
@@ -65,8 +65,8 @@ public sealed class GetKpiQueryHandler(KpiSubjectAccessResolver accessResolver, 
                 .ToDictionary(e => e.Id, EmployeeNavigationDto.From);
 
         var recent = newestFirst
-            .Take(KpiSummaries.RecentValueCount)
-            .Select(m => new KpiPointDto(m.PeriodStart, m.PeriodEnd, m.Value))
+            .Take(KpiSummaries.ReadValueCount)
+            .Select(m => new KpiPointDto(m.PeriodStart, m.PeriodEnd, m.Value, m.MeasuredAt))
             .ToList();
 
         return new KpiDetailsDto

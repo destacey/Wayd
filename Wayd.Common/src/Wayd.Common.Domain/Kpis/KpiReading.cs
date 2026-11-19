@@ -20,6 +20,11 @@ namespace Wayd.Common.Domain.Kpis;
 /// <param name="ProgressToTarget">How far the value has moved from the baseline toward the target, where 1 is the target reached; null without a baseline.</param>
 /// <param name="Health">Whether the value meets the target, is at risk, or neither; null when nothing has been measured.</param>
 /// <param name="Trend">Whether the latest value moved the right way from the one before it.</param>
+/// <param name="LatestValue">The latest raw measurement, which is <paramref name="Value"/> unless the reading is a rolling average.</param>
+/// <param name="AveragedCount">
+/// How many measurements <paramref name="Value"/> averages, or null when it is the latest alone. Fewer than the KPI asks
+/// for while it has fewer measurements than that.
+/// </param>
 public sealed record KpiReading(
     double? Value,
     double? TargetValue,
@@ -28,8 +33,40 @@ public sealed record KpiReading(
     double? ChangeFromBaselinePercent,
     double? ProgressToTarget,
     KpiHealth? Health,
-    KpiTrend Trend)
+    KpiTrend Trend,
+    double? LatestValue = null,
+    int? AveragedCount = null)
 {
+    /// <summary>
+    /// Reads a KPI's values against its goal: the latest alone, or the average of the latest
+    /// <paramref name="rollingAverageOf"/> of them.
+    /// </summary>
+    /// <remarks>
+    /// With a rolling average the average is what is held to the goal — a team's velocity is judged over its last
+    /// seven sprints, not its last one — and the trend compares it with the average one measurement earlier.
+    /// </remarks>
+    /// <param name="goal">What the KPI is measured against.</param>
+    /// <param name="newestFirst">Its values, newest first; at least <paramref name="rollingAverageOf"/> plus one to show a trend.</param>
+    /// <param name="rollingAverageOf">How many to average, or null to read the latest alone.</param>
+    public static KpiReading OfValues(KpiGoal goal, IReadOnlyList<double> newestFirst, int? rollingAverageOf)
+    {
+        ArgumentNullException.ThrowIfNull(newestFirst);
+
+        var latest = newestFirst.Count > 0 ? newestFirst[0] : (double?)null;
+
+        if (rollingAverageOf is not { } count)
+        {
+            var previous = newestFirst.Count > 1 ? newestFirst[1] : (double?)null;
+            return Of(goal, latest, previous) with { LatestValue = latest };
+        }
+
+        var current = newestFirst.Take(count).ToList();
+        var prior = newestFirst.Skip(1).Take(count).ToList();
+
+        var reading = Of(goal, current.Count > 0 ? current.Average() : null, prior.Count > 0 ? prior.Average() : null);
+        return reading with { LatestValue = latest, AveragedCount = current.Count > 0 ? current.Count : null };
+    }
+
     /// <summary>
     /// Reads a KPI's latest value against its goal.
     /// </summary>

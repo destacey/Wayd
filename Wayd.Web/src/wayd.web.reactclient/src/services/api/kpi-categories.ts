@@ -50,7 +50,7 @@ export const getKpiCategoriesGetCategoriesUrl = (params?: KpiCategoriesGetCatego
 }
 
 /**
- * Returns the categories in order, each with how many KPIs have it. Inactive ones are left out unless `includeInactive` is true.
+ * Returns the categories in order, each with how many KPIs have it. Inactive ones are left out unless `includeInactive` is true. A KPI's `categoryId` must name an active one.
  * @summary Get the KPI categories.
  */
 export const kpiCategoriesGetCategories = async (params?: KpiCategoriesGetCategoriesParams, options?: Parameters<typeof apiFetch>[1]): Promise<KpiCategoryDto[]> => {

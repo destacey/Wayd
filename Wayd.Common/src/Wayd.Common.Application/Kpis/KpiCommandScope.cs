@@ -1,5 +1,7 @@
 using Wayd.Common.Application.Persistence;
+using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Kpis;
+using Wayd.Common.Domain.Settings;
 
 namespace Wayd.Common.Application.Kpis;
 
@@ -16,12 +18,14 @@ public sealed class KpiCommandScope(
     KpiSubjectAccessResolver accessResolver,
     IKpisDbContext dbContext,
     ICurrentUser currentUser,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    ISettings<GeneralSettings> generalSettings)
 {
     private readonly KpiSubjectAccessResolver _accessResolver = accessResolver;
     private readonly IKpisDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
 
     /// <summary>The KPI tables.</summary>
     public IKpisDbContext DbContext => _dbContext;
@@ -34,6 +38,13 @@ public sealed class KpiCommandScope(
 
     /// <summary>Now.</summary>
     public Instant Now => _dateTimeProvider.Now;
+
+    /// <summary>
+    /// The system time zone, which a measurement's calendar days are read in: the day a point-in-time moment falls on,
+    /// and the day a value was taken when the caller does not say.
+    /// </summary>
+    public async Task<DateTimeZone> SystemZone(CancellationToken cancellationToken) =>
+        (await _generalSettings.Get(cancellationToken)).Zone();
 
     /// <summary>
     /// The record, when it exists, the caller can read it and may manage its KPIs.
@@ -56,7 +67,8 @@ public sealed class KpiCommandScope(
     /// One of the record's KPIs, tracked, when the caller may manage the record's KPIs.
     /// </summary>
     /// <param name="withMeasurements">
-    /// Load the measurements too. Every measurement change needs them: the overlap rule checks the loaded ones only.
+    /// Load the measurements too. Every measurement change and window change needs them: the clash rules and the
+    /// window lock check the loaded ones only.
     /// </param>
     public async Task<Result<Kpi>> KpiForManaging(string subjectType, Guid subjectId, Guid kpiId, bool withMeasurements, CancellationToken cancellationToken)
     {

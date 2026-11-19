@@ -24,9 +24,9 @@ public sealed class GetKpiQueryHandlerTests
         _harness.DbContext.AddEmployees(taker);
         var kpi = _harness.AddKpi();
         var now = _harness.DateTimeProvider.Now;
-        kpi.AddMeasurement(KpiTestHarness.Measurement(12, Jan1, new LocalDate(2026, 1, 31), taker.Id), EventActor.System, now);
-        kpi.AddMeasurement(KpiTestHarness.Measurement(15, new LocalDate(2026, 3, 1), new LocalDate(2026, 3, 31)), EventActor.System, now);
-        kpi.AddMeasurement(KpiTestHarness.Measurement(14, new LocalDate(2026, 2, 1), new LocalDate(2026, 2, 28)), EventActor.System, now);
+        kpi.AddMeasurement(KpiTestHarness.Measurement(12, Jan1, new LocalDate(2026, 1, 31), taker.Id), KpiTestHarness.Zone, EventActor.System, now);
+        kpi.AddMeasurement(KpiTestHarness.Measurement(15, new LocalDate(2026, 3, 1), new LocalDate(2026, 3, 31)), KpiTestHarness.Zone, EventActor.System, now);
+        kpi.AddMeasurement(KpiTestHarness.Measurement(14, new LocalDate(2026, 2, 1), new LocalDate(2026, 2, 28)), KpiTestHarness.Zone, EventActor.System, now);
 
         // Act
         var result = await CreateHandler().Handle(new GetKpiQuery(KpiTestHarness.Gadget.Key, _harness.SubjectId, kpi.Id), TestContext.Current.CancellationToken);

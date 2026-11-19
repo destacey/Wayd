@@ -53,29 +53,70 @@ public sealed record KpiTargetInput(
 }
 
 /// <summary>
-/// A measurement as a caller supplies it.
+/// How a KPI's measurements are windowed, as a caller supplies it.
+/// </summary>
+/// <param name="Kind">How the window is formed.</param>
+/// <param name="AnchorDate">The first day every measurement covers, for a cumulative KPI.</param>
+/// <param name="RollingCount">How many units each measurement covers, for a rolling KPI.</param>
+/// <param name="RollingUnit">What the rolling count counts, for a rolling KPI.</param>
+public sealed record KpiWindowInput(KpiWindowKind Kind, LocalDate? AnchorDate, int? RollingCount, KpiRollingUnit? RollingUnit)
+{
+    /// <summary>The window as the domain holds it; the domain checks it holds together.</summary>
+    public KpiMeasurementWindow ToWindow() => new(Kind, AnchorDate, RollingCount, RollingUnit);
+}
+
+/// <summary>
+/// A measurement as a caller supplies it. When it was taken is given one way, as the KPI's window takes it: a period
+/// for a per-period KPI, an as-of day for a cumulative or rolling one, a moment for a point-in-time one.
 /// </summary>
 /// <param name="Value">The raw measured value.</param>
-/// <param name="PeriodStart">The first day the value describes.</param>
-/// <param name="PeriodEnd">The last day the value describes.</param>
+/// <param name="PeriodStart">The first day the value describes, for a per-period KPI.</param>
+/// <param name="PeriodEnd">The last day the value describes, for a per-period KPI.</param>
 /// <param name="PeriodRecordKind">The kind of record the period covers, if any.</param>
 /// <param name="PeriodRecordId">The sprint, planning interval or release the period covers, if any.</param>
-/// <param name="MeasuredOn">The day the value was taken; the period's last day when not given.</param>
+/// <param name="MeasuredOn">The day the value was taken; when not given, the last day the value covers.</param>
 /// <param name="SampleSize">How many items the value was computed over, when known.</param>
 /// <param name="Note">Context for the value.</param>
+/// <param name="AsOf">The last day the value covers, for a cumulative or rolling KPI.</param>
+/// <param name="MeasuredAt">The moment the value describes, for a point-in-time KPI.</param>
 public sealed record KpiMeasurementValuesInput(
     double Value,
-    LocalDate PeriodStart,
-    LocalDate PeriodEnd,
+    LocalDate? PeriodStart,
+    LocalDate? PeriodEnd,
     KpiPeriodRecordKind? PeriodRecordKind,
     Guid? PeriodRecordId,
     LocalDate? MeasuredOn,
     int? SampleSize,
-    string? Note)
+    string? Note,
+    LocalDate? AsOf = null,
+    Instant? MeasuredAt = null)
 {
-    /// <summary>The domain's input, recorded by hand by the given employee.</summary>
-    public Result<KpiMeasurementInput> ToInput(Guid? measuredById) =>
-        KpiPeriod.Create(PeriodStart, PeriodEnd).Map(period => new KpiMeasurementInput(
-            Value, period, PeriodRecordKind, PeriodRecordId, MeasuredOn ?? PeriodEnd, measuredById,
-            KpiMeasurementSource.Manual, SampleSize, Note));
+    /// <summary>
+    /// The domain's input, recorded by hand by the given employee, failing when a period is half given or ends before
+    /// it starts. Whether the way it was given fits the KPI is the KPI's to decide.
+    /// </summary>
+    /// <param name="measuredById">Who took the value, when known.</param>
+    /// <param name="zone">The system time zone, which a moment's day is read in when the day it was taken is not given.</param>
+    public Result<KpiMeasurementInput> ToInput(Guid? measuredById, DateTimeZone zone)
+    {
+        if (PeriodStart.HasValue != PeriodEnd.HasValue)
+            return Result.Failure<KpiMeasurementInput>("A period needs both its first and its last day.");
+
+        KpiPeriod? period = null;
+        if (PeriodStart is { } start && PeriodEnd is { } end)
+        {
+            var created = KpiPeriod.Create(start, end);
+            if (created.IsFailure)
+                return Result.Failure<KpiMeasurementInput>(created.Error);
+            period = created.Value;
+        }
+
+        var lastDay = PeriodEnd ?? AsOf ?? MeasuredAt?.InZone(zone).Date;
+        if ((MeasuredOn ?? lastDay) is not { } measuredOn)
+            return Result.Failure<KpiMeasurementInput>(KpiErrors.PeriodRequired);
+
+        return new KpiMeasurementInput(
+            Value, new KpiMeasurementTime(period, AsOf, MeasuredAt), PeriodRecordKind, PeriodRecordId, measuredOn, measuredById,
+            KpiMeasurementSource.Manual, SampleSize, Note);
+    }
 }

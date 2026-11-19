@@ -1285,6 +1285,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("nvarchar(16)");
 
+                    b.Property<int?>("RollingAverageOf")
+                        .HasColumnType("int");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -1357,6 +1360,25 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnType("float")
                         .HasColumnName("TargetValue");
 
+                    b.Property<DateTime?>("_windowAnchorDate")
+                        .HasColumnType("date")
+                        .HasColumnName("WindowAnchorDate");
+
+                    b.Property<string>("_windowKind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar")
+                        .HasColumnName("WindowKind");
+
+                    b.Property<int?>("_windowRollingCount")
+                        .HasColumnType("int")
+                        .HasColumnName("WindowRollingCount");
+
+                    b.Property<string>("_windowRollingUnit")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar")
+                        .HasColumnName("WindowRollingUnit");
+
                     b.HasKey("Id");
 
                     b.HasAlternateKey("Key");
@@ -1418,6 +1440,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("KpiId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("MeasuredAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<Guid?>("MeasuredById")
                         .HasColumnType("uniqueidentifier");
 
@@ -1470,15 +1495,43 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasIndex("MeasuredById");
 
-                    b.HasIndex("KpiId", "PeriodEnd")
-                        .IsDescending(false, true);
+                    b.HasIndex("KpiId", "PeriodEnd", "MeasuredAt")
+                        .IsUnique()
+                        .IsDescending(false, true, true);
 
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("KpiId", "PeriodEnd"), new[] { "Value" });
-
-                    b.HasIndex("KpiId", "PeriodStart")
-                        .IsUnique();
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("KpiId", "PeriodEnd", "MeasuredAt"), new[] { "Value" });
 
                     b.ToTable("Measurements", "Kpis");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Links.Link", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OwnerType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerType", "OwnerId");
+
+                    b.ToTable("Links", "Links");
                 });
 
             modelBuilder.Entity("Wayd.Common.Domain.Models.KeyValueObjectMetadata", b =>
@@ -3661,36 +3714,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasFilter("[RevokedAt] IS NULL");
 
                     b.ToTable("UserRefreshTokens", "Identity");
-                });
-
-            modelBuilder.Entity("Wayd.Common.Domain.Links.Link", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<Guid>("OwnerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("OwnerType")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(64)");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerType", "OwnerId");
-
-                    b.ToTable("Links", "Links");
                 });
 
             modelBuilder.Entity("Wayd.Organization.Domain.Models.BaseTeam", b =>

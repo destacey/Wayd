@@ -1,3 +1,4 @@
+using NodaTime.Text;
 using Wayd.Common.Application.Kpis.Imports;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Kpis;
@@ -73,6 +74,27 @@ public sealed class ImportKpiRequest
     /// <summary>`true` to import the KPI closed, as history only. Open when blank.</summary>
     public bool? IsClosed { get; set; }
 
+    /// <summary>
+    /// What span each measurement covers: `PerPeriod` (each gives its own period), `Cumulative` (from
+    /// `WindowAnchorDate` to its as-of day), `Rolling` (`WindowRollingCount` `WindowRollingUnit`s ending on its as-of
+    /// day) or `PointInTime` (the state at one moment). `PerPeriod` when blank.
+    /// </summary>
+    [CsvValues(typeof(KpiWindowKind))]
+    public string? WindowKind { get; set; }
+
+    /// <summary>For `Cumulative` only: the first day every measurement covers.</summary>
+    public DateOnly? WindowAnchorDate { get; set; }
+
+    /// <summary>For `Rolling` only: how many units each measurement covers.</summary>
+    public int? WindowRollingCount { get; set; }
+
+    /// <summary>For `Rolling` only: what the count counts — `Days`.</summary>
+    [CsvValues(typeof(KpiRollingUnit))]
+    public string? WindowRollingUnit { get; set; }
+
+    /// <summary>For `PerPeriod` only: read the KPI as the average of this many latest measurements, 2 to 12. Blank for the latest alone.</summary>
+    public int? RollingAverageOf { get; set; }
+
     public ImportKpiDto ToImportKpiDto(IReadOnlyList<ImportKpiMeasurementDto> measurements) => new(
         SubjectType.Trim(),
         SubjectId,
@@ -93,7 +115,13 @@ public sealed class ImportKpiRequest
             ? null
             : new KpiAtRiskThreshold(Enum.Parse<KpiAtRiskKind>(AtRiskKind.Trim(), ignoreCase: true), AtRiskValue.Value),
         IsClosed ?? false,
-        measurements);
+        measurements,
+        new KpiMeasurementWindow(
+            ParseOr(WindowKind, KpiWindowKind.PerPeriod),
+            WindowAnchorDate?.ToLocalDate(),
+            WindowRollingCount,
+            string.IsNullOrWhiteSpace(WindowRollingUnit) ? null : Enum.Parse<KpiRollingUnit>(WindowRollingUnit.Trim(), ignoreCase: true)),
+        RollingAverageOf);
 
     private static T ParseOr<T>(string? value, T fallback) where T : struct, Enum =>
         string.IsNullOrWhiteSpace(value) ? fallback : Enum.Parse<T>(value.Trim(), ignoreCase: true);
@@ -145,16 +173,30 @@ public sealed class ImportKpiRequestValidator : CustomValidator<ImportKpiRequest
 
         RuleFor(k => k.BaselineWindowEnd)
             .NotNull()
-                .When(k => k.BaselineWindowStart is not null)
+                .When(k => k.BaselineWindowStart is not null, ApplyConditionTo.CurrentValidator)
                 .WithMessage("A baseline window needs both a start and an end.")
             .GreaterThanOrEqualTo(k => k.BaselineWindowStart!.Value)
-                .When(k => k.BaselineWindowStart is not null && k.BaselineWindowEnd is not null)
+                .When(k => k.BaselineWindowStart is not null && k.BaselineWindowEnd is not null, ApplyConditionTo.CurrentValidator)
                 .WithMessage(KpiErrors.PeriodEndsBeforeStart);
 
         RuleFor(k => k.BaselineWindowStart)
             .NotNull()
                 .When(k => k.BaselineWindowEnd is not null)
                 .WithMessage("A baseline window needs both a start and an end.");
+
+        RuleFor(k => k.WindowKind)
+            .Must(IsOne<KpiWindowKind>)
+                .When(k => !string.IsNullOrWhiteSpace(k.WindowKind))
+                .WithMessage("WindowKind must be 'PerPeriod', 'Cumulative', 'Rolling' or 'PointInTime'.");
+
+        RuleFor(k => k.WindowRollingUnit)
+            .Must(IsOne<KpiRollingUnit>)
+                .When(k => !string.IsNullOrWhiteSpace(k.WindowRollingUnit))
+                .WithMessage("WindowRollingUnit must be 'Days'.");
+
+        RuleFor(k => k.RollingAverageOf)
+            .InclusiveBetween(Kpi.MinRollingAverageOf, Kpi.MaxRollingAverageOf)
+                .When(k => k.RollingAverageOf is not null);
     }
 
     private static bool IsOne<T>(string? value) where T : struct, Enum =>
@@ -162,23 +204,60 @@ public sealed class ImportKpiRequestValidator : CustomValidator<ImportKpiRequest
 }
 
 /// <summary>
-/// A single CSV row for the measurements file: one value of one KPI for one period.
+/// A single CSV row for the measurements file: one value of one KPI, saying when it was taken the one way the KPI's
+/// window takes — `PeriodStart` and `PeriodEnd`, `AsOf`, or `MeasuredAt`.
 /// </summary>
 public sealed class ImportKpiMeasurementRequest
 {
     /// <summary>The `ImportId` of the KPI row this value belongs to.</summary>
     public string KpiImportId { get; set; } = default!;
 
-    /// <summary>The first day the value describes.</summary>
-    public DateOnly PeriodStart { get; set; }
+    /// <summary>For a `PerPeriod` KPI: the first day the value describes.</summary>
+    public DateOnly? PeriodStart { get; set; }
 
-    /// <summary>The last day the value describes. A KPI's periods cannot overlap.</summary>
-    public DateOnly PeriodEnd { get; set; }
+    /// <summary>For a `PerPeriod` KPI: the last day the value describes. A KPI's periods cannot overlap.</summary>
+    public DateOnly? PeriodEnd { get; set; }
+
+    /// <summary>For a `Cumulative` or `Rolling` KPI: the last day the value covers. One value per day.</summary>
+    public DateOnly? AsOf { get; set; }
+
+    /// <summary>
+    /// For a `PointInTime` KPI: the moment the value describes, as ISO 8601 with its offset, such as
+    /// `2026-03-06T15:00:00-06:00` or `2026-03-06T21:00:00Z`. A time without an offset is refused, since it names no
+    /// single moment. One value per moment.
+    /// </summary>
+    public string? MeasuredAt { get; set; }
+
+    /// <summary>
+    /// The ways a <see cref="MeasuredAt"/> may be written: with or without seconds, the offset as <c>Z</c> or
+    /// <c>±hh:mm</c>. Every one carries an offset, so a time is never read in the server's own zone.
+    /// </summary>
+    private static readonly OffsetDateTimePattern[] MomentPatterns =
+    [
+        OffsetDateTimePattern.ExtendedIso,
+        OffsetDateTimePattern.CreateWithInvariantCulture("uuuu'-'MM'-'dd'T'HH':'mmo<G>"),
+    ];
+
+    /// <summary><see cref="MeasuredAt"/> as a moment, or null when it is blank or cannot be read as one.</summary>
+    public Instant? ParseMeasuredAt()
+    {
+        if (string.IsNullOrWhiteSpace(MeasuredAt))
+            return null;
+
+        foreach (var pattern in MomentPatterns)
+        {
+            var parsed = pattern.Parse(MeasuredAt.Trim());
+            if (parsed.Success)
+                return parsed.Value.ToInstant();
+        }
+
+        return null;
+    }
 
     /// <summary>The raw measured value — never a percentage worked out from it.</summary>
     public double Value { get; set; }
 
-    /// <summary>The day the value was taken; the period's last day when blank.</summary>
+    /// <summary>The day the value was taken; the last day it covers when blank.</summary>
     public DateOnly? MeasuredOn { get; set; }
 
     /// <summary>How many items the value was computed over, when known.</summary>
@@ -188,7 +267,20 @@ public sealed class ImportKpiMeasurementRequest
     public string? Note { get; set; }
 
     public ImportKpiMeasurementDto ToImportKpiMeasurementDto() => new(
-        Value, PeriodStart.ToLocalDate(), PeriodEnd.ToLocalDate(), MeasuredOn?.ToLocalDate(), SampleSize, Note);
+        Value,
+        PeriodStart?.ToLocalDate(),
+        PeriodEnd?.ToLocalDate(),
+        MeasuredOn?.ToLocalDate(),
+        SampleSize,
+        Note,
+        AsOf?.ToLocalDate(),
+        ParseMeasuredAt());
+
+    /// <summary>When the value was taken, as an error message names it.</summary>
+    public string Describe() =>
+        !string.IsNullOrWhiteSpace(MeasuredAt) ? $"At: {MeasuredAt.Trim()}"
+        : AsOf is { } asOf ? FormattableString.Invariant($"As of: {asOf:yyyy-MM-dd}")
+        : FormattableString.Invariant($"Period: {PeriodStart:yyyy-MM-dd} to {PeriodEnd:yyyy-MM-dd}");
 }
 
 /// <summary>Rejects a measurement row whose columns cannot be read before anything is submitted.</summary>
@@ -199,7 +291,25 @@ public sealed class ImportKpiMeasurementRequestValidator : CustomValidator<Impor
         RuleLevelCascadeMode = CascadeMode.Stop;
 
         RuleFor(m => m.KpiImportId).NotEmpty();
-        RuleFor(m => m.PeriodEnd).GreaterThanOrEqualTo(m => m.PeriodStart).WithMessage(KpiErrors.PeriodEndsBeforeStart);
+        RuleFor(m => m)
+            .Must(m => (m.PeriodStart is not null || m.PeriodEnd is not null ? 1 : 0) + (m.AsOf is not null ? 1 : 0) + (!string.IsNullOrWhiteSpace(m.MeasuredAt) ? 1 : 0) == 1)
+                .WithName("Measurement")
+                .WithMessage("Give exactly one of PeriodStart and PeriodEnd, AsOf, or MeasuredAt, as the KPI's window takes it.");
+        RuleFor(m => m.MeasuredAt)
+            .Must((m, _) => m.ParseMeasuredAt() is not null)
+                .When(m => !string.IsNullOrWhiteSpace(m.MeasuredAt))
+                .WithMessage("MeasuredAt must be an ISO 8601 moment with its offset, such as 2026-03-06T15:00:00-06:00 or 2026-03-06T21:00:00Z.");
+        RuleFor(m => m.PeriodEnd)
+            .NotNull()
+                .When(m => m.PeriodStart is not null, ApplyConditionTo.CurrentValidator)
+                .WithMessage("A period needs both PeriodStart and PeriodEnd.")
+            .GreaterThanOrEqualTo(m => m.PeriodStart!.Value)
+                .When(m => m.PeriodStart is not null && m.PeriodEnd is not null, ApplyConditionTo.CurrentValidator)
+                .WithMessage(KpiErrors.PeriodEndsBeforeStart);
+        RuleFor(m => m.PeriodStart)
+            .NotNull()
+                .When(m => m.PeriodEnd is not null)
+                .WithMessage("A period needs both PeriodStart and PeriodEnd.");
         RuleFor(m => m.SampleSize).GreaterThanOrEqualTo(0).When(m => m.SampleSize is not null);
         RuleFor(m => m.Note).MaximumLength(KpiMeasurement.NoteMaxLength);
     }

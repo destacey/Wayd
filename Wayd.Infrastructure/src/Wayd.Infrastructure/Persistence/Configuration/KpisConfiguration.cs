@@ -62,11 +62,25 @@ public class KpiConfiguration : IEntityTypeConfiguration<Kpi>
             .HasMaxLength(32);
         builder.Property<double?>("_atRiskValue").HasColumnName("AtRiskValue");
 
+        builder.Property<KpiWindowKind>("_windowKind").HasColumnName("WindowKind").IsRequired()
+            .HasConversion<EnumConverter<KpiWindowKind>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+        builder.Property<LocalDate?>("_windowAnchorDate").HasColumnName("WindowAnchorDate");
+        builder.Property<int?>("_windowRollingCount").HasColumnName("WindowRollingCount");
+        builder.Property<KpiRollingUnit?>("_windowRollingUnit").HasColumnName("WindowRollingUnit")
+            .HasConversion<EnumConverter<KpiRollingUnit>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+
+        builder.Property(k => k.RollingAverageOf);
+
         builder.Ignore(k => k.Baseline);
         builder.Ignore(k => k.Target);
         builder.Ignore(k => k.AtRisk);
         builder.Ignore(k => k.Goal);
         builder.Ignore(k => k.Details);
+        builder.Ignore(k => k.Window);
 
         builder.Property(k => k.Source).IsRequired()
             .HasConversion<EnumConverter<KpiSource>>()
@@ -86,7 +100,7 @@ public class KpiConfiguration : IEntityTypeConfiguration<Kpi>
         builder.Property(k => k.Order).IsRequired();
 
         // Two people changing one KPI at once collide here rather than the second silently undoing the first. A
-        // measurement change touches the KPI's row too (IKpisDbContext.TouchKpi), so two overlapping periods recorded
+        // measurement change touches the KPI's row too (IKpisDbContext.TouchKpi), so two clashing measurements recorded
         // at once collide here as well.
         builder.Property<byte[]>("RowVersion").IsRowVersion();
 
@@ -123,17 +137,20 @@ public class KpiMeasurementConfiguration : IEntityTypeConfiguration<KpiMeasureme
         builder.Property(m => m.PeriodStart).IsRequired();
         builder.Property(m => m.PeriodEnd).IsRequired();
 
-        // A partial backstop for the domain's no-overlap rule, which two concurrent saves could each pass: it stops two
-        // measurements starting on the same day — the usual collision, a period entered twice — but not two that
-        // overlap from different start days.
-        builder.HasIndex(m => new { m.KpiId, m.PeriodStart }).IsUnique();
-
-        // A scorecard reads each KPI's newest two values by period end.
-        builder.HasIndex(m => new { m.KpiId, m.PeriodEnd })
-            .IsDescending(false, true)
+        // Serves two things. A scorecard reads each KPI's newest values by period end, then moment. And it is a partial
+        // backstop for the domain's clash rules, which two concurrent saves could each pass: no two measurements on a
+        // KPI end on the same day unless they are point-in-time readings at different moments. Two per-period
+        // measurements that overlap from different end days still need the domain. No filter: SQL Server then counts
+        // null moments as equal, which is what makes the rule hold for every window but point in time.
+        builder.HasIndex(m => new { m.KpiId, m.PeriodEnd, m.MeasuredAt })
+            .IsUnique()
+            .HasFilter(null)
+            .IsDescending(false, true, true)
             .IncludeProperties(m => m.Value);
 
         builder.Property(m => m.Value).IsRequired();
+
+        builder.Property(m => m.MeasuredAt);
 
         builder.Property(m => m.PeriodRecordKind)
             .HasConversion<EnumConverter<KpiPeriodRecordKind>>()

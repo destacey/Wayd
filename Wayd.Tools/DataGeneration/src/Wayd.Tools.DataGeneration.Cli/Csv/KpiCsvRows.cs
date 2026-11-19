@@ -25,14 +25,24 @@ public sealed class KpiCsvRow
     public string? AtRiskKind { get; init; }
     public double? AtRiskValue { get; init; }
     public bool? IsClosed { get; init; }
+    public string? WindowKind { get; init; }
+    public DateOnly? WindowAnchorDate { get; init; }
+    public int? WindowRollingCount { get; init; }
+    public string? WindowRollingUnit { get; init; }
+    public int? RollingAverageOf { get; init; }
 }
 
-/// <summary>One row of the measurements file: one month of one KPI, named by the KPI row's ImportId.</summary>
+/// <summary>
+/// One row of the measurements file: one value of one KPI, named by the KPI row's ImportId, and saying when it was
+/// taken the one way the KPI's window takes — a period, an as-of day, or a moment written with its offset.
+/// </summary>
 public sealed class KpiMeasurementCsvRow
 {
     public required string KpiImportId { get; init; }
-    public required DateOnly PeriodStart { get; init; }
-    public required DateOnly PeriodEnd { get; init; }
+    public DateOnly? PeriodStart { get; init; }
+    public DateOnly? PeriodEnd { get; init; }
+    public DateOnly? AsOf { get; init; }
+    public string? MeasuredAt { get; init; }
     public required double Value { get; init; }
     public DateOnly? MeasuredOn { get; init; }
     public int? SampleSize { get; init; }

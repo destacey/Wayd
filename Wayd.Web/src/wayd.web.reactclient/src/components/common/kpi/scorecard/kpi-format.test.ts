@@ -8,6 +8,7 @@ import {
   KpiTargetDirection,
   KpiTargetKind,
   KpiTrend,
+  KpiWindowKind,
 } from '@/src/services/api/wayd.schemas'
 import {
   atRiskLabel,
@@ -34,6 +35,7 @@ const summary = (overrides: Partial<KpiSummaryDto> = {}): KpiSummaryDto => ({
   suffix: 'days',
   source: KpiSource.Manual,
   expressedAs: KpiExpressedAs.Value,
+  window: { kind: KpiWindowKind.PerPeriod },
   status: KpiStatus.Active,
   order: 0,
   goal: goal(),
@@ -133,6 +135,25 @@ describe('kpiHeadline', () => {
     )
 
     expect(headline).toEqual({ label: 'Latest', text: '—' })
+  })
+
+  it('says a reading is an average, whichever reading the KPI is shown as', () => {
+    const reading = { ...summary().reading, averagedCount: 7 }
+
+    expect(kpiHeadline(summary({ reading })).label).toBe('Average of last 7')
+    expect(
+      kpiHeadline(
+        summary({ expressedAs: KpiExpressedAs.ProgressToTarget, reading }),
+      ).label,
+    ).toBe('Progress to target (average of last 7)')
+  })
+
+  it('does not call a single value an average', () => {
+    const headline = kpiHeadline(
+      summary({ reading: { ...summary().reading, averagedCount: 1 } }),
+    )
+
+    expect(headline.label).toBe('Latest')
   })
 })
 

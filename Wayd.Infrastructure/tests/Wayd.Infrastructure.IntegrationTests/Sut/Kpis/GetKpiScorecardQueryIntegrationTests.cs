@@ -41,12 +41,23 @@ public sealed class GetKpiScorecardQueryIntegrationTests(SqlServerDbContextFixtu
             for (var month = 0; month < 15; month++)
             {
                 var start = new LocalDate(2025, 1, 1).PlusMonths(month);
-                monthly.AddMeasurement(new KpiMeasurementInput(11 + month * 0.5, new KpiPeriod(start, start.PlusMonths(1).PlusDays(-1)),
-                    null, null, start, null, KpiMeasurementSource.Manual, null, null), EventActor.System, Timestamp);
+                monthly.AddMeasurement(new KpiMeasurementInput(11 + month * 0.5, KpiMeasurementTime.ForPeriod(new KpiPeriod(start, start.PlusMonths(1).PlusDays(-1))),
+                    null, null, start, null, KpiMeasurementSource.Manual, null, null), DateTimeZone.Utc, EventActor.System, Timestamp);
             }
 
             var empty = Kpi.Create(GadgetType, subjectId, new KpiDefinition("Unmeasured", null, null, null, null, KpiExpressedAs.Value, goal), 1, EventActor.System, Timestamp).Value;
-            seed.Kpis.AddRange(monthly, empty);
+
+            // Three readings on one day: only the moment orders them, so the query must order by it in SQL.
+            var openBugs = Kpi.Create(GadgetType, subjectId,
+                new KpiDefinition("Open bugs", null, null, null, null, KpiExpressedAs.Value, goal, KpiMeasurementWindow.PointInTime), 2, EventActor.System, Timestamp).Value;
+            foreach (var (hour, value) in new[] { (17, 14d), (9, 12d), (13, 13d) })
+            {
+                var at = Instant.FromUtc(2026, 3, 6, hour, 0);
+                openBugs.AddMeasurement(new KpiMeasurementInput(value, KpiMeasurementTime.AtMoment(at), null, null, new LocalDate(2026, 3, 6), null,
+                    KpiMeasurementSource.Manual, null, null), DateTimeZone.Utc, EventActor.System, Timestamp);
+            }
+
+            seed.Kpis.AddRange(monthly, empty, openBugs);
             await seed.SaveChangesAsync(cancellationToken);
         }
 
@@ -64,7 +75,10 @@ public sealed class GetKpiScorecardQueryIntegrationTests(SqlServerDbContextFixtu
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         var kpis = result.Value!.Kpis;
-        kpis.Select(k => k.Name).Should().Equal("Monthly", "Unmeasured");
+        kpis.Select(k => k.Name).Should().Equal("Monthly", "Unmeasured", "Open bugs");
+        kpis[2].RecentValues.Select(p => p.Value).Should().Equal(12, 13, 14);
+        kpis[2].Reading.Value.Should().Be(14);
+        kpis[2].Reading.Trend.Should().Be(KpiTrend.Improving);
         kpis[0].RecentValues.Should().HaveCount(12);
         kpis[0].RecentValues[0].PeriodStart.Should().Be(new LocalDate(2025, 4, 1));
         kpis[0].RecentValues[^1].Value.Should().Be(18);

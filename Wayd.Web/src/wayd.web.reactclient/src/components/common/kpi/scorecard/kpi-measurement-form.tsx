@@ -2,7 +2,12 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { KpiMeasurementDto } from '@/src/services/api/wayd.schemas'
+import {
+  KpiMeasurementDto,
+  KpiMeasurementRequest,
+  KpiMeasurementWindowDto,
+  KpiWindowKind,
+} from '@/src/services/api/wayd.schemas'
 import {
   KpiTarget,
   useChangeKpiMeasurementMutation,
@@ -10,23 +15,32 @@ import {
 } from '@/src/store/features/common/kpis-api'
 import { toApiError, toFormErrors } from '@/src/utils'
 import { parseCalendarDate, toCalendarDate } from '@/src/utils/calendar-date'
+import { instantTime, toInstant } from '@/src/utils/instant'
 import { DatePicker, Form, Input, InputNumber, Modal } from 'antd'
-import { Dayjs } from 'dayjs'
+import dayjs, { Dayjs } from 'dayjs'
 import { useEffect } from 'react'
+import { describeWindow } from './kpi-format'
 
 const { Item } = Form
 
 /**
- * Puts an error on either end of the period on the range picker. The API
- * names them under the command's measurement (`measurement.periodEnd`).
+ * Puts an error on the field that holds it. The API names them under the
+ * command's measurement (`measurement.periodEnd`), and both ends of a period
+ * belong to its range picker.
  */
-const periodErrorsOnPicker = (key: string) =>
-  /(^|\.)period(Start|End)$/.test(key) ? 'period' : undefined
+const timeErrorsOnField = (key: string) => {
+  if (/(^|\.)period(Start|End)$/.test(key)) return 'period'
+  if (/(^|\.)asOf$/.test(key)) return 'asOf'
+  if (/(^|\.)measuredAt$/.test(key)) return 'measuredAt'
+  return undefined
+}
 const { TextArea } = Input
 const { RangePicker } = DatePicker
 
 export interface KpiMeasurementFormProps {
   target: KpiTarget
+  /** How the KPI's measurements are windowed, which decides how one says when it was taken. */
+  measurementWindow: KpiMeasurementWindowDto
   /** Shown before and after the value field, so the unit is clear. */
   prefix?: string
   suffix?: string
@@ -38,17 +52,43 @@ export interface KpiMeasurementFormProps {
 
 interface KpiMeasurementFormValues {
   value: number
-  period: [Dayjs, Dayjs]
+  period?: [Dayjs, Dayjs]
+  asOf?: Dayjs
+  measuredAt?: Dayjs
   sampleSize?: number | null
   note?: string
 }
 
+/** Whether the KPI's values are taken as of a day, their period worked out by the server. */
+const takesAsOf = (measurementWindow: KpiMeasurementWindowDto) =>
+  measurementWindow.kind === KpiWindowKind.Cumulative ||
+  measurementWindow.kind === KpiWindowKind.Rolling
+
+/** Whether a correction says the value was taken when the measurement already says. */
+const sameTime = (
+  measurement: KpiMeasurementDto,
+  when: Partial<KpiMeasurementRequest>,
+) => {
+  if (when.measuredAt !== undefined)
+    return (
+      !!when.measuredAt &&
+      !!measurement.measuredAt &&
+      instantTime(when.measuredAt) === instantTime(measurement.measuredAt)
+    )
+  if (when.asOf !== undefined) return when.asOf === measurement.periodEnd
+  return (
+    when.periodStart === measurement.periodStart &&
+    when.periodEnd === measurement.periodEnd
+  )
+}
+
 /**
- * Records the raw value of a KPI for a period, or corrects one. Periods on a
- * KPI never overlap, so each period is recorded once.
+ * Records the raw value of a KPI, or corrects one, saying when it was taken the
+ * way the KPI's window takes it: for a period, as of a day, or at a moment.
  */
 const KpiMeasurementForm = ({
   target,
+  measurementWindow,
   prefix,
   suffix,
   measurement,
@@ -58,6 +98,8 @@ const KpiMeasurementForm = ({
   const messageApi = useMessage()
   const isEdit = measurement !== undefined
   const action = isEdit ? 'correcting' : 'recording'
+  const pointInTime = measurementWindow.kind === KpiWindowKind.PointInTime
+  const asOf = takesAsOf(measurementWindow)
 
   const [recordMeasurement] = useRecordKpiMeasurementMutation()
   const [changeMeasurement] = useChangeKpiMeasurementMutation()
@@ -65,15 +107,27 @@ const KpiMeasurementForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<KpiMeasurementFormValues>({
       onSubmit: async (values, form) => {
-        const request = {
+        const when: Partial<KpiMeasurementRequest> = pointInTime
+          ? { measuredAt: values.measuredAt && toInstant(values.measuredAt) }
+          : asOf
+            ? { asOf: values.asOf && toCalendarDate(values.asOf) }
+            : {
+                periodStart: values.period && toCalendarDate(values.period[0]),
+                periodEnd: values.period && toCalendarDate(values.period[1]),
+                periodRecordKind: measurement?.periodRecordKind,
+                periodRecordId: measurement?.periodRecordId,
+              }
+        const request: KpiMeasurementRequest = {
           value: values.value,
-          periodStart: toCalendarDate(values.period[0]),
-          periodEnd: toCalendarDate(values.period[1]),
+          ...when,
           sampleSize: values.sampleSize ?? undefined,
           note: values.note?.trim() || undefined,
-          periodRecordKind: measurement?.periodRecordKind,
-          periodRecordId: measurement?.periodRecordId,
-          measuredOn: measurement?.measuredOn,
+          // A correction that moves the value in time lets the server take the
+          // day it was measured from the new time, rather than keep the old one.
+          measuredOn:
+            measurement && sameTime(measurement, when)
+              ? measurement.measuredOn
+              : undefined,
         }
         try {
           if (measurement) {
@@ -92,9 +146,7 @@ const KpiMeasurementForm = ({
           const apiError = toApiError(error)
           if (apiError.status === 422 && apiError.errors) {
             form.setFields(
-              toFormErrors(apiError.errors, {
-                fieldFor: periodErrorsOnPicker,
-              }),
+              toFormErrors(apiError.errors, { fieldFor: timeErrorsOnField }),
             )
             messageApi.error('Correct the validation error(s) to continue.')
           } else {
@@ -112,17 +164,28 @@ const KpiMeasurementForm = ({
     })
 
   useEffect(() => {
-    if (!measurement) return
+    if (!measurement) {
+      if (pointInTime) form.setFieldsValue({ measuredAt: dayjs() })
+      return
+    }
     form.setFieldsValue({
       value: measurement.value,
       period: [
         parseCalendarDate(measurement.periodStart),
         parseCalendarDate(measurement.periodEnd),
       ],
+      asOf: parseCalendarDate(measurement.periodEnd),
+      measuredAt: measurement.measuredAt
+        ? dayjs(measurement.measuredAt)
+        : undefined,
       sampleSize: measurement.sampleSize,
       note: measurement.note ?? undefined,
     })
-  }, [measurement, form])
+  }, [measurement, form, pointInTime])
+
+  const anchor = measurementWindow.anchorDate
+    ? parseCalendarDate(measurementWindow.anchorDate)
+    : undefined
 
   return (
     <Modal
@@ -142,14 +205,42 @@ const KpiMeasurementForm = ({
         layout="vertical"
         name="kpi-measurement-form"
       >
-        <Item
-          label="Period"
-          name="period"
-          rules={[{ required: true, message: 'The period is required' }]}
-          extra="The days the value describes, such as a sprint or a month."
-        >
-          <RangePicker style={{ width: '100%' }} format="MMM D, YYYY" />
-        </Item>
+        {pointInTime ? (
+          <Item
+            label="Measured at"
+            name="measuredAt"
+            rules={[{ required: true, message: 'The moment is required' }]}
+            extra="The moment the value describes, in your time zone. Several readings a day are fine."
+          >
+            <DatePicker
+              showTime={{ format: 'h:mm A', use12Hours: true }}
+              format="MMM D, YYYY h:mm A"
+              style={{ width: '100%' }}
+            />
+          </Item>
+        ) : asOf ? (
+          <Item
+            label="As of"
+            name="asOf"
+            rules={[{ required: true, message: 'The day is required' }]}
+            extra={`${describeWindow(measurementWindow)}, ending on this day. One value per day.`}
+          >
+            <DatePicker
+              style={{ width: '100%' }}
+              format="MMM D, YYYY"
+              disabledDate={(day) => !!anchor && day.isBefore(anchor, 'day')}
+            />
+          </Item>
+        ) : (
+          <Item
+            label="Period"
+            name="period"
+            rules={[{ required: true, message: 'The period is required' }]}
+            extra="The days the value describes, such as a sprint or a month."
+          >
+            <RangePicker style={{ width: '100%' }} format="MMM D, YYYY" />
+          </Item>
+        )}
         <Item
           label="Value"
           name="value"

@@ -46,6 +46,106 @@ public sealed class UpdateKpiCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldKeepTheWindow_WhenNoneIsGiven()
+    {
+        // Arrange
+        var window = KpiMeasurementWindow.Rolling(90, KpiRollingUnit.Days);
+        var kpi = _harness.AddKpi(window: window);
+
+        // Act
+        var result = await CreateHandler().Handle(Command(kpi.Id, name: "Renamed"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        kpi.Window.Should().Be(window);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldChangeTheWindow_WhileTheKpiHasNoMeasurements()
+    {
+        // Arrange
+        var kpi = _harness.AddKpi();
+
+        // Act
+        var result = await CreateHandler().Handle(
+            Command(kpi.Id) with { Window = new KpiWindowInput(KpiWindowKind.Cumulative, new NodaTime.LocalDate(2026, 2, 16), null, null) },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        kpi.Window.Should().Be(KpiMeasurementWindow.Cumulative(new NodaTime.LocalDate(2026, 2, 16)));
+        _harness.DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRefuseAWindowChange_OnceTheKpiHasMeasurements()
+    {
+        // Arrange
+        var kpi = _harness.AddKpi();
+        var day = new NodaTime.LocalDate(2026, 1, 1);
+        kpi.AddMeasurement(KpiTestHarness.Measurement(12, day, day), KpiTestHarness.Zone, Domain.Events.EventActor.System, _harness.DateTimeProvider.Now);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            Command(kpi.Id) with { Window = new KpiWindowInput(KpiWindowKind.PointInTime, null, null, null) },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Error.Should().Be(KpiErrors.WindowLockedByMeasurements);
+        kpi.Window.Should().Be(KpiMeasurementWindow.PerPeriod);
+        _harness.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldMoveToPerPeriodAndSetARollingAverage_InOneRequest()
+    {
+        // Arrange
+        var kpi = _harness.AddKpi(window: KpiMeasurementWindow.PointInTime);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            Command(kpi.Id) with { Window = new KpiWindowInput(KpiWindowKind.PerPeriod, null, null, null), RollingAverageOf = 7 },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        kpi.Window.Should().Be(KpiMeasurementWindow.PerPeriod);
+        kpi.RollingAverageOf.Should().Be(7);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldClearARollingAverageAndLeavePerPeriod_InOneRequest()
+    {
+        // Arrange
+        var kpi = _harness.AddKpi(rollingAverageOf: 7);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            Command(kpi.Id) with { Window = new KpiWindowInput(KpiWindowKind.Rolling, null, 90, KpiRollingUnit.Days), RollingAverageOf = null },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        kpi.Window.Should().Be(KpiMeasurementWindow.Rolling(90, KpiRollingUnit.Days));
+        kpi.RollingAverageOf.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldClearTheRollingAverageButKeepTheWindow_WhenBothAreLeftOut()
+    {
+        // Arrange
+        var kpi = _harness.AddKpi(rollingAverageOf: 7);
+
+        // Act
+        var result = await CreateHandler().Handle(Command(kpi.Id, name: "Renamed"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        kpi.RollingAverageOf.Should().BeNull("the update replaces every entered field, as it does the description");
+        kpi.Window.Should().Be(KpiMeasurementWindow.PerPeriod);
+    }
+
+    [Fact]
     public async Task Handle_ShouldSaveNothing_WhenTheGoalFails_EvenThoughTheDetailsHold()
     {
         // Arrange

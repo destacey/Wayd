@@ -5,9 +5,12 @@ import { useModalForm } from '@/src/hooks'
 import {
   KpiAtRiskKind,
   KpiExpressedAs,
+  KpiRollingUnit,
   KpiSummaryDto,
   KpiTargetDirection,
   KpiTargetKind,
+  KpiWindowKind,
+  KpiWindowRequest,
 } from '@/src/services/api/wayd.schemas'
 import {
   KpiSubject,
@@ -34,11 +37,18 @@ import { useEffect } from 'react'
 const { Item } = Form
 
 /**
- * Puts an error on either end of the baseline window on its range picker. The
- * API names them under the baseline (`baseline.windowStart`).
+ * Puts an error on the field that holds it: either end of the baseline window
+ * (`baseline.windowStart`) on its range picker, and the measurement window's
+ * parts (`window.anchorDate`) on theirs.
  */
-const windowErrorsOnPicker = (key: string) =>
-  /(^|\.)window(Start|End)$/.test(key) ? 'baselineWindow' : undefined
+const errorsOnField = (key: string) => {
+  if (/(^|\.)window(Start|End)$/i.test(key)) return 'baselineWindow'
+  if (/(^|\.)window\.kind$/i.test(key)) return 'windowKind'
+  if (/(^|\.)window\.anchorDate$/i.test(key)) return 'windowAnchorDate'
+  if (/(^|\.)window\.rolling(Count|Unit)$/i.test(key))
+    return 'windowRollingCount'
+  return undefined
+}
 const { TextArea } = Input
 const { RangePicker } = DatePicker
 
@@ -64,7 +74,30 @@ interface KpiFormValues {
   targetValue: number
   atRiskKind?: KpiAtRiskKind | 'none'
   atRiskValue?: number | null
+  windowKind: KpiWindowKind
+  windowAnchorDate?: Dayjs | null
+  windowRollingCount?: number | null
+  rollingAverageOf?: number | null
 }
+
+const windowOptions = [
+  {
+    value: KpiWindowKind.PerPeriod,
+    label: 'Per period — each value is for its own sprint, week or month',
+  },
+  {
+    value: KpiWindowKind.Cumulative,
+    label: 'Cumulative — each value covers a start date to the day it is taken',
+  },
+  {
+    value: KpiWindowKind.Rolling,
+    label: 'Rolling — each value covers the days before the day it is taken',
+  },
+  {
+    value: KpiWindowKind.PointInTime,
+    label: 'Point in time — each value is the state at a moment',
+  },
+]
 
 const expressedAsOptions = [
   { value: KpiExpressedAs.Value, label: 'Value' },
@@ -137,8 +170,35 @@ const KpiForm = ({
             : undefined,
         }
 
+        const measurementWindow: KpiWindowRequest = {
+          kind: values.windowKind,
+          anchorDate:
+            values.windowKind === KpiWindowKind.Cumulative &&
+            values.windowAnchorDate
+              ? toCalendarDate(values.windowAnchorDate)
+              : undefined,
+          rollingCount:
+            values.windowKind === KpiWindowKind.Rolling
+              ? (values.windowRollingCount ?? undefined)
+              : undefined,
+          rollingUnit:
+            values.windowKind === KpiWindowKind.Rolling
+              ? KpiRollingUnit.Days
+              : undefined,
+        }
+        const rollingAverageOf =
+          values.windowKind === KpiWindowKind.PerPeriod
+            ? (values.rollingAverageOf ?? undefined)
+            : undefined
+
         try {
-          const request = { ...details, baseline, target }
+          const request = {
+            ...details,
+            baseline,
+            target,
+            window: measurementWindow,
+            rollingAverageOf,
+          }
           if (kpi) {
             await updateKpi({ ...subject, kpiId: kpi.id, request }).unwrap()
             messageApi.success('KPI updated.')
@@ -151,9 +211,7 @@ const KpiForm = ({
           const apiError = toApiError(error)
           if (apiError.status === 422 && apiError.errors) {
             form.setFields(
-              toFormErrors(apiError.errors, {
-                fieldFor: windowErrorsOnPicker,
-              }),
+              toFormErrors(apiError.errors, { fieldFor: errorsOnField }),
             )
             messageApi.error('Correct the validation error(s) to continue.')
           } else {
@@ -177,6 +235,7 @@ const KpiForm = ({
         direction: KpiTargetDirection.Increase,
         targetKind: KpiTargetKind.Absolute,
         atRiskKind: 'none',
+        windowKind: KpiWindowKind.PerPeriod,
       })
       return
     }
@@ -201,11 +260,21 @@ const KpiForm = ({
       targetValue: goal.targetValue,
       atRiskKind: goal.atRiskKind ?? 'none',
       atRiskValue: goal.atRiskValue,
+      windowKind: kpi.window.kind,
+      windowAnchorDate: kpi.window.anchorDate
+        ? parseCalendarDate(kpi.window.anchorDate)
+        : null,
+      windowRollingCount: kpi.window.rollingCount,
+      rollingAverageOf: kpi.rollingAverageOf,
     })
   }, [kpi, form])
 
   const targetKind = Form.useWatch('targetKind', form)
   const atRiskKind = Form.useWatch('atRiskKind', form)
+  const windowKind = Form.useWatch('windowKind', form)
+
+  // The window is fixed once the KPI has measurements: they were recorded under it.
+  const windowLocked = isEdit && kpi.recentValues.length > 0
 
   const categoryOptions = categories
     .filter((c) => c.isActive || c.id === kpi?.category?.id)
@@ -353,6 +422,71 @@ const KpiForm = ({
             </Item>
           )}
         </Flex>
+
+        <Divider titlePlacement="start" plain>
+          Measurements
+        </Divider>
+        <Item
+          label="Each value covers"
+          name="windowKind"
+          rules={[{ required: true }]}
+          extra={
+            windowLocked
+              ? 'Fixed now that the KPI has measurements. Close it and add a new one to measure differently.'
+              : 'Cannot change once the KPI has measurements.'
+          }
+        >
+          <Select options={windowOptions} disabled={windowLocked} />
+        </Item>
+        {windowKind === KpiWindowKind.Cumulative && (
+          <Item
+            label="Counting from"
+            name="windowAnchorDate"
+            rules={[{ required: true, message: 'A start date is required' }]}
+          >
+            <DatePicker
+              style={{ width: '100%' }}
+              format="MMM D, YYYY"
+              disabled={windowLocked}
+            />
+          </Item>
+        )}
+        {windowKind === KpiWindowKind.Rolling && (
+          <Item
+            label="Over the last"
+            name="windowRollingCount"
+            rules={[
+              { required: true, message: 'How many days is required' },
+              { type: 'number', min: 1, max: 3660 },
+            ]}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              min={1}
+              max={3660}
+              precision={0}
+              suffix="days"
+              disabled={windowLocked}
+            />
+          </Item>
+        )}
+        {windowKind === KpiWindowKind.PerPeriod && (
+          <Item
+            label="Read as a rolling average of"
+            name="rollingAverageOf"
+            rules={[{ type: 'number', min: 2, max: 12 }]}
+            extra="Leave blank to read the latest value. For values that add up per period, such as velocity over the last 7 sprints."
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              min={2}
+              max={12}
+              precision={0}
+              suffix="values"
+              placeholder="Latest value"
+            />
+          </Item>
+        )}
       </Form>
     </Modal>
   )

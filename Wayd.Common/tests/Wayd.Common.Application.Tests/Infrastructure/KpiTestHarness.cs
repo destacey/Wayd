@@ -2,8 +2,10 @@
 using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Kpis;
+using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Kpis;
+using Wayd.Common.Domain.Settings;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Infrastructure;
 
@@ -24,6 +26,7 @@ public sealed class KpiTestHarness
         SubjectType.Setup(t => t.SubjectType).Returns(Gadget.Key);
         CurrentUser.Setup(u => u.GetUserId()).Returns("user-1");
         CurrentUser.Setup(u => u.GetEmployeeId()).Returns(EmployeeId);
+        GeneralSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new GeneralSettings { TimeZone = Zone.Id });
         Subject(canManage: true);
     }
 
@@ -36,6 +39,12 @@ public sealed class KpiTestHarness
     public Mock<ICurrentUser> CurrentUser { get; } = new();
 
     public TestingDateTimeProvider DateTimeProvider { get; } = new(new FakeClock(Instant.FromUtc(2026, 11, 16, 9, 30)));
+
+    /// <summary>The system time zone every test runs under: behind UTC, so a moment's day there is not its UTC day.</summary>
+    public static DateTimeZone Zone { get; } = DateTimeZoneProviders.Tzdb["America/Chicago"];
+
+    /// <summary>The system settings, naming <see cref="Zone"/>.</summary>
+    public Mock<ISettings<GeneralSettings>> GeneralSettings { get; } = new();
 
     /// <summary>The caller's linked employee.</summary>
     public Guid EmployeeId { get; } = Guid.NewGuid();
@@ -60,10 +69,12 @@ public sealed class KpiTestHarness
     /// A KPI on the given record, or the test's own, aiming to raise 10 to 20, added to the context with its creation
     /// events cleared.
     /// </summary>
-    public Kpi AddKpi(string name = "Throughput", Guid? subjectId = null, int order = 0, Guid? categoryId = null)
+    public Kpi AddKpi(
+        string name = "Throughput", Guid? subjectId = null, int order = 0, Guid? categoryId = null,
+        KpiMeasurementWindow? window = null, int? rollingAverageOf = null)
     {
         var goal = new KpiGoal(Domain.Enums.KpiTargetDirection.Increase, new KpiBaseline(10, null), KpiTarget.Absolute(20), KpiAtRiskThreshold.Absolute(16));
-        var definition = new KpiDefinition(name, null, categoryId, null, "items", KpiExpressedAs.Value, goal);
+        var definition = new KpiDefinition(name, null, categoryId, null, "items", KpiExpressedAs.Value, goal, window, rollingAverageOf);
         var kpi = Kpi.Create(Gadget.Key, subjectId ?? SubjectId, definition, order, EventActor.System, DateTimeProvider.Now).Value;
         kpi.ClearPostPersistenceActions();
         DbContext.AddKpis(kpi);
@@ -72,9 +83,9 @@ public sealed class KpiTestHarness
 
     /// <summary>A measurement input for the given days.</summary>
     public static KpiMeasurementInput Measurement(double value, LocalDate start, LocalDate end, Guid? measuredById = null) =>
-        new(value, new KpiPeriod(start, end), null, null, end, measuredById, KpiMeasurementSource.Manual, null, null);
+        new(value, KpiMeasurementTime.ForPeriod(new KpiPeriod(start, end)), null, null, end, measuredById, KpiMeasurementSource.Manual, null, null);
 
     public KpiSubjectAccessResolver Resolver() => new([SubjectType.Object], CurrentPrincipal.Object);
 
-    public KpiCommandScope Scope() => new(Resolver(), DbContext, CurrentUser.Object, DateTimeProvider);
+    public KpiCommandScope Scope() => new(Resolver(), DbContext, CurrentUser.Object, DateTimeProvider, GeneralSettings.Object);
 }

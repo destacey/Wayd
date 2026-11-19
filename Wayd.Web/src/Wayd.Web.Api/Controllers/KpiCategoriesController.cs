@@ -21,6 +21,7 @@ namespace Wayd.Web.Api.Controllers;
 [ApiController]
 [Authorize]
 [FeatureGate(FeatureFlags.Names.Kpis)]
+[McpTools(McpToolset.Kpis, "wayd-kpis")]
 public class KpiCategoriesController(IDispatcher dispatcher) : ControllerBase
 {
     private const string ManageDocs = "Needs `Permissions.Kpis.Administer`; returns 403 otherwise.";
@@ -28,8 +29,9 @@ public class KpiCategoriesController(IDispatcher dispatcher) : ControllerBase
     private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
+    [McpTool("KpiCategories_GetCategories", "List KPI categories")]
     [EndpointSummary("Get the KPI categories.")]
-    [EndpointDescription("Returns the categories in order, each with how many KPIs have it. Inactive ones are left out unless `includeInactive` is true.")]
+    [EndpointDescription("Returns the categories in order, each with how many KPIs have it. Inactive ones are left out unless `includeInactive` is true. A KPI's `categoryId` must name an active one.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<List<KpiCategoryDto>>> GetCategories([FromQuery] bool includeInactive = false, CancellationToken cancellationToken = default) =>
         Ok(await _dispatcher.Send(new GetKpiCategoriesQuery(includeInactive), cancellationToken));

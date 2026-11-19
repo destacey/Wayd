@@ -52,13 +52,17 @@ public sealed record KpiGoalDto(
 /// <param name="ProgressToTarget">How far the value has moved from the baseline toward the target, where 1 is the target reached; null without a baseline.</param>
 /// <param name="Health">Whether the value meets the target, is at risk, or neither; null when nothing has been measured.</param>
 /// <param name="Trend">Whether the latest value moved the right way from the one before it.</param>
+/// <param name="LatestValue">The latest raw measurement, which differs from <paramref name="Value"/> only when it is a rolling average.</param>
+/// <param name="AveragedCount">How many measurements <paramref name="Value"/> averages, or null when it is the latest alone; fewer than the KPI asks for while it has fewer.</param>
 public sealed record KpiReadingDto(
     double? Value,
     double? ChangeFromBaseline,
     double? ChangeFromBaselinePercent,
     double? ProgressToTarget,
     KpiHealth? Health,
-    KpiTrend Trend)
+    KpiTrend Trend,
+    double? LatestValue,
+    int? AveragedCount)
 {
     /// <summary>The reading as worked out.</summary>
     public static KpiReadingDto From(KpiReading reading) => new(
@@ -67,14 +71,29 @@ public sealed record KpiReadingDto(
         reading.ChangeFromBaselinePercent,
         reading.ProgressToTarget,
         reading.Health,
-        reading.Trend);
+        reading.Trend,
+        reading.LatestValue,
+        reading.AveragedCount);
+}
+
+/// <summary>How a KPI's measurements are windowed.</summary>
+/// <param name="Kind">How the window is formed.</param>
+/// <param name="AnchorDate">The first day every measurement covers, for a cumulative KPI.</param>
+/// <param name="RollingCount">How many units each measurement covers, for a rolling KPI.</param>
+/// <param name="RollingUnit">What the rolling count counts, for a rolling KPI.</param>
+public sealed record KpiMeasurementWindowDto(KpiWindowKind Kind, LocalDate? AnchorDate, int? RollingCount, KpiRollingUnit? RollingUnit)
+{
+    /// <summary>The window as the KPI holds it.</summary>
+    public static KpiMeasurementWindowDto From(KpiMeasurementWindow window) =>
+        new(window.Kind, window.AnchorDate, window.RollingCount, window.RollingUnit);
 }
 
 /// <summary>One value in a KPI's history, for a trend line.</summary>
 /// <param name="PeriodStart">The first day the value describes.</param>
 /// <param name="PeriodEnd">The last day the value describes.</param>
 /// <param name="Value">The raw measured value.</param>
-public sealed record KpiPointDto(LocalDate PeriodStart, LocalDate PeriodEnd, double Value);
+/// <param name="MeasuredAt">The moment a point-in-time value describes, or null for any other window.</param>
+public sealed record KpiPointDto(LocalDate PeriodStart, LocalDate PeriodEnd, double Value, Instant? MeasuredAt = null);
 
 /// <summary>A KPI category as a KPI names it.</summary>
 /// <param name="Id">The category's id.</param>
@@ -122,6 +141,12 @@ public sealed record KpiSummaryDto
 
     /// <summary>Which reading the scorecard shows.</summary>
     public required KpiExpressedAs ExpressedAs { get; init; }
+
+    /// <summary>How its measurements are windowed: which span of time each value describes.</summary>
+    public required KpiMeasurementWindowDto Window { get; init; }
+
+    /// <summary>How many of the latest measurements the reading averages, or null when it reads the latest alone.</summary>
+    public int? RollingAverageOf { get; init; }
 
     /// <summary>Whether it is on the scorecard.</summary>
     public required KpiStatus Status { get; init; }
@@ -175,7 +200,7 @@ public sealed record KpiMeasurementDto
     /// <summary>The first day the value describes.</summary>
     public required LocalDate PeriodStart { get; init; }
 
-    /// <summary>The last day the value describes.</summary>
+    /// <summary>The last day the value describes: for a cumulative or rolling KPI, the day it was taken as of.</summary>
     public required LocalDate PeriodEnd { get; init; }
 
     /// <summary>The kind of record the period covers, if any.</summary>
@@ -183,6 +208,9 @@ public sealed record KpiMeasurementDto
 
     /// <summary>The sprint, planning interval or release the period covers, if any.</summary>
     public Guid? PeriodRecordId { get; init; }
+
+    /// <summary>The moment a point-in-time value describes, or null for any other window.</summary>
+    public Instant? MeasuredAt { get; init; }
 
     /// <summary>The day the value was taken.</summary>
     public required LocalDate MeasuredOn { get; init; }
@@ -208,6 +236,7 @@ public sealed record KpiMeasurementDto
         PeriodEnd = measurement.PeriodEnd,
         PeriodRecordKind = measurement.PeriodRecordKind,
         PeriodRecordId = measurement.PeriodRecordId,
+        MeasuredAt = measurement.MeasuredAt,
         MeasuredOn = measurement.MeasuredOn,
         MeasuredBy = measurement.MeasuredById is { } id ? employees.GetValueOrDefault(id) : null,
         Source = measurement.Source,
@@ -230,6 +259,6 @@ public sealed record KpiDetailsDto
     /// <summary>Whether the caller may change the KPI and its measurements.</summary>
     public required bool CanManage { get; init; }
 
-    /// <summary>Every measurement, newest period first.</summary>
+    /// <summary>Every measurement, newest period first, then newest moment.</summary>
     public required IReadOnlyList<KpiMeasurementDto> Measurements { get; init; }
 }

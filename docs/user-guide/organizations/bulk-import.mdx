@@ -284,21 +284,27 @@ KPI file:
 | `TargetValue` | Yes | The value to reach, or the percentage — `25` for 25%. |
 | `AtRiskKind` · `AtRiskValue` | No | An at-risk threshold: `Absolute` with a value, or `ProgressToTarget` with a percentage of the way from baseline to target. Give both or neither. Must be short of the target. |
 | `IsClosed` | No | `true` to import the KPI closed, as history only. |
+| `WindowKind` | No | What span each measurement covers: `PerPeriod` (default), `Cumulative`, `Rolling` or `PointInTime`. See [measurement windows](./scorecards.mdx#measurement-windows). |
+| `WindowAnchorDate` | Conditional | For `Cumulative` only, and required there: the first day every measurement covers. |
+| `WindowRollingCount` · `WindowRollingUnit` | Conditional | For `Rolling` only, and required there: how many units each measurement covers, and `Days`. |
+| `RollingAverageOf` | No | For `PerPeriod` only: read the KPI as the average of this many latest measurements, 2 to 12. |
 
-Measurements file:
+Measurements file. Each row says when its value was taken **one way**, the way its KPI's `WindowKind` takes:
 
 | Column | Required | Notes |
 |---|---|---|
 | `KpiImportId` | Yes | The `ImportId` of the KPI row the value belongs to. A value naming a KPI not in the file fails the whole submission. |
-| `PeriodStart` · `PeriodEnd` | Yes | The days the value describes. A KPI's periods cannot overlap. |
+| `PeriodStart` · `PeriodEnd` | `PerPeriod` | The days the value describes. A KPI's periods cannot overlap. |
+| `AsOf` | `Cumulative` · `Rolling` | The last day the value covers; Wayd works out its period from the KPI's window. One value per day. |
+| `MeasuredAt` | `PointInTime` | The moment the value describes, as ISO 8601 **with its offset**: `2026-03-06T15:00:00-06:00` or `2026-03-06T21:00:00Z`. A time without an offset is refused, since it names no single moment. Several a day are allowed, one per moment. |
 | `Value` | Yes | The raw value — never a percentage worked out from it. |
-| `MeasuredOn` | No | The day it was taken; the period's last day when blank. |
+| `MeasuredOn` | No | The day it was taken; when blank, the last day it covers (for a moment, its day in the [system time zone](../settings/index.mdx#general)). |
 | `SampleSize` | No | How many items an average or a rate was worked out from. |
 | `Note` | No | Max 1024 chars. |
 
 Each KPI applies with its measurements or not at all, and independently of the other rows: a goal the KPI
-cannot hold, an unknown team or category, or two of its periods that overlap rejects that KPI alone, with
-the reason. New KPIs go after the team's existing ones, in file order. Imported measurements record no one as
+cannot hold, an unknown team or category, two values that clash, or a value given a way its window does not
+take rejects that KPI alone, with the reason. New KPIs go after the team's existing ones, in file order. Imported measurements record no one as
 having taken them.
 
 Because a team's KPI names are unique, sending the same files again after fixing a failed row imports only

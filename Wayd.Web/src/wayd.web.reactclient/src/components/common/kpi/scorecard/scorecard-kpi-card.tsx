@@ -27,7 +27,8 @@ export interface ScorecardKpiCardProps {
 
 /**
  * One KPI on a scorecard: its headline reading, health and trend, what it is
- * measured against, and a line of its recent values. Opens the KPI on click.
+ * measured against — the checkpoint its health was judged by, when it has a
+ * plan — and a line of its recent values. Opens the KPI on click.
  */
 const ScorecardKpiCard: FC<ScorecardKpiCardProps> = ({ kpi, onOpen }) => {
   const { antDesignChartsTheme, token } = useTheme()
@@ -115,6 +116,16 @@ const ScorecardKpiCard: FC<ScorecardKpiCardProps> = ({ kpi, onOpen }) => {
             Baseline{' '}
             {formatKpiValue(goal.baselineValue, kpi.prefix, kpi.suffix)}
           </Text>
+          {kpi.reading.checkpoint && (
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {kpi.reading.checkpoint.label} plan{' '}
+              {formatKpiValue(
+                kpi.reading.checkpoint.plannedValue,
+                kpi.prefix,
+                kpi.suffix,
+              )}
+            </Text>
+          )}
           <Text type="secondary" style={{ fontSize: 12 }}>
             Target {describeTarget(goal, kpi.prefix, kpi.suffix)}
           </Text>

@@ -270,9 +270,13 @@ const SUBMITTERS: Record<
     deploymentsImport({ file: required(file) }, { validateOnly: validateOnly }),
   'product-management.incidents': ({ file }, validateOnly) =>
     incidentsImport({ file: required(file) }, { validateOnly: validateOnly }),
-  'kpis.kpis': ({ file, measurementsFile }, validateOnly) =>
+  'kpis.kpis': ({ file, measurementsFile, checkpointsFile }, validateOnly) =>
     kpiImportsImport(
-      { file: required(file), measurementsFile: required(measurementsFile) },
+      {
+        file: required(file),
+        measurementsFile: required(measurementsFile),
+        checkpointsFile: checkpointsFile,
+      },
       { validateOnly: validateOnly },
     ),
   'demand-management.intake-requests': ({ file }, validateOnly) =>

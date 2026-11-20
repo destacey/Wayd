@@ -45,7 +45,7 @@ public sealed class GetTeamsWithMemberQueryHandlerTests(SqlServerDbContextFixtur
             var loans = Team.Create("Loans", new TeamCode("LOANS"), null, ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, actor, now);
             await seedContext.TeamOfTeams.AddAsync(art, cancellationToken);
             await seedContext.Teams.AddRangeAsync([cards, loans], cancellationToken);
-            cards.AddTeamMembership(art, new MembershipDateRange(JoinDate, LeaveDate), actor, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
+            cards.AddTeamMembership(art, new MembershipDateRange(JoinDate, LeaveDate), actor, now).IsSuccess.Should().BeTrue();
 
             cards.AddMember(teamMember, [role.Id], actor, now).IsSuccess.Should().BeTrue();
             cards.AddMember(removedMember, [role.Id], actor, now).IsSuccess.Should().BeTrue();

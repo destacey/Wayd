@@ -50,7 +50,7 @@ public sealed class GetTeamsCapacityByPeriodQueryHandlerTests(SqlServerDbContext
             var payments = TeamOfTeams.Create("Payments", new TeamCode("PAY"), null, new LocalDate(2024, 1, 1), "UTC", EventActor.System, SqlServerDbContextFixture.FixedNow);
             await seedContext.AddAsync(payments, cancellationToken);
             var cards = await OrganizationSeeder.SeedTeam(seedContext, "CARDS", "Cards", cancellationToken);
-            cards.AddTeamMembership(payments, new MembershipDateRange(SecondWeek.Start, null), EventActor.System, SqlServerDbContextFixture.FixedNow, SqlServerDbContextFixture.FixedNow.InUtc().Date).IsSuccess.Should().BeTrue();
+            cards.AddTeamMembership(payments, new MembershipDateRange(SecondWeek.Start, null), EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
             await seedContext.SaveChangesAsync(cancellationToken);
 
             var ada = await OrganizationSeeder.SeedEmployee(seedContext, "E-1001", "ada@acme.example", cancellationToken);

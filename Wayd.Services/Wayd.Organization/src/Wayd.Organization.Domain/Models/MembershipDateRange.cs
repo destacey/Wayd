@@ -87,6 +87,25 @@ public sealed class MembershipDateRange : ValueObject, IDateRange<LocalDate, Loc
         }
     }
 
+    /// <summary>
+    /// The days both ranges are in effect, or <c>null</c> when they share none. An open end stays open only
+    /// when both ends are open.
+    /// </summary>
+    /// <param name="range">The other range.</param>
+    public MembershipDateRange? Intersect(MembershipDateRange range)
+    {
+        var start = LocalDate.Max(Start, range.Start);
+        LocalDate? end = (End, range.End) switch
+        {
+            (null, null) => null,
+            (null, var other) => other,
+            (var own, null) => own,
+            (var own, var other) => LocalDate.Min(own.Value, other.Value),
+        };
+
+        return end.HasValue && end < start ? null : new MembershipDateRange(start, end);
+    }
+
     /// <summary>Gets the equality components.</summary>
     /// <returns></returns>
     protected override IEnumerable<IComparable?> GetEqualityComponents()

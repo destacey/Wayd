@@ -267,7 +267,7 @@ public class GetFunctionalOrganizationChartQueryHandlerTests
 
     private static void Place(BaseTeam child, TeamOfTeams parent, LocalDate? start = null, LocalDate? end = null)
     {
-        var placed = child.AddTeamMembership(parent, new MembershipDateRange(start ?? LastYear, end), EventActor.System, Now, Now.InUtc().Date);
+        var placed = child.AddTeamMembership(parent, new MembershipDateRange(start ?? LastYear, end), EventActor.System, Now);
         placed.IsSuccess.Should().BeTrue(placed.IsFailure ? placed.Error : null);
     }
 

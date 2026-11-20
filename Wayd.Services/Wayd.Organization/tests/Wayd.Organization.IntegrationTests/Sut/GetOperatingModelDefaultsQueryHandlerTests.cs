@@ -47,7 +47,7 @@ public sealed class GetOperatingModelDefaultsQueryHandlerTests(SqlServerDbContex
 
             await seedContext.TeamOfTeams.AddAsync(art, cancellationToken);
             await seedContext.Teams.AddAsync(team, cancellationToken);
-            team.AddTeamMembership(art, new MembershipDateRange(JoinDate, null), actor, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
+            team.AddTeamMembership(art, new MembershipDateRange(JoinDate, null), actor, now).IsSuccess.Should().BeTrue();
 
             await seedContext.SaveChangesAsync(cancellationToken);
             teamId = team.Id;

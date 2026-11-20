@@ -20,13 +20,12 @@ public sealed class AddTeamMembershipCommandValidator : CustomValidator<AddTeamM
     }
 }
 
-public sealed class AddTeamMembershipCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ISystemCalendar systemCalendar, ICurrentUser currentUser, ILogger<AddTeamMembershipCommandHandler> logger) : ICommandHandler<AddTeamMembershipCommand>
+public sealed class AddTeamMembershipCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, ILogger<AddTeamMembershipCommandHandler> logger) : ICommandHandler<AddTeamMembershipCommand>
 {
     private const string RequestName = nameof(AddTeamMembershipCommand);
 
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ISystemCalendar _systemCalendar = systemCalendar;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<AddTeamMembershipCommandHandler> _logger = logger;
 
@@ -40,13 +39,13 @@ public sealed class AddTeamMembershipCommandHandler(IOrganizationDbContext organ
             if (team is null)
                 return Result.Failure($"Team with id {request.TeamId} not found");
 
-            await LoadAllChildMemberships(team, cancellationToken);
+            await TeamOfTeamsDescendants.Load(_organizationDbContext, team, cancellationToken);
 
             var parentTeam = await _organizationDbContext.TeamOfTeams
                 .SingleAsync(t => t.Id == request.ParentTeamId, cancellationToken: cancellationToken);
 
             var now = _dateTimeProvider.Now;
-            var result = team.AddTeamMembership(parentTeam, request.DateRange, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), now, await _systemCalendar.DayOf(now, cancellationToken));
+            var result = team.AddTeamMembership(parentTeam, request.DateRange, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), now);
             if (result.IsFailure)
             {
                 _logger.LogError("{RequestName}: failed to add Team Membership for Team of Teams {TeamId} and ParentTeamId {ParentTeamId}. Error: {Error}", RequestName, request.TeamId, request.ParentTeamId, result.Error);
@@ -64,30 +63,6 @@ public sealed class AddTeamMembershipCommandHandler(IOrganizationDbContext organ
             _logger.LogError(ex, "Exception for request {RequestName}", RequestName);
 
             return Result.Failure<int>($"Exception for request {RequestName}");
-        }
-    }
-
-    private async Task LoadAllChildMemberships(TeamOfTeams parent, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(parent);
-
-        // TODO move to a graph db capability
-        await _organizationDbContext.Entry(parent)
-            .Collection(e => e.ChildMemberships)
-            .LoadAsync(cancellationToken);
-
-        if (parent.ChildMemberships.Count != 0)
-        {
-            foreach (TeamMembership child in parent.ChildMemberships)
-            {
-                await _organizationDbContext.Entry(child)
-                    .Reference(e => e.Source)
-                    .LoadAsync(cancellationToken);
-                if (child.Source is TeamOfTeams childTeamOfTeams)
-                {
-                    await LoadAllChildMemberships(childTeamOfTeams, cancellationToken);
-                }
-            }
         }
     }
 }

@@ -234,7 +234,7 @@ Memberships have a state based on the current date:
 Membership rules:
 - A team can only have one active parent membership at a time
 - Membership date ranges cannot overlap for the same team
-- Circular references are not allowed (a team cannot be an ancestor of itself)
+- Circular references are not allowed (a team cannot be an ancestor of itself). This is checked across the membership's dates, both when it is added and when its dates change: a team of teams can be placed under one of its former or future descendants, as long as the two memberships share no day
 - Both the child and parent must be active for a membership to be created
 
 ## Team Detail Page

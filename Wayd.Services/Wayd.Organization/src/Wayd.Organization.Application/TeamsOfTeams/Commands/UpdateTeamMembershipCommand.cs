@@ -38,6 +38,8 @@ public sealed class UpdateTeamMembershipCommandHandler(IOrganizationDbContext or
                     .ThenInclude(m => m.Target)
                 .SingleAsync(t => t.Id == request.TeamId, cancellationToken: cancellationToken);
 
+            await TeamOfTeamsDescendants.Load(_organizationDbContext, team, cancellationToken);
+
             var result = team.UpdateTeamMembership(request.TeamMembershipId, request.DateRange, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (result.IsFailure)
             {

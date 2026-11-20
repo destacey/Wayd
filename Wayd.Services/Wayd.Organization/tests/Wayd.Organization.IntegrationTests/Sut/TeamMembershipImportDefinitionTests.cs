@@ -53,7 +53,7 @@ public sealed class TeamMembershipImportDefinitionTests
         var currentUser = new Mock<ICurrentUser>();
         currentUser.Setup(u => u.GetUserId()).Returns("user-1");
 
-        return new TeamMembershipImportDefinition(context, dateTimeProvider.Object, new TestingSystemCalendar(dateTimeProvider.Object), currentUser.Object, new ImportPayloadSerializer());
+        return new TeamMembershipImportDefinition(context, dateTimeProvider.Object, currentUser.Object, new ImportPayloadSerializer());
     }
 
     /// <summary>

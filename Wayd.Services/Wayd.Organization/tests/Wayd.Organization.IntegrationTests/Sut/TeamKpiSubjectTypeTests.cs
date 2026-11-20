@@ -52,8 +52,8 @@ public sealed class TeamKpiSubjectTypeTests(SqlServerDbContextFixture fixture)
             var team = Team.Create("Cards", new TeamCode("CARDS"), null, ActiveDate, Methodology.Scrum, SizingMethod.StoryPoints, "UTC", 1, WorkingWeek.MondayToFriday, actor, now);
             await seedContext.TeamOfTeams.AddRangeAsync([portfolio, art], cancellationToken);
             await seedContext.Teams.AddAsync(team, cancellationToken);
-            art.AddTeamMembership(portfolio, new MembershipDateRange(ActiveDate, null), actor, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
-            team.AddTeamMembership(art, new MembershipDateRange(ActiveDate, null), actor, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
+            art.AddTeamMembership(portfolio, new MembershipDateRange(ActiveDate, null), actor, now).IsSuccess.Should().BeTrue();
+            team.AddTeamMembership(art, new MembershipDateRange(ActiveDate, null), actor, now).IsSuccess.Should().BeTrue();
 
             team.AddMember(teamMember, [role.Id], actor, now).IsSuccess.Should().BeTrue();
             portfolio.AddMember(topMember, [role.Id], actor, now).IsSuccess.Should().BeTrue();

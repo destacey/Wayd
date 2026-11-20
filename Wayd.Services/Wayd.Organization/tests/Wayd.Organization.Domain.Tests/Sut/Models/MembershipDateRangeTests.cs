@@ -493,4 +493,78 @@ public class MembershipDateRangeTests
     }
 
     #endregion Equals
+
+    #region Intersect
+
+    [Fact]
+    public void Intersect_BothBounded_ReturnsTheSharedDays()
+    {
+        // Arrange
+        var range = new MembershipDateRange(new LocalDate(2020, 1, 1), new LocalDate(2020, 1, 31));
+        var other = new MembershipDateRange(new LocalDate(2020, 1, 15), new LocalDate(2020, 2, 15));
+
+        // Act
+        var result = range.Intersect(other);
+
+        // Assert
+        result.Should().Be(new MembershipDateRange(new LocalDate(2020, 1, 15), new LocalDate(2020, 1, 31)));
+    }
+
+    [Fact]
+    public void Intersect_OneOpenEnded_TakesTheBoundedEnd()
+    {
+        // Arrange
+        var range = new MembershipDateRange(new LocalDate(2020, 1, 1), null);
+        var other = new MembershipDateRange(new LocalDate(2019, 6, 1), new LocalDate(2020, 3, 1));
+
+        // Act
+        var result = range.Intersect(other);
+
+        // Assert
+        result.Should().Be(new MembershipDateRange(new LocalDate(2020, 1, 1), new LocalDate(2020, 3, 1)));
+    }
+
+    [Fact]
+    public void Intersect_BothOpenEnded_StaysOpen()
+    {
+        // Arrange
+        var range = new MembershipDateRange(new LocalDate(2020, 1, 1), null);
+        var other = new MembershipDateRange(new LocalDate(2020, 5, 1), null);
+
+        // Act
+        var result = range.Intersect(other);
+
+        // Assert
+        result.Should().Be(new MembershipDateRange(new LocalDate(2020, 5, 1), null));
+    }
+
+    [Fact]
+    public void Intersect_SharingOneDay_ReturnsThatDay()
+    {
+        // Arrange
+        var range = new MembershipDateRange(new LocalDate(2020, 1, 1), new LocalDate(2020, 1, 31));
+        var other = new MembershipDateRange(new LocalDate(2020, 1, 31), null);
+
+        // Act
+        var result = range.Intersect(other);
+
+        // Assert
+        result.Should().Be(new MembershipDateRange(new LocalDate(2020, 1, 31), new LocalDate(2020, 1, 31)));
+    }
+
+    [Fact]
+    public void Intersect_Disjoint_ReturnsNull()
+    {
+        // Arrange
+        var range = new MembershipDateRange(new LocalDate(2020, 1, 1), new LocalDate(2020, 1, 31));
+        var other = new MembershipDateRange(new LocalDate(2020, 2, 1), null);
+
+        // Act
+        var result = range.Intersect(other);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    #endregion Intersect
 }

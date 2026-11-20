@@ -388,7 +388,7 @@ public class TeamOfTeamsTests
         MembershipDateRange dateRange = new(child.ActiveDate.PlusDays(5), null);
 
         // Act
-        var result = child.AddTeamMembership(parent, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        var result = child.AddTeamMembership(parent, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         // Assert — both ends, so the hierarchy is walkable before anything is saved
         result.IsSuccess.Should().BeTrue();
@@ -405,10 +405,10 @@ public class TeamOfTeamsTests
         var art = _teamOfTeamsFaker.Generate();
         var valueStream = _teamOfTeamsFaker.Generate();
         MembershipDateRange dateRange = new(art.ActiveDate.PlusDays(5), null);
-        art.AddTeamMembership(valueStream, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date).IsSuccess.Should().BeTrue();
+        art.AddTeamMembership(valueStream, dateRange, EventActor.System, _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
 
         // Act
-        var result = valueStream.AddTeamMembership(art, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        var result = valueStream.AddTeamMembership(art, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         // Assert — the check reads the parent's children, which only holds because the first add recorded
         // the edge on both teams rather than waiting for EF to fix it up on save
@@ -425,15 +425,139 @@ public class TeamOfTeamsTests
         var b = _teamOfTeamsFaker.Generate();
         var c = _teamOfTeamsFaker.Generate();
         MembershipDateRange dateRange = new(a.ActiveDate.PlusDays(5), null);
-        a.AddTeamMembership(b, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date).IsSuccess.Should().BeTrue();
-        b.AddTeamMembership(c, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date).IsSuccess.Should().BeTrue();
+        a.AddTeamMembership(b, dateRange, EventActor.System, _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
+        b.AddTeamMembership(c, dateRange, EventActor.System, _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
 
         // Act
-        var result = c.AddTeamMembership(a, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        var result = c.AddTeamMembership(a, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         // Assert — recursing needs the Source navigation, which Create now sets
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("circular");
+    }
+
+    [Fact]
+    public void AddTeamMembership_AllowsAParentWhoseDescendantMembershipEndedBeforeTheNewRange()
+    {
+        // Arrange — A sat under B, and left before B is to be placed under A
+        var a = _teamOfTeamsFaker.Generate();
+        var b = _teamOfTeamsFaker.Generate();
+        var start = a.ActiveDate.PlusDays(5);
+        a.AddTeamMembership(b, new MembershipDateRange(start, start.PlusDays(10)), EventActor.System, _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
+
+        // Act
+        var result = b.AddTeamMembership(a, new MembershipDateRange(start.PlusDays(11), null), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void AddTeamMembership_AllowsAParentWhoseDescendantMembershipStartsAfterTheNewRange()
+    {
+        // Arrange — A will sit under B, but only once B's spell under A is over
+        var a = _teamOfTeamsFaker.Generate();
+        var b = _teamOfTeamsFaker.Generate();
+        var start = a.ActiveDate.PlusDays(5);
+        a.AddTeamMembership(b, new MembershipDateRange(start.PlusDays(30), null), EventActor.System, _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
+
+        // Act
+        var result = b.AddTeamMembership(a, new MembershipDateRange(start, start.PlusDays(29)), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void AddTeamMembership_RefusesAParentWhoseFutureDescendantMembershipOverlapsTheNewRange()
+    {
+        // Arrange — A joins B next month; B under A from now on would meet it then
+        var a = _teamOfTeamsFaker.Generate();
+        var b = _teamOfTeamsFaker.Generate();
+        var start = a.ActiveDate.PlusDays(5);
+        a.AddTeamMembership(b, new MembershipDateRange(start.PlusDays(30), null), EventActor.System, _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
+
+        // Act
+        var result = b.AddTeamMembership(a, new MembershipDateRange(start, start.PlusDays(30)), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert — the ranges share a single day, which is enough
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("circular");
+    }
+
+    [Fact]
+    public void AddTeamMembership_AllowsAChainWhoseLinksNeverOverlap()
+    {
+        // Arrange — A under B ends before B under C begins, so A is never below C
+        var a = _teamOfTeamsFaker.Generate();
+        var b = _teamOfTeamsFaker.Generate();
+        var c = _teamOfTeamsFaker.Generate();
+        var start = a.ActiveDate.PlusDays(5);
+        a.AddTeamMembership(b, new MembershipDateRange(start, start.PlusDays(10)), EventActor.System, _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
+        b.AddTeamMembership(c, new MembershipDateRange(start.PlusDays(20), null), EventActor.System, _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
+
+        // Act — every pair of links overlaps the new one, but no day has all three
+        var result = c.AddTeamMembership(a, new MembershipDateRange(start, null), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void AddTeamMembership_RefusesAChainWhoseLinksAllOverlapTheNewRange()
+    {
+        // Arrange — A under B and B under C are both in effect from day 20 to day 30
+        var a = _teamOfTeamsFaker.Generate();
+        var b = _teamOfTeamsFaker.Generate();
+        var c = _teamOfTeamsFaker.Generate();
+        var start = a.ActiveDate.PlusDays(5);
+        a.AddTeamMembership(b, new MembershipDateRange(start, start.PlusDays(30)), EventActor.System, _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
+        b.AddTeamMembership(c, new MembershipDateRange(start.PlusDays(20), null), EventActor.System, _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
+
+        // Act
+        var result = c.AddTeamMembership(a, new MembershipDateRange(start.PlusDays(25), start.PlusDays(26)), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("circular");
+    }
+
+    [Fact]
+    public void UpdateTeamMembership_RefusesDatesThatReachADescendantMembership()
+    {
+        // Arrange — A was under B until day 10; B is under A from day 11
+        var a = _teamOfTeamsFaker.Generate();
+        var b = _teamOfTeamsFaker.Generate();
+        var start = a.ActiveDate.PlusDays(5);
+        var original = new MembershipDateRange(start, start.PlusDays(10));
+        var membership = a.AddTeamMembership(b, original, EventActor.System, _dateTimeProvider.Now).Value;
+        b.AddTeamMembership(a, new MembershipDateRange(start.PlusDays(11), null), EventActor.System, _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
+
+        // Act — leaving A under B one day longer meets B under A
+        var result = a.UpdateTeamMembership(membership.Id, new MembershipDateRange(start, start.PlusDays(11)), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("circular");
+        membership.DateRange.Should().Be(original);
+    }
+
+    [Fact]
+    public void UpdateTeamMembership_AllowsDatesThatStayClearOfADescendantMembership()
+    {
+        // Arrange — A was under B until day 10; B is under A from day 11
+        var a = _teamOfTeamsFaker.Generate();
+        var b = _teamOfTeamsFaker.Generate();
+        var start = a.ActiveDate.PlusDays(5);
+        var membership = a.AddTeamMembership(b, new MembershipDateRange(start, start.PlusDays(10)), EventActor.System, _dateTimeProvider.Now).Value;
+        b.AddTeamMembership(a, new MembershipDateRange(start.PlusDays(11), null), EventActor.System, _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
+
+        // Act — ending A under B sooner cannot meet B under A
+        var result = a.UpdateTeamMembership(membership.Id, new MembershipDateRange(start, start.PlusDays(5)), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        membership.DateRange.Should().Be(new MembershipDateRange(start, start.PlusDays(5)));
     }
 
     [Fact]
@@ -445,7 +569,7 @@ public class TeamOfTeamsTests
         LocalDate start = team.ActiveDate.PlusDays(5);
         LocalDate? end = start.PlusDays(90);
         MembershipDateRange dateRange = new(start, end);
-        team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var inactiveDate = start.PlusDays(10);
         var args = TeamDeactivatableArgs.Create(inactiveDate, EventActor.System, _dateTimeProvider.Now);
@@ -469,7 +593,7 @@ public class TeamOfTeamsTests
         LocalDate start = team.ActiveDate.PlusDays(5);
         LocalDate? end = start.PlusDays(90);
         MembershipDateRange dateRange = new(start, end);
-        childTeam.AddTeamMembership(team, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        childTeam.AddTeamMembership(team, dateRange, EventActor.System, _dateTimeProvider.Now);
         var membership = childTeam.ParentMemberships.First();
 
         team.AddToPrivateList("_childMemberships", membership);
@@ -496,7 +620,7 @@ public class TeamOfTeamsTests
         LocalDate start = team.ActiveDate.PlusDays(5);
         LocalDate? end = start.PlusDays(90);
         MembershipDateRange dateRange = new(start, end);
-        team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var inactiveDate = start.PlusDays(10);
         var args = TeamDeactivatableArgs.Create(inactiveDate, EventActor.System, _dateTimeProvider.Now);
@@ -520,7 +644,7 @@ public class TeamOfTeamsTests
         LocalDate start = team.ActiveDate.PlusDays(5);
         LocalDate? end = start.PlusDays(90);
         MembershipDateRange dateRange = new(start, end);
-        childTeam.AddTeamMembership(team, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        childTeam.AddTeamMembership(team, dateRange, EventActor.System, _dateTimeProvider.Now);
         var membership = childTeam.ParentMemberships.First();
 
         team.AddToPrivateList("_childMemberships", membership);
@@ -547,7 +671,7 @@ public class TeamOfTeamsTests
         LocalDate start = team.ActiveDate.PlusDays(5);
         LocalDate? end = start.PlusDays(90);
         MembershipDateRange dateRange = new(start, end);
-        team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var args = TeamDeactivatableArgs.Create(end.Value, EventActor.System, _dateTimeProvider.Now);
 
@@ -569,7 +693,7 @@ public class TeamOfTeamsTests
         LocalDate start = team.ActiveDate.PlusDays(5);
         LocalDate? end = start.PlusDays(90);
         MembershipDateRange dateRange = new(start, end);
-        childTeam.AddTeamMembership(team, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        childTeam.AddTeamMembership(team, dateRange, EventActor.System, _dateTimeProvider.Now);
         var membership = childTeam.ParentMemberships.First();
 
         team.AddToPrivateList("_childMemberships", membership);
@@ -594,7 +718,7 @@ public class TeamOfTeamsTests
         LocalDate start = team.ActiveDate.PlusDays(5);
         LocalDate? end = start.PlusDays(90);
         MembershipDateRange dateRange = new(start, end);
-        team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        team.AddTeamMembership(teamOfTeams, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var inactiveDate = start.PlusDays(100);
         var args = TeamDeactivatableArgs.Create(inactiveDate, EventActor.System, _dateTimeProvider.Now);
@@ -617,7 +741,7 @@ public class TeamOfTeamsTests
         LocalDate start = team.ActiveDate.PlusDays(5);
         LocalDate? end = start.PlusDays(90);
         MembershipDateRange dateRange = new(start, end);
-        childTeam.AddTeamMembership(team, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        childTeam.AddTeamMembership(team, dateRange, EventActor.System, _dateTimeProvider.Now);
         var membership = childTeam.ParentMemberships.First();
 
         team.AddToPrivateList("_childMemberships", membership);
@@ -650,7 +774,7 @@ public class TeamOfTeamsTests
         MembershipDateRange dateRange = new(start, end);
 
         // Act
-        var result = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        var result = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -672,7 +796,7 @@ public class TeamOfTeamsTests
         MembershipDateRange dateRange = new(start, end);
 
         // Act
-        var result = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        var result = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -697,7 +821,7 @@ public class TeamOfTeamsTests
         var expectedErrorMessage = $"Memberships can not be added to inactive teams. {team.Name} is inactive.";
 
         // Act
-        var result = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        var result = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -719,7 +843,7 @@ public class TeamOfTeamsTests
         var expectedErrorMessage = $"Memberships can not be added to inactive teams. {parentTeam.Name} is inactive.";
 
         // Act
-        var result = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        var result = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -736,7 +860,7 @@ public class TeamOfTeamsTests
         LocalDate start = new(2023, 1, 1);
         LocalDate? end = new(2023, 5, 1);
         MembershipDateRange dateRange = new(start, end);
-        var createresult = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        var createresult = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var membership = team.ParentMemberships.First();
         membership.SetPrivate(m => m.Id, Guid.NewGuid());
@@ -768,7 +892,7 @@ public class TeamOfTeamsTests
         LocalDate start = new(2023, 1, 1);
         LocalDate? end = new(2023, 5, 1);
         MembershipDateRange dateRange = new(start, end);
-        var createresult = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        var createresult = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var membership = team.ParentMemberships.First();
         membership.SetPrivate(m => m.Id, Guid.NewGuid());
@@ -800,7 +924,7 @@ public class TeamOfTeamsTests
         LocalDate start = new(2023, 1, 1);
         LocalDate? end = new(2023, 5, 1);
         MembershipDateRange dateRange = new(start, end);
-        var createresult = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        var createresult = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var membership = team.ParentMemberships.First();
         membership.SetPrivate(m => m.Id, Guid.NewGuid());
@@ -832,7 +956,7 @@ public class TeamOfTeamsTests
         LocalDate start = new(2023, 1, 1);
         LocalDate? end = new(2023, 5, 1);
         MembershipDateRange dateRange = new(start, end);
-        var createresult = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        var createresult = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var membership = team.ParentMemberships.First();
         membership.SetPrivate(m => m.Id, Guid.NewGuid());
@@ -856,7 +980,7 @@ public class TeamOfTeamsTests
         LocalDate start = new(2023, 1, 1);
         LocalDate? end = new(2023, 5, 1);
         MembershipDateRange dateRange = new(start, end);
-        var createresult = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        var createresult = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var membership = team.ParentMemberships.First();
         membership.SetPrivate(m => m.Id, Guid.NewGuid());
@@ -882,7 +1006,7 @@ public class TeamOfTeamsTests
         LocalDate start = new(2023, 1, 1);
         LocalDate? end = new(2023, 5, 1);
         MembershipDateRange dateRange = new(start, end);
-        var createresult = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now, _dateTimeProvider.Now.InUtc().Date);
+        var createresult = team.AddTeamMembership(parentTeam, dateRange, EventActor.System, _dateTimeProvider.Now);
 
         var membership = team.ParentMemberships.First();
         membership.SetPrivate(m => m.Id, Guid.NewGuid());

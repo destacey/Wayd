@@ -214,10 +214,6 @@ public sealed class TeamOfTeams : BaseTeam, IActivatable<TeamActivatableArgs, Te
 
     private static TeamOfTeamsOperatingModelSettings SettingsOf(TeamOfTeamsOperatingModel model) => new(model.TimeZone);
 
-    /// <summary>Gets the descendant team ids as of.</summary>
-    /// <param name="date">The date.</param>
-    /// <param name="includeFuture">if set to <c>true</c> [include future].</param>
-    /// <returns></returns>
     /// <summary>
     /// Records an edge this team of teams is the parent of. Called by
     /// <see cref="BaseTeam.AddTeamMembership"/> so both ends of a new membership are consistent without
@@ -231,26 +227,43 @@ public sealed class TeamOfTeams : BaseTeam, IActivatable<TeamActivatableArgs, Te
         }
     }
 
-    public List<Guid> GetDescendantTeamIdsAsOf(LocalDate date, bool includeFuture = false)
-    {
-        var query = _childMemberships.Where(x => x.StateOn(date) == MembershipState.Active).AsQueryable();
-        if (includeFuture)
-        {
-            query = _childMemberships.Where(x => x.StateOn(date) == MembershipState.Future).AsQueryable();
-        }
+    /// <summary>
+    /// Whether <paramref name="teamId"/> sits anywhere below this team of teams on at least one day of
+    /// <paramref name="range"/> — the question a new parent membership over that range must answer to
+    /// refuse a cycle.
+    /// </summary>
+    /// <remarks>
+    /// Each level narrows the window to the days its own edge is in effect, so a grandchild counts only on
+    /// days it and the child holding it are both members: a child that left before the grandchild joined
+    /// does not connect them.
+    /// </remarks>
+    /// <param name="teamId">The team being looked for.</param>
+    /// <param name="range">The days to look on.</param>
+    internal bool HasDescendantDuring(Guid teamId, MembershipDateRange range)
+        => HasDescendantDuring(teamId, range, []);
 
-        List<Guid> descendantTeamIds = [];
+    // The path guard stops a cycle already in the data from recursing until the stack overflows, which
+    // would take the process down rather than fail the request.
+    private bool HasDescendantDuring(Guid teamId, MembershipDateRange range, HashSet<Guid> path)
+    {
+        if (!path.Add(Id))
+            return false;
+
         foreach (var membership in _childMemberships)
         {
-            if (membership.Source is TeamOfTeams teamOfTeams)
-            {
-                descendantTeamIds.AddRange(teamOfTeams.GetDescendantTeamIdsAsOf(date, includeFuture));
-            }
+            var window = membership.DateRange.Intersect(range);
+            if (window is null)
+                continue;
 
-            descendantTeamIds.Add(membership.SourceId);
+            if (membership.SourceId == teamId)
+                return true;
+
+            if (membership.Source is TeamOfTeams child && child.HasDescendantDuring(teamId, window, path))
+                return true;
         }
 
-        return descendantTeamIds;
+        path.Remove(Id);
+        return false;
     }
 
     /// <summary>Creates the specified team of teams.</summary>

@@ -52,8 +52,8 @@ public class GetTeamMembershipsQueryHandlerTests
         _dbContext.AddTeamOfTeams(teamOfTeams);
         _dbContext.AddTeamOfTeams(parent);
         _dbContext.AddTeam(child);
-        teamOfTeams.AddTeamMembership(parent, new MembershipDateRange(ActiveDate, null), EventActor.System, Now, Now.InUtc().Date).IsSuccess.Should().BeTrue();
-        child.AddTeamMembership(teamOfTeams, new MembershipDateRange(ActiveDate, null), EventActor.System, Now, Now.InUtc().Date).IsSuccess.Should().BeTrue();
+        teamOfTeams.AddTeamMembership(parent, new MembershipDateRange(ActiveDate, null), EventActor.System, Now).IsSuccess.Should().BeTrue();
+        child.AddTeamMembership(teamOfTeams, new MembershipDateRange(ActiveDate, null), EventActor.System, Now).IsSuccess.Should().BeTrue();
 
         // Act
         var result = await _handler.Handle(new GetTeamMembershipsQuery(teamOfTeams.Id), TestContext.Current.CancellationToken);

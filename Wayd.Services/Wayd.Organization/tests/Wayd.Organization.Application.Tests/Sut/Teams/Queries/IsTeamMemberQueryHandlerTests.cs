@@ -33,7 +33,7 @@ public class IsTeamMemberQueryHandlerTests : IDisposable
     {
         var parent = _teamOfTeamsFaker.WithActiveDate(ActiveDate).Generate();
         var team = _teamFaker.WithActiveDate(ActiveDate).Generate();
-        team.AddTeamMembership(parent, new MembershipDateRange(JoinDate, LeaveDate), EventActor.System, Timestamp, Timestamp.InUtc().Date).IsSuccess.Should().BeTrue();
+        team.AddTeamMembership(parent, new MembershipDateRange(JoinDate, LeaveDate), EventActor.System, Timestamp).IsSuccess.Should().BeTrue();
         _dbContext.AddTeamOfTeams(parent);
         _dbContext.AddTeam(team);
         return (team, parent);

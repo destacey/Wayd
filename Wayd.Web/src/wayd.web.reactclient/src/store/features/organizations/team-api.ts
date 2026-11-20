@@ -189,11 +189,12 @@ export const teamApi = apiSlice.injectEndpoints({
       },
     }),
 
-    deactivateTeam: builder.mutation<void, DeactivateTeamRequest>({
+    deactivateTeam: builder.mutation<null, DeactivateTeamRequest>({
       queryFn: async (request) => {
         try {
-          const data = await teamsDeactivate(request.id, request)
-          return { data }
+          await teamsDeactivate(request.id, request)
+          // The API answers 204 with no body; RTK Query rejects undefined as a result.
+          return { data: null }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -213,12 +214,13 @@ export const teamApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    deactivateTeamOfTeams: builder.mutation<void, DeactivateTeamOfTeamsRequest>(
+    deactivateTeamOfTeams: builder.mutation<null, DeactivateTeamOfTeamsRequest>(
       {
         queryFn: async (request) => {
           try {
-            const data = await teamsOfTeamsDeactivate(request.id, request)
-            return { data }
+            await teamsOfTeamsDeactivate(request.id, request)
+            // The API answers 204 with no body; RTK Query rejects undefined as a result.
+            return { data: null }
           } catch (error) {
             console.error('API Error:', error)
             return { error }
@@ -629,23 +631,20 @@ export const teamApi = apiSlice.injectEndpoints({
 
     // TEAM MEMBERSHIP MUTATIONS
     createTeamMembership: builder.mutation<
-      void,
+      null,
       { membership: AddTeamMembershipRequest; teamType: TeamTypeName }
     >({
       queryFn: async ({ membership, teamType }) => {
         try {
-          let data
           if (teamType === 'Team') {
-            data = await teamsAddTeamMembership(membership.teamId, membership)
+            await teamsAddTeamMembership(membership.teamId, membership)
           } else if (teamType === 'Team of Teams') {
-            data = await teamsOfTeamsAddTeamMembership(
-              membership.teamId,
-              membership,
-            )
+            await teamsOfTeamsAddTeamMembership(membership.teamId, membership)
           } else {
             throw new Error(`Invalid team type: ${teamType}`)
           }
-          return { data }
+          // The API answers 204 with no body; RTK Query rejects undefined as a result.
+          return { data: null }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -661,7 +660,7 @@ export const teamApi = apiSlice.injectEndpoints({
     }),
 
     updateTeamMembership: builder.mutation<
-      void,
+      null,
       {
         membership: UpdateTeamMembershipRequest
         parentTeamId: string
@@ -670,15 +669,14 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ membership, teamType }) => {
         try {
-          let data
           if (teamType === 'Team') {
-            data = await teamsUpdateTeamMembership(
+            await teamsUpdateTeamMembership(
               membership.teamId,
               membership.teamMembershipId,
               membership,
             )
           } else if (teamType === 'Team of Teams') {
-            data = await teamsOfTeamsUpdateTeamMembership(
+            await teamsOfTeamsUpdateTeamMembership(
               membership.teamId,
               membership.teamMembershipId,
               membership,
@@ -686,7 +684,8 @@ export const teamApi = apiSlice.injectEndpoints({
           } else {
             throw new Error(`Invalid team type: ${teamType}`)
           }
-          return { data }
+          // The API answers 204 with no body; RTK Query rejects undefined as a result.
+          return { data: null }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -702,7 +701,7 @@ export const teamApi = apiSlice.injectEndpoints({
     }),
 
     deleteTeamMembership: builder.mutation<
-      void,
+      null,
       {
         teamMembershipId: string
         teamId: string
@@ -712,18 +711,15 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamMembershipId, teamId, teamType }) => {
         try {
-          let data
           if (teamType === 'Team') {
-            data = await teamsRemoveTeamMembership(teamId, teamMembershipId)
+            await teamsRemoveTeamMembership(teamId, teamMembershipId)
           } else if (teamType === 'Team of Teams') {
-            data = await teamsOfTeamsRemoveTeamMembership(
-              teamId,
-              teamMembershipId,
-            )
+            await teamsOfTeamsRemoveTeamMembership(teamId, teamMembershipId)
           } else {
             throw new Error(`Invalid team type: ${teamType}`)
           }
-          return { data }
+          // The API answers 204 with no body; RTK Query rejects undefined as a result.
+          return { data: null }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -954,7 +950,7 @@ export const teamApi = apiSlice.injectEndpoints({
     }),
 
     updateTeamOperatingModel: builder.mutation<
-      void,
+      null,
       {
         teamId: string
         operatingModelId: string
@@ -963,12 +959,9 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, operatingModelId, request }) => {
         try {
-          const data = await teamsUpdateOperatingModel(
-            teamId,
-            operatingModelId,
-            request,
-          )
-          return { data }
+          await teamsUpdateOperatingModel(teamId, operatingModelId, request)
+          // The API answers 204 with no body; RTK Query rejects undefined as a result.
+          return { data: null }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -984,13 +977,14 @@ export const teamApi = apiSlice.injectEndpoints({
     }),
 
     deleteTeamOperatingModel: builder.mutation<
-      void,
+      null,
       { teamId: string; operatingModelId: string }
     >({
       queryFn: async ({ teamId, operatingModelId }) => {
         try {
-          const data = await teamsDeleteOperatingModel(teamId, operatingModelId)
-          return { data }
+          await teamsDeleteOperatingModel(teamId, operatingModelId)
+          // The API answers 204 with no body; RTK Query rejects undefined as a result.
+          return { data: null }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -1068,7 +1062,7 @@ export const teamApi = apiSlice.injectEndpoints({
     }),
 
     updateTeamOfTeamsOperatingModel: builder.mutation<
-      void,
+      null,
       {
         teamId: string
         operatingModelId: string
@@ -1077,12 +1071,13 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, operatingModelId, request }) => {
         try {
-          const data = await teamsOfTeamsUpdateOperatingModel(
+          await teamsOfTeamsUpdateOperatingModel(
             teamId,
             operatingModelId,
             request,
           )
-          return { data }
+          // The API answers 204 with no body; RTK Query rejects undefined as a result.
+          return { data: null }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -1097,16 +1092,14 @@ export const teamApi = apiSlice.injectEndpoints({
     }),
 
     deleteTeamOfTeamsOperatingModel: builder.mutation<
-      void,
+      null,
       { teamId: string; operatingModelId: string }
     >({
       queryFn: async ({ teamId, operatingModelId }) => {
         try {
-          const data = await teamsOfTeamsDeleteOperatingModel(
-            teamId,
-            operatingModelId,
-          )
-          return { data }
+          await teamsOfTeamsDeleteOperatingModel(teamId, operatingModelId)
+          // The API answers 204 with no body; RTK Query rejects undefined as a result.
+          return { data: null }
         } catch (error) {
           console.error('API Error:', error)
           return { error }

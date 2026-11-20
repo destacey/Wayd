@@ -237,7 +237,7 @@ public sealed class GetTeamCapacityReportQueryHandlerTests(SqlServerDbContextFix
     }
 
     private static void Join(BaseTeam child, TeamOfTeams parent, LocalDate start, LocalDate? end) =>
-        child.AddTeamMembership(parent, new MembershipDateRange(start, end), EventActor.System, SqlServerDbContextFixture.FixedNow, SqlServerDbContextFixture.FixedNow.InUtc().Date)
+        child.AddTeamMembership(parent, new MembershipDateRange(start, end), EventActor.System, SqlServerDbContextFixture.FixedNow)
             .IsSuccess.Should().BeTrue();
 
     private static EmployeeCapacity Allocate(Guid employeeId, params AllocationChange[] changes)

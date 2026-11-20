@@ -55,9 +55,9 @@ public sealed class GetFunctionalOrganizationChartQueryHandlerTests
             await seedContext.TeamOfTeams.AddRangeAsync([valueStream, art], cancellationToken);
             await seedContext.Teams.AddRangeAsync([team, past], cancellationToken);
 
-            art.AddTeamMembership(valueStream, new MembershipDateRange(MembershipStart, null), EventActor.System, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
-            team.AddTeamMembership(art, new MembershipDateRange(MembershipStart, null), EventActor.System, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
-            past.AddTeamMembership(art, new MembershipDateRange(MembershipStart, asOf.PlusDays(-1)), EventActor.System, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
+            art.AddTeamMembership(valueStream, new MembershipDateRange(MembershipStart, null), EventActor.System, now).IsSuccess.Should().BeTrue();
+            team.AddTeamMembership(art, new MembershipDateRange(MembershipStart, null), EventActor.System, now).IsSuccess.Should().BeTrue();
+            past.AddTeamMembership(art, new MembershipDateRange(MembershipStart, asOf.PlusDays(-1)), EventActor.System, now).IsSuccess.Should().BeTrue();
 
             await seedContext.SaveChangesAsync(cancellationToken);
         }

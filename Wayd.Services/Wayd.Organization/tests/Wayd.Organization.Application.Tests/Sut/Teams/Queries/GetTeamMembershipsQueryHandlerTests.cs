@@ -50,7 +50,7 @@ public class GetTeamMembershipsQueryHandlerTests
         var parent = new TeamOfTeamsFaker(ActiveDate).Generate();
         _dbContext.AddTeam(team);
         _dbContext.AddTeamOfTeams(parent);
-        team.AddTeamMembership(parent, new MembershipDateRange(ActiveDate, null), EventActor.System, Now, Now.InUtc().Date).IsSuccess.Should().BeTrue();
+        team.AddTeamMembership(parent, new MembershipDateRange(ActiveDate, null), EventActor.System, Now).IsSuccess.Should().BeTrue();
 
         // Act
         var result = await _handler.Handle(new GetTeamMembershipsQuery(team.Id), TestContext.Current.CancellationToken);
@@ -72,7 +72,7 @@ public class GetTeamMembershipsQueryHandlerTests
         _dbContext.AddTeam(team);
         _dbContext.AddTeamOfTeams(parent);
         var now = Instant.FromUtc(2026, 6, 1, 5, 0);
-        team.AddTeamMembership(parent, new MembershipDateRange(new LocalDate(2026, 6, 1), null), EventActor.System, now, now.InUtc().Date).IsSuccess.Should().BeTrue();
+        team.AddTeamMembership(parent, new MembershipDateRange(new LocalDate(2026, 6, 1), null), EventActor.System, now).IsSuccess.Should().BeTrue();
         var handler = new GetTeamMembershipsQueryHandler(
             _dbContext,
             new Mock<ILogger<GetTeamMembershipsQueryHandler>>().Object,

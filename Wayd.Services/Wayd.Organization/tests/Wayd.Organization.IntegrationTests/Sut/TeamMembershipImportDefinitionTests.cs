@@ -22,13 +22,10 @@ namespace Wayd.Organization.IntegrationTests.Sut;
 /// </summary>
 /// <remarks>
 /// This import is the one whose correctness argument only a real provider can demonstrate. It is declared
-/// <see cref="ImportPassScope.WholeSet"/> because it loads every referenced team tracked with its
-/// memberships so EF's relationship fixup keeps both ends of each new edge consistent — which is what the
-/// domain's cycle check reads. An in-memory fake has no fixup at all, so against one the tests pass whether
-/// or not that mechanism works. These do not.
-/// <para>
-/// They also cover what a fake cannot see: that the <c>TeamCode</c> value-converter lookup translates to SQL.
-/// </para>
+/// <see cref="ImportPassScope.WholeSet"/> because it loads every team tracked with its memberships so EF's
+/// relationship fixup keeps both ends of each new edge consistent — which is what the domain's cycle check
+/// reads. An in-memory fake has no fixup at all, so against one the tests pass whether or not that mechanism
+/// works. These do not.
 /// </remarks>
 [Collection(SqlServerTestCollection.Name)]
 public sealed class TeamMembershipImportDefinitionTests
@@ -53,7 +50,7 @@ public sealed class TeamMembershipImportDefinitionTests
         var currentUser = new Mock<ICurrentUser>();
         currentUser.Setup(u => u.GetUserId()).Returns("user-1");
 
-        return new TeamMembershipImportDefinition(context, dateTimeProvider.Object, new TestingSystemCalendar(dateTimeProvider.Object), currentUser.Object, new ImportPayloadSerializer());
+        return new TeamMembershipImportDefinition(context, dateTimeProvider.Object, currentUser.Object, new ImportPayloadSerializer());
     }
 
     /// <summary>
@@ -138,10 +135,9 @@ public sealed class TeamMembershipImportDefinitionTests
     }
 
     [Fact]
-    public async Task AddMemberships_ResolvesTeamsByCodeThroughTheValueConverter()
+    public async Task AddMemberships_ResolvesTeamsByCode()
     {
-        // Arrange — TeamCode is a HasConversion value object; comparing against a member of it rather than
-        // the property itself does not translate, and throws only against a real provider
+        // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
         await _fixture.ResetOrganizationData(cancellationToken);
         await SeedHierarchyTeams(cancellationToken);
@@ -225,6 +221,49 @@ public sealed class TeamMembershipImportDefinitionTests
 
         art.ParentMemberships.Should().BeEmpty();
         valueStream.ParentMemberships.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// The intermediate team is not in the file, so only loading teams beyond the file's lets the cycle
+    /// check see that the new parent already sits two levels below the child.
+    /// </summary>
+    [Fact]
+    public async Task AddMemberships_RefusesACycleThroughATeamTheFileDoesNotName()
+    {
+        // Arrange — ART under VS, VS under PORT, already saved
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await _fixture.ResetOrganizationData(cancellationToken);
+        await SeedHierarchyTeams(cancellationToken);
+
+        await using (var seedContext = _fixture.CreateContext())
+        {
+            var art = await seedContext.TeamOfTeams.SingleAsync(t => t.Code == new TeamCode("ART"), cancellationToken);
+            var valueStream = await seedContext.TeamOfTeams.SingleAsync(t => t.Code == new TeamCode("VS"), cancellationToken);
+            var portfolio = TeamOfTeams.Create("Payments Portfolio", new TeamCode("PORT"), null, ActiveDate, "UTC", EventActor.System, SqlServerDbContextFixture.FixedNow);
+            await seedContext.TeamOfTeams.AddAsync(portfolio, cancellationToken);
+
+            var range = new MembershipDateRange(MembershipStart, null);
+            art.AddTeamMembership(valueStream, range, EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+            valueStream.AddTeamMembership(portfolio, range, EventActor.System, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+            await seedContext.SaveChangesAsync(cancellationToken);
+        }
+
+        await using var context = _fixture.CreateContext();
+        var definition = CreateDefinition(context);
+        var rows = Rows(definition, ("PORT", "ART"));
+
+        // Act
+        var result = await RunPass(context, definition, AddPass, rows, cancellationToken);
+
+        // Assert
+        result.Rows.Single().Failed.Should().BeTrue();
+
+        await using var assertContext = _fixture.CreateContext();
+        var stored = await assertContext.BaseTeams
+            .Include(t => t.ParentMemberships)
+            .SingleAsync(t => t.Code == new TeamCode("PORT"), cancellationToken);
+
+        stored.ParentMemberships.Should().BeEmpty();
     }
 
     [Fact]

@@ -35,7 +35,7 @@ public class GetTeamsQueryHandlerTests
         var parent = new TeamOfTeamsFaker(ActiveDate).Generate();
         _dbContext.AddTeam(team);
         _dbContext.AddTeamOfTeams(parent);
-        team.AddTeamMembership(parent, new MembershipDateRange(new LocalDate(2026, 6, 1), null), EventActor.System, Now, new LocalDate(2026, 5, 31)).IsSuccess.Should().BeTrue();
+        team.AddTeamMembership(parent, new MembershipDateRange(new LocalDate(2026, 6, 1), null), EventActor.System, Now).IsSuccess.Should().BeTrue();
 
         // Act
         var result = await _handler.Handle(new GetTeamsQuery(), TestContext.Current.CancellationToken);

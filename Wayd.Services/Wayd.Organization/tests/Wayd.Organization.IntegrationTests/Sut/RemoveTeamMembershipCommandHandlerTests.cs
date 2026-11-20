@@ -77,7 +77,7 @@ public sealed class RemoveTeamMembershipCommandHandlerTests
         await context.TeamOfTeams.AddAsync(parent, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
 
-        var membership = child.AddTeamMembership(parent, new MembershipDateRange(ActiveDate.PlusDays(10), null), EventActor.System, SqlServerDbContextFixture.FixedNow, SqlServerDbContextFixture.FixedNow.InUtc().Date).Value;
+        var membership = child.AddTeamMembership(parent, new MembershipDateRange(ActiveDate.PlusDays(10), null), EventActor.System, SqlServerDbContextFixture.FixedNow).Value;
         await context.SaveChangesAsync(cancellationToken);
 
         return membership.Id;

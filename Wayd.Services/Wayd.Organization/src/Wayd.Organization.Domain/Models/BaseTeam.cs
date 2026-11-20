@@ -245,9 +245,8 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
     /// <param name="dateRange">The date range.</param>
     /// <param name="actor">Who is making the change, for the domain event this raises.</param>
     /// <param name="timestamp">The timestamp.</param>
-    /// <param name="today">Today in the system time zone: the day the team hierarchy is read on to refuse a circular membership.</param>
     /// <returns></returns>
-    public Result<TeamMembership> AddTeamMembership(TeamOfTeams parentTeam, MembershipDateRange dateRange, EventActor actor, Instant timestamp, LocalDate today)
+    public Result<TeamMembership> AddTeamMembership(TeamOfTeams parentTeam, MembershipDateRange dateRange, EventActor actor, Instant timestamp)
     {
         try
         {
@@ -263,12 +262,8 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
             if (_parentMemberships.Any(m => m.DateRange.Overlaps(dateRange)))
                 return Result.Failure<TeamMembership>("Teams can only have one active parent Team Membership.  This membership would create an overlapping membership.");
 
-            if (this is TeamOfTeams teamOfTeams)
-            {
-                var descendantIds = teamOfTeams.GetDescendantTeamIdsAsOf(today);
-                if (descendantIds.Contains(parentTeam.Id))
-                    return Result.Failure<TeamMembership>($"The parent team {parentTeam.Name} is a descendant of this team.  This would create a circular reference.");
-            }
+            if (this is TeamOfTeams teamOfTeams && teamOfTeams.HasDescendantDuring(parentTeam.Id, dateRange))
+                return Result.Failure<TeamMembership>($"The parent team {parentTeam.Name} is a descendant of this team.  This would create a circular reference.");
 
             var membership = TeamMembership.Create(this, parentTeam, dateRange);
             _parentMemberships.Add(membership);
@@ -314,6 +309,9 @@ public abstract class BaseTeam : BaseSoftDeletableEntity, ISimpleTeam, IHasIdAnd
 
             if (_parentMemberships.Any(m => m.Id != membershipId && m.DateRange.Overlaps(dateRange)))
                 return Result.Failure<TeamMembership>("Teams can only have one active parent Team Membership.  This membership would create an overlapping membership.");
+
+            if (this is TeamOfTeams teamOfTeams && teamOfTeams.HasDescendantDuring(membership.TargetId, dateRange))
+                return Result.Failure<TeamMembership>($"The parent team {membership.Target.Name} is a descendant of this team.  This would create a circular reference.");
 
             var previous = membership.DateRange;
             membership.Update(dateRange);

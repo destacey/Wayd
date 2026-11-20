@@ -32,7 +32,7 @@ public sealed class TeamMembershipImportDefinitionTests : IDisposable
         var clock = new TestingDateTimeProvider(new FakeClock(Instant.FromUtc(2026, 6, 2, 0, 0)));
         var currentUser = new Mock<ICurrentUser>();
         currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
-        _definition = new TeamMembershipImportDefinition(_dbContext, clock, new TestingSystemCalendar(clock), currentUser.Object, new ImportPayloadSerializer());
+        _definition = new TeamMembershipImportDefinition(_dbContext, clock, currentUser.Object, new ImportPayloadSerializer());
     }
 
     private Team SeedTeam(string code)

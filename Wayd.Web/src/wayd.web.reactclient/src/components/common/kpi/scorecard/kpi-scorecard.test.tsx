@@ -52,6 +52,7 @@ const kpi = (
   source: KpiSource.Manual,
   expressedAs: KpiExpressedAs.Value,
   window: { kind: KpiWindowKind.PerPeriod },
+  checkpoints: [],
   status: KpiStatus.Active,
   order: 0,
   goal: {

@@ -1804,8 +1804,8 @@
         "tags": [
           "KpiImports"
         ],
-        "summary": "Submit csv files of KPIs and their measurements to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
-        "description": "Takes two files: one row per KPI, naming the record it goes on by id, and one row per measurement naming the ImportId of its KPI. A KPI's WindowKind decides how each of its measurements says when it was taken: PeriodStart and PeriodEnd for PerPeriod, AsOf for Cumulative and Rolling, MeasuredAt for PointInTime. The measurements file may be empty of rows, but it must be sent with its header. A KPI and its measurements apply together: a value that clashes with another, one given the wrong way for the window, or a goal the KPI cannot hold, rejects that KPI alone.",
+        "summary": "Submit csv files of KPIs, their measurements and their checkpoint plans to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
+        "description": "Takes one row per KPI, naming the record it goes on by id; one row per measurement naming the ImportId of its KPI; and, optionally, one row per checkpoint naming the ImportId of its KPI. A KPI's WindowKind decides how each of its measurements says when it was taken: PeriodStart and PeriodEnd for PerPeriod, AsOf for Cumulative and Rolling, MeasuredAt for PointInTime. The measurements file may be empty of rows, but it must be sent with its header. A KPI, its measurements and its plan apply together: a value that clashes with another, one given the wrong way for the window, a goal the KPI cannot hold, or a plan with two checkpoints on one day or an at-risk value on the wrong side of its planned value, rejects that KPI alone.",
         "operationId": "KpiImports_Import",
         "parameters": [
           {
@@ -1843,6 +1843,13 @@
                   },
                   "measurementsFile": {
                     "type": "string",
+                    "format": "binary"
+                  },
+                  "checkpointsFile": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
                     "format": "binary"
                   }
                 }
@@ -1912,6 +1919,12 @@
               "label": "Measurements",
               "schema": "ImportKpiMeasurementRequest",
               "required": true
+            },
+            {
+              "field": "checkpointsFile",
+              "label": "Checkpoints",
+              "schema": "ImportKpiCheckpointRequest",
+              "required": false
             }
           ]
         }
@@ -3034,6 +3047,200 @@
             }
           }
         ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/kpis/{subjectType}/{subjectId}/{kpiId}/checkpoints": {
+      "get": {
+        "tags": [
+          "Kpis"
+        ],
+        "summary": "Get a KPI's checkpoint plan.",
+        "description": "`subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. Returns each checkpoint in date order with the latest measurement whose period ends under it — after the checkpoint before, on or before this one — and that measurement's health and trend against the checkpoint. Empty when the KPI has no plan. Returns 404 too when the KPI is on another record.",
+        "operationId": "Kpis_GetCheckpointPlan",
+        "parameters": [
+          {
+            "name": "subjectType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subjectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "kpiId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KpiCheckpointReadingDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Kpis"
+        ],
+        "summary": "Replace a KPI's checkpoint plan.",
+        "description": "`subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. Send the whole plan: a checkpoint on a day already planned is changed, one on a new day added, and a planned day left out removed; an empty list clears it. While a measurement's period ends on or before a checkpoint, its health is judged against the first such checkpoint — its planned value, and its at-risk value or none — instead of the target; past the last checkpoint the target and the KPI's own at-risk threshold apply. A closed KPI's plan cannot change. Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.",
+        "operationId": "Kpis_ChangeCheckpointPlan",
+        "parameters": [
+          {
+            "name": "subjectType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subjectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "kpiId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KpiCheckpointPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "204": {
             "description": "No Content"
@@ -67644,6 +67851,54 @@
         "additionalProperties": false,
         "description": "A single CSV row for the intake request import: one request, as it was submitted and where its review\nhas got to. Desks, channels, tags and people are named by id. A request starts in the status meaning\nSubmitted and is moved to `Status` when the row names another, recorded at `StatusChangedAt`.\nTimestamps are instants, and each must carry its offset."
       },
+      "ImportKpiCheckpointRequest": {
+        "required": [
+          "kpiImportId",
+          "date",
+          "label",
+          "plannedValue"
+        ],
+        "type": "object",
+        "properties": {
+          "kpiImportId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The `ImportId` of the KPI row this checkpoint belongs to.",
+            "x-csv-column": "KpiImportId"
+          },
+          "date": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The day the planned value is due. One checkpoint per day on a KPI.",
+            "format": "date",
+            "x-csv-column": "Date"
+          },
+          "label": {
+            "maxLength": 32,
+            "minLength": 1,
+            "type": "string",
+            "description": "A short name for the checkpoint, such as `Q1` or `Sprint 12`, up to 32 characters.",
+            "x-csv-column": "Label"
+          },
+          "plannedValue": {
+            "type": "number",
+            "description": "The value the KPI is expected to reach by then. Planned values may fall back, for a seasonal plan.",
+            "format": "double",
+            "x-csv-column": "PlannedValue"
+          },
+          "atRiskValue": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Optional: the value past which a measurement read against this checkpoint is at risk. Must be short of the\nplanned value in the KPI's direction. Blank for on-plan-or-not health.",
+            "format": "double",
+            "x-csv-column": "AtRiskValue"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A single CSV row for the checkpoints file: one checkpoint of one KPI's plan."
+      },
       "ImportKpiMeasurementRequest": {
         "required": [
           "kpiImportId",
@@ -67955,7 +68210,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "A single CSV row for the KPI import — one KPI on an existing record, without its history. Measurements arrive\nin a second file and point back here by this row's `ImportId`."
+        "description": "A single CSV row for the KPI import — one KPI on an existing record, without its history or plan. Measurements\narrive in a second file and checkpoints in an optional third, each pointing back here by this row's\n`ImportId`."
       },
       "ImportPlanningIntervalObjectivesRequest": {
         "required": [
@@ -73343,6 +73598,40 @@
         "additionalProperties": false,
         "description": "A KPI category's name and description."
       },
+      "KpiCheckpointDto": {
+        "required": [
+          "date",
+          "label",
+          "plannedValue"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "The day the planned value is due.",
+            "format": "date"
+          },
+          "label": {
+            "type": "string",
+            "description": "A short name for it, such as \"Q1\"."
+          },
+          "plannedValue": {
+            "type": "number",
+            "description": "The value the KPI is expected to reach by then.",
+            "format": "double"
+          },
+          "atRiskValue": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The line short of the planned value past which a measurement is at risk, or null for two-state health.",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One checkpoint of a KPI's plan."
+      },
       "KpiCheckpointPlanItemRequest": {
         "required": [
           "targetValue",
@@ -73386,12 +73675,102 @@
         },
         "additionalProperties": false
       },
+      "KpiCheckpointPlanRequest": {
+        "required": [
+          "checkpoints"
+        ],
+        "type": "object",
+        "properties": {
+          "checkpoints": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KpiCheckpointRequest"
+            },
+            "description": "Every checkpoint of the plan, in any order. Empty clears the plan."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A KPI's whole checkpoint plan, replacing the one it has."
+      },
+      "KpiCheckpointReadingDto": {
+        "required": [
+          "checkpoint",
+          "reading"
+        ],
+        "type": "object",
+        "properties": {
+          "checkpoint": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/KpiCheckpointDto"
+              }
+            ],
+            "description": "The checkpoint."
+          },
+          "measurement": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/KpiPointDto"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The measurement read against it, or null when none falls under it yet."
+          },
+          "reading": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/KpiReadingDto"
+              }
+            ],
+            "description": "What that measurement means against the checkpoint; with no measurement, no health and no trend."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One checkpoint of a KPI's plan with the latest measurement read against it: the last whose period ends after the\ncheckpoint before and on or before this one."
+      },
+      "KpiCheckpointRequest": {
+        "required": [
+          "date",
+          "label",
+          "plannedValue"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "The day the planned value is due, as `YYYY-MM-DD`; one checkpoint per day.",
+            "format": "date"
+          },
+          "label": {
+            "type": "string",
+            "description": "A short name for it, such as `Q1` or `Sprint 12`, up to 32 characters."
+          },
+          "plannedValue": {
+            "type": "number",
+            "description": "The value the KPI is expected to reach by then. Planned values may fall back, for a seasonal plan.",
+            "format": "double"
+          },
+          "atRiskValue": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Optional: a value short of the planned value, in the KPI's direction, past which a measurement read against\nthis checkpoint is at risk rather than unhealthy. Leave it out for on-plan-or-not health.",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One checkpoint of a KPI's plan."
+      },
       "KpiDetailsDto": {
         "required": [
           "kpi",
           "subjectName",
           "canManage",
-          "measurements"
+          "measurements",
+          "checkpointReadings"
         ],
         "type": "object",
         "properties": {
@@ -73417,6 +73796,13 @@
               "$ref": "#/components/schemas/KpiMeasurementDto"
             },
             "description": "Every measurement, newest period first, then newest moment."
+          },
+          "checkpointReadings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KpiCheckpointReadingDto"
+            },
+            "description": "Each checkpoint of its plan in date order, with the measurement read against it; empty without a plan."
           }
         },
         "additionalProperties": false,
@@ -73861,7 +74247,7 @@
                 "type": "null"
               }
             ],
-            "description": "Whether the value meets the target, is at risk, or neither; null when nothing has been measured."
+            "description": "Whether the value meets its checkpoint's planned value, or the target past the plan, is at risk, or neither; null when nothing has been measured."
           },
           "trend": {
             "oneOf": [
@@ -73886,6 +74272,17 @@
             ],
             "description": "How many measurements Value averages, or null when it is the latest alone; fewer than the KPI asks for while it has fewer.",
             "format": "int32"
+          },
+          "checkpoint": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/KpiCheckpointDto"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The checkpoint health was judged against, or null when it was judged against the target."
           }
         },
         "additionalProperties": false,
@@ -74056,6 +74453,7 @@
           "order",
           "goal",
           "reading",
+          "checkpoints",
           "recentValues"
         ],
         "type": "object",
@@ -74165,7 +74563,14 @@
                 "$ref": "#/components/schemas/KpiReadingDto"
               }
             ],
-            "description": "What its latest value means against the goal."
+            "description": "What its latest value means against the goal, or against the checkpoint it falls under."
+          },
+          "checkpoints": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KpiCheckpointDto"
+            },
+            "description": "Its checkpoint plan, in date order; empty when it has none."
           },
           "recentValues": {
             "type": "array",

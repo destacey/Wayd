@@ -17,6 +17,9 @@ public sealed class GetTeamsDependencyHealthQueryHandlerTests(SqlServerDbContext
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
+    // Both ends planned over the same days, which is At Risk.
+    private static readonly (LocalDate Start, LocalDate End) SameSprint = (new LocalDate(2026, 9, 14), new LocalDate(2026, 9, 27));
+
     private async Task<TeamsDependencyHealthDto> Health(params Guid[] teamIds)
     {
         await using var accessor = new WaydDbContextAccessor(_fixture);
@@ -35,7 +38,7 @@ public sealed class GetTeamsDependencyHealthQueryHandlerTests(SqlServerDbContext
         var started = await _seed.AddItem(team.Id, Ct, StatusCategory.Active);
         var o1 = await _seed.AddItem(outside.Id, Ct);
 
-        await _seed.AddDependency(a1.Id, a2.Id, Ct);            // within the team, both unplanned: at risk
+        await _seed.AddDependency(a1.Id, a2.Id, Ct, predecessorPlan: SameSprint, successorPlan: SameSprint); // within the team: at risk
         await _seed.AddDependency(o1.Id, started.Id, Ct);       // successor started first: unhealthy
         await _seed.AddDependency(a2.Id, o1.Id, Ct, removed: true);
 
@@ -74,7 +77,7 @@ public sealed class GetTeamsDependencyHealthQueryHandlerTests(SqlServerDbContext
         var teamB = await _seed.AddTeam(Ct);
         var a = await _seed.AddItem(teamA.Id, Ct);
         var b = await _seed.AddItem(teamB.Id, Ct);
-        await _seed.AddDependency(a.Id, b.Id, Ct);
+        await _seed.AddDependency(a.Id, b.Id, Ct, predecessorPlan: SameSprint, successorPlan: SameSprint);
 
         // Act
         var health = await Health(teamA.Id, teamB.Id);

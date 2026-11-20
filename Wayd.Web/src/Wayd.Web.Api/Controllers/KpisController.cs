@@ -262,6 +262,42 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
         return result.IsSuccess ? NoContent() : ErrorResult(result.Error);
     }
 
+    [HttpGet("{kpiId:guid}/checkpoints")]
+    [McpTool("Kpis_GetCheckpointPlan", "Get a KPI's checkpoint plan")]
+    [EndpointSummary("Get a KPI's checkpoint plan.")]
+    [EndpointDescription($"{SubjectDocs} Returns each checkpoint in date order with the latest measurement whose period ends under it — after the checkpoint before, on or before this one — and that measurement's health and trend against the checkpoint. Empty when the KPI has no plan. Returns 404 too when the KPI is on another record.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<IReadOnlyList<KpiCheckpointReadingDto>>> GetCheckpointPlan(string subjectType, Guid subjectId, Guid kpiId, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new GetKpiCheckpointPlanQuery(subjectType, subjectId, kpiId), cancellationToken);
+
+        if (result.IsFailure)
+            return BadRequest(result.ToBadRequestObject(HttpContext));
+
+        return result.Value is not null ? Ok(result.Value) : NotFound();
+    }
+
+    [HttpPut("{kpiId:guid}/checkpoints")]
+    [McpTool("Kpis_ChangeCheckpointPlan", "Replace a KPI's checkpoint plan")]
+    [EndpointSummary("Replace a KPI's checkpoint plan.")]
+    [EndpointDescription($"{SubjectDocs} Send the whole plan: a checkpoint on a day already planned is changed, one on a new day added, and a planned day left out removed; an empty list clears it. While a measurement's period ends on or before a checkpoint, its health is judged against the first such checkpoint — its planned value, and its at-risk value or none — instead of the target; past the last checkpoint the target and the KPI's own at-risk threshold apply. A closed KPI's plan cannot change. {ManageDocs}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> ChangeCheckpointPlan(string subjectType, Guid subjectId, Guid kpiId, [FromBody] KpiCheckpointPlanRequest request, CancellationToken cancellationToken)
+    {
+        var plan = request.Checkpoints.Select(c => c.ToValues()).ToList();
+        var result = await _dispatcher.Send(new ChangeKpiCheckpointPlanCommand(subjectType, subjectId, kpiId, plan), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : ErrorResult(result.Error);
+    }
+
     private ActionResult ErrorResult(string error)
     {
         if (KpiAccessErrors.IsNotFound(error))

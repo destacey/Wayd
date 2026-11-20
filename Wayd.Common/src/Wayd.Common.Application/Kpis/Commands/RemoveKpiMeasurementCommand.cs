@@ -40,6 +40,6 @@ public sealed class RemoveKpiMeasurementCommandHandler(KpiCommandScope scope) : 
 
         var removed = kpi.Value.RemoveMeasurement(command.MeasurementId, _scope.Actor, _scope.Now);
 
-        return removed.IsSuccess ? await _scope.SaveMeasurements(kpi.Value, cancellationToken) : removed;
+        return removed.IsSuccess ? await _scope.SaveTouchingKpi(kpi.Value, cancellationToken) : removed;
     }
 }

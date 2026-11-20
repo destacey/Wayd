@@ -12,6 +12,11 @@ public sealed record DependencyWorkItemInfo
     /// <summary>The work item's status category, which decides the dependency's state and health.</summary>
     public StatusCategory StatusCategory { get; set; }
 
+    /// <summary>
+    /// The first planned day of the work item's sprint, set whenever <see cref="PlannedOn"/> is. A sprint with no
+    /// planned start reads as starting on its last day.
+    /// </summary>
+    public LocalDate? PlannedStart { get; set; }
 
     /// <summary>
     /// The last planned day of the work item's sprint, while that day is not yet over in the sprint team's time
@@ -30,10 +35,11 @@ public sealed record DependencyWorkItemInfo
     /// The dependency info at <paramref name="now"/> of a work item in a sprint. The sprint has ended once its
     /// last planned day is over in <paramref name="sprintZone"/>, matching <see cref="TeamSprintTimeline.PlannedEnd"/>.
     /// </summary>
+    /// <param name="sprintStart">The first planned day of the item's sprint, when it has one.</param>
     /// <param name="sprintEnd">The last planned day of the item's sprint.</param>
     /// <param name="sprintZone">The zone the sprint's days are counted in: its team's on the sprint's planned
     /// start, or the system time zone for a sprint with no team or no planned start.</param>
-    public static DependencyWorkItemInfo Create(Guid workItemId, StatusCategory statusCategory, LocalDate sprintEnd, DateTimeZone sprintZone, Instant now)
+    public static DependencyWorkItemInfo Create(Guid workItemId, StatusCategory statusCategory, LocalDate? sprintStart, LocalDate sprintEnd, DateTimeZone sprintZone, Instant now)
     {
         var ended = now >= sprintEnd.PlusDays(1).AtStartOfDayInZone(sprintZone).ToInstant();
 
@@ -41,6 +47,7 @@ public sealed record DependencyWorkItemInfo
         {
             WorkItemId = workItemId,
             StatusCategory = statusCategory,
+            PlannedStart = ended ? null : sprintStart ?? sprintEnd,
             PlannedOn = ended ? null : sprintEnd
         };
     }

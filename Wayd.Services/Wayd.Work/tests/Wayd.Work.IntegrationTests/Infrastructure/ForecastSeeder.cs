@@ -227,7 +227,16 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
     }
 
     /// <param name="createdOn">When the link was made; <see cref="Now"/> when not given.</param>
-    public async Task AddDependency(Guid predecessorId, Guid successorId, CancellationToken cancellationToken, bool removed = false, Instant? createdOn = null)
+    /// <param name="predecessorPlan">The predecessor's planned dates, which health is calculated from; none when not given.</param>
+    /// <param name="successorPlan">The successor's planned dates; none when not given.</param>
+    public async Task AddDependency(
+        Guid predecessorId,
+        Guid successorId,
+        CancellationToken cancellationToken,
+        bool removed = false,
+        Instant? createdOn = null,
+        (LocalDate Start, LocalDate End)? predecessorPlan = null,
+        (LocalDate Start, LocalDate End)? successorPlan = null)
     {
         await using var context = _fixture.CreateContext();
         var infos = await context.WorkItems
@@ -236,11 +245,14 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
             .ToListAsync(cancellationToken);
 
         context.WorkItemDependencies.Add(WorkItemDependency.Create(
-            infos.Single(i => i.WorkItemId == predecessorId),
-            infos.Single(i => i.WorkItemId == successorId),
+            WithPlan(infos.Single(i => i.WorkItemId == predecessorId), predecessorPlan),
+            WithPlan(infos.Single(i => i.WorkItemId == successorId), successorPlan),
             createdOn ?? Now, null, removed ? Now : null, null, null));
         await context.SaveChangesAsync(cancellationToken);
     }
+
+    private static DependencyWorkItemInfo WithPlan(DependencyWorkItemInfo info, (LocalDate Start, LocalDate End)? plan) =>
+        plan is { } p ? info with { PlannedStart = p.Start, PlannedOn = p.End } : info;
 
     public async Task AddReference(Guid workItemId, Guid objectId, CancellationToken cancellationToken)
     {

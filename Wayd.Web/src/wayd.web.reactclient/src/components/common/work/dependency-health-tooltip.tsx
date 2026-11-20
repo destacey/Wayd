@@ -12,11 +12,11 @@ export interface DependencyHealthTooltipProps {
 export const getHealthDescription = (health: DependencyHealth): string => {
   switch (health) {
     case DependencyHealth.Healthy:
-      return 'The predecessor is planned to complete on or before the successor, or is planned while the successor is not.'
+      return 'The successor has no planned dates, or the predecessor is planned to finish on or before the day the successor is planned to start.'
     case DependencyHealth.AtRisk:
-      return 'Neither the predecessor nor successor have future planned dates. Sprints in the past are not considered for date comparisons.'
+      return 'The predecessor and successor are planned for the same time, or the predecessor has started without planned dates while the successor has them. Sprints that have ended give no planned dates.'
     case DependencyHealth.Unhealthy:
-      return 'The predecessor is planned to complete after the successor needs it, or is not planned while the successor is; the successor has started, finished or been removed while the predecessor is still open; or the predecessor was removed while the successor is still open.'
+      return 'The predecessor is planned to finish after the successor, or has neither started nor planned dates while the successor has them; the successor has started, finished or been removed while the predecessor is still open; or the predecessor was removed while the successor is still open.'
     case DependencyHealth.Closed:
       return 'The predecessor is done, or it was removed and the successor is done or removed too. Planning no longer applies.'
     default:

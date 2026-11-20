@@ -10065,6 +10065,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<DateTime?>("SourcePlannedOn")
                         .HasColumnType("date");
 
+                    b.Property<DateTime?>("SourcePlannedStart")
+                        .HasColumnType("date");
+
                     b.Property<int>("SourceStatusCategory")
                         .HasColumnType("int");
 
@@ -10072,6 +10075,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("TargetPlannedOn")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("TargetPlannedStart")
                         .HasColumnType("date");
 
                     b.Property<int>("TargetStatusCategory")

@@ -166,7 +166,7 @@ export const DependenciesAtRiskTile: FC<HomeTileProps> = ({ title }) => {
       title={title}
       context={`on ${teams}`}
       value={value}
-      tooltip={`Open dependencies of ${teams} that are at risk (neither end planned) or unhealthy (planned to finish after they are needed). A dependency between two of them counts once.`}
+      tooltip={`Open dependencies of ${teams} that are at risk (both ends planned for the same time) or unhealthy (planned to finish after they are needed). A dependency between two of them counts once.`}
       href={`#${widgetAnchorId('my-teams')}`}
       alert="warning"
       loading={isLoading}

@@ -54,7 +54,7 @@ public static class DependencyWorkItemInfoLoader
         return items.ToDictionary(
             i => i.Id,
             i => i.SprintId is { } sprintId && i.End is { } end
-                ? DependencyWorkItemInfo.Create(i.Id, i.StatusCategory, end, schedules[sprintId].TimeZone, now)
+                ? DependencyWorkItemInfo.Create(i.Id, i.StatusCategory, i.Start, end, schedules[sprintId].TimeZone, now)
                 : DependencyWorkItemInfo.Create(i.Id, i.StatusCategory));
     }
 }

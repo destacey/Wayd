@@ -22,7 +22,9 @@ public class WorkItemDependencyFaker : PrivateConstructorFaker<WorkItemDependenc
         RuleFor(x => x.TargetId, targetWorkItem.Id);
         RuleFor(x => x.Target, targetWorkItem);
         RuleFor(x => x.TargetStatusCategory, targetWorkItem.StatusCategory);
+        RuleFor(x => x.SourcePlannedStart, f => null);
         RuleFor(x => x.SourcePlannedOn, f => null);
+        RuleFor(x => x.TargetPlannedStart, f => null);
         RuleFor(x => x.TargetPlannedOn, f => null);
         RuleFor(x => x.CreatedOn, f => f.Date.Past().AsUtc().ToInstant());
         RuleFor(x => x.CreatedById, f => f.Random.Guid());
@@ -48,6 +50,20 @@ public static class WorkItemDependencyFakerExtensions
         faker.RuleFor(x => x.TargetId, target.Id);
         faker.RuleFor(x => x.Target, target);
         faker.RuleFor(x => x.TargetStatusCategory, target.StatusCategory);
+
+        return faker;
+    }
+
+    public static WorkItemDependencyFaker WithSourcePlannedStart(this WorkItemDependencyFaker faker, LocalDate? sourcePlannedStart)
+    {
+        faker.RuleFor(x => x.SourcePlannedStart, sourcePlannedStart);
+
+        return faker;
+    }
+
+    public static WorkItemDependencyFaker WithTargetPlannedStart(this WorkItemDependencyFaker faker, LocalDate? targetPlannedStart)
+    {
+        faker.RuleFor(x => x.TargetPlannedStart, targetPlannedStart);
 
         return faker;
     }

@@ -120,8 +120,13 @@ public class WorkItemDependencyTests
         yield return new object[] { StatusCategory.Removed, StatusCategory.Done, -10, -5, DependencyPlanningHealth.Closed };
         yield return new object[] { StatusCategory.Removed, StatusCategory.Removed, -10, -5, DependencyPlanningHealth.Closed };
 
-        // both proposed and unplanned, -> AtRisk
-        yield return new object[] { StatusCategory.Proposed, StatusCategory.Proposed, null!, null!, DependencyPlanningHealth.AtRisk };
+        // neither side planned -> Healthy, whether or not the predecessor has started
+        yield return new object[] { StatusCategory.Proposed, StatusCategory.Proposed, null!, null!, DependencyPlanningHealth.Healthy };
+        yield return new object[] { StatusCategory.Active, StatusCategory.Proposed, null!, null!, DependencyPlanningHealth.Healthy };
+
+        // predecessor with no sprint and successor planned -> At Risk once started, Unhealthy before
+        yield return new object[] { StatusCategory.Active, StatusCategory.Proposed, null!, 5, DependencyPlanningHealth.AtRisk };
+        yield return new object[] { StatusCategory.Proposed, StatusCategory.Proposed, null!, 5, DependencyPlanningHealth.Unhealthy };
 
         // if the source is not done but the target is active/done/removed, -> Unhealthy
         yield return new object[] { StatusCategory.Proposed, StatusCategory.Active, null!, null!, DependencyPlanningHealth.Unhealthy };
@@ -134,9 +139,6 @@ public class WorkItemDependencyTests
         // predecessor before successor -> Healthy
         yield return new object[] { StatusCategory.Proposed, StatusCategory.Proposed, 1, 2, DependencyPlanningHealth.Healthy };
 
-        // predecessor equal successor -> Healthy
-        yield return new object[] { StatusCategory.Proposed, StatusCategory.Proposed, 5, 5, DependencyPlanningHealth.Healthy };
-
         // predecessor after successor -> Unhealthy
         yield return new object[] { StatusCategory.Proposed, StatusCategory.Proposed, 5, 2, DependencyPlanningHealth.Unhealthy };
 
@@ -144,20 +146,44 @@ public class WorkItemDependencyTests
         yield return new object[] { StatusCategory.Proposed, StatusCategory.Proposed, 3, null!, DependencyPlanningHealth.Healthy };
     }
 
+    [Theory]
+    [InlineData(0, 13, 0, 13, DependencyPlanningHealth.AtRisk)]    // the same sprint, or two teams' sprints on the same days
+    [InlineData(0, 13, 7, 20, DependencyPlanningHealth.AtRisk)]    // offset cadences: the successor's sprint starts mid-way through the predecessor's
+    [InlineData(7, 13, 0, 13, DependencyPlanningHealth.AtRisk)]    // a shorter predecessor sprint ending with the successor's
+    [InlineData(0, 13, 13, 26, DependencyPlanningHealth.Healthy)]  // the predecessor's sprint ends the day the successor's starts
+    [InlineData(0, 13, 14, 27, DependencyPlanningHealth.Healthy)]  // consecutive sprints
+    [InlineData(7, 20, 0, 13, DependencyPlanningHealth.Unhealthy)] // the predecessor's sprint outlasts the successor's
+    [InlineData(14, 27, 0, 13, DependencyPlanningHealth.Unhealthy)] // the predecessor's sprint starts after the successor's ends
+    public void Create_Health_ComparesSprintRanges(int sourceStart, int sourceEnd, int targetStart, int targetEnd, DependencyPlanningHealth expected)
+    {
+        // Arrange
+        var today = new LocalDate(2026, 11, 2);
+
+        // Act
+        var dep = _dependencyFaker
+            .WithSourcePlannedStart(today.PlusDays(sourceStart)).WithSourcePlannedOn(today.PlusDays(sourceEnd))
+            .WithTargetPlannedStart(today.PlusDays(targetStart)).WithTargetPlannedOn(today.PlusDays(targetEnd))
+            .WithCreatedOn(_dateTimeProvider.Now)
+            .Generate();
+
+        // Assert
+        Assert.Equal(expected, dep.Health);
+    }
+
     [Fact]
     public void UpdateSourceInfo_RecomputesHealth()
     {
-        // Arrange: start with no planned dates -> AtRisk
+        // Arrange: successor planned, predecessor not started and unplanned -> Unhealthy
         var now = _dateTimeProvider.Now;
         var today = _dateTimeProvider.Now.InUtc().Date;
 
         var source = _workItemFaker.WithProposedState().Generate();
         var target = _workItemFaker.WithStatusCategory(StatusCategory.Proposed).Generate();
-        var dep = _dependencyFaker.WithSource(source).WithTarget(target).WithCreatedOn(now).Generate();
+        var dep = _dependencyFaker.WithSource(source).WithTarget(target).WithTargetPlannedOn(today.PlusDays(10)).WithCreatedOn(now).Generate();
 
-        Assert.Equal(DependencyPlanningHealth.AtRisk, dep.Health);
+        Assert.Equal(DependencyPlanningHealth.Unhealthy, dep.Health);
 
-        // Act: add source planned date
+        // Act: plan the source before the target
         var sourcePlannedOn = today.PlusDays(5);
         var sourceInfo = new DependencyWorkItemInfo
         {
@@ -167,7 +193,7 @@ public class WorkItemDependencyTests
         };
         dep.UpdateSourceInfo(sourceInfo);
 
-        // Assert: now healthy (source planned, target unplanned)
+        // Assert
         Assert.Equal(DependencyPlanningHealth.Healthy, dep.Health);
         Assert.Equal(sourcePlannedOn, dep.SourcePlannedOn);
     }
@@ -205,7 +231,7 @@ public class WorkItemDependencyTests
     [Fact]
     public void UpdateSourceAndTargetInfo_UpdatesBothDates_RecomputesHealth()
     {
-        // Arrange: start with no planned dates -> AtRisk
+        // Arrange: start with no planned dates
         var now = _dateTimeProvider.Now;
         var today = _dateTimeProvider.Now.InUtc().Date;
 
@@ -213,7 +239,6 @@ public class WorkItemDependencyTests
         var target = _workItemFaker.WithStatusCategory(StatusCategory.Proposed).Generate();
         var dep = _dependencyFaker.WithSource(source).WithTarget(target).WithCreatedOn(now).Generate();
 
-        Assert.Equal(DependencyPlanningHealth.AtRisk, dep.Health);
         Assert.Null(dep.SourcePlannedOn);
         Assert.Null(dep.TargetPlannedOn);
 
@@ -279,19 +304,19 @@ public class WorkItemDependencyTests
     }
 
     [Fact]
-    public void UpdateSourceAndTargetInfo_ClearingBothDates_SetsToAtRisk()
+    public void UpdateSourceAndTargetInfo_ClearingBothDates_SetsToHealthy()
     {
-        // Arrange: start with healthy planned dates
+        // Arrange: start with the predecessor planned after the successor
         var now = _dateTimeProvider.Now;
         var today = _dateTimeProvider.Now.InUtc().Date;
 
         var source = _workItemFaker.WithProposedState().Generate();
         var target = _workItemFaker.WithStatusCategory(StatusCategory.Proposed).Generate();
-        var sourcePlannedOn = today.PlusDays(5);
-        var targetPlannedOn = today.PlusDays(10);
+        var sourcePlannedOn = today.PlusDays(10);
+        var targetPlannedOn = today.PlusDays(5);
         var dep = _dependencyFaker.WithSource(source).WithTarget(target).WithSourcePlannedOn(sourcePlannedOn).WithTargetPlannedOn(targetPlannedOn).WithCreatedOn(now).Generate();
 
-        Assert.Equal(DependencyPlanningHealth.Healthy, dep.Health);
+        Assert.Equal(DependencyPlanningHealth.Unhealthy, dep.Health);
 
         // Act: clear both planned dates using the combined method
         var sourceInfo = new DependencyWorkItemInfo
@@ -308,8 +333,8 @@ public class WorkItemDependencyTests
         };
         dep.UpdateSourceAndTargetInfo(sourceInfo, targetInfo);
 
-        // Assert: health is AtRisk when both are unplanned
-        Assert.Equal(DependencyPlanningHealth.AtRisk, dep.Health);
+        // Assert: nothing waits on an unplanned successor
+        Assert.Equal(DependencyPlanningHealth.Healthy, dep.Health);
         Assert.Null(dep.SourcePlannedOn);
         Assert.Null(dep.TargetPlannedOn);
     }
@@ -317,15 +342,13 @@ public class WorkItemDependencyTests
     [Fact]
     public void UpdateSourceInfo_OnlySourcePlanned_SetsToHealthy()
     {
-        // Arrange: start with both unplanned -> AtRisk
+        // Arrange: start with both unplanned
         var now = _dateTimeProvider.Now;
         var today = _dateTimeProvider.Now.InUtc().Date;
 
         var source = _workItemFaker.WithProposedState().Generate();
         var target = _workItemFaker.WithStatusCategory(StatusCategory.Proposed).Generate();
         var dep = _dependencyFaker.WithSource(source).WithTarget(target).WithCreatedOn(now).Generate();
-
-        Assert.Equal(DependencyPlanningHealth.AtRisk, dep.Health);
 
         // Act: set only source planned date
         var sourcePlannedOn = today.PlusDays(5);
@@ -517,14 +540,16 @@ public class WorkItemDependencyTests
         var now = Instant.FromUtc(2026, 9, 28, 1, 0);
         var lastDay = new LocalDate(2026, 9, 27);
 
-        var source = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, lastDay, Chicago, now);
-        var target = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, lastDay, Tokyo, now);
+        var source = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, lastDay.PlusDays(-13), lastDay, Chicago, now);
+        var target = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, lastDay.PlusDays(-13), lastDay, Tokyo, now);
 
         // Act
         var dep = WorkItemDependency.Create(source, target, now, null, null, null, null);
 
         // Assert — predecessor planned and successor unplanned -> Healthy
+        Assert.Equal(lastDay.PlusDays(-13), dep.SourcePlannedStart);
         Assert.Equal(lastDay, dep.SourcePlannedOn);
+        Assert.Null(dep.TargetPlannedStart);
         Assert.Null(dep.TargetPlannedOn);
         Assert.Equal(DependencyPlanningHealth.Healthy, dep.Health);
     }

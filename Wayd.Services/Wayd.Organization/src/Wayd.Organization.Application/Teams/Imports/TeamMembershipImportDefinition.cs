@@ -17,9 +17,9 @@ namespace Wayd.Organization.Application.Teams.Imports;
 /// <remarks>
 /// The only <see cref="ImportAtomicity.Atomic"/> import, and the only <see cref="ImportPassScope.WholeSet"/>
 /// pass. Half an imported hierarchy is worse than none, and the correctness argument is concrete: the pass
-/// loads every referenced team tracked with its memberships so EF's relationship fixup keeps both ends of
-/// each new edge consistent, which is what the domain's cycle and overlap checks read. Chunk it and those
-/// checks go blind to the half of the file they cannot see.
+/// loads every team tracked with its memberships so EF's relationship fixup keeps both ends of each new edge
+/// consistent, which is what the domain's cycle and overlap checks read. Chunk it and those checks go blind
+/// to the half of the file they cannot see.
 /// </remarks>
 public sealed class TeamMembershipImportDefinition(
     IOrganizationDbContext organizationDbContext,
@@ -67,17 +67,11 @@ public sealed class TeamMembershipImportDefinition(
         var timestamp = _dateTimeProvider.Now;
         var actor = EventActor.Import(_currentUser.GetUserId());
 
-        var codes = context.Rows
-            .SelectMany(r => new[] { Normalize(r.Data.ChildCode), Normalize(r.Data.ParentCode) })
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        // Compare against TeamCode instances, never t.Code.Value: Code is a value converter, so the property
-        // translates but a member of it does not.
-        var codeValues = codes.Select(c => new TeamCode(c)).ToList();
-
+        // Every team, not just the file's: the cycle check walks everything below a team of teams being
+        // placed, which reaches teams the file never names. Loading each team's parent memberships lets EF's
+        // fixup fill in every child list and Source in one query, where a per-team load would be one per node.
         var teamsByCode = (await _organizationDbContext.BaseTeams
                 .Include(t => t.ParentMemberships)
-                .Where(t => codeValues.Contains(t.Code))
                 .ToListAsync(cancellationToken))
             .ToDictionary(t => t.Code.Value, t => t, StringComparer.OrdinalIgnoreCase);
 
@@ -115,7 +109,7 @@ public sealed class TeamMembershipImportDefinition(
             var result = child.AddTeamMembership(parent, new MembershipDateRange(row.Data.Start, row.Data.End), actor, timestamp);
             if (result.IsFailure)
             {
-                // The domain refused — an overlap or a cycle it can only see with the whole file loaded.
+                // The domain refused — an overlap, or a cycle that may run through edges earlier rows added.
                 // Reported against the row; the runner keeps the rest of the file out because this import
                 // is atomic, and the edges added before this point are discarded with the transaction.
                 row.Failed($"Could not place '{row.Data.ChildCode}' under '{row.Data.ParentCode}': {result.Error}");

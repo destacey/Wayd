@@ -58,7 +58,7 @@ public class GeneratedDatasetTests : IDisposable
             "product-dependencies.csv", "incidents.csv",
             "planning-intervals.csv", "planning-interval-objectives.csv", "risks.csv",
             "intake-desks.csv", "intake-requests.csv", "intake-request-outcomes.csv",
-            "kpis.csv", "kpi-measurements.csv",
+            "kpis.csv", "kpi-measurements.csv", "kpi-checkpoints.csv",
         ]);
     }
 

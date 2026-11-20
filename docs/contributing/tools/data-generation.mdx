@@ -71,7 +71,8 @@ and `members.csv` for the organization; `strategic-themes.csv`, `portfolios.csv`
 `release-package-components.csv`, `releases.csv`, `release-contents.csv`, `deployments.csv` and
 `incidents.csv` for Product Management; `planning-intervals.csv`,
 `planning-interval-objectives.csv` and `risks.csv` for Planning; and
-`intake-desks.csv`, `intake-requests.csv` and `intake-request-outcomes.csv` for the Request Desk. The desks
+`intake-desks.csv`, `intake-requests.csv` and `intake-request-outcomes.csv` for the Request Desk; and `kpis.csv`,
+`kpi-measurements.csv` and `kpi-checkpoints.csv` for KPIs. The desks
 file is for reading only: desks and tag categories are created through the API at seed time. An area that is switched off writes none of its files. Roles and accounts are created through the API at
 seed time and have no file.
 
@@ -811,6 +812,11 @@ and **People** categories (create-or-get by name, like the expenditure categorie
   its target at its own pace with month-to-month noise — most part of the way, a few past it — so a scorecard
   shows healthy, at-risk and unhealthy KPIs side by side. Rates and averages carry a sample size.
 - **Closed KPIs** — about one in eight was dropped partway, its history kept, and arrives closed.
+- **Checkpoint plans** — about two in five KPIs carry a plan: a checkpoint at every quarter's end after the
+  baseline, through the quarter after the last month, labelled like `Q2 2026` and stepping evenly from the
+  baseline to the target. A KPI with an at-risk threshold gives each checkpoint an at-risk value too, short of
+  plan by 15% of the whole move. Plans draw from a stream of their own (`kpis.checkpoints`), so the KPIs and
+  their history are the same with or without them.
 
 A team whose baseline leaves no room to improve within a KPI's range — a defect count already at zero — skips
 that KPI rather than carrying a goal it has already met. KPIs draw from a random stream of their own (`kpis`),

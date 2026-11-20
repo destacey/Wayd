@@ -240,6 +240,44 @@ public class KpiGeneratorTests
         // Assert
         again.Kpis.Should().Equal(Data.Kpis);
         again.Measurements.Should().Equal(Data.Measurements);
+        again.Checkpoints.Should().Equal(Data.Checkpoints);
+    }
+
+    [Fact]
+    public void Generate_PlansSomeKpis_WithQuarterlyCheckpointsTheAggregateCanHold()
+    {
+        // Arrange
+        var byHandle = Data.Kpis.ToDictionary(k => k.Handle);
+
+        // Act
+        var plans = Data.Checkpoints.GroupBy(c => c.KpiHandle).ToList();
+
+        // Assert
+        plans.Should().NotBeEmpty();
+        plans.Count.Should().BeLessThan(Data.Kpis.Count);
+        plans.Should().AllSatisfy(plan =>
+        {
+            var kpi = byHandle[plan.Key];
+            plan.Select(c => c.Date).Should().OnlyHaveUniqueItems();
+            plan.Should().AllSatisfy(c =>
+            {
+                c.Date.AddDays(1).Day.Should().Be(1);
+                (c.Date.Month % 3).Should().Be(0);
+                c.Date.Should().BeAfter(kpi.BaselineWindowEnd);
+                c.Label.Should().Be($"Q{c.Date.Month / 3} {c.Date.Year}");
+                // A KPI with a threshold may still get none at a checkpoint that sits on its range's edge.
+                if (kpi.AtRiskKind is null)
+                    c.AtRiskValue.Should().BeNull();
+                else if (c.AtRiskValue is null)
+                    return;
+                else if (kpi.Direction == "Increase")
+                    c.AtRiskValue.Should().BeLessThan(c.PlannedValue).And.BeGreaterThanOrEqualTo(0);
+                else
+                    c.AtRiskValue.Should().BeGreaterThan(c.PlannedValue);
+            });
+            // The last checkpoint is the target, rounded to the KPI's precision.
+            plan.OrderBy(c => c.Date).Last().PlannedValue.Should().BeApproximately(Resolved(kpi), 0.5);
+        });
     }
 
     [Fact]

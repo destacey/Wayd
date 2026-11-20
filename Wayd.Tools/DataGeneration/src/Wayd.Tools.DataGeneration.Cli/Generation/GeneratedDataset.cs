@@ -115,6 +115,7 @@ public sealed record GeneratedDataset(
         {
             CsvFile.Write(Path.Combine(directory, "kpis.csv"), kpis.Kpis);
             CsvFile.Write(Path.Combine(directory, "kpi-measurements.csv"), kpis.Measurements);
+            CsvFile.Write(Path.Combine(directory, "kpi-checkpoints.csv"), kpis.Checkpoints);
         }
 
         if (DemandManagement is { } demandManagement)

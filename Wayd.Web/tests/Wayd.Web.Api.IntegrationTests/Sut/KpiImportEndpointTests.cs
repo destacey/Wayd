@@ -19,8 +19,8 @@ using Wayd.Web.Api.IntegrationTests.Infrastructure;
 namespace Wayd.Web.Api.IntegrationTests.Sut;
 
 /// <summary>
-/// The KPI import over HTTP: the two files it reads, how a measurement finds its KPI's row, and the submission it
-/// refuses before anything is stored.
+/// The KPI import over HTTP: the files it reads, how a measurement or checkpoint finds its KPI's row, and the
+/// submission it refuses before anything is stored.
 /// </summary>
 [Collection(SqlServerApiTestCollection.Name)]
 public sealed class KpiImportEndpointTests(WaydSqlServerApiFactory factory)
@@ -41,7 +41,9 @@ public sealed class KpiImportEndpointTests(WaydSqlServerApiFactory factory)
     private static string KpiRow(string importId, Guid teamId, string name, string window = ",,,") =>
         $"{importId},organization.team,{teamId},{name},,,,days,Value,Decrease,20,,,Absolute,10,,,false,{window},";
 
-    private static MultipartFormDataContent Files(string kpis, string measurements)
+    private const string CheckpointHeader = "KpiImportId,Date,Label,PlannedValue,AtRiskValue";
+
+    private static MultipartFormDataContent Files(string kpis, string measurements, string? checkpoints = null)
     {
         static ByteArrayContent Csv(string text)
         {
@@ -50,11 +52,16 @@ public sealed class KpiImportEndpointTests(WaydSqlServerApiFactory factory)
             return content;
         }
 
-        return new MultipartFormDataContent
+        var files = new MultipartFormDataContent
         {
             { Csv(kpis), "file", "kpis.csv" },
             { Csv(measurements), "measurementsFile", "measurements.csv" },
         };
+
+        if (checkpoints is not null)
+            files.Add(Csv(checkpoints), "checkpointsFile", "checkpoints.csv");
+
+        return files;
     }
 
     private static async Task<JsonElement> ReadBody(HttpResponseMessage response) =>
@@ -182,5 +189,85 @@ public sealed class KpiImportEndpointTests(WaydSqlServerApiFactory factory)
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Contains("'cycel'", (await ReadBody(response)).GetRawText());
         Assert.Empty(await KpisOn(teamId));
+    }
+
+    [Fact]
+    public async Task Import_GivesEachKpiTheCheckpointsNamingIt()
+    {
+        // Arrange — a Decrease KPI, so each at-risk value sits above its planned value
+        var teamId = await PrepareTeam();
+        var user = await _factory.CreateAuthenticatedClient(_administerPermission);
+        var kpis = $"{KpiHeader}\n{KpiRow("cycle", teamId, "Cycle time")}\n";
+        var checkpoints = $"{CheckpointHeader}\ncycle,2026-06-30,Q2,14,16\ncycle,2026-03-31,Q1,17,\n";
+
+        // Act
+        var response = await user.Client.PostAsync(ImportRoute, Files(kpis, $"{MeasurementHeader}\n", checkpoints), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(nameof(ImportProcessStatus.Succeeded), (await ReadBody(response)).GetProperty("status").GetString());
+
+        using var scope = _factory.Services.CreateScope();
+        var labels = await scope.ServiceProvider.GetRequiredService<IKpisDbContext>().Kpis
+            .AsNoTracking()
+            .Where(k => k.SubjectId == teamId)
+            .SelectMany(k => k.Checkpoints)
+            .OrderBy(c => c.Date)
+            .Select(c => c.Label)
+            .ToListAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(["Q1", "Q2"], labels);
+    }
+
+    [Fact]
+    public async Task Import_RefusesTheSubmission_WhenACheckpointNamesAKpiNotInTheFile()
+    {
+        // Arrange
+        var teamId = await PrepareTeam();
+        var user = await _factory.CreateAuthenticatedClient(_administerPermission);
+        var kpis = $"{KpiHeader}\n{KpiRow("cycle", teamId, "Cycle time")}\n";
+        var checkpoints = $"{CheckpointHeader}\ncycel,2026-03-31,Q1,17,\n";
+
+        // Act
+        var response = await user.Client.PostAsync(ImportRoute, Files(kpis, $"{MeasurementHeader}\n", checkpoints), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Contains("'cycel'", (await ReadBody(response)).GetRawText());
+        Assert.Empty(await KpisOn(teamId));
+    }
+
+    [Fact]
+    public async Task Import_RefusesTheSubmission_WhenACheckpointRowCannotBeRead()
+    {
+        // Arrange
+        var teamId = await PrepareTeam();
+        var user = await _factory.CreateAuthenticatedClient(_administerPermission);
+        var kpis = $"{KpiHeader}\n{KpiRow("cycle", teamId, "Cycle time")}\n";
+        var checkpoints = $"{CheckpointHeader}\ncycle,2026-03-31,,17,\n";
+
+        // Act
+        var response = await user.Client.PostAsync(ImportRoute, Files(kpis, $"{MeasurementHeader}\n", checkpoints), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Contains("Label", (await ReadBody(response)).GetRawText());
+        Assert.Empty(await KpisOn(teamId));
+    }
+
+    [Fact]
+    public async Task Import_RejectsOnlyTheKpi_WhosePlanDoesNotHold()
+    {
+        // Arrange — Cycle time is a Decrease KPI, so an at-risk value below plan is on the wrong side
+        var teamId = await PrepareTeam();
+        var user = await _factory.CreateAuthenticatedClient(_administerPermission);
+        var kpis = $"{KpiHeader}\n{KpiRow("cycle", teamId, "Cycle time")}\n{KpiRow("lead", teamId, "Lead time")}\n";
+        var checkpoints = $"{CheckpointHeader}\ncycle,2026-03-31,Q1,17,15\nlead,2026-03-31,Q1,17,19\n";
+
+        // Act
+        var response = await user.Client.PostAsync(ImportRoute, Files(kpis, $"{MeasurementHeader}\n", checkpoints), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal([("Lead time", 0)], await KpisOn(teamId));
     }
 }

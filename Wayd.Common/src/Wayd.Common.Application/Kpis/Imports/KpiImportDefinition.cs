@@ -10,11 +10,11 @@ using Wayd.Common.Domain.Kpis;
 namespace Wayd.Common.Application.Kpis.Imports;
 
 /// <summary>
-/// Imports KPIs onto existing records, each with the history its measurements file gives it — what a customer
-/// brings from a spreadsheet when they start on Wayd.
+/// Imports KPIs onto existing records, each with the history its measurements file gives it and the plan its
+/// checkpoints file gives it — what a customer brings from a spreadsheet when they start on Wayd.
 /// </summary>
 /// <remarks>
-/// Per row: a KPI and its measurements are one aggregate and apply together, while one team's bad row leaves
+/// Per row: a KPI, its measurements and its plan are one aggregate and apply together, while one team's bad row leaves
 /// every other team's KPIs to import. A row arriving closed keeps its history and stays off the scorecard.
 /// <para>
 /// Gated on the KPI administrator permission rather than on each record's own rule: an import is the
@@ -149,6 +149,17 @@ public sealed class KpiImportDefinition(
             {
                 row.Failed($"Could not add the history of KPI '{data.Name}': {history.Error}");
                 continue;
+            }
+
+            // Before closing: a closed KPI's plan cannot change.
+            if (data.Checkpoints is { Count: > 0 } checkpoints)
+            {
+                var plan = kpi.ChangeCheckpointPlan(checkpoints, actor, timestamp);
+                if (plan.IsFailure)
+                {
+                    row.Failed($"Could not add the checkpoint plan of KPI '{data.Name}': {plan.Error}");
+                    continue;
+                }
             }
 
             if (data.IsClosed)

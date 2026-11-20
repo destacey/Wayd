@@ -98,7 +98,7 @@ public sealed class ImportKpiRequestValidatorTests
         request.WindowRollingUnit = "Days";
 
         // Act
-        var dto = request.ToImportKpiDto([]);
+        var dto = request.ToImportKpiDto([], []);
 
         // Assert
         _validator.TestValidate(request).ShouldNotHaveAnyValidationErrors();

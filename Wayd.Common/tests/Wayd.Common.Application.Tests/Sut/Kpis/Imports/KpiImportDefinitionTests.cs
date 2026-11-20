@@ -235,6 +235,42 @@ public sealed class KpiImportDefinitionTests
     }
 
     [Fact]
+    public async Task CreateKpis_ImportsACheckpointPlan_OnAClosedKpiToo()
+    {
+        // Arrange
+        var q2 = new KpiCheckpointValues(new LocalDate(2025, 6, 30), "Q2", 13, null);
+        var q1 = new KpiCheckpointValues(new LocalDate(2025, 3, 31), "Q1", 11, 10.5);
+        var row = Row(1, Dto(isClosed: true, measurements: [Month(0, 12)]) with { Checkpoints = [q2, q1] });
+
+        // Act
+        var result = await RunPass(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeFalse(outcome.Error);
+        var created = _harness.DbContext.Kpis.Single(k => k.Id == outcome.CreatedEntityId);
+        created.CheckpointPlan.Should().Equal(q1, q2);
+        created.Status.Should().Be(KpiStatus.Closed);
+    }
+
+    [Fact]
+    public async Task CreateKpis_RejectsTheKpi_WhenItsPlanCannotHold()
+    {
+        // Arrange
+        var notShort = new KpiCheckpointValues(new LocalDate(2025, 3, 31), "Q1", 11, 12);
+        var row = Row(1, Dto() with { Checkpoints = [notShort] });
+
+        // Act
+        var result = await RunPass(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().Contain(KpiErrors.CheckpointAtRiskNotShortIncrease);
+        _harness.DbContext.Kpis.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task CreateKpis_RejectsAKpiWhoseHistoryOverlaps_AndKeepsTheOtherRows()
     {
         // Arrange

@@ -41,7 +41,7 @@ const PlanningIntervalDependenciesCard = ({
             title="Unhealthy"
             value={withHealth(DependencyHealth.Unhealthy)}
             loading={isLoading}
-            tooltip="Open dependencies whose successor has already started, or is planned in an earlier sprint than its predecessor, or is planned while its predecessor is not."
+            tooltip="Open dependencies whose successor has already started, or whose predecessor is planned to finish after the successor, or whose successor is planned while its predecessor is neither planned nor started."
             onClick={onOpen}
             ariaLabel="Unhealthy cross-team dependencies: view the Dependencies section"
           />
@@ -51,7 +51,7 @@ const PlanningIntervalDependenciesCard = ({
             title="At Risk"
             value={withHealth(DependencyHealth.AtRisk)}
             loading={isLoading}
-            tooltip="Open dependencies where neither item is planned in a current or future sprint."
+            tooltip="Open dependencies whose predecessor and successor are planned for the same time, or whose predecessor has started without planned dates while the successor has them."
             onClick={onOpen}
             ariaLabel="At-risk cross-team dependencies: view the Dependencies section"
           />

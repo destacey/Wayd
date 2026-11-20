@@ -1432,6 +1432,50 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("Categories", "Kpis");
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.Kpis.KpiCheckpoint", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<double?>("AtRiskValue")
+                        .HasColumnType("float");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("KpiId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<double>("PlannedValue")
+                        .HasColumnType("float");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KpiId", "Date")
+                        .IsUnique();
+
+                    b.ToTable("Checkpoints", "Kpis");
+                });
+
             modelBuilder.Entity("Wayd.Common.Domain.Kpis.KpiMeasurement", b =>
                 {
                     b.Property<Guid>("Id")
@@ -10262,6 +10306,15 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.Kpis.KpiCheckpoint", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Kpis.Kpi", null)
+                        .WithMany("Checkpoints")
+                        .HasForeignKey("KpiId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Wayd.Common.Domain.Kpis.KpiMeasurement", b =>
                 {
                     b.HasOne("Wayd.Common.Domain.Kpis.Kpi", null)
@@ -12979,6 +13032,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.Common.Domain.Kpis.Kpi", b =>
                 {
+                    b.Navigation("Checkpoints");
+
                     b.Navigation("Measurements");
                 });
 

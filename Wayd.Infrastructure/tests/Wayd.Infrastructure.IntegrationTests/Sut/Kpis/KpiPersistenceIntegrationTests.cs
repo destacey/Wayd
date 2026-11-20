@@ -11,8 +11,9 @@ namespace Wayd.Infrastructure.IntegrationTests.Sut.Kpis;
 
 /// <summary>
 /// The KPI tables against real SQL Server: what the in-memory fakes cannot see — the goal's and window's flattened
-/// columns read back into their records, the measurements loaded through the field-backed navigation, the period
-/// index, the cascade from a KPI to its measurements, and the category key that refuses a delete in use.
+/// columns read back into their records, the measurements and checkpoints loaded through their field-backed
+/// navigations, the period and checkpoint-date indexes, the cascade from a KPI to its measurements and checkpoints,
+/// and the category key that refuses a delete in use.
 /// </summary>
 [Collection(nameof(SqlServerTestCollection))]
 public sealed class KpiPersistenceIntegrationTests(SqlServerDbContextFixture fixture)
@@ -246,6 +247,129 @@ public sealed class KpiPersistenceIntegrationTests(SqlServerDbContextFixture fix
     }
 
     [Fact]
+    public async Task Save_ShouldReplaceThePlan_ChangingRemovingAndAddingCheckpointsInOneSave()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var kpiId = await SeedKpi(plan: [Q1, Q2]);
+        var q3 = new KpiCheckpointValues(new LocalDate(2026, 9, 30), "Q3", 18, null);
+        var q1Changed = Q1 with { Label = "Spring", PlannedValue = 13 };
+        await using (var context = fixture.CreateContext())
+        {
+            var kpi = await context.Kpis.Include(k => k.Checkpoints).SingleAsync(k => k.Id == kpiId, cancellationToken);
+            kpi.ChangeCheckpointPlan([q3, q1Changed], Actor, Timestamp).IsSuccess.Should().BeTrue();
+            context.TouchKpi(kpi);
+
+            // Act
+            await context.SaveChangesAsync(cancellationToken);
+        }
+
+        // Assert
+        await using var reader = fixture.CreateContext();
+        var stored = await reader.Kpis.Include(k => k.Checkpoints).SingleAsync(k => k.Id == kpiId, cancellationToken);
+        stored.CheckpointPlan.Should().Equal(q1Changed, q3);
+    }
+
+    [Fact]
+    public async Task Load_ShouldReadAnIncludedPlanThatIsEmpty_AsNoPlan_TrackedOrNot()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var kpiId = await SeedKpi();
+        await using var context = fixture.CreateContext();
+
+        // Act
+        var tracked = await context.Kpis.Include(k => k.Checkpoints).SingleAsync(k => k.Id == kpiId, cancellationToken);
+        var untracked = await context.Kpis.AsNoTracking().Include(k => k.Checkpoints).SingleAsync(k => k.Id == kpiId, cancellationToken);
+
+        // Assert
+        tracked.CheckpointPlan.Should().BeEmpty();
+        untracked.CheckpointPlan.Should().BeEmpty();
+        tracked.ChangeCheckpointPlan([Q1], Actor, Timestamp).IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Load_ShouldRefuseAPlanChange_WhenThePlanWasNotIncluded()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var kpiId = await SeedKpi(plan: [Q1]);
+        await using var context = fixture.CreateContext();
+        var kpi = await context.Kpis.SingleAsync(k => k.Id == kpiId, cancellationToken);
+
+        // Act
+        var act = () => kpi.ChangeCheckpointPlan([Q1, Q2], Actor, Timestamp);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>().WithMessage("*loaded without its checkpoint plan*");
+    }
+
+    [Fact]
+    public async Task Save_ShouldRefuseTwoCheckpointsOnTheSameDay_FromConcurrentSaves()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var kpiId = await SeedKpi();
+        await using var first = fixture.CreateContext();
+        await using var second = fixture.CreateContext();
+        var firstKpi = await first.Kpis.Include(k => k.Checkpoints).SingleAsync(k => k.Id == kpiId, cancellationToken);
+        var secondKpi = await second.Kpis.Include(k => k.Checkpoints).SingleAsync(k => k.Id == kpiId, cancellationToken);
+        firstKpi.ChangeCheckpointPlan([Q1], Actor, Timestamp).IsSuccess.Should().BeTrue();
+        secondKpi.ChangeCheckpointPlan([Q1 with { Label = "Other" }], Actor, Timestamp).IsSuccess.Should().BeTrue();
+        await first.SaveChangesAsync(cancellationToken);
+
+        // Act
+        var act = () => second.SaveChangesAsync(cancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<DbUpdateException>();
+    }
+
+    [Fact]
+    public async Task Save_ShouldRefuseAConcurrentPlanChange_WhenEachSaveTouchesTheKpi()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var kpiId = await SeedKpi(plan: [Q1]);
+        await using var first = fixture.CreateContext();
+        await using var second = fixture.CreateContext();
+        var firstKpi = await first.Kpis.Include(k => k.Checkpoints).SingleAsync(k => k.Id == kpiId, cancellationToken);
+        var secondKpi = await second.Kpis.Include(k => k.Checkpoints).SingleAsync(k => k.Id == kpiId, cancellationToken);
+        firstKpi.ChangeCheckpointPlan([Q1, Q2], Actor, Timestamp).IsSuccess.Should().BeTrue();
+        secondKpi.ChangeCheckpointPlan([Q1 with { PlannedValue = 13 }], Actor, Timestamp).IsSuccess.Should().BeTrue();
+        first.TouchKpi(firstKpi);
+        second.TouchKpi(secondKpi);
+        await first.SaveChangesAsync(cancellationToken);
+
+        // Act
+        var act = () => second.SaveChangesAsync(cancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<DbUpdateConcurrencyException>();
+    }
+
+    [Fact]
+    public async Task RemovingAKpi_ShouldRemoveItsCheckpoints()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var kpiId = await SeedKpi(plan: [Q1, Q2]);
+        await using (var context = fixture.CreateContext())
+        {
+            var kpi = await context.Kpis.SingleAsync(k => k.Id == kpiId, cancellationToken);
+            kpi.Remove(Actor, Timestamp);
+            context.Kpis.Remove(kpi);
+
+            // Act
+            await context.SaveChangesAsync(cancellationToken);
+        }
+
+        // Assert
+        await using var reader = fixture.CreateContext();
+        (await reader.Set<KpiCheckpoint>().AnyAsync(c => c.KpiId == kpiId, cancellationToken)).Should().BeFalse();
+    }
+
+    [Fact]
     public async Task DeletingACategoryInUse_ShouldBeRefused()
     {
         // Arrange
@@ -300,11 +424,16 @@ public sealed class KpiPersistenceIntegrationTests(SqlServerDbContextFixture fix
     private static KpiMeasurementInput AtMoment(double value, Instant at) =>
         new(value, KpiMeasurementTime.AtMoment(at), null, null, at.InZone(Zone).Date, null, KpiMeasurementSource.Manual, null, null);
 
-    private async Task<Guid> SeedKpi(bool withMeasurement = false, KpiMeasurementWindow? window = null)
+    private static readonly KpiCheckpointValues Q1 = new(new LocalDate(2026, 3, 31), "Q1", 12, 11);
+    private static readonly KpiCheckpointValues Q2 = new(new LocalDate(2026, 6, 30), "Q2", 15, null);
+
+    private async Task<Guid> SeedKpi(bool withMeasurement = false, KpiMeasurementWindow? window = null, KpiCheckpointValues[]? plan = null)
     {
         var kpi = Kpi.Create(GadgetType, Guid.CreateVersion7(), Definition(DefaultGoal, null, window), 0, Actor, Timestamp).Value;
         if (withMeasurement)
             kpi.AddMeasurement(Measurement(12, Jan1, new LocalDate(2026, 1, 31), null), Zone, Actor, Timestamp);
+        if (plan is not null)
+            kpi.ChangeCheckpointPlan(plan, Actor, Timestamp).IsSuccess.Should().BeTrue();
 
         await using WaydDbContext context = fixture.CreateContext();
         context.Kpis.Add(kpi);

@@ -170,4 +170,67 @@ public sealed class KpiReadingTests
         reading.ChangeFromBaselinePercent.Should().BeNull();
         reading.ProgressToTarget.Should().BeApproximately(0.4, 1e-9);
     }
+
+    [Theory]
+    [InlineData(14, KpiHealth.Healthy)]
+    [InlineData(13, KpiHealth.AtRisk)]
+    [InlineData(12, KpiHealth.AtRisk)]
+    [InlineData(11.99, KpiHealth.Unhealthy)]
+    [InlineData(11, KpiHealth.Unhealthy)]
+    public void Of_ShouldJudgeHealthAgainstTheCheckpoint_NotTheTarget(double latest, KpiHealth expected)
+    {
+        // Arrange
+        var checkpoint = new KpiCheckpointValues(new LocalDate(2026, 3, 31), "Q1", 14, 12);
+
+        // Act
+        var reading = KpiReading.Of(RaiseTenToTwenty, latest, null, checkpoint);
+
+        // Assert
+        reading.Health.Should().Be(expected);
+        reading.Checkpoint.Should().Be(checkpoint);
+        reading.TargetValue.Should().Be(20);
+        reading.ProgressToTarget.Should().BeApproximately((latest - 10) / 10, 1e-9);
+    }
+
+    [Fact]
+    public void Of_ShouldReadTwoStateHealth_ForACheckpointWithoutAnAtRiskValue_IgnoringTheKpisThreshold()
+    {
+        // Arrange
+        var checkpoint = new KpiCheckpointValues(new LocalDate(2026, 6, 30), "Q2", 14, null);
+
+        // Act
+        var reading = KpiReading.Of(RaiseTenToTwenty, 13.9, null, checkpoint);
+
+        // Assert
+        reading.Health.Should().Be(KpiHealth.Unhealthy);
+    }
+
+    [Fact]
+    public void OfValues_ShouldJudgeARollingAverageAgainstTheCheckpoint()
+    {
+        // Arrange
+        var checkpoint = new KpiCheckpointValues(new LocalDate(2026, 3, 31), "Q1", 13, 11);
+
+        // Act
+        var reading = KpiReading.OfValues(RaiseTenToTwenty, [14, 12, 10], 3, checkpoint);
+
+        // Assert
+        reading.Value.Should().Be(12);
+        reading.Health.Should().Be(KpiHealth.AtRisk);
+        reading.Checkpoint.Should().Be(checkpoint);
+    }
+
+    [Fact]
+    public void Of_ShouldCarryTheCheckpoint_WhenNothingHasBeenMeasured()
+    {
+        // Arrange
+        var checkpoint = new KpiCheckpointValues(new LocalDate(2026, 3, 31), "Q1", 13, null);
+
+        // Act
+        var reading = KpiReading.Of(RaiseTenToTwenty, null, null, checkpoint);
+
+        // Assert
+        reading.Health.Should().BeNull();
+        reading.Checkpoint.Should().Be(checkpoint);
+    }
 }

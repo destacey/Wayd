@@ -29,11 +29,20 @@ public sealed class KpiFaker : PrivateConstructorFaker<Kpi>
         RuleFor(x => x.ExpressedAs, KpiExpressedAs.Value);
         RuleFor(x => x.Status, KpiStatus.Active);
         RuleFor(x => x.Order, 0);
+        // A KPI as loaded with its checkpoint plan, which every plan and goal change needs.
+        RuleFor("_checkpoints", _ => new List<KpiCheckpoint>());
     }
 }
 
 public static class KpiFakerExtensions
 {
+    /// <summary>A KPI as a query that did not include its checkpoint plan loads it.</summary>
+    public static KpiFaker WithUnloadedCheckpoints(this KpiFaker faker)
+    {
+        faker.RuleFor("_checkpoints", _ => (List<KpiCheckpoint>?)null);
+        return faker;
+    }
+
     public static KpiFaker WithSubjectId(this KpiFaker faker, Guid subjectId)
     {
         faker.RuleFor(x => x.SubjectId, subjectId);

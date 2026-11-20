@@ -860,4 +860,198 @@ public sealed class KpiTests
         updated.Details.RollingAverageOf.Should().Be(7);
         updated.Previous.RollingAverageOf.Should().BeNull();
     }
+
+    private static readonly KpiCheckpointValues Q1 = new(new LocalDate(2026, 3, 31), "Q1", 12, 11);
+    private static readonly KpiCheckpointValues Q2 = new(new LocalDate(2026, 6, 30), "Q2", 15, null);
+
+    [Fact]
+    public void ChangeCheckpointPlan_ShouldAddThePlanInDateOrder_AndRaiseBothEnds()
+    {
+        // Arrange
+        var kpi = _faker.Generate();
+
+        // Act
+        var result = kpi.ChangeCheckpointPlan([Q2, Q1 with { Label = " Q1 " }], Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        kpi.CheckpointPlan.Should().Equal(Q1, Q2);
+        kpi.Checkpoints.Should().OnlyContain(c => c.KpiId == kpi.Id);
+        var changed = kpi.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<KpiCheckpointPlanChangedEvent>().Subject;
+        changed.Plan.Should().Equal(Q1, Q2);
+        changed.Added.Should().Equal(Q1, Q2);
+        changed.Removed.Should().BeEmpty();
+        changed.Revised.Should().BeEmpty();
+        changed.RelatedAggregates.Should().Equal(new AggregateReference("Gadget", kpi.SubjectId));
+    }
+
+    [Fact]
+    public void ChangeCheckpointPlan_ShouldChangeADayAlreadyPlanned_AddANewDay_AndRemoveADayLeftOut()
+    {
+        // Arrange
+        var kpi = _faker.Generate();
+        kpi.ChangeCheckpointPlan([Q1, Q2], Actor, Now);
+        var keptId = kpi.Checkpoints.Single(c => c.Date == Q1.Date).Id;
+        kpi.ClearDomainEvents();
+        var q3 = new KpiCheckpointValues(new LocalDate(2026, 9, 30), "Q3", 18, 16);
+
+        // Act
+        var result = kpi.ChangeCheckpointPlan([Q1 with { PlannedValue = 13 }, q3], Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        kpi.CheckpointPlan.Should().Equal(Q1 with { PlannedValue = 13 }, q3);
+        kpi.Checkpoints.Single(c => c.Date == Q1.Date).Id.Should().Be(keptId);
+        var changed = kpi.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<KpiCheckpointPlanChangedEvent>().Subject;
+        changed.Added.Should().Equal(q3);
+        changed.Removed.Should().Equal(Q2);
+        changed.Revised.Should().Equal(new KpiCheckpointRevision(Q1, Q1 with { PlannedValue = 13 }));
+        changed.Plan.Should().Equal(Q1 with { PlannedValue = 13 }, q3);
+    }
+
+    [Fact]
+    public void ChangeCheckpointPlan_ShouldThrow_WhenTheKpiWasLoadedWithoutItsPlan()
+    {
+        // Arrange
+        var kpi = _faker.WithUnloadedCheckpoints().Generate();
+
+        // Act
+        var act = () => kpi.ChangeCheckpointPlan([Q1], Actor, Now);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>().WithMessage("*loaded without its checkpoint plan*");
+    }
+
+    [Fact]
+    public void ChangeGoal_ShouldThrow_OnADirectionChange_WhenTheKpiWasLoadedWithoutItsPlan()
+    {
+        // Arrange
+        var kpi = _faker.WithUnloadedCheckpoints().Generate();
+        var reversed = new KpiGoal(KpiTargetDirection.Decrease, new KpiBaseline(30, null), KpiTarget.Absolute(20), null);
+
+        // Act
+        var act = () => kpi.ChangeGoal(reversed, Actor, Now);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void ChangeCheckpointPlan_ShouldClearThePlan_WhenGivenNone()
+    {
+        // Arrange
+        var kpi = _faker.Generate();
+        kpi.ChangeCheckpointPlan([Q1], Actor, Now);
+        kpi.ClearDomainEvents();
+
+        // Act
+        var result = kpi.ChangeCheckpointPlan([], Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        kpi.Checkpoints.Should().BeEmpty();
+        kpi.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<KpiCheckpointPlanChangedEvent>()
+            .Which.Plan.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeCheckpointPlan_ShouldRaiseNothing_WhenThePlanIsTheSame()
+    {
+        // Arrange
+        var kpi = _faker.Generate();
+        kpi.ChangeCheckpointPlan([Q1, Q2], Actor, Now);
+        kpi.ClearDomainEvents();
+
+        // Act
+        var result = kpi.ChangeCheckpointPlan([Q2, Q1 with { Label = "Q1 " }], Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        kpi.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeCheckpointPlan_ShouldFail_AndChangeNothing_WhenThePlanDoesNotHold()
+    {
+        // Arrange
+        var kpi = _faker.Generate();
+        kpi.ChangeCheckpointPlan([Q1], Actor, Now);
+        kpi.ClearDomainEvents();
+
+        // Act
+        var result = kpi.ChangeCheckpointPlan([Q1, Q2 with { AtRiskValue = 15 }], Actor, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(KpiErrors.CheckpointAtRiskNotShortIncrease);
+        kpi.CheckpointPlan.Should().Equal(Q1);
+        kpi.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeCheckpointPlan_ShouldFail_OnAClosedKpi()
+    {
+        // Arrange
+        var kpi = _faker.WithStatus(KpiStatus.Closed).Generate();
+
+        // Act
+        var result = kpi.ChangeCheckpointPlan([Q1], Actor, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(KpiErrors.PlanLockedClosed);
+        kpi.Checkpoints.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeGoal_ShouldFail_WhenANewDirectionPutsACheckpointsAtRiskValueOnTheWrongSide()
+    {
+        // Arrange
+        var kpi = _faker.Generate();
+        kpi.ChangeCheckpointPlan([Q1], Actor, Now);
+        kpi.ClearDomainEvents();
+        var previous = kpi.Goal;
+        var reversed = new KpiGoal(KpiTargetDirection.Decrease, new KpiBaseline(30, null), KpiTarget.Absolute(20), null);
+
+        // Act
+        var result = kpi.ChangeGoal(reversed, Actor, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(KpiErrors.DirectionConflictsWithPlan);
+        kpi.Goal.Should().Be(previous);
+        kpi.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeGoal_ShouldReverseTheDirection_WhenNoCheckpointHasAnAtRiskValue()
+    {
+        // Arrange
+        var kpi = _faker.Generate();
+        kpi.ChangeCheckpointPlan([Q2], Actor, Now);
+        var reversed = new KpiGoal(KpiTargetDirection.Decrease, new KpiBaseline(30, null), KpiTarget.Absolute(20), null);
+
+        // Act
+        var result = kpi.ChangeGoal(reversed, Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        kpi.Direction.Should().Be(KpiTargetDirection.Decrease);
+    }
+
+    [Fact]
+    public void CheckpointFor_ShouldBeTheCheckpointAPeriodEndFallsUnder_OrNullPastThePlan()
+    {
+        // Arrange
+        var kpi = _faker.Generate();
+        kpi.ChangeCheckpointPlan([Q1, Q2], Actor, Now);
+
+        // Act
+        var april = kpi.CheckpointFor(new LocalDate(2026, 4, 30));
+        var july = kpi.CheckpointFor(new LocalDate(2026, 7, 31));
+
+        // Assert
+        april.Should().Be(Q2);
+        july.Should().BeNull();
+    }
 }

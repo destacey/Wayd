@@ -370,7 +370,7 @@ export const importTemplates = {
   'kpis.kpis': {
     module: 'kpis',
     description:
-      "Takes two files: one row per KPI, naming the record it goes on by id, and one row per measurement naming the ImportId of its KPI. A KPI's WindowKind decides how each of its measurements says when it was taken: PeriodStart and PeriodEnd for PerPeriod, AsOf for Cumulative and Rolling, MeasuredAt for PointInTime. The measurements file may be empty of rows, but it must be sent with its header. A KPI and its measurements apply together: a value that clashes with another, one given the wrong way for the window, or a goal the KPI cannot hold, rejects that KPI alone.",
+      "Takes one row per KPI, naming the record it goes on by id; one row per measurement naming the ImportId of its KPI; and, optionally, one row per checkpoint naming the ImportId of its KPI. A KPI's WindowKind decides how each of its measurements says when it was taken: PeriodStart and PeriodEnd for PerPeriod, AsOf for Cumulative and Rolling, MeasuredAt for PointInTime. The measurements file may be empty of rows, but it must be sent with its header. A KPI, its measurements and its plan apply together: a value that clashes with another, one given the wrong way for the window, a goal the KPI cannot hold, or a plan with two checkpoints on one day or an at-risk value on the wrong side of its planned value, rejects that KPI alone.",
     files: [
       {
         field: 'file',
@@ -608,6 +608,49 @@ export const importTemplates = {
             required: false,
             description: 'Context for the value, up to 1,024 characters.',
             maxLength: 1024,
+          },
+        ],
+      },
+      {
+        field: 'checkpointsFile',
+        label: 'Checkpoints',
+        required: false,
+        columns: [
+          {
+            name: 'KpiImportId',
+            type: 'text',
+            required: true,
+            description:
+              'The `ImportId` of the KPI row this checkpoint belongs to.',
+          },
+          {
+            name: 'Date',
+            type: 'date',
+            required: true,
+            description:
+              'The day the planned value is due. One checkpoint per day on a KPI.',
+          },
+          {
+            name: 'Label',
+            type: 'text',
+            required: true,
+            description:
+              'A short name for the checkpoint, such as `Q1` or `Sprint 12`, up to 32 characters.',
+            maxLength: 32,
+          },
+          {
+            name: 'PlannedValue',
+            type: 'number',
+            required: true,
+            description:
+              'The value the KPI is expected to reach by then. Planned values may fall back, for a seasonal plan.',
+          },
+          {
+            name: 'AtRiskValue',
+            type: 'number',
+            required: false,
+            description:
+              "Optional: the value past which a measurement read against this checkpoint is at risk. Must be short of the planned value in the KPI's direction. Blank for on-plan-or-not health.",
           },
         ],
       },

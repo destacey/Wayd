@@ -110,6 +110,33 @@ public static class KpiErrors
     /// <summary>A rolling average on a KPI that is not measured per period.</summary>
     public const string RollingAverageOnlyPerPeriod = "Only a per-period KPI can be read as a rolling average: other windows already cover a span of their own.";
 
+    /// <summary>Changing the checkpoint plan of a closed KPI.</summary>
+    public const string PlanLockedClosed = "This KPI is closed. Reopen it to change its checkpoint plan.";
+
+    /// <summary>A plan with more checkpoints than a KPI holds.</summary>
+    public static readonly string TooManyCheckpoints = $"A checkpoint plan can hold at most {KpiCheckpointPlan.MaxCheckpoints} checkpoints.";
+
+    /// <summary>A plan with an empty entry.</summary>
+    public const string CheckpointRequired = "Every checkpoint in a plan needs a date, label and planned value.";
+
+    /// <summary>Two checkpoints on one day.</summary>
+    public const string CheckpointDateTaken = "Each checkpoint in a plan needs its own date.";
+
+    /// <summary>A checkpoint without a label.</summary>
+    public const string CheckpointLabelRequired = "A checkpoint needs a label, such as \"Q1\".";
+
+    /// <summary>A checkpoint label past the length a checkpoint holds.</summary>
+    public static readonly string CheckpointLabelTooLong = $"A checkpoint label can be at most {KpiCheckpointPlan.LabelMaxLength} characters.";
+
+    /// <summary>A checkpoint at-risk value that is not short of its planned value.</summary>
+    public const string CheckpointAtRiskNotShortIncrease = "A checkpoint's at-risk value must be below its planned value when the KPI should increase.";
+
+    /// <summary>A checkpoint at-risk value that is not short of its planned value.</summary>
+    public const string CheckpointAtRiskNotShortDecrease = "A checkpoint's at-risk value must be above its planned value when the KPI should decrease.";
+
+    /// <summary>A direction change that would leave a checkpoint's at-risk value on the wrong side of its planned value.</summary>
+    public const string DirectionConflictsWithPlan = "The checkpoint plan's at-risk values sit on the side of the old direction. Remove them from the plan, change the direction, then add them back on the new side.";
+
     /// <summary>A reorder whose list is not exactly the subject's KPIs.</summary>
     public const string ReorderMismatch = "The new order must list every KPI on the subject exactly once.";
 }

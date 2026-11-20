@@ -18,6 +18,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 /// month's last day when rolling or cumulative, a cumulative KPI counting from the month after its baseline; and as
 /// two readings, on the 1st and the 15th, when point in time.
 /// </para>
+/// <para>
+/// Some KPIs carry a quarterly checkpoint plan from the end of their baseline to a quarter past the last month,
+/// stepping evenly from the baseline to the target, with an at-risk value on each checkpoint when the KPI has an
+/// at-risk threshold. The plan draws from a random stream of its own, so the rest of the data is the same with or
+/// without it.
+/// </para>
 /// </summary>
 public sealed class KpiGenerator
 {
@@ -36,13 +42,21 @@ public sealed class KpiGenerator
     /// <summary>The hour, in UTC, a point-in-time reading is taken: mid-morning in the Americas, afternoon in Europe.</summary>
     private const int ReadingHourUtc = 15;
 
+    /// <summary>The share of KPIs that carry a checkpoint plan.</summary>
+    private const double PlannedFraction = 0.4;
+
+    /// <summary>How far short of each planned value its at-risk value sits, as a share of the whole planned move.</summary>
+    private const double AtRiskMargin = 0.15;
+
     private readonly OrgStructure _org;
     private readonly KpiOptions _options;
     private readonly GenerationContext _context;
     private readonly Faker _faker;
+    private readonly Faker _planFaker;
 
     private readonly List<KpiModel> _kpis = [];
     private readonly List<KpiMeasurementModel> _measurements = [];
+    private readonly List<KpiCheckpointModel> _checkpoints = [];
 
     public KpiGenerator(OrgStructure org, KpiOptions options, GenerationContext context)
     {
@@ -52,13 +66,14 @@ public sealed class KpiGenerator
 
         // Derived from the area name, so adding another generator does not shift this one's data.
         _faker = new Faker { Random = new Randomizer(context.SeedFor(AreaName)) };
+        _planFaker = new Faker { Random = new Randomizer(context.SeedFor($"{AreaName}.checkpoints")) };
     }
 
     public GeneratedKpis Generate()
     {
         var months = Months();
         if (months.Count < MinimumMonths || _options.KpisPerTeam <= 0)
-            return new GeneratedKpis(Categories, [], []);
+            return new GeneratedKpis(Categories, [], [], []);
 
         foreach (var valueStream in _org.ValueStreams)
         {
@@ -72,7 +87,7 @@ public sealed class KpiGenerator
             }
         }
 
-        return new GeneratedKpis(Categories, _kpis, _measurements);
+        return new GeneratedKpis(Categories, _kpis, _measurements, _checkpoints);
     }
 
     /// <summary>
@@ -153,6 +168,9 @@ public sealed class KpiGenerator
             d.Window == Rolling ? "Days" : null,
             d.RollingAverageOf));
 
+        if (_planFaker.Random.Bool((float)PlannedFraction))
+            Plan(handle, d, baseline, resolved, unit, months);
+
         var steps = Math.Max(1, measured - BaselineMonths);
         for (var i = 0; i < measured; i++)
         {
@@ -194,6 +212,50 @@ public sealed class KpiGenerator
                 _measurements.Add(new KpiMeasurementModel(handle, month.Start, month.End, null, null, value, sampleSize));
                 break;
         }
+    }
+
+    /// <summary>
+    /// A checkpoint at every quarter's end after the baseline, through the quarter after the last month, stepping
+    /// evenly from the baseline to the target; each short of plan by <see cref="AtRiskMargin"/> when the KPI has an
+    /// at-risk threshold.
+    /// </summary>
+    private void Plan(string handle, KpiDefinition d, double baseline, double resolved, double unit, List<(DateOnly Start, DateOnly End)> months)
+    {
+        var after = months[BaselineMonths - 1].End;
+        var until = months[^1].End.AddMonths(3);
+
+        List<DateOnly> quarterEnds = [];
+        for (var quarter = QuarterEnd(after.AddDays(1)); quarter <= until; quarter = QuarterEnd(quarter.AddDays(1)))
+            quarterEnds.Add(quarter);
+
+        var sign = d.Increase ? 1 : -1;
+        var margin = Math.Max(unit, Math.Abs(resolved - baseline) * AtRiskMargin);
+
+        for (var i = 0; i < quarterEnds.Count; i++)
+        {
+            var date = quarterEnds[i];
+            var planned = Round(Clamp(baseline + (resolved - baseline) * (i + 1) / quarterEnds.Count, d), d);
+
+            double? atRisk = null;
+            if (d.AtRiskShare is not null)
+            {
+                // Held inside the KPI's range, so a plan starting at its floor gets no line below zero; rounding or
+                // clamping can land it on the planned value, and the domain needs it strictly short, so then none.
+                var line = Round(Clamp(planned - sign * margin, d), d);
+                if (sign * (planned - line) <= 0)
+                    line = Round(Clamp(planned - sign * unit, d), d);
+                atRisk = sign * (planned - line) > 0 ? line : null;
+            }
+
+            _checkpoints.Add(new KpiCheckpointModel(handle, date, $"Q{(date.Month - 1) / 3 + 1} {date.Year}", planned, atRisk));
+        }
+    }
+
+    /// <summary>The last day of the calendar quarter <paramref name="day"/> falls in.</summary>
+    private static DateOnly QuarterEnd(DateOnly day)
+    {
+        var firstOfNext = new DateOnly(day.Year, (day.Month - 1) / 3 * 3 + 1, 1).AddMonths(3);
+        return firstOfNext.AddDays(-1);
     }
 
     private static DateTimeOffset Reading(DateOnly day) =>

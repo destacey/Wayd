@@ -5,7 +5,11 @@ import { ChartCard } from '@/src/components/common/metrics'
 import WaydEmpty from '@/src/components/common/wayd-empty'
 import useTheme from '@/src/components/contexts/theme'
 import { useChartRemountOnResize } from '@/src/hooks'
-import { KpiGoalDto, KpiPointDto } from '@/src/services/api/wayd.schemas'
+import {
+  KpiCheckpointDto,
+  KpiGoalDto,
+  KpiPointDto,
+} from '@/src/services/api/wayd.schemas'
 import {
   formatCalendarDate,
   parseCalendarDate,
@@ -17,17 +21,100 @@ import { formatKpiValue } from './kpi-format'
 
 const CHART_HEIGHT = 260
 
-enum KpiSeries {
+export enum KpiSeries {
   Actual = 'Actual',
   Target = 'Target',
   AtRisk = 'At risk',
   Baseline = 'Baseline',
+  Plan = 'Plan',
+  PlanAtRisk = 'Plan at risk',
 }
 
-interface KpiChartPoint {
+/**
+ * Each series' dash: measurements solid, the KPI's flat lines dashed, the plan
+ * dash-dotted and its at-risk line dotted, so no two lines rely on colour alone.
+ */
+const LINE_DASH: Record<KpiSeries, number[]> = {
+  [KpiSeries.Actual]: [0, 0],
+  [KpiSeries.Target]: [6, 4],
+  [KpiSeries.AtRisk]: [6, 4],
+  [KpiSeries.Baseline]: [6, 4],
+  [KpiSeries.Plan]: [8, 3, 2, 3],
+  [KpiSeries.PlanAtRisk]: [2, 3],
+}
+
+export interface KpiChartPoint {
   at: Date
-  value: number
+  /** Null breaks the line, where a stretch of the plan has no at-risk value. */
+  value: number | null
   series: KpiSeries
+}
+
+/**
+ * A checkpoint plan as stepped lines: each checkpoint's planned value held flat
+ * from the day after the checkpoint before (or `from`, for the first) to its
+ * own date, which is the stretch a measurement is judged against it. Its
+ * at-risk line steps the same way, broken where a checkpoint has none.
+ */
+export function planSteps(
+  checkpoints: KpiCheckpointDto[],
+  from: Date | undefined,
+): KpiChartPoint[] {
+  const ordered = [...checkpoints].sort((a, b) =>
+    a.date < b.date ? -1 : a.date > b.date ? 1 : 0,
+  )
+  const plan: KpiChartPoint[] = []
+  const atRisk: KpiChartPoint[] = []
+
+  ordered.forEach((checkpoint, index) => {
+    const end = parseCalendarDate(checkpoint.date)
+    const previous = ordered[index - 1]
+    const proposed = previous
+      ? parseCalendarDate(previous.date).add(1, 'day')
+      : from
+        ? dayjs(from)
+        : end.subtract(1, 'day')
+    // A stretch needs two distinct ends to draw.
+    const start = proposed.isBefore(end, 'day')
+      ? proposed
+      : end.subtract(1, 'day')
+
+    plan.push(
+      {
+        at: start.toDate(),
+        value: checkpoint.plannedValue,
+        series: KpiSeries.Plan,
+      },
+      {
+        at: end.toDate(),
+        value: checkpoint.plannedValue,
+        series: KpiSeries.Plan,
+      },
+    )
+
+    if (checkpoint.atRiskValue == null) {
+      atRisk.push({
+        at: start.toDate(),
+        value: null,
+        series: KpiSeries.PlanAtRisk,
+      })
+    } else {
+      atRisk.push(
+        {
+          at: start.toDate(),
+          value: checkpoint.atRiskValue,
+          series: KpiSeries.PlanAtRisk,
+        },
+        {
+          at: end.toDate(),
+          value: checkpoint.atRiskValue,
+          series: KpiSeries.PlanAtRisk,
+        },
+      )
+    }
+  })
+
+  return atRisk.some((p) => p.value != null) ? [...plan, ...atRisk] : plan
 }
 
 /**
@@ -51,10 +138,25 @@ export function referenceSpan(
   return [from.toDate(), end]
 }
 
+/** A span stretched to cover every point of the plan as well. */
+export function widenToPlan(
+  [start, end]: [Date, Date],
+  plan: KpiChartPoint[],
+): [Date, Date] {
+  const times = plan.map((p) => p.at.getTime())
+  if (times.length === 0) return [start, end]
+  return [
+    new Date(Math.min(start.getTime(), ...times)),
+    new Date(Math.max(end.getTime(), ...times)),
+  ]
+}
+
 export interface KpiHistoryChartProps {
   /** Every measurement, in any order. */
   values: KpiPointDto[]
   goal: KpiGoalDto
+  /** The checkpoint plan, drawn as stepped lines; empty or absent for none. */
+  checkpoints?: KpiCheckpointDto[]
   prefix?: string
   suffix?: string
   isLoading: boolean
@@ -62,12 +164,14 @@ export interface KpiHistoryChartProps {
 
 /**
  * A KPI's measurements over time, against its target, at-risk line and
- * baseline drawn flat across the same span. Each value sits at the end of the
- * period it describes, or at its moment for a point-in-time reading.
+ * baseline drawn flat across the same span, and its checkpoint plan as steps.
+ * Each value sits at the end of the period it describes, or at its moment for
+ * a point-in-time reading.
  */
 const KpiHistoryChart: FC<KpiHistoryChartProps> = ({
   values,
   goal,
+  checkpoints = [],
   prefix,
   suffix,
   isLoading,
@@ -89,17 +193,35 @@ const KpiHistoryChart: FC<KpiHistoryChartProps> = ({
     series: KpiSeries.Actual,
   }))
 
-  // A flat reference line needs two distinct ends. With one measurement they
-  // would be the same day, so it spans that measurement's period instead — or
-  // the day before it to the day, for a period of a single day.
   const first = ordered[0]
   const last = ordered[ordered.length - 1]
-  const span = first && last ? referenceSpan(first, last, at) : []
+
+  // The plan starts where the baseline was taken, or with the first value.
+  const planFrom = goal.baselineWindowEnd
+    ? parseCalendarDate(goal.baselineWindowEnd).toDate()
+    : first
+      ? at(first)
+      : undefined
+  const plan = planSteps(checkpoints, planFrom)
+  const hasPlanAtRisk = plan.some((p) => p.series === KpiSeries.PlanAtRisk)
+
+  // A flat reference line needs two distinct ends. With one measurement they
+  // would be the same day, so it spans that measurement's period instead — or
+  // the day before it to the day, for a period of a single day. It reaches as
+  // far as the plan does, so the target does not seem to stop short of it.
+  const span =
+    first && last ? widenToPlan(referenceSpan(first, last, at), plan) : []
   const flat = (value: number | null | undefined, series: KpiSeries) =>
     value == null ? [] : span.map((date) => ({ at: date, value, series }))
 
+  // The plan takes a hue of its own (colorInfo is the primary blue in the
+  // default theme), and each line its own dash, so they part without colour.
   const series: { name: KpiSeries; color: string }[] = [
     { name: KpiSeries.Actual, color: token.colorPrimary },
+    ...(plan.length > 0 ? [{ name: KpiSeries.Plan, color: token.purple }] : []),
+    ...(hasPlanAtRisk
+      ? [{ name: KpiSeries.PlanAtRisk, color: token.colorWarning }]
+      : []),
     ...(goal.resolvedTargetValue != null
       ? [{ name: KpiSeries.Target, color: token.colorSuccess }]
       : []),
@@ -116,6 +238,7 @@ const KpiHistoryChart: FC<KpiHistoryChartProps> = ({
     ...flat(goal.resolvedTargetValue, KpiSeries.Target),
     ...flat(goal.resolvedAtRiskValue, KpiSeries.AtRisk),
     ...flat(goal.baselineValue, KpiSeries.Baseline),
+    ...plan,
   ]
 
   const config = {
@@ -137,10 +260,13 @@ const KpiHistoryChart: FC<KpiHistoryChartProps> = ({
     style: {
       lineWidth: 2,
       lineDash: (points: KpiChartPoint[]) =>
-        points[0]?.series === KpiSeries.Actual ? [0, 0] : [6, 4],
+        points[0] ? LINE_DASH[points[0].series] : LINE_DASH[KpiSeries.Actual],
     },
     point: {
-      style: { r: 3 },
+      style: {
+        r: (datum: KpiChartPoint) =>
+          datum.series === KpiSeries.Actual ? 3 : 0,
+      },
     },
     axis: {
       x: {
@@ -168,7 +294,8 @@ const KpiHistoryChart: FC<KpiHistoryChartProps> = ({
       items: [
         {
           channel: 'y',
-          valueFormatter: (value: number) =>
+          // Null where the plan's at-risk line breaks, which reads as a dash.
+          valueFormatter: (value: number | null) =>
             formatKpiValue(value, prefix, suffix),
         },
       ],

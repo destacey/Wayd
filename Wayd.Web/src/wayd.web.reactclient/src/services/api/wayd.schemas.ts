@@ -6270,6 +6270,36 @@ export interface ImportIntakeRequestRequest {
 }
 
 /**
+ * A single CSV row for the checkpoints file: one checkpoint of one KPI's plan.
+ */
+export interface ImportKpiCheckpointRequest {
+  /**
+     * The `ImportId` of the KPI row this checkpoint belongs to.
+     * @minLength 1
+     */
+  kpiImportId: string;
+  /**
+     * The day the planned value is due. One checkpoint per day on a KPI.
+     * @minLength 1
+     */
+  date: string & { readonly __brand: 'CalendarDate' };
+  /**
+     * A short name for the checkpoint, such as `Q1` or `Sprint 12`, up to 32 characters.
+     * @minLength 1
+     * @maxLength 32
+     */
+  label: string;
+  /** The value the KPI is expected to reach by then. Planned values may fall back, for a seasonal plan. */
+  plannedValue: number;
+  /**
+     * Optional: the value past which a measurement read against this checkpoint is at risk. Must be short of the
+     * planned value in the KPI's direction. Blank for on-plan-or-not health.
+     * @nullable
+     */
+  atRiskValue?: number | null;
+}
+
+/**
  * A single CSV row for the measurements file: one value of one KPI, saying when it was taken the one way the KPI's
  * window takes — `PeriodStart` and `PeriodEnd`, `AsOf`, or `MeasuredAt`.
  */
@@ -6322,8 +6352,9 @@ export interface ImportKpiMeasurementRequest {
 }
 
 /**
- * A single CSV row for the KPI import — one KPI on an existing record, without its history. Measurements arrive
- * in a second file and point back here by this row's `ImportId`.
+ * A single CSV row for the KPI import — one KPI on an existing record, without its history or plan. Measurements
+ * arrive in a second file and checkpoints in an optional third, each pointing back here by this row's
+ * `ImportId`.
  */
 export interface ImportKpiRequest {
   /**
@@ -9383,6 +9414,23 @@ export interface KpiCategoryRequest {
   description?: string | null;
 }
 
+/**
+ * One checkpoint of a KPI's plan.
+ */
+export interface KpiCheckpointDto {
+  /** The day the planned value is due. */
+  date: string & { readonly __brand: 'CalendarDate' };
+  /** A short name for it, such as "Q1". */
+  label: string;
+  /** The value the KPI is expected to reach by then. */
+  plannedValue: number;
+  /**
+     * The line short of the planned value past which a measurement is at risk, or null for two-state health.
+     * @nullable
+     */
+  atRiskValue?: number | null;
+}
+
 export interface KpiCheckpointPlanItemRequest {
   /**
      * The ID of an existing checkpoint to update. Null for new checkpoints.
@@ -9404,6 +9452,123 @@ export interface KpiCheckpointPlanItemRequest {
      * @maxLength 16
      */
   dateLabel: string;
+}
+
+/**
+ * One checkpoint of a KPI's plan.
+ */
+export interface KpiCheckpointRequest {
+  /** The day the planned value is due, as `YYYY-MM-DD`; one checkpoint per day. */
+  date: string & { readonly __brand: 'CalendarDate' };
+  /** A short name for it, such as `Q1` or `Sprint 12`, up to 32 characters. */
+  label: string;
+  /** The value the KPI is expected to reach by then. Planned values may fall back, for a seasonal plan. */
+  plannedValue: number;
+  /**
+     * Optional: a value short of the planned value, in the KPI's direction, past which a measurement read against
+     * this checkpoint is at risk rather than unhealthy. Leave it out for on-plan-or-not health.
+     * @nullable
+     */
+  atRiskValue?: number | null;
+}
+
+/**
+ * A KPI's whole checkpoint plan, replacing the one it has.
+ */
+export interface KpiCheckpointPlanRequest {
+  /** Every checkpoint of the plan, in any order. Empty clears the plan. */
+  checkpoints: KpiCheckpointRequest[];
+}
+
+/**
+ * One value in a KPI's history, for a trend line.
+ */
+export interface KpiPointDto {
+  /** The first day the value describes. */
+  periodStart: string & { readonly __brand: 'CalendarDate' };
+  /** The last day the value describes. */
+  periodEnd: string & { readonly __brand: 'CalendarDate' };
+  /** The raw measured value. */
+  value: number;
+  /**
+     * The moment a point-in-time value describes, or null for any other window.
+     * @nullable
+     */
+  measuredAt?: string & { readonly __brand: 'Instant' } | null;
+}
+
+export type KpiHealth = typeof KpiHealth[keyof typeof KpiHealth];
+
+
+export const KpiHealth = {
+  Healthy: 'Healthy',
+  AtRisk: 'AtRisk',
+  Unhealthy: 'Unhealthy',
+} as const;
+
+export type KpiTrend = typeof KpiTrend[keyof typeof KpiTrend];
+
+
+export const KpiTrend = {
+  NoData: 'NoData',
+  Improving: 'Improving',
+  Worsening: 'Worsening',
+  Stable: 'Stable',
+} as const;
+
+/**
+ * What a KPI's latest value means against its goal, worked out when read.
+ */
+export interface KpiReadingDto {
+  /**
+     * The latest raw value, or null when nothing has been measured.
+     * @nullable
+     */
+  value?: number | null;
+  /**
+     * The latest value less the baseline, or null without both.
+     * @nullable
+     */
+  changeFromBaseline?: number | null;
+  /**
+     * That change as a percentage of the baseline's magnitude; null without both or from a baseline of zero.
+     * @nullable
+     */
+  changeFromBaselinePercent?: number | null;
+  /**
+     * How far the value has moved from the baseline toward the target, where 1 is the target reached; null without a baseline.
+     * @nullable
+     */
+  progressToTarget?: number | null;
+  /** Whether the value meets its checkpoint's planned value, or the target past the plan, is at risk, or neither; null when nothing has been measured. */
+  health?: KpiHealth | null;
+  /** Whether the latest value moved the right way from the one before it. */
+  trend: KpiTrend;
+  /**
+     * The latest raw measurement, which differs from Value only when it is a rolling average.
+     * @nullable
+     */
+  latestValue?: number | null;
+  /**
+     * How many measurements Value averages, or null when it is the latest alone; fewer than the KPI asks for while it has fewer.
+     * @nullable
+     */
+  averagedCount?: number | null;
+  /** The checkpoint health was judged against, or null when it was judged against the target. */
+  checkpoint?: KpiCheckpointDto | null;
+}
+
+/**
+ * One checkpoint of a KPI's plan with the latest measurement read against it: the last whose period ends after the
+ * checkpoint before and on or before this one.
+ */
+export interface KpiCheckpointReadingDto {
+  /** The checkpoint. */
+  checkpoint: KpiCheckpointDto;
+  /** The measurement read against it, or null when none falls under it yet. */
+  measurement?: KpiPointDto | null;
+  /** What that measurement means against the checkpoint; with no measurement, no health and no trend. */
+  reading: KpiReadingDto;
 }
 
 export type KpiSource = typeof KpiSource[keyof typeof KpiSource];
@@ -9519,82 +9684,6 @@ export interface KpiGoalDto {
   resolvedAtRiskValue?: number | null;
 }
 
-export type KpiHealth = typeof KpiHealth[keyof typeof KpiHealth];
-
-
-export const KpiHealth = {
-  Healthy: 'Healthy',
-  AtRisk: 'AtRisk',
-  Unhealthy: 'Unhealthy',
-} as const;
-
-export type KpiTrend = typeof KpiTrend[keyof typeof KpiTrend];
-
-
-export const KpiTrend = {
-  NoData: 'NoData',
-  Improving: 'Improving',
-  Worsening: 'Worsening',
-  Stable: 'Stable',
-} as const;
-
-/**
- * What a KPI's latest value means against its goal, worked out when read.
- */
-export interface KpiReadingDto {
-  /**
-     * The latest raw value, or null when nothing has been measured.
-     * @nullable
-     */
-  value?: number | null;
-  /**
-     * The latest value less the baseline, or null without both.
-     * @nullable
-     */
-  changeFromBaseline?: number | null;
-  /**
-     * That change as a percentage of the baseline's magnitude; null without both or from a baseline of zero.
-     * @nullable
-     */
-  changeFromBaselinePercent?: number | null;
-  /**
-     * How far the value has moved from the baseline toward the target, where 1 is the target reached; null without a baseline.
-     * @nullable
-     */
-  progressToTarget?: number | null;
-  /** Whether the value meets the target, is at risk, or neither; null when nothing has been measured. */
-  health?: KpiHealth | null;
-  /** Whether the latest value moved the right way from the one before it. */
-  trend: KpiTrend;
-  /**
-     * The latest raw measurement, which differs from Value only when it is a rolling average.
-     * @nullable
-     */
-  latestValue?: number | null;
-  /**
-     * How many measurements Value averages, or null when it is the latest alone; fewer than the KPI asks for while it has fewer.
-     * @nullable
-     */
-  averagedCount?: number | null;
-}
-
-/**
- * One value in a KPI's history, for a trend line.
- */
-export interface KpiPointDto {
-  /** The first day the value describes. */
-  periodStart: string & { readonly __brand: 'CalendarDate' };
-  /** The last day the value describes. */
-  periodEnd: string & { readonly __brand: 'CalendarDate' };
-  /** The raw measured value. */
-  value: number;
-  /**
-     * The moment a point-in-time value describes, or null for any other window.
-     * @nullable
-     */
-  measuredAt?: string & { readonly __brand: 'Instant' } | null;
-}
-
 /**
  * One KPI as a scorecard lists it: what it is, its goal, its latest reading and its recent values.
  */
@@ -9639,8 +9728,10 @@ export interface KpiSummaryDto {
   order: number;
   /** What it is measured against. */
   goal: KpiGoalDto;
-  /** What its latest value means against the goal. */
+  /** What its latest value means against the goal, or against the checkpoint it falls under. */
   reading: KpiReadingDto;
+  /** Its checkpoint plan, in date order; empty when it has none. */
+  checkpoints: KpiCheckpointDto[];
   /** Its most recent values, oldest first, for a trend line. */
   recentValues: KpiPointDto[];
 }
@@ -9715,6 +9806,8 @@ export interface KpiDetailsDto {
   canManage: boolean;
   /** Every measurement, newest period first, then newest moment. */
   measurements: KpiMeasurementDto[];
+  /** Each checkpoint of its plan in date order, with the measurement read against it; empty without a plan. */
+  checkpointReadings: KpiCheckpointReadingDto[];
 }
 
 /**
@@ -20488,6 +20581,8 @@ export type KpiImportsImportParams = {
 export type KpiImportsImportBody = {
   file: Blob | File;
   measurementsFile: Blob | File;
+  /** @nullable */
+  checkpointsFile?: Blob | File | null;
 };
 
 export type MeGetWorkItemsParams = {

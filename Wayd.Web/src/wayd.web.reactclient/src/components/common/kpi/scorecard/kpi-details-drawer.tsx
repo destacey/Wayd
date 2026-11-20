@@ -8,6 +8,7 @@ import {
 } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import {
+  KpiCheckpointReadingDto,
   KpiMeasurementDto,
   KpiStatus,
   KpiTargetDirection,
@@ -26,6 +27,7 @@ import { Alert, Button, Drawer, Flex, Skeleton, Tag, Typography } from 'antd'
 import type { ItemType } from 'antd/es/menu/interface'
 import { useState } from 'react'
 import { KpiHealthTag, KpiTrendTag } from '../kpi-status-tags'
+import KpiCheckpointPlanForm from './kpi-checkpoint-plan-form'
 import KpiConfirmForm from './kpi-confirm-form'
 import KpiForm from './kpi-form'
 import {
@@ -47,8 +49,12 @@ const { Text, Paragraph } = Typography
 /** Room for a handful of rows, so one or two measurements still read as a list. */
 const MEASUREMENTS_MIN_HEIGHT = 240
 
+/** Room for a few checkpoints; a plan is usually a handful of quarters. */
+const CHECKPOINTS_MIN_HEIGHT = 160
+
 type DialogState =
   | { dialog: 'edit' }
+  | { dialog: 'plan' }
   | { dialog: 'record' }
   | { dialog: 'correct'; measurement: KpiMeasurementDto }
   | { dialog: 'remove-measurement'; measurement: KpiMeasurementDto }
@@ -138,6 +144,75 @@ const KpiDetailsDrawer = ({
     { id: 'note', header: 'Note', size: 240, accessorKey: 'note' },
   ]
 
+  const checkpointColumns: ColumnDef<KpiCheckpointReadingDto, any>[] = [
+    {
+      id: 'date',
+      header: 'Due',
+      size: 120,
+      accessorFn: (r) => r.checkpoint.date,
+      cell: ({ row }) => formatCalendarDate(row.original.checkpoint.date),
+    },
+    {
+      id: 'label',
+      header: 'Checkpoint',
+      size: 110,
+      accessorFn: (r) => r.checkpoint.label,
+    },
+    {
+      id: 'planned',
+      header: 'Planned',
+      size: 100,
+      accessorFn: (r) => r.checkpoint.plannedValue,
+      cell: ({ row }) =>
+        formatKpiValue(
+          row.original.checkpoint.plannedValue,
+          kpi?.prefix,
+          kpi?.suffix,
+        ),
+    },
+    {
+      id: 'atRisk',
+      header: 'At Risk',
+      size: 100,
+      accessorFn: (r) => r.checkpoint.atRiskValue,
+      cell: ({ row }) =>
+        row.original.checkpoint.atRiskValue == null
+          ? '—'
+          : formatKpiValue(
+              row.original.checkpoint.atRiskValue,
+              kpi?.prefix,
+              kpi?.suffix,
+            ),
+    },
+    // Health before the measurement, which is wide: whether each checkpoint
+    // was met is what the table is for, so it must not need a scroll.
+    {
+      id: 'health',
+      header: 'Health',
+      size: 120,
+      // A checkpoint with nothing read against it sorts after the rest, whatever its reading carries.
+      accessorFn: (r) => (r.measurement ? r.reading.health : undefined),
+      sortUndefined: 'last',
+      cell: ({ row }) =>
+        row.original.measurement ? (
+          <KpiHealthTag health={row.original.reading.health} />
+        ) : (
+          'Not measured'
+        ),
+    },
+    {
+      id: 'actual',
+      header: 'Read Against It',
+      size: 240,
+      accessorFn: (r) => (r.measurement ? r.reading.value : undefined),
+      sortUndefined: 'last',
+      cell: ({ row }) =>
+        row.original.measurement && kpi
+          ? `${formatKpiValue(row.original.reading.value, kpi.prefix, kpi.suffix)} · ${describeMeasurementTime(row.original.measurement, kpi.window)}`
+          : '—',
+    },
+  ]
+
   const actionItems: ItemType[] = !canChange
     ? []
     : [
@@ -146,6 +221,15 @@ const KpiDetailsDrawer = ({
           label: 'Edit',
           onClick: () => setDialog({ dialog: 'edit' }),
         },
+        ...(isOpen
+          ? [
+              {
+                key: 'plan',
+                label: 'Checkpoint Plan',
+                onClick: () => setDialog({ dialog: 'plan' }),
+              },
+            ]
+          : []),
         isOpen
           ? {
               key: 'close',
@@ -264,6 +348,16 @@ const KpiDetailsDrawer = ({
                 {atRisk}
               </LabeledContent>
             )}
+            {kpi.reading.checkpoint && (
+              <LabeledContent label="Judged against">
+                {kpi.reading.checkpoint.label} plan:{' '}
+                {formatKpiValue(
+                  kpi.reading.checkpoint.plannedValue,
+                  kpi.prefix,
+                  kpi.suffix,
+                )}
+              </LabeledContent>
+            )}
             <LabeledContent label="Change from baseline">
               {kpi.reading.changeFromBaseline == null
                 ? '—'
@@ -289,10 +383,26 @@ const KpiDetailsDrawer = ({
               measuredAt: m.measuredAt,
             }))}
             goal={kpi.goal}
+            checkpoints={kpi.checkpoints}
             prefix={kpi.prefix ?? undefined}
             suffix={kpi.suffix ?? undefined}
             isLoading={false}
           />
+
+          {data.checkpointReadings.length > 0 && (
+            <div>
+              <Text strong style={{ fontSize: 14 }}>
+                Checkpoint Plan
+              </Text>
+              <WaydGrid
+                variant="simple"
+                columns={checkpointColumns}
+                data={data.checkpointReadings}
+                getRowId={(r) => r.checkpoint.date}
+                minHeight={CHECKPOINTS_MIN_HEIGHT}
+              />
+            </div>
+          )}
 
           <div>
             <Text strong style={{ fontSize: 14 }}>
@@ -314,6 +424,17 @@ const KpiDetailsDrawer = ({
         <KpiForm
           subject={subject}
           kpi={kpi}
+          onFormComplete={closeDialog}
+          onFormCancel={closeDialog}
+        />
+      )}
+      {kpi && dialog?.dialog === 'plan' && (
+        <KpiCheckpointPlanForm
+          target={target}
+          checkpoints={kpi.checkpoints}
+          direction={kpi.goal.direction}
+          prefix={kpi.prefix ?? undefined}
+          suffix={kpi.suffix ?? undefined}
           onFormComplete={closeDialog}
           onFormCancel={closeDialog}
         />

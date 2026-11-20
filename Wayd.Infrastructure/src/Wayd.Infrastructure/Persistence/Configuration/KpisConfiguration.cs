@@ -81,6 +81,7 @@ public class KpiConfiguration : IEntityTypeConfiguration<Kpi>
         builder.Ignore(k => k.Goal);
         builder.Ignore(k => k.Details);
         builder.Ignore(k => k.Window);
+        builder.Ignore(k => k.CheckpointPlan);
 
         builder.Property(k => k.Source).IsRequired()
             .HasConversion<EnumConverter<KpiSource>>()
@@ -100,8 +101,8 @@ public class KpiConfiguration : IEntityTypeConfiguration<Kpi>
         builder.Property(k => k.Order).IsRequired();
 
         // Two people changing one KPI at once collide here rather than the second silently undoing the first. A
-        // measurement change touches the KPI's row too (IKpisDbContext.TouchKpi), so two clashing measurements recorded
-        // at once collide here as well.
+        // measurement or checkpoint plan change touches the KPI's row too (IKpisDbContext.TouchKpi), so two clashing
+        // measurements, or two plans, saved at once collide here as well.
         builder.Property<byte[]>("RowVersion").IsRowVersion();
 
         // Restrict: a category KPIs use is deactivated, never deleted.
@@ -117,6 +118,12 @@ public class KpiConfiguration : IEntityTypeConfiguration<Kpi>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(k => k.Measurements).HasField("_measurements").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(k => k.Checkpoints)
+            .WithOne()
+            .HasForeignKey(c => c.KpiId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(k => k.Checkpoints).HasField("_checkpoints").UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }
 
@@ -176,6 +183,30 @@ public class KpiMeasurementConfiguration : IEntityTypeConfiguration<KpiMeasureme
             .HasForeignKey(m => m.MeasuredById)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.NoAction);
+    }
+}
+
+/// <summary>
+/// Maps <see cref="KpiCheckpoint"/> to <c>Kpis.Checkpoints</c>: one dated point of a KPI's checkpoint plan.
+/// </summary>
+public class KpiCheckpointConfiguration : IEntityTypeConfiguration<KpiCheckpoint>
+{
+    /// <inheritdoc/>
+    public void Configure(EntityTypeBuilder<KpiCheckpoint> builder)
+    {
+        builder.ToTable("Checkpoints", SchemaNames.Kpis);
+
+        builder.HasKey(c => c.Id);
+        builder.Property(c => c.Id).ValueGeneratedNever();
+
+        // One checkpoint per day on a KPI: the plan is matched by date when replaced, and a reading picks the first on
+        // or after its period end.
+        builder.HasIndex(c => new { c.KpiId, c.Date }).IsUnique();
+
+        builder.Property(c => c.Date).IsRequired();
+        builder.Property(c => c.Label).IsRequired().HasMaxLength(KpiCheckpointPlan.LabelMaxLength);
+        builder.Property(c => c.PlannedValue).IsRequired();
+        builder.Property(c => c.AtRiskValue);
     }
 }
 

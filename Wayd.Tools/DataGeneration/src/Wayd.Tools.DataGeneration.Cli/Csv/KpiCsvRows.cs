@@ -1,8 +1,8 @@
 namespace Wayd.Tools.DataGeneration.Cli.Csv;
 
-// The KPI CSV rows, as the API import endpoint consumes them. Column names must match ImportKpiRequest and
-// ImportKpiMeasurementRequest in Wayd.Web.Api/Models/Kpis, and every column has to be present even when the
-// seed leaves it empty: a missing header fails the whole file.
+// The KPI CSV rows, as the API import endpoint consumes them. Column names must match ImportKpiRequest,
+// ImportKpiMeasurementRequest and ImportKpiCheckpointRequest in Wayd.Web.Api/Models/Kpis, and every column
+// has to be present even when the seed leaves it empty: a missing header fails the whole file.
 
 /// <summary>One row of the KPI file: a KPI on a team or a team of teams, by id.</summary>
 public sealed class KpiCsvRow
@@ -47,4 +47,14 @@ public sealed class KpiMeasurementCsvRow
     public DateOnly? MeasuredOn { get; init; }
     public int? SampleSize { get; init; }
     public string? Note { get; init; }
+}
+
+/// <summary>One row of the checkpoints file: one checkpoint of one KPI's plan, named by the KPI row's ImportId.</summary>
+public sealed class KpiCheckpointCsvRow
+{
+    public required string KpiImportId { get; init; }
+    public required DateOnly Date { get; init; }
+    public required string Label { get; init; }
+    public required double PlannedValue { get; init; }
+    public double? AtRiskValue { get; init; }
 }

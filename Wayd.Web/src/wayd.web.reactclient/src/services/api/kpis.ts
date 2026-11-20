@@ -5,6 +5,8 @@
  * OpenAPI spec version: v1
  */
 import type {
+  KpiCheckpointPlanRequest,
+  KpiCheckpointReadingDto,
   KpiDetailsDto,
   KpiMeasurementRequest,
   KpiRequest,
@@ -370,6 +372,63 @@ export const kpisRemoveMeasurement = async (subjectType: string,
     method: 'DELETE'
 
 
+  }
+);}
+
+
+export const getKpisGetCheckpointPlanUrl = (subjectType: string,
+    subjectId: string,
+    kpiId: string,) => {
+
+
+
+
+  return `/api/kpis/${encodeURIComponent(String(subjectType))}/${encodeURIComponent(String(subjectId))}/${encodeURIComponent(String(kpiId))}/checkpoints`
+}
+
+/**
+ * `subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. Returns each checkpoint in date order with the latest measurement whose period ends under it — after the checkpoint before, on or before this one — and that measurement's health and trend against the checkpoint. Empty when the KPI has no plan. Returns 404 too when the KPI is on another record.
+ * @summary Get a KPI's checkpoint plan.
+ */
+export const kpisGetCheckpointPlan = async (subjectType: string,
+    subjectId: string,
+    kpiId: string, options?: Parameters<typeof apiFetch>[1]): Promise<KpiCheckpointReadingDto[]> => {
+
+  return apiFetch<KpiCheckpointReadingDto[]>(getKpisGetCheckpointPlanUrl(subjectType,subjectId,kpiId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+export const getKpisChangeCheckpointPlanUrl = (subjectType: string,
+    subjectId: string,
+    kpiId: string,) => {
+
+
+
+
+  return `/api/kpis/${encodeURIComponent(String(subjectType))}/${encodeURIComponent(String(subjectId))}/${encodeURIComponent(String(kpiId))}/checkpoints`
+}
+
+/**
+ * `subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. Send the whole plan: a checkpoint on a day already planned is changed, one on a new day added, and a planned day left out removed; an empty list clears it. While a measurement's period ends on or before a checkpoint, its health is judged against the first such checkpoint — its planned value, and its at-risk value or none — instead of the target; past the last checkpoint the target and the KPI's own at-risk threshold apply. A closed KPI's plan cannot change. Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.
+ * @summary Replace a KPI's checkpoint plan.
+ */
+export const kpisChangeCheckpointPlan = async (subjectType: string,
+    subjectId: string,
+    kpiId: string,
+    kpiCheckpointPlanRequest: KpiCheckpointPlanRequest, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+
+  return apiFetch<void>(getKpisChangeCheckpointPlanUrl(subjectType,subjectId,kpiId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(kpiCheckpointPlanRequest)
   }
 );}
 

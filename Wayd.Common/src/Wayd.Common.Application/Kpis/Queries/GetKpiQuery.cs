@@ -6,7 +6,7 @@ using Wayd.Common.Domain.Kpis;
 namespace Wayd.Common.Application.Kpis.Queries;
 
 /// <summary>
-/// One KPI with every measurement taken, open or closed. Null when the record or the KPI does not exist, the KPI is on
+/// One KPI with every measurement taken and its checkpoint plan, open or closed. Null when the record or the KPI does not exist, the KPI is on
 /// another record, or the caller cannot read the record.
 /// </summary>
 /// <param name="SubjectType">The record's registered subject type.</param>
@@ -45,6 +45,7 @@ public sealed class GetKpiQueryHandler(KpiSubjectAccessResolver accessResolver, 
         var kpi = await _dbContext.Kpis
             .AsNoTracking()
             .Include(k => k.Measurements)
+            .Include(k => k.Checkpoints)
             .FirstOrDefaultAsync(k => k.Id == request.KpiId && k.SubjectType == subjectType && k.SubjectId == request.SubjectId, cancellationToken);
         if (kpi is null)
             return Result.Success<KpiDetailsDto?>(null);
@@ -64,10 +65,8 @@ public sealed class GetKpiQueryHandler(KpiSubjectAccessResolver accessResolver, 
             : (await _dbContext.Employees.AsNoTracking().Where(e => takerIds.Contains(e.Id)).ToListAsync(cancellationToken))
                 .ToDictionary(e => e.Id, EmployeeNavigationDto.From);
 
-        var recent = newestFirst
-            .Take(KpiSummaries.ReadValueCount)
-            .Select(m => new KpiPointDto(m.PeriodStart, m.PeriodEnd, m.Value, m.MeasuredAt))
-            .ToList();
+        var points = newestFirst.Select(m => new KpiPointDto(m.PeriodStart, m.PeriodEnd, m.Value, m.MeasuredAt)).ToList();
+        var recent = points.Take(KpiSummaries.ReadValueCount).ToList();
 
         return new KpiDetailsDto
         {
@@ -75,6 +74,7 @@ public sealed class GetKpiQueryHandler(KpiSubjectAccessResolver accessResolver, 
             SubjectName = subject.Access.Name,
             CanManage = subject.Access.CanManage,
             Measurements = newestFirst.Select(m => KpiMeasurementDto.From(m, takers)).ToList(),
+            CheckpointReadings = KpiSummaries.CheckpointReadings(kpi, points),
         };
     }
 }

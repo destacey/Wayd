@@ -1,6 +1,6 @@
 ---
 title: Scorecards and KPIs
-description: Setting KPIs on a team or team of teams — baselines, targets, at-risk thresholds, measurement windows and rolling averages — recording measurements, and reading the scorecard.
+description: Setting KPIs on a team or team of teams — baselines, targets, at-risk thresholds, checkpoint plans, measurement windows and rolling averages — recording measurements, and reading the scorecard.
 sidebar_position: 3
 audience: [user, agent]
 ---
@@ -25,6 +25,7 @@ KPIs need the `kpis` feature flag, which an administrator turns on under **Setti
 | **Show as** | Which reading the scorecard leads with: the value, the change from baseline, or the progress to target. |
 | **Measurement window** | What span of time each value covers — per period, cumulative, rolling or point in time. See [Measurement windows](#measurement-windows). Fixed once the KPI has measurements. |
 | **Rolling average** | Optional, for a per-period KPI. Reads the KPI as the average of its latest 2 to 12 measurements instead of the latest alone — velocity over the last 7 sprints, say. |
+| **Checkpoint plan** | Optional. Dated checkpoints the KPI is expected to reach on the way to its target. See [Checkpoint plans](#checkpoint-plans). |
 
 A percentage target follows its baseline: correct the baseline and the target it resolves to moves with it.
 
@@ -57,12 +58,27 @@ A per-period KPI whose values add up per period can be read as the **average of 
 
 The average is worked out when read, never stored, so changing how many it covers reads through the whole history at once.
 
+## Checkpoint plans
+
+A KPI aiming at a value a year away would read as **Unhealthy** for most of that year if every measurement were held to the final target. A **checkpoint plan** says where the KPI is expected to be along the way, so it is judged against the plan instead.
+
+Each checkpoint has a **date**, a short **label** such as `Q1` or `Sprint 12`, a **planned value**, and optionally an **at-risk value**. One checkpoint per date.
+
+- **A measurement is read against the first checkpoint on or after the last day it covers** — the end of its period, the day it is as of, or the day of its moment for a point-in-time KPI. A value for March is judged against the Q1 checkpoint dated March 31; a value for April against Q2.
+- **Health uses that checkpoint's lines:** **Healthy** at or past its planned value, **At Risk** past its at-risk value, **Unhealthy** otherwise. A checkpoint with no at-risk value is either on plan or not — the KPI's own at-risk threshold is not used inside the plan, because it is set against the final target.
+- **After the last checkpoint**, the KPI's target and at-risk threshold apply as they do without a plan.
+- **Change from baseline and progress to target** are still worked out toward the final target. A rolling average is judged against the checkpoint of its newest measurement.
+
+An at-risk value must be short of its planned value in the KPI's direction — below it for a KPI that should go up. Planned values need not climb steadily: a seasonal plan may dip. The last checkpoint need not equal the target. Reversing a KPI's direction is refused while its plan holds at-risk values, since they would then sit on the wrong side: remove them, change the direction, then add them back.
+
+On a KPI's view, **Checkpoint Plan** edits the plan as a whole: add, change and remove rows, then save. The chart draws the plan, and its at-risk values, as stepped lines beside the measurements, and the plan's table shows each checkpoint with the measurement read against it and how it fared. The scorecard card shows the checkpoint the latest value was read against beside the target. A closed KPI's plan cannot change.
+
 ## Reading the scorecard
 
 Each KPI is a card showing:
 
 - **Its headline** — the latest value (or rolling average), its change from baseline, or its progress to target, as the KPI is set to show.
-- **Health** — **Healthy** once the target is met, **At Risk** past the at-risk threshold, **Unhealthy** otherwise. Nothing until the KPI is first measured.
+- **Health** — **Healthy** once the target is met, **At Risk** past the at-risk threshold, **Unhealthy** otherwise; with a [checkpoint plan](#checkpoint-plans), against the checkpoint the latest value falls under. Nothing until the KPI is first measured.
 - **Trend** — whether the latest value moved the right way from the one before it. For a KPI read as a rolling average, whether the average moved the right way from the average one measurement earlier.
 - **A line of its recent values**, and the baseline and target.
 
@@ -73,6 +89,7 @@ Open a card for the KPI's full view: its goal, every reading, a chart of its his
 From the scorecard, **Add KPI** adds one at the end. From a KPI's view:
 
 - **Record Measurement** adds a value — for a period, as of a day, or at a moment, as the KPI's window takes it. **Correct** and **Remove** in a measurement's row change one already recorded; who took it stays as recorded.
+- **Checkpoint Plan** replaces its plan; see [Checkpoint plans](#checkpoint-plans).
 - **Edit** changes its details, baseline and target in one save, so a baseline and target can move together. Each part that changed is its own entry in the KPI's history.
 - **Close** takes it off the scorecard and keeps its measurements; a closed KPI takes no new measurements until it is **reopened**.
 - **Remove** deletes it and its measurements for good. Close it instead to keep its history.
@@ -91,8 +108,8 @@ The **Administer KPIs** permission changes any team's KPIs and manages the categ
 
 ## Bringing in history
 
-A year or more of history per team, from a spreadsheet, is loaded with the [KPI import](./bulk-import.mdx#kpi-import): one file of KPIs and one of their measurements.
+A year or more of history per team, from a spreadsheet, is loaded with the [KPI import](./bulk-import.mdx#kpi-import): one file of KPIs, one of their measurements, and optionally one of their checkpoint plans.
 
 ## From an AI assistant
 
-The `kpis` toolset on the [MCP server](../../getting-started/mcp-server.mdx) does what the scorecard does: it reads a scorecard and a KPI's history, records, corrects and removes measurements, and adds, edits, closes, reopens, reorders and removes KPIs, under the same rules for who may change them.
+The `kpis` toolset on the [MCP server](../../getting-started/mcp-server.mdx) does what the scorecard does: it reads a scorecard and a KPI's history, records, corrects and removes measurements, reads and replaces checkpoint plans, and adds, edits, closes, reopens, reorders and removes KPIs, under the same rules for who may change them.

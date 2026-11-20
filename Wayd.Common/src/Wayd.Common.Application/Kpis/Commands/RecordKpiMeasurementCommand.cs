@@ -44,7 +44,7 @@ public sealed class RecordKpiMeasurementCommandHandler(KpiCommandScope scope) : 
         if (added.IsFailure)
             return Result.Failure<Guid>(added.Error);
 
-        var saved = await _scope.SaveMeasurements(kpi.Value, cancellationToken);
+        var saved = await _scope.SaveTouchingKpi(kpi.Value, cancellationToken);
         return saved.IsSuccess ? added.Value.Id : Result.Failure<Guid>(saved.Error);
     }
 }

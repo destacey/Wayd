@@ -247,9 +247,10 @@ public sealed class WaydSeedClient : IDisposable
 
     // ---- KPIs ---------------------------------------------------------------------------------
 
-    public Task<ImportRun> ImportKpis(byte[] kpisCsv, byte[] measurementsCsv, CancellationToken cancellationToken) =>
+    public Task<ImportRun> ImportKpis(byte[] kpisCsv, byte[] measurementsCsv, byte[] checkpointsCsv, CancellationToken cancellationToken) =>
         Import("api/kpis/import", kpisCsv, "kpis.csv", "KPIs", cancellationToken,
-            secondFieldName: "measurementsFile", secondCsv: measurementsCsv, secondFileName: "kpi-measurements.csv");
+            secondFieldName: "measurementsFile", secondCsv: measurementsCsv, secondFileName: "kpi-measurements.csv",
+            thirdFieldName: "checkpointsFile", thirdCsv: checkpointsCsv, thirdFileName: "kpi-checkpoints.csv");
 
     /// <summary>
     /// Ensures each KPI category exists, creating the missing ones at the end of the list, and answers with every
@@ -685,16 +686,19 @@ public sealed class WaydSeedClient : IDisposable
     /// <summary>Posts a file, waits for the run it queued, and answers with what that run created.</summary>
     private async Task<ImportRun> Import(
         string path, byte[] csv, string fileName, string label, CancellationToken cancellationToken,
-        string? secondFieldName = null, byte[]? secondCsv = null, string? secondFileName = null)
+        string? secondFieldName = null, byte[]? secondCsv = null, string? secondFileName = null,
+        string? thirdFieldName = null, byte[]? thirdCsv = null, string? thirdFileName = null)
     {
-        var processId = await PostCsv(path, csv, fileName, cancellationToken, secondFieldName, secondCsv, secondFileName);
+        var processId = await PostCsv(path, csv, fileName, cancellationToken, secondFieldName, secondCsv, secondFileName,
+            thirdFieldName, thirdCsv, thirdFileName);
 
         return await _awaiter.Await(processId, label, cancellationToken);
     }
 
     /// <summary>Posts the multipart file(s) and reads the run id out of the run the endpoint answers with.</summary>
     private async Task<Guid> PostCsv(string path, byte[] csv, string fileName, CancellationToken cancellationToken,
-        string? secondFieldName = null, byte[]? secondCsv = null, string? secondFileName = null)
+        string? secondFieldName = null, byte[]? secondCsv = null, string? secondFileName = null,
+        string? thirdFieldName = null, byte[]? thirdCsv = null, string? thirdFileName = null)
     {
         using var content = new MultipartFormDataContent();
         var fileContent = new ByteArrayContent(csv);
@@ -709,6 +713,14 @@ public sealed class WaydSeedClient : IDisposable
             var secondContent = new ByteArrayContent(secondCsv);
             secondContent.Headers.ContentType = new MediaTypeHeaderValue("text/csv");
             content.Add(secondContent, secondFieldName, secondFileName ?? "second.csv");
+        }
+
+        // The KPI import also takes an optional third file, the checkpoint plans.
+        if (thirdCsv is { Length: > 0 } && thirdFieldName is not null)
+        {
+            var thirdContent = new ByteArrayContent(thirdCsv);
+            thirdContent.Headers.ContentType = new MediaTypeHeaderValue("text/csv");
+            content.Add(thirdContent, thirdFieldName, thirdFileName ?? "third.csv");
         }
 
         // The group rides on the query string: the endpoints take it there so the multipart body stays

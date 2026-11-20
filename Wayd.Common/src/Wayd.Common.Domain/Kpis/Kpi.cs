@@ -46,6 +46,9 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
     public const int MaxRollingAverageOf = 12;
 
     private readonly List<KpiMeasurement> _measurements = [];
+    // Null until loaded: EF creates the list when the query includes the plan, even an empty one, and leaves it null
+    // otherwise. That is what lets the plan's readers refuse a KPI loaded without it rather than read it as no plan.
+    private List<KpiCheckpoint>? _checkpoints;
 
     private string _name = default!;
     private string? _description;
@@ -72,6 +75,7 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
 
     private Kpi(string subjectType, Guid subjectId, KpiDefinition definition, int order)
     {
+        _checkpoints = [];
         SubjectType = subjectType;
         SubjectId = subjectId;
         ApplyWindow(definition.WindowOrDefault);
@@ -197,6 +201,27 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
     /// <summary>The measurements taken, in no particular order.</summary>
     public IReadOnlyCollection<KpiMeasurement> Measurements => _measurements.AsReadOnly();
 
+    /// <summary>
+    /// The checkpoint plan, in no particular order; empty when the KPI has none. Throws when the KPI was loaded
+    /// without it.
+    /// </summary>
+    public IReadOnlyCollection<KpiCheckpoint> Checkpoints => LoadedCheckpoints.AsReadOnly();
+
+    /// <summary>
+    /// The checkpoint plan's values, in date order; empty when the KPI has none. Throws when the KPI was loaded
+    /// without it.
+    /// </summary>
+    public IReadOnlyList<KpiCheckpointValues> CheckpointPlan =>
+        [.. LoadedCheckpoints.OrderBy(c => c.Date).Select(c => c.ToValues())];
+
+    /// <summary>
+    /// The plan, refusing a KPI loaded without it: read as empty, a plan change would add every checkpoint again
+    /// and a direction change would pass at-risk values it should refuse.
+    /// </summary>
+    private List<KpiCheckpoint> LoadedCheckpoints => _checkpoints
+        ?? throw new InvalidOperationException(
+            $"KPI {Id} was loaded without its checkpoint plan. Include {nameof(Checkpoints)} in the query that loads it.");
+
     /// <summary>Everything the KPI is measured against, taken together.</summary>
     public KpiGoal Goal => new(Direction, Baseline, Target, AtRisk);
 
@@ -233,6 +258,11 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
     /// <remarks>
     /// Raises <see cref="KpiBaselineChangedEvent"/> when the baseline changed and <see cref="KpiTargetChangedEvent"/>
     /// when the direction, target or threshold did; nothing when nothing changed.
+    /// <para>
+    /// Fails when a new direction leaves a checkpoint's at-risk value on the wrong side of its planned value. Reads
+    /// <see cref="Checkpoints"/> on a direction change, so the KPI must be loaded with them, and throws when it was
+    /// not.
+    /// </para>
     /// </remarks>
     public Result ChangeGoal(KpiGoal goal, EventActor actor, Instant timestamp)
     {
@@ -245,6 +275,10 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
         var previous = Goal;
         if (goal == previous)
             return Result.Success();
+
+        // The plan already held under the old direction, so only its at-risk values can fail under the new one.
+        if (goal.Direction != previous.Direction && KpiCheckpointPlan.Validate(CheckpointPlan, goal.Direction) is not null)
+            return Result.Failure(KpiErrors.DirectionConflictsWithPlan);
 
         ApplyGoal(goal);
         var current = Goal;
@@ -292,6 +326,62 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
         return Result.Success();
     }
 
+    /// <summary>
+    /// Replaces the checkpoint plan with <paramref name="plan"/>, matching checkpoints by date: one on a day already
+    /// planned is changed, one on a new day is added, and a planned day left out is removed. An empty plan clears it.
+    /// Fails when the KPI is closed or the plan does not hold; raises nothing when nothing changed.
+    /// </summary>
+    /// <remarks>
+    /// Reads <see cref="Checkpoints"/>, so the KPI must be loaded with them, and throws when it was not.
+    /// </remarks>
+    public Result ChangeCheckpointPlan(IReadOnlyCollection<KpiCheckpointValues> plan, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(plan, nameof(plan));
+        Guard.Against.Null(actor, nameof(actor));
+
+        if (Status == KpiStatus.Closed)
+            return Result.Failure(KpiErrors.PlanLockedClosed);
+
+        var error = KpiCheckpointPlan.Validate(plan, Direction);
+        if (error is not null)
+            return Result.Failure(error);
+
+        var current = KpiCheckpointPlan.Normalize(plan);
+        var previous = CheckpointPlan;
+        if (current.SequenceEqual(previous))
+            return Result.Success();
+
+        var checkpoints = LoadedCheckpoints;
+        var byDate = current.ToDictionary(c => c.Date);
+        checkpoints.RemoveAll(c => !byDate.ContainsKey(c.Date));
+
+        foreach (var values in current)
+        {
+            var existing = checkpoints.FirstOrDefault(c => c.Date == values.Date);
+            if (existing is null)
+                checkpoints.Add(new KpiCheckpoint(Id, values));
+            else
+                existing.Apply(values);
+        }
+
+        var previousByDate = previous.ToDictionary(c => c.Date);
+        var added = current.Where(c => !previousByDate.ContainsKey(c.Date)).ToList();
+        var removed = previous.Where(c => !byDate.ContainsKey(c.Date)).ToList();
+        var revised = current
+            .Where(c => previousByDate.TryGetValue(c.Date, out var before) && before != c)
+            .Select(c => new KpiCheckpointRevision(previousByDate[c.Date], c))
+            .ToList();
+        AddKeyedDomainEvent(() => new KpiCheckpointPlanChangedEvent(Id, Key, SubjectType, SubjectId, added, removed, revised, current, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// The checkpoint a measurement whose period ends on <paramref name="periodEnd"/> is read against, or null when the
+    /// KPI's own target applies.
+    /// </summary>
+    public KpiCheckpointValues? CheckpointFor(LocalDate periodEnd) => KpiCheckpointPlan.For(CheckpointPlan, periodEnd);
+
     /// <summary>Takes the KPI off the scorecard, keeping its measurements as history.</summary>
     public Result Close(EventActor actor, Instant timestamp)
     {
@@ -317,8 +407,8 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Records that the KPI is being removed with its measurements. The caller then removes it; the database removes
-    /// its measurements.
+    /// Records that the KPI is being removed with its measurements and checkpoint plan. The caller then removes it; the
+    /// database removes the rest.
     /// </summary>
     /// <remarks>
     /// One event for the KPI rather than one per measurement: they go because the KPI went, and a KPI that should keep

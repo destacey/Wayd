@@ -27,6 +27,7 @@ namespace Wayd.Common.Application.Kpis.Imports;
 /// <param name="Measurements">Its history, in any order.</param>
 /// <param name="Window">How its measurements are windowed; per period when null, as every payload queued before windows existed means.</param>
 /// <param name="RollingAverageOf">How many of the latest measurements its reading averages, or null for the latest alone.</param>
+/// <param name="Checkpoints">Its checkpoint plan, in any order; null in every payload queued before plans existed, which had none.</param>
 public sealed record ImportKpiDto(
     string SubjectType,
     Guid SubjectId,
@@ -43,7 +44,8 @@ public sealed record ImportKpiDto(
     bool IsClosed,
     IReadOnlyList<ImportKpiMeasurementDto> Measurements,
     KpiMeasurementWindow? Window = null,
-    int? RollingAverageOf = null);
+    int? RollingAverageOf = null,
+    IReadOnlyList<KpiCheckpointValues>? Checkpoints = null);
 
 /// <summary>
 /// One measurement of an imported KPI, saying when it was taken the one way its KPI's window takes: a period, an

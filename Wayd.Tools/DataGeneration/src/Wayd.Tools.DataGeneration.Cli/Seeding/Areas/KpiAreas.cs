@@ -63,8 +63,8 @@ public sealed class KpiCategoriesArea() : KpiSeedArea(KpiArea.Categories, KpiAre
 }
 
 /// <summary>
-/// Loads every team's and ART's KPIs with their monthly history, resolving each one's record and category. A
-/// KPI travels with its measurements, so a batch never splits one from its history. A point-in-time moment is
+/// Loads every team's and ART's KPIs with their monthly history and any checkpoint plan, resolving each one's record
+/// and category. A KPI travels with its measurements and plan, so a batch never splits one from them. A point-in-time moment is
 /// written with its offset, which the import requires.
 /// </summary>
 public sealed class KpisArea() : KpiSeedArea(KpiArea.Kpis, KpiArea.Categories, OrganizationArea.Teams)
@@ -79,6 +79,10 @@ public sealed class KpisArea() : KpiSeedArea(KpiArea.Kpis, KpiArea.Categories, O
 
         var history = data.Measurements
             .GroupBy(m => m.KpiHandle, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
+        var plans = data.Checkpoints
+            .GroupBy(c => c.KpiHandle, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 
         var rows = data.Kpis.Select(k => new KpiCsvRow
@@ -109,7 +113,7 @@ public sealed class KpisArea() : KpiSeedArea(KpiArea.Kpis, KpiArea.Categories, O
         }).ToList();
 
         var batches = Batch(context, rows, r => r.ImportId);
-        context.Log($"Importing {rows.Count} KPIs and {data.Measurements.Count} measurements in {batches.Count} batch(es)...");
+        context.Log($"Importing {rows.Count} KPIs, {data.Measurements.Count} measurements and {data.Checkpoints.Count} checkpoints in {batches.Count} batch(es)...");
 
         var created = await ImportBatches(context, "KPIs", batches, batch =>
         {
@@ -126,7 +130,19 @@ public sealed class KpisArea() : KpiSeedArea(KpiArea.Kpis, KpiArea.Categories, O
                     SampleSize = m.SampleSize,
                 });
 
-            return context.Client.ImportKpis(CsvFile.ToBytes(batch), CsvFile.ToBytes(measurements), cancellationToken);
+            var checkpoints = batch
+                .SelectMany(k => plans.TryGetValue(k.ImportId, out var plan) ? plan : [])
+                .Select(c => new KpiCheckpointCsvRow
+                {
+                    KpiImportId = c.KpiHandle,
+                    Date = c.Date,
+                    Label = c.Label,
+                    PlannedValue = c.PlannedValue,
+                    AtRiskValue = c.AtRiskValue,
+                });
+
+            return context.Client.ImportKpis(
+                CsvFile.ToBytes(batch), CsvFile.ToBytes(measurements), CsvFile.ToBytes(checkpoints), cancellationToken);
         });
 
         context.Publish(Name, created);

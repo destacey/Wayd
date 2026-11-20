@@ -97,6 +97,32 @@ public sealed class GetKpiScorecardQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldJudgeARollingAverage_AgainstItsNewestMeasurementsCheckpoint()
+    {
+        // Arrange
+        var kpi = _harness.AddKpi(rollingAverageOf: 3);
+        var now = _harness.DateTimeProvider.Now;
+        kpi.ChangeCheckpointPlan(
+            [
+                new KpiCheckpointValues(new LocalDate(2026, 1, 31), "Jan", 16, null),
+                new KpiCheckpointValues(new LocalDate(2026, 3, 31), "Q1", 17, 16),
+            ],
+            EventActor.System, now);
+        foreach (var (start, value) in new[] { (new LocalDate(2025, 12, 1), 16.0), (new LocalDate(2026, 1, 1), 16.5), (new LocalDate(2026, 2, 1), 17.0) })
+            kpi.AddMeasurement(KpiTestHarness.Measurement(value, start, start.PlusMonths(1).PlusDays(-1)), KpiTestHarness.Zone, EventActor.System, now);
+
+        // Act
+        var result = await CreateHandler().Handle(Query(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var summary = result.Value!.Kpis.Should().ContainSingle().Subject;
+        summary.Checkpoints.Select(c => c.Label).Should().Equal("Jan", "Q1");
+        summary.Reading.Value.Should().BeApproximately(16.5, 1e-9);
+        summary.Reading.Checkpoint!.Label.Should().Be("Q1");
+        summary.Reading.Health.Should().Be(KpiHealth.AtRisk);
+    }
+
+    [Fact]
     public async Task Handle_ShouldReadNoValue_ForAKpiNotYetMeasured()
     {
         // Arrange

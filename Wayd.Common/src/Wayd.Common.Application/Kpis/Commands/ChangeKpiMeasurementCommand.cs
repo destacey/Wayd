@@ -54,6 +54,6 @@ public sealed class ChangeKpiMeasurementCommandHandler(KpiCommandScope scope) : 
 
         var changed = kpi.Value.ChangeMeasurement(command.MeasurementId, input.Value, zone, _scope.Actor, _scope.Now);
 
-        return changed.IsSuccess ? await _scope.SaveMeasurements(kpi.Value, cancellationToken) : changed;
+        return changed.IsSuccess ? await _scope.SaveTouchingKpi(kpi.Value, cancellationToken) : changed;
     }
 }

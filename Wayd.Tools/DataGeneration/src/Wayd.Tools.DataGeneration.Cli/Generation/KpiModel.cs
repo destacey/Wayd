@@ -7,7 +7,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 public sealed record GeneratedKpis(
     IReadOnlyList<string> Categories,
     IReadOnlyList<KpiModel> Kpis,
-    IReadOnlyList<KpiMeasurementModel> Measurements);
+    IReadOnlyList<KpiMeasurementModel> Measurements,
+    IReadOnlyList<KpiCheckpointModel> Checkpoints);
+
+/// <summary>One checkpoint of a KPI's plan, named by its KPI's handle.</summary>
+public sealed record KpiCheckpointModel(
+    string KpiHandle,
+    DateOnly Date,
+    string Label,
+    double PlannedValue,
+    double? AtRiskValue);
 
 /// <summary>
 /// One KPI on a team or an ART, as the import takes it. <see cref="TeamCode"/> names the record; the category is

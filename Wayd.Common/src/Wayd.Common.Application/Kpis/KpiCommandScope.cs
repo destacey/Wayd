@@ -61,8 +61,12 @@ public sealed class KpiCommandScope(
     }
 
     /// <summary>
-    /// One of the record's KPIs, tracked, when the caller may manage the record's KPIs.
+    /// One of the record's KPIs, tracked, with its checkpoint plan, when the caller may manage the record's KPIs.
     /// </summary>
+    /// <remarks>
+    /// The plan is always loaded: it is small, and a goal change checks a new direction against it, which a KPI loaded
+    /// without it would silently pass.
+    /// </remarks>
     /// <param name="withMeasurements">
     /// Load the measurements too. Every measurement change and window change needs them: the clash rules and the
     /// window lock check the loaded ones only.
@@ -73,7 +77,7 @@ public sealed class KpiCommandScope(
         if (subject.IsFailure)
             return Result.Failure<Kpi>(subject.Error);
 
-        var query = _dbContext.Kpis.AsQueryable();
+        var query = _dbContext.Kpis.Include(k => k.Checkpoints).AsQueryable();
         if (withMeasurements)
             query = query.Include(k => k.Measurements);
 
@@ -111,10 +115,10 @@ public sealed class KpiCommandScope(
     }
 
     /// <summary>
-    /// Saves a change to the KPI's measurements, writing the KPI's row too so a concurrent change to the same KPI's
-    /// measurements collides instead of both passing the overlap rule.
+    /// Saves a change to the KPI's measurements or checkpoint plan, writing the KPI's row too so a concurrent change to
+    /// the same KPI's measurements or plan collides instead of both passing the rules against what each loaded.
     /// </summary>
-    public Task<Result> SaveMeasurements(Kpi kpi, CancellationToken cancellationToken)
+    public Task<Result> SaveTouchingKpi(Kpi kpi, CancellationToken cancellationToken)
     {
         _dbContext.TouchKpi(kpi);
         return Save(cancellationToken);

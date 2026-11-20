@@ -50,10 +50,11 @@ public sealed record KpiGoalDto(
 /// <param name="ChangeFromBaseline">The latest value less the baseline, or null without both.</param>
 /// <param name="ChangeFromBaselinePercent">That change as a percentage of the baseline's magnitude; null without both or from a baseline of zero.</param>
 /// <param name="ProgressToTarget">How far the value has moved from the baseline toward the target, where 1 is the target reached; null without a baseline.</param>
-/// <param name="Health">Whether the value meets the target, is at risk, or neither; null when nothing has been measured.</param>
+/// <param name="Health">Whether the value meets its checkpoint's planned value, or the target past the plan, is at risk, or neither; null when nothing has been measured.</param>
 /// <param name="Trend">Whether the latest value moved the right way from the one before it.</param>
 /// <param name="LatestValue">The latest raw measurement, which differs from <paramref name="Value"/> only when it is a rolling average.</param>
 /// <param name="AveragedCount">How many measurements <paramref name="Value"/> averages, or null when it is the latest alone; fewer than the KPI asks for while it has fewer.</param>
+/// <param name="Checkpoint">The checkpoint health was judged against, or null when it was judged against the target.</param>
 public sealed record KpiReadingDto(
     double? Value,
     double? ChangeFromBaseline,
@@ -62,7 +63,8 @@ public sealed record KpiReadingDto(
     KpiHealth? Health,
     KpiTrend Trend,
     double? LatestValue,
-    int? AveragedCount)
+    int? AveragedCount,
+    KpiCheckpointDto? Checkpoint)
 {
     /// <summary>The reading as worked out.</summary>
     public static KpiReadingDto From(KpiReading reading) => new(
@@ -73,8 +75,30 @@ public sealed record KpiReadingDto(
         reading.Health,
         reading.Trend,
         reading.LatestValue,
-        reading.AveragedCount);
+        reading.AveragedCount,
+        reading.Checkpoint is { } checkpoint ? KpiCheckpointDto.From(checkpoint) : null);
 }
+
+/// <summary>One checkpoint of a KPI's plan.</summary>
+/// <param name="Date">The day the planned value is due.</param>
+/// <param name="Label">A short name for it, such as "Q1".</param>
+/// <param name="PlannedValue">The value the KPI is expected to reach by then.</param>
+/// <param name="AtRiskValue">The line short of the planned value past which a measurement is at risk, or null for two-state health.</param>
+public sealed record KpiCheckpointDto(LocalDate Date, string Label, double PlannedValue, double? AtRiskValue)
+{
+    /// <summary>The checkpoint as the plan holds it.</summary>
+    public static KpiCheckpointDto From(KpiCheckpointValues checkpoint) =>
+        new(checkpoint.Date, checkpoint.Label, checkpoint.PlannedValue, checkpoint.AtRiskValue);
+}
+
+/// <summary>
+/// One checkpoint of a KPI's plan with the latest measurement read against it: the last whose period ends after the
+/// checkpoint before and on or before this one.
+/// </summary>
+/// <param name="Checkpoint">The checkpoint.</param>
+/// <param name="Measurement">The measurement read against it, or null when none falls under it yet.</param>
+/// <param name="Reading">What that measurement means against the checkpoint; with no measurement, no health and no trend.</param>
+public sealed record KpiCheckpointReadingDto(KpiCheckpointDto Checkpoint, KpiPointDto? Measurement, KpiReadingDto Reading);
 
 /// <summary>How a KPI's measurements are windowed.</summary>
 /// <param name="Kind">How the window is formed.</param>
@@ -157,8 +181,11 @@ public sealed record KpiSummaryDto
     /// <summary>What it is measured against.</summary>
     public required KpiGoalDto Goal { get; init; }
 
-    /// <summary>What its latest value means against the goal.</summary>
+    /// <summary>What its latest value means against the goal, or against the checkpoint it falls under.</summary>
     public required KpiReadingDto Reading { get; init; }
+
+    /// <summary>Its checkpoint plan, in date order; empty when it has none.</summary>
+    public required IReadOnlyList<KpiCheckpointDto> Checkpoints { get; init; }
 
     /// <summary>Its most recent values, oldest first, for a trend line.</summary>
     public required IReadOnlyList<KpiPointDto> RecentValues { get; init; }
@@ -261,4 +288,7 @@ public sealed record KpiDetailsDto
 
     /// <summary>Every measurement, newest period first, then newest moment.</summary>
     public required IReadOnlyList<KpiMeasurementDto> Measurements { get; init; }
+
+    /// <summary>Each checkpoint of its plan in date order, with the measurement read against it; empty without a plan.</summary>
+    public required IReadOnlyList<KpiCheckpointReadingDto> CheckpointReadings { get; init; }
 }

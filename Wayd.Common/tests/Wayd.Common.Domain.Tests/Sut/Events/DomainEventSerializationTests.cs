@@ -13,6 +13,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.AppIntegration;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Events.Identity;
+using Wayd.Common.Domain.Events.Kpis;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Events.Planning.EstimationScales;
 using Wayd.Common.Domain.Events.Planning.Iterations;
@@ -28,6 +29,7 @@ using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.Events.StrategicManagement;
 using Wayd.Common.Domain.Events.WorkManagement.WorkIterations;
 using Wayd.Common.Domain.Identity;
+using Wayd.Common.Domain.Kpis;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Domain.Interfaces.Planning.Iterations;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
@@ -934,6 +936,32 @@ public sealed class DomainEventSerializationTests
         roundTripped.Revised.Should().ContainSingle().Which.Should().Be(original.Revised[0]);
         roundTripped.Checkpoints.Should().Equal(original.Checkpoints);
         roundTripped.KpiId.Should().Be(original.KpiId);
+    }
+
+    [Fact]
+    public void KpiCheckpointPlanChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange - nested records carrying LocalDates, including a revision holding both ends.
+        var q1 = new KpiCheckpointValues(new LocalDate(2026, 3, 31), "Q1", 12, 11);
+        var revised = q1 with { PlannedValue = 13, AtRiskValue = null };
+        var q2 = new KpiCheckpointValues(new LocalDate(2026, 6, 30), "Q2", 15, null);
+        var original = new KpiCheckpointPlanChangedEvent(
+            Guid.NewGuid(), 7, "organization.team", Guid.NewGuid(),
+            added: [q2],
+            removed: [],
+            revised: [new KpiCheckpointRevision(q1, revised)],
+            plan: [revised, q2],
+            EventActor.System,
+            Instant.FromUtc(2026, 3, 1, 12, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Added.Should().Equal(original.Added);
+        roundTripped.Revised.Should().Equal(original.Revised);
+        roundTripped.Plan.Should().Equal(original.Plan);
+        roundTripped.SubjectType.Should().Be(original.SubjectType);
     }
 
     [Fact]

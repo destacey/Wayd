@@ -7,8 +7,9 @@ using Wayd.Common.Extensions;
 namespace Wayd.Web.Api.Models.Kpis;
 
 /// <summary>
-/// A single CSV row for the KPI import — one KPI on an existing record, without its history. Measurements arrive
-/// in a second file and point back here by this row's <c>ImportId</c>.
+/// A single CSV row for the KPI import — one KPI on an existing record, without its history or plan. Measurements
+/// arrive in a second file and checkpoints in an optional third, each pointing back here by this row's
+/// <c>ImportId</c>.
 /// </summary>
 public sealed class ImportKpiRequest
 {
@@ -95,7 +96,7 @@ public sealed class ImportKpiRequest
     /// <summary>For `PerPeriod` only: read the KPI as the average of this many latest measurements, 2 to 12. Blank for the latest alone.</summary>
     public int? RollingAverageOf { get; set; }
 
-    public ImportKpiDto ToImportKpiDto(IReadOnlyList<ImportKpiMeasurementDto> measurements) => new(
+    public ImportKpiDto ToImportKpiDto(IReadOnlyList<ImportKpiMeasurementDto> measurements, IReadOnlyList<KpiCheckpointValues> checkpoints) => new(
         SubjectType.Trim(),
         SubjectId,
         Name,
@@ -121,7 +122,8 @@ public sealed class ImportKpiRequest
             WindowAnchorDate?.ToLocalDate(),
             WindowRollingCount,
             string.IsNullOrWhiteSpace(WindowRollingUnit) ? null : Enum.Parse<KpiRollingUnit>(WindowRollingUnit.Trim(), ignoreCase: true)),
-        RollingAverageOf);
+        RollingAverageOf,
+        checkpoints);
 
     private static T ParseOr<T>(string? value, T fallback) where T : struct, Enum =>
         string.IsNullOrWhiteSpace(value) ? fallback : Enum.Parse<T>(value.Trim(), ignoreCase: true);
@@ -281,6 +283,44 @@ public sealed class ImportKpiMeasurementRequest
         !string.IsNullOrWhiteSpace(MeasuredAt) ? $"At: {MeasuredAt.Trim()}"
         : AsOf is { } asOf ? FormattableString.Invariant($"As of: {asOf:yyyy-MM-dd}")
         : FormattableString.Invariant($"Period: {PeriodStart:yyyy-MM-dd} to {PeriodEnd:yyyy-MM-dd}");
+}
+
+/// <summary>
+/// A single CSV row for the checkpoints file: one checkpoint of one KPI's plan.
+/// </summary>
+public sealed class ImportKpiCheckpointRequest
+{
+    /// <summary>The `ImportId` of the KPI row this checkpoint belongs to.</summary>
+    public string KpiImportId { get; set; } = default!;
+
+    /// <summary>The day the planned value is due. One checkpoint per day on a KPI.</summary>
+    public DateOnly Date { get; set; }
+
+    /// <summary>A short name for the checkpoint, such as `Q1` or `Sprint 12`, up to 32 characters.</summary>
+    public string Label { get; set; } = default!;
+
+    /// <summary>The value the KPI is expected to reach by then. Planned values may fall back, for a seasonal plan.</summary>
+    public double PlannedValue { get; set; }
+
+    /// <summary>
+    /// Optional: the value past which a measurement read against this checkpoint is at risk. Must be short of the
+    /// planned value in the KPI's direction. Blank for on-plan-or-not health.
+    /// </summary>
+    public double? AtRiskValue { get; set; }
+
+    /// <summary>The checkpoint as the import takes it.</summary>
+    public KpiCheckpointValues ToValues() => new(Date.ToLocalDate(), Label, PlannedValue, AtRiskValue);
+}
+
+/// <summary>Rejects a checkpoint row whose columns cannot be read before anything is submitted.</summary>
+public sealed class ImportKpiCheckpointRequestValidator : CustomValidator<ImportKpiCheckpointRequest>
+{
+    public ImportKpiCheckpointRequestValidator()
+    {
+        RuleFor(c => c.KpiImportId).NotEmpty();
+        RuleFor(c => c.Date).NotEmpty();
+        RuleFor(c => c.Label).NotEmpty().MaximumLength(KpiCheckpointPlan.LabelMaxLength);
+    }
 }
 
 /// <summary>Rejects a measurement row whose columns cannot be read before anything is submitted.</summary>

@@ -9,6 +9,7 @@ import {
 } from '@/src/services/api/kpi-categories'
 import {
   kpisAddKpi,
+  kpisChangeCheckpointPlan,
   kpisChangeMeasurement,
   kpisClose,
   kpisGetClosed,
@@ -24,6 +25,7 @@ import {
 import {
   KpiCategoryDto,
   KpiCategoryRequest,
+  KpiCheckpointPlanRequest,
   KpiDetailsDto,
   KpiMeasurementRequest,
   KpiRequest,
@@ -212,6 +214,18 @@ export const kpisApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, args) => kpiWriteTags(args),
     }),
 
+    // The plan changes how the scorecard reads the KPI's health.
+    changeKpiCheckpointPlan: builder.mutation<
+      null,
+      KpiTarget & { request: KpiCheckpointPlanRequest }
+    >({
+      queryFn: ({ subjectType, subjectId, kpiId, request }) =>
+        runVoid(() =>
+          kpisChangeCheckpointPlan(subjectType, subjectId, kpiId, request),
+        ),
+      invalidatesTags: (result, error, args) => kpiWriteTags(args),
+    }),
+
     getKpiCategories: builder.query<
       KpiCategoryDto[],
       { includeInactive: boolean }
@@ -273,6 +287,7 @@ export const {
   useRecordKpiMeasurementMutation,
   useChangeKpiMeasurementMutation,
   useRemoveKpiMeasurementMutation,
+  useChangeKpiCheckpointPlanMutation,
   useGetKpiCategoriesQuery,
   useCreateKpiCategoryMutation,
   useUpdateKpiCategoryMutation,

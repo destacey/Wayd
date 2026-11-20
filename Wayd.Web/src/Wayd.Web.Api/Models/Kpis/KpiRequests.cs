@@ -186,3 +186,45 @@ public sealed record ReorderKpiCategoriesRequest
     /// <summary>Every category, active and inactive, each once, in their new order.</summary>
     public List<Guid> CategoryIds { get; set; } = [];
 }
+
+/// <summary>One checkpoint of a KPI's plan.</summary>
+public sealed record KpiCheckpointRequest
+{
+    /// <summary>The day the planned value is due, as `YYYY-MM-DD`; one checkpoint per day.</summary>
+    public required LocalDate Date { get; set; }
+
+    /// <summary>A short name for it, such as `Q1` or `Sprint 12`, up to 32 characters.</summary>
+    public required string Label { get; set; }
+
+    /// <summary>The value the KPI is expected to reach by then. Planned values may fall back, for a seasonal plan.</summary>
+    public required double PlannedValue { get; set; }
+
+    /// <summary>
+    /// Optional: a value short of the planned value, in the KPI's direction, past which a measurement read against
+    /// this checkpoint is at risk rather than unhealthy. Leave it out for on-plan-or-not health.
+    /// </summary>
+    public double? AtRiskValue { get; set; }
+
+    /// <summary>The checkpoint as the commands take it.</summary>
+    public KpiCheckpointValues ToValues() => new(Date, Label, PlannedValue, AtRiskValue);
+}
+
+/// <summary>A KPI's whole checkpoint plan, replacing the one it has.</summary>
+public sealed record KpiCheckpointPlanRequest
+{
+    /// <summary>Every checkpoint of the plan, in any order. Empty clears the plan.</summary>
+    public List<KpiCheckpointRequest> Checkpoints { get; set; } = [];
+}
+
+/// <summary>Rejects a plan whose list or rows cannot be read, before the controller turns them into checkpoints.</summary>
+public sealed class KpiCheckpointPlanRequestValidator : CustomValidator<KpiCheckpointPlanRequest>
+{
+    public KpiCheckpointPlanRequestValidator()
+    {
+        RuleFor(r => r.Checkpoints).NotNull();
+        RuleForEach(r => r.Checkpoints).NotNull().ChildRules(checkpoint =>
+        {
+            checkpoint.RuleFor(c => c.Label).NotEmpty().MaximumLength(KpiCheckpointPlan.LabelMaxLength);
+        });
+    }
+}

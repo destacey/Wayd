@@ -1,6 +1,6 @@
 ---
 name: wayd-kpis
-description: Read before calling the Wayd MCP tools named Kpis_* or KpiCategories_*. Guides agents working with a Wayd team's or team of teams' scorecard via the Wayd MCP server — reading its KPIs with their baselines, targets, health and trend, reading one KPI's measurement history, recording and correcting measurements, and adding, changing, closing, reordering and removing KPIs. Use when the user asks how a team is doing against its KPIs, what a KPI's latest value or trend is, which KPIs are at risk, wants to record this period's value for a KPI, or wants to set up or change a team's KPIs.
+description: Read before calling the Wayd MCP tools named Kpis_* or KpiCategories_*. Guides agents working with a Wayd team's or team of teams' scorecard via the Wayd MCP server — reading its KPIs with their baselines, targets, health and trend, reading one KPI's measurement history, recording and correcting measurements, managing a KPI's checkpoint plan, and adding, changing, closing, reordering and removing KPIs. Use when the user asks how a team is doing against its KPIs, what a KPI's latest value or trend is, which KPIs are at risk or behind plan, wants to record this period's value for a KPI, wants to set or change a KPI's checkpoints, or wants to set up or change a team's KPIs.
 ---
 
 # Wayd KPIs
@@ -28,6 +28,8 @@ Only members of the team, members of any team of teams above it, and KPI adminis
 - **`reading`** — what the latest value means: `value`, `changeFromBaseline` and `changeFromBaselinePercent`, `progressToTarget` (1 is the target reached, above 1 past it), `health` (`Healthy`, `AtRisk` or `Unhealthy`; absent before anything is measured) and `trend` (`Improving`, `Worsening`, `Stable` or `NoData`).
 - **`rollingAverageOf`** — when set, the reading's `value` is the average of that many latest measurements, and health and trend judge the average; `latestValue` is the newest single measurement and `averagedCount` how many were averaged (fewer than asked while the KPI is new). Report it as "average of the last 7", not as the latest value.
 - **`expressedAs`** — the reading the team leads with: `Value`, `ChangeFromBaseline` or `ProgressToTarget`. Lead with the same reading when summarising the KPI.
+- **`reading.checkpoint`** — when set, health was judged against that checkpoint of the plan, not the target: say "against the Q2 plan of 24", not "against the target". Progress and change are still toward the target. See "Checkpoint plans".
+- **`checkpoints`** — the KPI's checkpoint plan in date order; empty when it has none.
 - **`recentValues`** — up to twelve recent values, oldest first.
 
 Values are raw: a percentage KPI stores 18 for 18%. Add the KPI's `prefix` and `suffix` when quoting a value. A KPI with no baseline has no change or progress reading — say so rather than inventing one.
@@ -58,6 +60,16 @@ Convert a local time to UTC for `measuredAt` (3 pm in Chicago in March is `21:00
 - Give `sampleSize` when the value is an average or a rate — how many items it was worked out from.
 
 `Kpis_ChangeMeasurement` corrects a measurement: send the value and its time again, the way recording takes them. `Kpis_RemoveMeasurement` removes one for good.
+
+## Checkpoint plans
+
+A KPI may have a plan: dated checkpoints, each with a `label` ("Q1"), a `plannedValue` and an optional `atRiskValue`. A measurement is judged against the first checkpoint on or after the last day it covers (its period's end, its as-of day, or its moment's day) — its planned value, and its at-risk value or, without one, simply on plan or not. The KPI's own at-risk threshold is not used inside the plan. Past the last checkpoint, the target and the KPI's at-risk threshold apply as usual.
+
+- **`Kpis_GetCheckpointPlan`** lists each checkpoint with the latest measurement under it and that measurement's health and trend against it. Use it to answer "are we on plan?" for past checkpoints.
+- **`Kpis_ChangeCheckpointPlan` replaces the whole plan.** Read the current plan first and send every checkpoint back with only the user's change applied; a checkpoint left out is removed, and an empty list clears the plan. Checkpoints are matched by `date`, one per day.
+- An `atRiskValue` must be short of its `plannedValue` in the KPI's direction: below it for `Increase`, above it for `Decrease`. Planned values may dip for a seasonal plan, and need not end at the target.
+- A closed KPI's plan cannot change.
+- Reversing a KPI's `direction` fails while its plan holds at-risk values. Tell the user, and with their agreement clear the plan's at-risk values, change the direction, then set them on the new side.
 
 ## Setting up and changing KPIs
 

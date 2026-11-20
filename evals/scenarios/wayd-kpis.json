@@ -452,5 +452,230 @@
       }
     ],
     "expected": "The agent reads the scorecard, sees Throughput already has measurements, and tells the user its window cannot change once measured. It offers to close Throughput and add a new KPI with a rolling 90-day window, without calling Kpis_UpdateKpi with a window."
+  },
+  {
+    "id": "kpis-checkpoint-keeps-plan",
+    "skill": "wayd-kpis",
+    "prompt": "Falcon's throughput plan needs a Q3 checkpoint: 30 items by September 30, 2026, at risk below 27.",
+    "replies": ["Yes, add Q3."],
+    "traps": ["whole-record-overwrite", "confirm-destructive"],
+    "fixtures": [
+      {
+        "tool": "Teams_GetTeams",
+        "result": [
+          { "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614", "key": 12, "name": "Falcon", "code": "FALC", "type": "Team", "isActive": true, "teamOfTeams": null }
+        ]
+      },
+      {
+        "tool": "Kpis_GetScorecard",
+        "when": { "subjectId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614" },
+        "result": {
+          "subjectType": "organization.team",
+          "subjectId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+          "subjectName": "Falcon",
+          "subjectCode": "FALC",
+          "canManage": true,
+          "kpis": [
+            {
+              "id": "c4e6a8b0-2d4f-4a6c-9e1b-3d5f7a9c1e2b",
+              "key": 52,
+              "name": "Throughput",
+              "suffix": "items",
+              "source": "Manual",
+              "expressedAs": "Value",
+              "window": { "kind": "PerPeriod" },
+              "status": "Active",
+              "order": 0,
+              "goal": { "direction": "Increase", "baselineValue": 15, "targetKind": "Absolute", "targetValue": 35, "resolvedTargetValue": 35 },
+              "reading": {
+                "value": 22,
+                "health": "AtRisk",
+                "trend": "Improving",
+                "latestValue": 22,
+                "checkpoint": { "date": "2026-06-30", "label": "Q2", "plannedValue": 24, "atRiskValue": 21 }
+              },
+              "checkpoints": [
+                { "date": "2026-03-31", "label": "Q1", "plannedValue": 18, "atRiskValue": 16 },
+                { "date": "2026-06-30", "label": "Q2", "plannedValue": 24, "atRiskValue": 21 }
+              ],
+              "recentValues": []
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Kpis_GetCheckpointPlan",
+        "result": [
+          {
+            "checkpoint": { "date": "2026-03-31", "label": "Q1", "plannedValue": 18, "atRiskValue": 16 },
+            "measurement": { "periodStart": "2026-03-01", "periodEnd": "2026-03-31", "value": 19 },
+            "reading": { "value": 19, "health": "Healthy", "trend": "Improving" }
+          },
+          {
+            "checkpoint": { "date": "2026-06-30", "label": "Q2", "plannedValue": 24, "atRiskValue": 21 },
+            "measurement": { "periodStart": "2026-05-01", "periodEnd": "2026-05-31", "value": 22 },
+            "reading": { "value": 22, "health": "AtRisk", "trend": "Improving" }
+          }
+        ]
+      },
+      {
+        "tool": "Kpis_ChangeCheckpointPlan",
+        "result": null
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "Kpis_ChangeCheckpointPlan",
+        "with": {
+          "kpiId": "c4e6a8b0-2d4f-4a6c-9e1b-3d5f7a9c1e2b",
+          "checkpoints": [
+            { "date": "2026-03-31", "label": "Q1", "plannedValue": 18, "atRiskValue": 16 },
+            { "date": "2026-06-30", "label": "Q2", "plannedValue": 24, "atRiskValue": 21 },
+            { "date": "2026-09-30", "label": "Q3", "plannedValue": 30, "atRiskValue": 27 }
+          ]
+        },
+        "because": "wayd-kpis 'Checkpoint plans': Kpis_ChangeCheckpointPlan replaces the whole plan, so Q1 and Q2 must be sent back unchanged beside Q3."
+      },
+      {
+        "type": "confirmedBefore",
+        "tool": "Kpis_ChangeCheckpointPlan"
+      }
+    ],
+    "expected": "The agent reads the scorecard, finds Throughput's plan of Q1 and Q2, confirms adding Q3 (30 by 2026-09-30, at risk below 27), then calls Kpis_ChangeCheckpointPlan with all three checkpoints."
+  },
+  {
+    "id": "kpis-direction-change-clears-plan-at-risk",
+    "skill": "wayd-kpis",
+    "prompt": "Falcon's Escaped bugs KPI was set up to increase by mistake. Fewer bugs is better, so switch it to decrease.",
+    "replies": ["Yes, clear them, switch it to decrease, then set the at-risk values to 11 for Q1 and 7 for Q2."],
+    "traps": ["status-prerequisite", "whole-record-overwrite", "confirm-destructive"],
+    "fixtures": [
+      {
+        "tool": "Teams_GetTeams",
+        "result": [
+          { "id": "bd6ce03b-f23d-4e43-bc94-08be7e62f614", "key": 12, "name": "Falcon", "code": "FALC", "type": "Team", "isActive": true, "teamOfTeams": null }
+        ]
+      },
+      {
+        "tool": "Kpis_GetScorecard",
+        "when": { "subjectId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614" },
+        "result": {
+          "subjectType": "organization.team",
+          "subjectId": "bd6ce03b-f23d-4e43-bc94-08be7e62f614",
+          "subjectName": "Falcon",
+          "subjectCode": "FALC",
+          "canManage": true,
+          "kpis": [
+            {
+              "id": "5a7c9e1b-3d5f-4b7a-8c2e-6f8a0b2c4d6e",
+              "key": 58,
+              "name": "Escaped bugs",
+              "description": "Bugs found in production each month.",
+              "suffix": "bugs",
+              "source": "Manual",
+              "expressedAs": "Value",
+              "window": { "kind": "PerPeriod" },
+              "status": "Active",
+              "order": 0,
+              "goal": { "direction": "Increase", "baselineValue": 12, "targetKind": "Absolute", "targetValue": 4, "resolvedTargetValue": 4 },
+              "reading": {
+                "value": 9,
+                "health": "Unhealthy",
+                "trend": "Worsening",
+                "latestValue": 9,
+                "checkpoint": { "date": "2026-03-31", "label": "Q1", "plannedValue": 10, "atRiskValue": 8 }
+              },
+              "checkpoints": [
+                { "date": "2026-03-31", "label": "Q1", "plannedValue": 10, "atRiskValue": 8 },
+                { "date": "2026-06-30", "label": "Q2", "plannedValue": 6, "atRiskValue": 4 }
+              ],
+              "recentValues": []
+            }
+          ]
+        }
+      },
+      {
+        "tool": "Kpis_GetCheckpointPlan",
+        "result": [
+          {
+            "checkpoint": { "date": "2026-03-31", "label": "Q1", "plannedValue": 10, "atRiskValue": 8 },
+            "measurement": { "periodStart": "2026-02-01", "periodEnd": "2026-02-28", "value": 9 },
+            "reading": { "value": 9, "health": "Unhealthy", "trend": "Worsening" }
+          },
+          {
+            "checkpoint": { "date": "2026-06-30", "label": "Q2", "plannedValue": 6, "atRiskValue": 4 },
+            "reading": { "trend": "NoData" }
+          }
+        ]
+      },
+      {
+        "tool": "Kpis_UpdateKpi",
+        "after": "Kpis_ChangeCheckpointPlan",
+        "result": null
+      },
+      {
+        "tool": "Kpis_UpdateKpi",
+        "error": true,
+        "result": {
+          "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+          "title": "Bad Request",
+          "status": 400,
+          "detail": "The checkpoint plan's at-risk values sit on the side of the old direction. Remove them from the plan, change the direction, then add them back on the new side."
+        }
+      },
+      {
+        "tool": "Kpis_ChangeCheckpointPlan",
+        "result": null
+      }
+    ],
+    "expect": [
+      {
+        "type": "called",
+        "tool": "Kpis_ChangeCheckpointPlan",
+        "with": {
+          "kpiId": "5a7c9e1b-3d5f-4b7a-8c2e-6f8a0b2c4d6e",
+          "checkpoints": [
+            { "date": "2026-03-31", "label": "Q1", "plannedValue": 10, "atRiskValue": { "$absent": true } },
+            { "date": "2026-06-30", "label": "Q2", "plannedValue": 6, "atRiskValue": { "$absent": true } }
+          ]
+        },
+        "because": "wayd-kpis 'Checkpoint plans': reversing the direction fails while the plan holds at-risk values, so they are cleared first, keeping both checkpoints."
+      },
+      {
+        "type": "order",
+        "first": "Kpis_ChangeCheckpointPlan",
+        "then": "Kpis_UpdateKpi",
+        "because": "The plan's at-risk values must be cleared before the direction changes, or the update is refused."
+      },
+      {
+        "type": "called",
+        "tool": "Kpis_UpdateKpi",
+        "with": {
+          "kpiId": "5a7c9e1b-3d5f-4b7a-8c2e-6f8a0b2c4d6e",
+          "name": "Escaped bugs",
+          "description": "Bugs found in production each month.",
+          "suffix": "bugs",
+          "baseline": { "value": 12 },
+          "target": { "direction": "Decrease", "value": 4 }
+        },
+        "because": "wayd-kpis: Kpis_UpdateKpi replaces everything entered, so the name, description, suffix, baseline and target value go back unchanged beside the new direction."
+      },
+      {
+        "type": "called",
+        "tool": "Kpis_ChangeCheckpointPlan",
+        "with": {
+          "kpiId": "5a7c9e1b-3d5f-4b7a-8c2e-6f8a0b2c4d6e",
+          "checkpoints": [
+            { "date": "2026-03-31", "label": "Q1", "plannedValue": 10, "atRiskValue": 11 },
+            { "date": "2026-06-30", "label": "Q2", "plannedValue": 6, "atRiskValue": 7 }
+          ]
+        },
+        "because": "The at-risk values the user gave go back on the new side, above each planned value."
+      },
+      { "type": "confirmedBefore", "tool": "Kpis_ChangeCheckpointPlan" },
+      { "type": "confirmedBefore", "tool": "Kpis_UpdateKpi" }
+    ],
+    "expected": "The agent reads the scorecard, sees Escaped bugs has a plan whose at-risk values sit below plan, and explains that reversing the direction is refused while they do. Once the user agrees, it clears the at-risk values from both checkpoints, calls Kpis_UpdateKpi with direction Decrease and every other entered field unchanged, then sets the at-risk values to 11 for Q1 and 7 for Q2."
   }
 ]

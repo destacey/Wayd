@@ -8,6 +8,7 @@ public class DependencyWorkItemInfoTests
 {
     private static readonly DateTimeZone Chicago = DateTimeZoneProviders.Tzdb["America/Chicago"];
     private static readonly DateTimeZone Tokyo = DateTimeZoneProviders.Tzdb["Asia/Tokyo"];
+    private static readonly LocalDate FirstDay = new(2026, 9, 14);
     private static readonly LocalDate LastDay = new(2026, 9, 27);
 
     private static Instant InZone(DateTimeZone zone, LocalDate date, int hour) =>
@@ -25,19 +26,35 @@ public class DependencyWorkItemInfoTests
         // Assert
         Assert.Equal(workItemId, info.WorkItemId);
         Assert.Equal(StatusCategory.Active, info.StatusCategory);
+        Assert.Null(info.PlannedStart);
         Assert.Null(info.PlannedOn);
     }
 
     [Fact]
-    public void Create_WithFutureSprint_PlansOnItsLastDay()
+    public void Create_WithFutureSprint_PlansOnItsDays()
     {
         // Arrange
         var now = InZone(Chicago, LastDay.PlusDays(-5), 12);
 
         // Act
-        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, LastDay, Chicago, now);
+        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, FirstDay, LastDay, Chicago, now);
 
         // Assert
+        Assert.Equal(FirstDay, info.PlannedStart);
+        Assert.Equal(LastDay, info.PlannedOn);
+    }
+
+    [Fact]
+    public void Create_WithSprintWithNoStart_StartsOnItsLastDay()
+    {
+        // Arrange
+        var now = InZone(Chicago, LastDay.PlusDays(-5), 12);
+
+        // Act
+        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, null, LastDay, Chicago, now);
+
+        // Assert
+        Assert.Equal(LastDay, info.PlannedStart);
         Assert.Equal(LastDay, info.PlannedOn);
     }
 
@@ -48,7 +65,7 @@ public class DependencyWorkItemInfoTests
         var now = InZone(Chicago, LastDay, 23);
 
         // Act
-        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, LastDay, Chicago, now);
+        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, FirstDay, LastDay, Chicago, now);
 
         // Assert
         Assert.Equal(LastDay, info.PlannedOn);
@@ -61,9 +78,10 @@ public class DependencyWorkItemInfoTests
         var now = InZone(Chicago, LastDay.PlusDays(1), 0);
 
         // Act
-        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, LastDay, Chicago, now);
+        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, FirstDay, LastDay, Chicago, now);
 
         // Assert
+        Assert.Null(info.PlannedStart);
         Assert.Null(info.PlannedOn);
     }
 
@@ -74,7 +92,7 @@ public class DependencyWorkItemInfoTests
         var now = InZone(Tokyo, LastDay.PlusDays(1), 5);
 
         // Act
-        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, LastDay, Tokyo, now);
+        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, FirstDay, LastDay, Tokyo, now);
 
         // Assert
         Assert.Null(info.PlannedOn);
@@ -90,7 +108,7 @@ public class DependencyWorkItemInfoTests
         var now = Instant.FromUtc(2026, 11, 2, utcHour, utcMinute);
 
         // Act
-        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, lastDay, Chicago, now);
+        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, lastDay.PlusDays(-13), lastDay, Chicago, now);
 
         // Assert
         Assert.Equal(stillPlanned ? lastDay : (LocalDate?)null, info.PlannedOn);
@@ -107,7 +125,7 @@ public class DependencyWorkItemInfoTests
         var now = InZone(Chicago, LastDay, 12);
 
         // Act
-        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), statusCategory, LastDay, Chicago, now);
+        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), statusCategory, FirstDay, LastDay, Chicago, now);
 
         // Assert
         Assert.Equal(statusCategory, info.StatusCategory);

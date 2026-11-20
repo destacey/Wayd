@@ -28,14 +28,14 @@ public sealed class ProcessDependenciesCommandHandlerTests(SqlServerDbContextFix
     public async Task Handle_ReadsEachEndsSprintInItsTeamsZone()
     {
         // Arrange — both sprints end on Sunday Sep 27; 01:00 UTC on Sep 28 is still that evening in Chicago
-        // and already the next morning in Tokyo, so only the predecessor is still planned: Healthy. Read in
-        // UTC, both sprints would have ended: At Risk.
+        // and already the next morning in Tokyo, so only the successor is still planned: a predecessor not started
+        // and with no plan is Unhealthy. Read in UTC, both sprints would have ended: Healthy.
         await _seed.Reset(Ct);
-        var chicagoTeam = await _seed.AddTeam(Ct);
         var tokyoTeam = await _seed.AddTeam(Ct);
+        var chicagoTeam = await _seed.AddTeam(Ct);
         var sprintStart = new LocalDate(2026, 9, 14);
-        var predecessor = await _seed.AddItem(chicagoTeam.Id, Ct, iterationId: await _seed.AddSprint(chicagoTeam.Id, sprintStart, Ct));
-        var successor = await _seed.AddItem(tokyoTeam.Id, Ct, iterationId: await _seed.AddSprint(tokyoTeam.Id, sprintStart, Ct));
+        var predecessor = await _seed.AddItem(tokyoTeam.Id, Ct, iterationId: await _seed.AddSprint(tokyoTeam.Id, sprintStart, Ct));
+        var successor = await _seed.AddItem(chicagoTeam.Id, Ct, iterationId: await _seed.AddSprint(chicagoTeam.Id, sprintStart, Ct));
         var schedules = new TeamZoneSchedules((chicagoTeam.Id, "America/Chicago"), (tokyoTeam.Id, "Asia/Tokyo"));
         await _seed.LinkWorkspaceToSystem(SystemId, Guid.NewGuid(), Ct);
         await _seed.AddDependency(predecessor.Id, successor.Id, Ct);
@@ -59,15 +59,17 @@ public sealed class ProcessDependenciesCommandHandlerTests(SqlServerDbContextFix
 
         await using var verify = _fixture.CreateContext();
         var dependency = await verify.WorkItemDependencies.SingleAsync(Ct);
-        dependency.SourcePlannedOn.Should().Be(sprintStart.PlusDays(13));
-        dependency.TargetPlannedOn.Should().BeNull();
-        dependency.Health.Should().Be(DependencyPlanningHealth.Healthy);
+        dependency.SourcePlannedStart.Should().BeNull();
+        dependency.SourcePlannedOn.Should().BeNull();
+        dependency.TargetPlannedStart.Should().Be(sprintStart);
+        dependency.TargetPlannedOn.Should().Be(sprintStart.PlusDays(13));
+        dependency.Health.Should().Be(DependencyPlanningHealth.Unhealthy);
     }
 
     [Fact]
     public async Task Handle_ClosesALinkOnceItsPredecessorIsDone_AndOpensItAgainWhenThePredecessorReopens()
     {
-        // Arrange — neither end planned, so the open link is At Risk.
+        // Arrange — neither end planned, so the open link is Healthy.
         await _seed.Reset(Ct);
         var (team, _) = await _seed.AddTeam(Ct);
         var predecessor = await _seed.AddItem(team, Ct, StatusCategory.Active);
@@ -87,7 +89,7 @@ public sealed class ProcessDependenciesCommandHandlerTests(SqlServerDbContextFix
 
         // Assert
         closed.Should().Be(DependencyPlanningHealth.Closed);
-        reopened.Should().Be(DependencyPlanningHealth.AtRisk);
+        reopened.Should().Be(DependencyPlanningHealth.Healthy);
     }
 
     private async Task Process(TeamZoneSchedules schedules)

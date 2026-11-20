@@ -10,15 +10,17 @@ public sealed class WorkItemDependency : WorkItemLink
 {
     private WorkItemDependency() : base() { }
 
-    private WorkItemDependency(Guid sourceId, StatusCategory sourceStatusCategory, LocalDate? sourcePlannedDate, Guid targetId, StatusCategory targetStatusCategory, LocalDate? targetPlannedDate, Instant createdOn, Guid? createdById, Instant? removedOn, Guid? removedById, string? comment)
-    : base(sourceId, targetId, WorkItemLinkType.Dependency, createdOn, createdById, removedOn, removedById, comment)
+    private WorkItemDependency(DependencyWorkItemInfo sourceInfo, DependencyWorkItemInfo targetInfo, Instant createdOn, Guid? createdById, Instant? removedOn, Guid? removedById, string? comment)
+    : base(sourceInfo.WorkItemId, targetInfo.WorkItemId, WorkItemLinkType.Dependency, createdOn, createdById, removedOn, removedById, comment)
     {
         // assign inputs to properties first (important for state calculation)
-        SourceStatusCategory = sourceStatusCategory;
-        SourcePlannedOn = sourcePlannedDate;
+        SourceStatusCategory = sourceInfo.StatusCategory;
+        SourcePlannedStart = sourceInfo.PlannedStart;
+        SourcePlannedOn = sourceInfo.PlannedOn;
 
-        TargetStatusCategory = targetStatusCategory;
-        TargetPlannedOn = targetPlannedDate;
+        TargetStatusCategory = targetInfo.StatusCategory;
+        TargetPlannedStart = targetInfo.PlannedStart;
+        TargetPlannedOn = targetInfo.PlannedOn;
 
         // compute derived values
         CalculateStateAndHealth();
@@ -26,12 +28,18 @@ public sealed class WorkItemDependency : WorkItemLink
 
     public StatusCategory SourceStatusCategory { get; set; }
 
-    /// <summary>The source's plan: the last planned day of its sprint, while that sprint has not ended.</summary>
+    /// <summary>The first day the source is planned for (see <see cref="DependencyWorkItemInfo.PlannedStart"/>).</summary>
+    public LocalDate? SourcePlannedStart { get; set; }
+
+    /// <summary>The last day the source is planned for (see <see cref="DependencyWorkItemInfo.PlannedOn"/>).</summary>
     public LocalDate? SourcePlannedOn { get; set; }
 
     public StatusCategory TargetStatusCategory { get; set; }
 
-    /// <summary>The target's plan: the last planned day of its sprint, while that sprint has not ended.</summary>
+    /// <summary>The first day the target is planned for (see <see cref="DependencyWorkItemInfo.PlannedStart"/>).</summary>
+    public LocalDate? TargetPlannedStart { get; set; }
+
+    /// <summary>The last day the target is planned for (see <see cref="DependencyWorkItemInfo.PlannedOn"/>).</summary>
     public LocalDate? TargetPlannedOn { get; set; }
 
     public DependencyState State { get; private set; }
@@ -70,6 +78,7 @@ public sealed class WorkItemDependency : WorkItemLink
             return Result.Failure($"Source WorkItemId {sourceInfo.WorkItemId} does not match existing SourceId {SourceId}");
 
         SourceStatusCategory = sourceInfo.StatusCategory;
+        SourcePlannedStart = sourceInfo.PlannedStart;
         SourcePlannedOn = sourceInfo.PlannedOn;
 
         // recompute derived values
@@ -97,6 +106,7 @@ public sealed class WorkItemDependency : WorkItemLink
             return Result.Failure($"Target WorkItemId {targetInfo.WorkItemId} does not match existing TargetId {TargetId}");
 
         TargetStatusCategory = targetInfo.StatusCategory;
+        TargetPlannedStart = targetInfo.PlannedStart;
         TargetPlannedOn = targetInfo.PlannedOn;
 
         // recompute derived values
@@ -122,7 +132,7 @@ public sealed class WorkItemDependency : WorkItemLink
         Guard.Against.Null(sourceInfo);
         Guard.Against.Null(targetInfo);
 
-        return new WorkItemDependency(sourceInfo.WorkItemId, sourceInfo.StatusCategory, sourceInfo.PlannedOn, targetInfo.WorkItemId, targetInfo.StatusCategory, targetInfo.PlannedOn, createdOn, createdById, removedOn, removedById, comment);
+        return new WorkItemDependency(sourceInfo, targetInfo, createdOn, createdById, removedOn, removedById, comment);
     }
 
     /// <summary>
@@ -148,10 +158,12 @@ public sealed class WorkItemDependency : WorkItemLink
     }
 
     /// <summary>
-    /// Calculates the health of the dependency based on planned dates and current state. A dependency that has
-    /// played out is Closed: its predecessor is done, or removed with a successor that is done or removed too.
-    /// A removed predecessor with an open successor stays Unhealthy, because the successor needs work nobody
-    /// will do.
+    /// Calculates the health of the dependency from each end's planned dates and status. Health reads only whether
+    /// an end has planned dates, never where they came from. A dependency that has played out is Closed: its
+    /// predecessor is done, or removed with a successor that is done or removed too. A removed predecessor with an
+    /// open successor stays Unhealthy, because the successor needs work nobody will do. With both ends planned,
+    /// their windows are compared by calendar day: the predecessor finishing by the day the successor starts is
+    /// Healthy, overlapping it is At Risk, finishing after it is Unhealthy.
     /// </summary>
     private void CalculateHealth()
     {
@@ -184,31 +196,32 @@ public sealed class WorkItemDependency : WorkItemLink
         }
 
         // An end whose sprint has ended carries no planned date (see DependencyWorkItemInfo.PlannedOn).
-        var predecessor = SourcePlannedOn;
-        var successor = TargetPlannedOn;
+        var predecessorEnd = SourcePlannedOn;
+        var successorEnd = TargetPlannedOn;
 
-        // neither side planned -> at risk
-        if (predecessor == null && successor == null)
+        // Nothing waits on a successor with no plan.
+        if (successorEnd is null)
         {
+            Health = DependencyPlanningHealth.Healthy;
+            return;
+        }
+
+        // A predecessor with no planned dates, as on a Kanban team, can show no more than that it has started.
+        if (predecessorEnd is null)
+        {
+            Health = SourceStatusCategory == StatusCategory.Active
+                ? DependencyPlanningHealth.AtRisk
+                : DependencyPlanningHealth.Unhealthy;
+            return;
+        }
+
+        var successorStart = TargetPlannedStart ?? successorEnd.Value;
+
+        if (predecessorEnd <= successorStart)
+            Health = DependencyPlanningHealth.Healthy;
+        else if (predecessorEnd <= successorEnd)
             Health = DependencyPlanningHealth.AtRisk;
-            return;
-        }
-
-        // predecessor planned and successor unplanned -> healthy
-        if (predecessor != null && successor == null)
-        {
-            Health = DependencyPlanningHealth.Healthy;
-            return;
-        }
-
-        // if both planned and predecessor is on or before successor -> healthy
-        if (predecessor != null && successor != null && predecessor <= successor)
-        {
-            Health = DependencyPlanningHealth.Healthy;
-            return;
-        }
-
-        // otherwise predecessor planned after successor -> unhealthy
-        Health = DependencyPlanningHealth.Unhealthy;
+        else
+            Health = DependencyPlanningHealth.Unhealthy;
     }
 }

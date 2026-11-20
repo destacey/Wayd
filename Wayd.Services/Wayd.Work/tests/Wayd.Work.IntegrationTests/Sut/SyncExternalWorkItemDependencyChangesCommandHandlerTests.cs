@@ -26,14 +26,14 @@ public sealed class SyncExternalWorkItemDependencyChangesCommandHandlerTests(Sql
     public async Task Handle_CreatingALink_ReadsEachEndsSprintInItsTeamsZone()
     {
         // Arrange — both sprints end on Sunday Sep 27; 01:00 UTC on Sep 28 is still that evening in Chicago
-        // and already the next morning in Tokyo, so only the predecessor is still planned: Healthy. Read in
-        // UTC, both sprints would have ended: At Risk.
+        // and already the next morning in Tokyo, so only the successor is still planned: a predecessor not started
+        // and with no plan is Unhealthy. Read in UTC, both sprints would have ended: Healthy.
         await _seed.Reset(Ct);
-        var chicagoTeam = await _seed.AddTeam(Ct);
         var tokyoTeam = await _seed.AddTeam(Ct);
+        var chicagoTeam = await _seed.AddTeam(Ct);
         var sprintStart = new LocalDate(2026, 9, 14);
-        var predecessor = await _seed.AddItem(chicagoTeam.Id, Ct, iterationId: await _seed.AddSprint(chicagoTeam.Id, sprintStart, Ct));
-        var successor = await _seed.AddItem(tokyoTeam.Id, Ct, iterationId: await _seed.AddSprint(tokyoTeam.Id, sprintStart, Ct));
+        var predecessor = await _seed.AddItem(tokyoTeam.Id, Ct, iterationId: await _seed.AddSprint(tokyoTeam.Id, sprintStart, Ct));
+        var successor = await _seed.AddItem(chicagoTeam.Id, Ct, iterationId: await _seed.AddSprint(chicagoTeam.Id, sprintStart, Ct));
         var schedules = new TeamZoneSchedules((chicagoTeam.Id, "America/Chicago"), (tokyoTeam.Id, "Asia/Tokyo"));
 
         var workspaceExternalId = Guid.NewGuid();
@@ -71,9 +71,11 @@ public sealed class SyncExternalWorkItemDependencyChangesCommandHandlerTests(Sql
         var dependency = await verify.WorkItemDependencies.SingleAsync(Ct);
         dependency.SourceId.Should().Be(predecessor.Id);
         dependency.TargetId.Should().Be(successor.Id);
-        dependency.SourcePlannedOn.Should().Be(sprintStart.PlusDays(13));
-        dependency.TargetPlannedOn.Should().BeNull();
-        dependency.Health.Should().Be(DependencyPlanningHealth.Healthy);
+        dependency.SourcePlannedStart.Should().BeNull();
+        dependency.SourcePlannedOn.Should().BeNull();
+        dependency.TargetPlannedStart.Should().Be(sprintStart);
+        dependency.TargetPlannedOn.Should().Be(sprintStart.PlusDays(13));
+        dependency.Health.Should().Be(DependencyPlanningHealth.Unhealthy);
     }
 
     // The seeder gives each item the number in its key as its external id.

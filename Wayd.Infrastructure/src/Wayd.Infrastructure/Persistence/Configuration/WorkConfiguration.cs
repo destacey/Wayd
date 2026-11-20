@@ -549,7 +549,11 @@ public class WorkItemDependencyConfig : IEntityTypeConfiguration<WorkItemDepende
 
         builder.Property(w => w.TargetStatusCategory).IsRequired();
 
+        builder.Property(w => w.SourcePlannedStart);
+
         builder.Property(w => w.SourcePlannedOn);
+
+        builder.Property(w => w.TargetPlannedStart);
 
         builder.Property(w => w.TargetPlannedOn);
     }

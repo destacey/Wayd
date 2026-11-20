@@ -153,13 +153,13 @@ Each dependency tracks:
   - **Done** — Predecessor is Done
   - **Removed** — Predecessor is Removed
   - **Deleted** — The link was removed in the source system
-- **Planning Health** — Automatically calculated from each item's status and planned date, which is the last planned day of the [sprint](./sprints.mdx) it is in. An item in no sprint, or in a sprint whose last planned day is over in its team's time zone, counts as unplanned. Each item's sprint is read in its own team's zone, so a dependency between teams in different zones shows the same health everywhere. Health is recalculated each time work items sync, so a sprint ending shows in a dependency's health after the next sync:
+- **Planning Health** — Automatically calculated from each item's status and planned dates. An item either has planned dates or it does not; health does not depend on where they come from. Today an item's planned dates are those of the [sprint](./sprints.mdx) it is in, while that sprint's last planned day is not over in its team's time zone. An item in no sprint — including every item on a Kanban team — or in a sprint that has ended has no planned dates. Planned dates are compared by calendar day, so two teams with their own sprints over the same days are treated like one sprint, and a dependency between teams in different zones shows the same health everywhere. Health is recalculated each time work items sync, so a sprint ending shows in a dependency's health after the next sync:
 
 | Health | Condition |
 |--------|-----------|
-| **Healthy** | Predecessor is planned and successor is unplanned; or predecessor is planned on or before the successor's planned date |
-| **At Risk** | Neither item is planned |
-| **Unhealthy** | Predecessor is Removed while the successor is still open; or successor is already Active, Done or Removed while the predecessor is not done; or successor is planned and predecessor is not; or predecessor is planned after the successor |
+| **Healthy** | Successor has no planned dates; or the predecessor is planned to finish on or before the day the successor is planned to start |
+| **At Risk** | The predecessor is planned to finish after the successor is planned to start but no later than the successor is planned to finish, so both are planned for the same time; or the predecessor has no planned dates but has started (Active) while the successor has them |
+| **Unhealthy** | Predecessor is Removed while the successor is still open; or successor is already Active, Done or Removed while the predecessor is not done; or successor has planned dates while the predecessor has none and has not started; or the predecessor is planned to finish after the successor |
 | **Closed** | Predecessor is Done; or predecessor is Removed and the successor is Done or Removed too |
 | **Unknown** | The link was deleted |
 

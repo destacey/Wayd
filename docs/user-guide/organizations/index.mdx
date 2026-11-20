@@ -367,11 +367,11 @@ The dependency grid is organized into three column groups:
 | **Successor Info** | Key, Title, Type, Status, Team, Sprint |
 
 Dependencies are color-coded by health:
-- **Healthy** — The predecessor is planned on or before the successor, or the predecessor is planned and the successor is not
-- **At Risk** — Neither item is planned
-- **Unhealthy** — The predecessor is planned after the successor, the successor is planned and the predecessor is not, or the successor has already started while the predecessor is not done
+- **Healthy** — The successor has no planned dates, or the predecessor is planned to finish on or before the day the successor is planned to start
+- **At Risk** — Both are planned for the same time, or the predecessor has started without planned dates while the successor has them
+- **Unhealthy** — The predecessor is planned to finish after the successor, the successor has planned dates while the predecessor has none and has not started, or the successor has already started while the predecessor is not done
 
-A planned date that has already passed counts as unplanned.
+An item's planned dates are those of its sprint while the sprint has not ended; an item in no sprint, or in a sprint that has ended, has none. See [Work Item Dependencies](../work-management/work-items.mdx#work-item-dependencies) for the full rules.
 
 See [Work Item Dependencies](../work-management/work-items.mdx#work-item-dependencies) for details on how dependency health is calculated.
 

@@ -1,6 +1,6 @@
 ---
 title: Bulk Import
-description: Loading employees, teams, the team hierarchy, team staffing, and team KPIs with their history into Wayd from CSV via the import API.
+description: Loading employees, teams, the team hierarchy, team staffing, and team KPIs with their history and checkpoint plans into Wayd from CSV via the import API.
 sidebar_position: 2
 audience: [user, agent]
 ---
@@ -85,7 +85,7 @@ Employees
   → Teams (and Teams of Teams)
   → Team hierarchy (team memberships)
   → Team staffing (team members)
-  → KPIs (with their measurements)
+  → KPIs (with their measurements and checkpoint plans)
 ```
 
 - **Employees first** — teams are staffed with them, and employees reference their manager by employee
@@ -261,9 +261,10 @@ staffing an inactive person or team). Create any needed roles first, and omit fo
 
 `POST /api/kpis/import`
 
-Loads [KPIs](./scorecards.mdx) onto existing teams and teams of teams, each with its history. Takes **two
-files**: `file`, one row per KPI, and `measurementsFile`, one row per measurement naming its KPI's row. Send
-the measurements file with its header even when it has no rows. Needs the `kpis` feature flag.
+Loads [KPIs](./scorecards.mdx) onto existing teams and teams of teams, each with its history and, optionally,
+its checkpoint plan. Takes `file`, one row per KPI; `measurementsFile`, one row per measurement naming its KPI's
+row; and, optionally, `checkpointsFile`, one row per checkpoint naming its KPI's row. Send the measurements file
+with its header even when it has no rows. Needs the `kpis` feature flag.
 
 KPI file:
 
@@ -302,9 +303,19 @@ Measurements file. Each row says when its value was taken **one way**, the way i
 | `SampleSize` | No | How many items an average or a rate was worked out from. |
 | `Note` | No | Max 1024 chars. |
 
-Each KPI applies with its measurements or not at all, and independently of the other rows: a goal the KPI
-cannot hold, an unknown team or category, two values that clash, or a value given a way its window does not
-take rejects that KPI alone, with the reason. New KPIs go after the team's existing ones, in file order. Imported measurements record no one as
+Checkpoints file, optional. Each row is one checkpoint of a KPI's [checkpoint plan](./scorecards.mdx#checkpoint-plans):
+
+| Column | Required | Notes |
+|---|---|---|
+| `KpiImportId` | Yes | The `ImportId` of the KPI row the checkpoint belongs to. A checkpoint naming a KPI not in the file fails the whole submission. |
+| `Date` | Yes | The day the planned value is due. One checkpoint per day on a KPI. |
+| `Label` | Yes | A short name, such as `Q1` or `Sprint 12`. Max 32 chars. |
+| `PlannedValue` | Yes | The value the KPI is expected to reach by then. |
+| `AtRiskValue` | No | The value past which a measurement read against this checkpoint is at risk. Must be short of the planned value in the KPI's direction. |
+
+Each KPI applies with its measurements and plan or not at all, and independently of the other rows: a goal the
+KPI cannot hold, an unknown team or category, two values that clash, a value given a way its window does not
+take, or a plan that cannot hold rejects that KPI alone, with the reason. New KPIs go after the team's existing ones, in file order. Imported measurements record no one as
 having taken them.
 
 Because a team's KPI names are unique, sending the same files again after fixing a failed row imports only

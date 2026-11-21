@@ -1260,6 +1260,29 @@ public class TokenServiceTests
         _mockUserService.Verify(s => s.ResolveFromGenericOidcPrincipalAsync("Acme-Google", principal, It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Theory]
+    [InlineData(LoginProviders.MicrosoftEntraId)]
+    [InlineData("microsoftentraid")]
+    [InlineData(LoginProviders.Wayd)]
+    public async Task ExchangeTokenAsync_ThrowsUnauthorized_WhenAGenericProviderIsStoredUnderAReservedName(string name)
+    {
+        // Arrange
+        var principal = CreateEntraPrincipal();
+        _mockOidcTokenValidator
+            .Setup(v => v.Validate(name, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GenericToken(principal, name));
+
+        // Act
+        var act = () => _sut.ExchangeTokenAsync(
+            new ExchangeTokenCommand(name, "token"),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>().WithMessage("Invalid token.");
+        _mockUserService.Verify(s => s.ResolveFromGenericOidcPrincipalAsync(
+            It.IsAny<string>(), It.IsAny<ClaimsPrincipal>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     [Fact]
     public async Task ExchangeTokenAsync_ThrowsUnauthorized_WhenAnEntraProviderIsStoredUnderAnotherName()
     {

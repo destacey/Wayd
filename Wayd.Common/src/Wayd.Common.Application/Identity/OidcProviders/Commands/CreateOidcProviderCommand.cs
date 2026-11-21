@@ -65,10 +65,13 @@ public sealed class CreateOidcProviderCommandValidator : CustomValidator<CreateO
             .Must(n => !string.Equals(n?.Trim(), "Wayd", StringComparison.OrdinalIgnoreCase))
             .WithMessage("'Wayd' is a reserved provider name.");
 
-        // Entra sign-ins are written under this one name, so it belongs to the Entra provider and to no other.
+        // Entra sign-ins are written under this one name, so it belongs to the Entra provider and to no other. The
+        // Entra provider's must match it exactly: the name is stored as given and never edited, and sign-in compares
+        // it exactly, so another spelling would save a provider nobody could sign in through.
         RuleFor(x => x.Name)
-            .Must((command, name) => string.Equals(name?.Trim(), LoginProviders.MicrosoftEntraId, StringComparison.OrdinalIgnoreCase)
-                == (command.ProviderType == OidcProviderType.MicrosoftEntraId))
+            .Must((command, name) => command.ProviderType == OidcProviderType.MicrosoftEntraId
+                ? string.Equals(name, LoginProviders.MicrosoftEntraId, StringComparison.Ordinal)
+                : !string.Equals(name?.Trim(), LoginProviders.MicrosoftEntraId, StringComparison.OrdinalIgnoreCase))
             .WithMessage($"A Microsoft Entra ID provider must be named '{LoginProviders.MicrosoftEntraId}', and no other provider may be.");
 
         // When auto-registration is enabled a default role is required and must

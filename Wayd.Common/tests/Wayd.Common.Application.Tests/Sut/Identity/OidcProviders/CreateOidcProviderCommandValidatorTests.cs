@@ -263,11 +263,14 @@ public class CreateOidcProviderCommandValidatorTests
         result.ShouldNotHaveValidationErrorFor(x => x.DefaultRoleId);
     }
 
-    [Fact]
-    public async Task Validate_RefusesAnEntraProviderUnderAnyOtherName()
+    [Theory]
+    [InlineData("Acme-Entra")]
+    [InlineData("microsoftentraid")]
+    [InlineData(" MicrosoftEntraId")]
+    public async Task Validate_RefusesAnEntraProviderUnderAnyOtherName(string name)
     {
         // Arrange
-        var command = ValidEntraCommand() with { Name = "Acme-Entra" };
+        var command = ValidEntraCommand() with { Name = name };
 
         // Act
         var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);

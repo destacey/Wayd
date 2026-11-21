@@ -254,6 +254,16 @@ internal class TokenService(
         }
         else
         {
+            // A generic provider under a reserved name would resolve and complete links meant for the Entra provider or
+            // for local accounts, with no tenant check. The create rules refuse one; a row written before they did, or
+            // by hand, is refused here.
+            if (string.Equals(provider.Name?.Trim(), LoginProviders.MicrosoftEntraId, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(provider.Name?.Trim(), LoginProviders.Wayd, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogError("Token exchange rejected: generic OIDC provider is stored under the reserved name '{Provider}'.", provider.Name);
+                throw new UnauthorizedException("Invalid token.");
+            }
+
             // GenericOidc path: resolves existing identities and applies pending
             // cross-provider migrations. Full new-user provisioning is a follow-up
             // (tracked separately) — unknown users are rejected explicitly here

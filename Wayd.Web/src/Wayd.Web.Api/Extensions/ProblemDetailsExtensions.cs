@@ -1,8 +1,6 @@
-﻿using System.Diagnostics;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
+﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Wayd.Infrastructure.Middleware;
 using System.Net;
-using Microsoft.AspNetCore.Http.Features;
 
 namespace Wayd.Web.Api.Extensions;
 
@@ -29,7 +27,6 @@ public static class ProblemDetailsExtensions
 
     public static ProblemDetails ForBadRequest(string error, HttpContext context)
     {
-        Activity? activity = context.Features.Get<IHttpActivityFeature>()?.Activity;
         var problemDetails = new ProblemDetails
         {
             Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1",
@@ -40,7 +37,7 @@ public static class ProblemDetailsExtensions
             Extensions =
                 {
                     ["requestId"] = context.TraceIdentifier,
-                    ["traceId"] = activity?.Id
+                    ["traceId"] = ProblemTrace.Id(context)
                 }
         };
         return problemDetails;
@@ -49,7 +46,6 @@ public static class ProblemDetailsExtensions
     /// <summary>A 404 body that says why nothing was found, for when the reason is not simply an unknown id.</summary>
     public static ProblemDetails ForNotFound(string error, HttpContext context)
     {
-        Activity? activity = context.Features.Get<IHttpActivityFeature>()?.Activity;
         return new ProblemDetails
         {
             Type = "https://tools.ietf.org/html/rfc7231#section-6.5.4",
@@ -60,14 +56,13 @@ public static class ProblemDetailsExtensions
             Extensions =
                 {
                     ["requestId"] = context.TraceIdentifier,
-                    ["traceId"] = activity?.Id
+                    ["traceId"] = ProblemTrace.Id(context)
                 }
         };
     }
 
     public static ProblemDetails ForConflict(string error, HttpContext context)
     {
-        Activity? activity = context.Features.Get<IHttpActivityFeature>()?.Activity;
         var problemDetails = new ProblemDetails
         {
             Type = "https://tools.ietf.org/html/rfc7231#section-6.5.8",
@@ -78,7 +73,7 @@ public static class ProblemDetailsExtensions
             Extensions =
                 {
                     ["requestId"] = context.TraceIdentifier,
-                    ["traceId"] = activity?.Id
+                    ["traceId"] = ProblemTrace.Id(context)
                 }
         };
         return problemDetails;

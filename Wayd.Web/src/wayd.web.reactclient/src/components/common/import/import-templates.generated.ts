@@ -388,7 +388,7 @@ export const importTemplates = {
             type: 'text',
             required: true,
             description:
-              'The kind of record the KPI goes on: `organization.team` for a team or a team of teams.',
+              'The kind of record the KPI goes on: `organization.team` for a team or a team of teams, `ppm.project`, `ppm.program` or `ppm.portfolio`.',
             maxLength: 64,
           },
           {

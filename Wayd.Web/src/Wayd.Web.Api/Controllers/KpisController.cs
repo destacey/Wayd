@@ -13,8 +13,8 @@ using Wayd.Web.Api.Models.Kpis;
 namespace Wayd.Web.Api.Controllers;
 
 /// <summary>
-/// The KPIs on a record — a team or a team of teams, and every kind of record that registers a KPI subject type — and
-/// their measurements.
+/// The KPIs on a record — a team or a team of teams, a project, a program, a portfolio, and every kind of record that
+/// registers a KPI subject type — and their measurements.
 /// </summary>
 /// <remarks>
 /// Needs only a signed-in account: every action asks the record's own subject type what the caller may read and
@@ -28,13 +28,13 @@ namespace Wayd.Web.Api.Controllers;
 public class KpisController(IDispatcher dispatcher) : ControllerBase
 {
     private const string SubjectDocs =
-        "`subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it.";
+        "`subjectType` names the kind of record — `organization.team` for a team or a team of teams, `ppm.project`, `ppm.program` or `ppm.portfolio` — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it.";
 
     private const string WindowDocs =
         "The KPI's `window` says what span each value covers: `PerPeriod` (each measurement gives its own `periodStart` and `periodEnd`, and periods do not overlap), `Cumulative` (from a fixed `anchorDate` to the measurement's `asOf` day), `Rolling` (`rollingCount` `rollingUnit`s ending on the `asOf` day) or `PointInTime` (the state at the exact moment `measuredAt`, several a day allowed).";
 
     private const string ManageDocs =
-        "Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.";
+        "Needs, on a team, membership of the team or of a team of teams above it; on a project, program or portfolio, its Update permission and Owner or Manager on the record or an ancestor (or `Permissions.ProjectPortfolioManagement.Administer` in place of the role); or `Permissions.Kpis.Administer` on any record. Returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.";
 
     private readonly IDispatcher _dispatcher = dispatcher;
 

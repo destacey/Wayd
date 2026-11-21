@@ -2,6 +2,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Application.Kpis;
 using Wayd.Organization.Application.Teams;
 using Wayd.Organization.Domain;
+using Wayd.ProjectPortfolioManagement.Application.Portfolios;
+using Wayd.ProjectPortfolioManagement.Application.Programs;
+using Wayd.ProjectPortfolioManagement.Application.Projects;
+using Wayd.ProjectPortfolioManagement.Domain;
 
 namespace Wayd.Infrastructure.Kpis;
 
@@ -20,8 +24,12 @@ internal static class ConfigureServices
     internal static IServiceCollection AddKpis(this IServiceCollection services)
     {
         OrganizationKpiSubjects.Register();
+        PpmKpiSubjects.Register();
 
         services.AddScoped<IKpiSubjectType, TeamKpiSubjectType>();
+        services.AddScoped<IKpiSubjectType, ProjectKpiSubjectType>();
+        services.AddScoped<IKpiSubjectType, ProgramKpiSubjectType>();
+        services.AddScoped<IKpiSubjectType, PortfolioKpiSubjectType>();
 
         services.AddScoped<KpiSubjectAccessResolver>();
         services.AddScoped<KpiCommandScope>();

@@ -21,11 +21,22 @@ namespace Wayd.Integrations.Workday;
 /// </summary>
 public sealed class WorkdayStaffingService(WorkdayStaffingClient client, ILogger<WorkdayStaffingService> logger) : IWorkdayEmployeeSource
 {
-    // Workday caps Get_Workers Count at 999/page, but per-call latency scales with page size because
-    // Workday hydrates each worker server-side (the dominant cost). 200 keeps each call well under the
-    // 90s per-attempt resilience timeout (set in Infrastructure ConfigureServices) and pages small
-    // enough to overlap cleanly if/when pagination is parallelized.
-    private const int SyncPageSize = 200;
+    /// <summary>The workers requested per Get_Workers page, and the most a page may return.</summary>
+    /// <remarks>
+    /// Workday caps Count at 999 a page, but per-call latency scales with page size because Workday hydrates each
+    /// worker server-side (the dominant cost). 200 keeps each call well under the 90s per-attempt resilience
+    /// timeout (set in Infrastructure's Workday connector module).
+    /// </remarks>
+    public const int SyncPageSize = 200;
+
+    /// <summary>
+    /// The most pages a sync reads: with no page holding more than <see cref="SyncPageSize"/> workers, 2,000,000
+    /// workers, counting inactive ones and those exclusion rules drop, which are fetched before they are filtered.
+    /// The page count and each page's workers are what the endpoint reports, so without both caps a misbehaving one
+    /// could keep a sync requesting pages, or holding workers, until the API ran out of memory; the cap sits far
+    /// above any real tenant because reaching it fails the sync.
+    /// </summary>
+    public const int MaxSyncPages = 10_000;
 
     private readonly WorkdayStaffingClient _client = client;
     private readonly ILogger<WorkdayStaffingService> _logger = logger;
@@ -65,6 +76,19 @@ public sealed class WorkdayStaffingService(WorkdayStaffingClient client, ILogger
                 var pageFetchMs = Stopwatch.GetElapsedTime(fetchStart).TotalMilliseconds;
                 fetchMs += pageFetchMs;
                 totalPages = response.TotalPages;
+                if (totalPages > MaxSyncPages)
+                {
+                    _logger.LogError("Workday Get_Workers reported {TotalPages} pages for endpoint {Endpoint}, more than the {Cap}-page limit.", totalPages, context.SoapEndpoint, MaxSyncPages);
+                    return Result.Failure<WorkdayEmployeeFetchResult>(
+                        $"Workday reported {totalPages} pages of workers, more than the {MaxSyncPages}-page limit, so the sync was stopped.");
+                }
+
+                if (response.Workers.Count > SyncPageSize)
+                {
+                    _logger.LogError("Workday Get_Workers returned {Count} workers on page {Page} for endpoint {Endpoint}, more than the {PageSize} requested.", response.Workers.Count, page, context.SoapEndpoint, SyncPageSize);
+                    return Result.Failure<WorkdayEmployeeFetchResult>(
+                        $"Workday returned {response.Workers.Count} workers on one page, more than the {SyncPageSize} requested, so the sync was stopped.");
+                }
 
                 var projectStart = Stopwatch.GetTimestamp();
                 foreach (var worker in response.Workers)
@@ -89,8 +113,8 @@ public sealed class WorkdayStaffingService(WorkdayStaffingClient client, ILogger
                 if (_logger.IsEnabled(LogLevel.Debug))
                 {
                     _logger.LogDebug(
-                        "Workday Get_Workers page {Page}/{TotalPages} returned {Count} workers ({ProjectedCount} after projection, {ExcludedCount} excluded by rules) — fetch {FetchMs:F0}ms, project {ProjectMs:F1}ms.",
-                        page, totalPages, response.Workers.Count, employees.Count, exclusionCounts.Values.Sum(v => v.Count), pageFetchMs, pageProjectMs);
+                        "Workday Get_Workers page {Page}/{TotalPages} returned {Count} workers in {ResponseMegabytes:F1} MB ({ProjectedCount} after projection, {ExcludedCount} excluded by rules) — fetch {FetchMs:F0}ms, project {ProjectMs:F1}ms.",
+                        page, totalPages, response.Workers.Count, response.ResponseBytes / (1024.0 * 1024), employees.Count, exclusionCounts.Values.Sum(v => v.Count), pageFetchMs, pageProjectMs);
                 }
 
                 page++;
@@ -118,12 +142,12 @@ public sealed class WorkdayStaffingService(WorkdayStaffingClient client, ILogger
         catch (WorkdaySoapException ex)
         {
             _logger.LogError(ex, "Workday Get_Workers failed for endpoint {Endpoint}.", context.SoapEndpoint);
-            return Result.Failure<WorkdayEmployeeFetchResult>($"Workday Get_Workers failed: {ex.Message}");
+            return Result.Failure<WorkdayEmployeeFetchResult>($"The Workday sync failed: {ex.Message}");
         }
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Workday Get_Workers could not reach endpoint {Endpoint}.", context.SoapEndpoint);
-            return Result.Failure<WorkdayEmployeeFetchResult>($"Unable to reach Workday: {ex.Message}");
+            return Result.Failure<WorkdayEmployeeFetchResult>(WorkdayConnectionInitializer.UnreachableMessage(context.SoapEndpoint));
         }
     }
 

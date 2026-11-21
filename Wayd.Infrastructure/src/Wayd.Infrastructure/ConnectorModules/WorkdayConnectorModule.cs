@@ -2,6 +2,7 @@
 using Wayd.AppIntegration.Application.Connections.Managers;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Common.Domain.Enums.AppIntegrations;
+using Wayd.Infrastructure.Networking;
 using Wayd.Integrations.Abstractions;
 using Wayd.Integrations.Workday;
 using Wayd.Integrations.Workday.Soap;
@@ -10,6 +11,12 @@ namespace Wayd.Infrastructure.ConnectorModules;
 
 public sealed class WorkdayConnectorModule : IConnectorModule
 {
+    /// <summary>How long establishing a connection to Workday may take.</summary>
+    private static readonly TimeSpan _connectTimeout = TimeSpan.FromSeconds(15);
+
+    /// <summary>How long the retry check may spend reading a failed response's body.</summary>
+    private static readonly TimeSpan _faultReadTimeout = TimeSpan.FromSeconds(30);
+
     public Connector Connector => Connector.Workday;
 
     public IReadOnlyList<ConnectorCapability> Capabilities { get; } = [ConnectorCapability.People];
@@ -24,10 +31,13 @@ public sealed class WorkdayConnectorModule : IConnectorModule
         // re-apply the longer integration timeouts here (90s/attempt) and additionally suppress retries
         // for Workday's permanent faults. Workday wraps auth/validation faults in HTTP 500 bodies, which
         // the default transient predicate would retry 3× to no effect; IsNonRetryableFault parses the
-        // SOAP fault and short-circuits those. Reading the body in the predicate is cheap — fault bodies
-        // are tiny and ReadAsStringAsync buffers, so the client's own later read still sees the content —
-        // and guarded, so a read failure falls back to the default classification rather than escaping.
+        // SOAP fault and short-circuits those (IsPermanentFailure).
+        //
+        // The endpoint is typed by an administrator and carries the ISU password, so the primary handler connects
+        // only to public addresses and follows no redirect (PublicNetwork). Its check runs on the address the
+        // socket actually connects to, after service discovery has rewritten the request.
         services.AddHttpClient<WorkdayStaffingClient>()
+            .ConfigurePrimaryHttpMessageHandler(() => PublicNetwork.CreateHandler(_connectTimeout))
             .AddStandardResilienceHandler(options =>
             {
                 options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(90);
@@ -37,28 +47,12 @@ public sealed class WorkdayConnectorModule : IConnectorModule
                 var defaultShouldHandle = options.Retry.ShouldHandle;
                 options.Retry.ShouldHandle = async args =>
                 {
-                    var response = args.Outcome.Result;
-                    if (response is { IsSuccessStatusCode: false } && response.Content is not null)
-                    {
-                        try
-                        {
-                            var body = await response.Content.ReadAsStringAsync(args.Context.CancellationToken);
-                            if (WorkdayStaffingClient.IsNonRetryableFault(body))
-                                return false;
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            // Genuine cancellation (request aborted / total-timeout) — let it propagate
-                            // rather than turning it into a retry decision.
-                            throw;
-                        }
-                        catch
-                        {
-                            // Reading/classifying the body failed (I/O, disposed content). Don't let that
-                            // escape the predicate and corrupt the pipeline outcome — fall through to the
-                            // default transient classification below.
-                        }
-                    }
+                    if (DestinationRefusedException.IsIn(args.Outcome.Exception))
+                        return false;
+
+                    if (args.Outcome.Result is { IsSuccessStatusCode: false } response
+                        && await IsPermanentFailure(response, args.Context.CancellationToken))
+                        return false;
 
                     return await defaultShouldHandle(args);
                 };
@@ -69,5 +63,46 @@ public sealed class WorkdayConnectorModule : IConnectorModule
         services.AddKeyedTransient<IEmployeeSource, WorkdayEmployeeSource>(Connector.Workday);
         services.AddKeyedTransient<IConnectionInitProbe, WorkdayConnectionInitProbe>(Connector.Workday);
         services.AddScoped<ISyncableConnectionDescriptorBuilder, WorkdayConnectionDescriptorBuilder>();
+    }
+
+    /// <summary>
+    /// Whether a failed Workday response is one a retry cannot fix: a permanent SOAP fault (bad credentials,
+    /// an invalid request), or a body too large or too slow to read, which the next attempt would only stream
+    /// again. False leaves the decision to the default transient classification.
+    /// </summary>
+    /// <remarks>
+    /// The body is buffered, within the client's size cap, so the client's own later read still sees it. A read
+    /// given up part-way leaves the stream unusable, so its reason is recorded on the request
+    /// (<see cref="WorkdayStaffingClient.UnreadBodyReason"/>) for the client to report.
+    /// </remarks>
+    internal static async Task<bool> IsPermanentFailure(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        if (response.Content.Headers.ContentLength > WorkdayStaffingClient.MaxResponseBytes)
+            return true;
+
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(_faultReadTimeout);
+        try
+        {
+            await response.Content.LoadIntoBufferAsync(WorkdayStaffingClient.MaxResponseBytes, timeout.Token);
+            var body = await response.Content.ReadAsStringAsync(timeout.Token);
+            return WorkdayStaffingClient.IsNonRetryableFault(body);
+        }
+        catch (HttpRequestException ex) when (ex.HttpRequestError == HttpRequestError.ConfigurationLimitExceeded)
+        {
+            response.RequestMessage?.Options.Set(WorkdayStaffingClient.UnreadBodyReason, WorkdayStaffingClient.TooLargeMessage);
+            return true;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            response.RequestMessage?.Options.Set(WorkdayStaffingClient.UnreadBodyReason,
+                $"Workday's error response did not arrive in full within {_faultReadTimeout.TotalSeconds:F0} seconds.");
+            return true;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // An I/O or disposed-content failure must not escape the predicate and corrupt the pipeline's outcome.
+            return false;
+        }
     }
 }

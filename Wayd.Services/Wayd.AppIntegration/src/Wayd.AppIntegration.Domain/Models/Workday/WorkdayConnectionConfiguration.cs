@@ -182,7 +182,9 @@ public sealed class WorkdayConnectionConfiguration
         if (string.IsNullOrWhiteSpace(wsdlUrl)) return false;
 
         if (!Uri.TryCreate(wsdlUrl.Trim(), UriKind.Absolute, out var uri)) return false;
-        if (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp) return false;
+        // The ISU password travels in the request body, so plain HTTP is never accepted.
+        if (uri.Scheme != Uri.UriSchemeHttps) return false;
+        if (!string.IsNullOrEmpty(uri.UserInfo)) return false;
 
         // Workday's path shape: /ccx/service/{tenant}/{Service_Name}/{version}
         // Example: /ccx/service/acme_corp1/Staffing/v46.1

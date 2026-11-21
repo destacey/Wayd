@@ -30,6 +30,13 @@ public sealed class WorkdayConnectionInitializer(WorkdayStaffingClient client, I
     private readonly WorkdayStaffingClient _client = client;
     private readonly ILogger<WorkdayConnectionInitializer> _logger = logger;
 
+    /// <summary>
+    /// What the caller is told when the endpoint cannot be reached. The exception stays in the log: its message
+    /// can describe the network the API sits on, such as which addresses refused a connection.
+    /// </summary>
+    internal static string UnreachableMessage(string endpoint) =>
+        $"Unable to reach Workday at {endpoint}. Check that the WSDL URL names your tenant's public Workday host; the API's log has the details.";
+
     public async Task<ConnectionInitResult> Initialize(WorkdayRequestContext context, CancellationToken cancellationToken)
     {
         try
@@ -106,7 +113,7 @@ public sealed class WorkdayConnectionInitializer(WorkdayStaffingClient client, I
                 IsValid: false,
                 WorkersProbed: 0,
                 MissingRequiredFields: [],
-                Warnings: [$"Workday returned an error: {ex.Message}"],
+                Warnings: [$"The Workday request failed: {ex.Message}"],
                 AuthError: null);
         }
         catch (HttpRequestException ex)
@@ -116,7 +123,7 @@ public sealed class WorkdayConnectionInitializer(WorkdayStaffingClient client, I
                 IsValid: false,
                 WorkersProbed: 0,
                 MissingRequiredFields: [],
-                Warnings: [$"Unable to reach Workday at {context.SoapEndpoint}: {ex.Message}"],
+                Warnings: [UnreachableMessage(context.SoapEndpoint)],
                 AuthError: null);
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -195,7 +202,7 @@ public sealed class WorkdayConnectionInitializer(WorkdayStaffingClient client, I
         catch (HttpRequestException ex)
         {
             _logger.LogWarning(ex, "Workday Get_Organizations failed; org-type catalog will not be available.");
-            return ([], $"Couldn't reach Workday to load the org-type catalog: {ex.Message}.");
+            return ([], $"Couldn't reach Workday to load the org-type catalog. {UnreachableMessage(context.SoapEndpoint)}");
         }
     }
 
@@ -361,7 +368,7 @@ public sealed class WorkdayConnectionInitializer(WorkdayStaffingClient client, I
         catch (HttpRequestException ex)
         {
             _logger.LogWarning(ex, "Workday Get_Organizations by-type lookup could not reach the endpoint.");
-            return Result.Failure<IReadOnlyList<DiscoveredOrg>>($"Couldn't reach Workday: {ex.Message}");
+            return Result.Failure<IReadOnlyList<DiscoveredOrg>>(UnreachableMessage(context.SoapEndpoint));
         }
     }
 

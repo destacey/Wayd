@@ -322,32 +322,6 @@ export interface AddStepRequest {
   name: string;
 }
 
-export interface AddStrategicInitiativeKpiMeasurementRequest {
-  /**
-     * The ID of the strategic initiative to which this KPI belongs.
-     * @minLength 1
-     */
-  strategicInitiativeId: string;
-  /**
-     * The ID of the KPI.
-     * @minLength 1
-     */
-  kpiId: string;
-  /**
-     * The actual measured value for the KPI at this check-in.
-     * @minLength 1
-     */
-  actualValue: number;
-  /** The date and time (in UTC) when the measurement was taken. */
-  measurementDate: string & { readonly __brand: 'Instant' };
-  /**
-     * Optional note providing context for the measurement.
-     * @maxLength 1024
-     * @nullable
-     */
-  note?: string | null;
-}
-
 export interface AddSwimLaneRequest {
   /**
      * @minLength 1
@@ -3290,58 +3264,6 @@ export interface CreateStoryMapRequest {
      * @nullable
      */
   editorTeamIds?: string[] | null;
-}
-
-export type KpiTargetDirection = typeof KpiTargetDirection[keyof typeof KpiTargetDirection];
-
-
-export const KpiTargetDirection = {
-  Increase: 'Increase',
-  Decrease: 'Decrease',
-} as const;
-
-export interface CreateStrategicInitiativeKpiRequest {
-  /**
-     * The ID of the strategic initiative to which this KPI belongs.
-     * @minLength 1
-     */
-  strategicInitiativeId: string;
-  /**
-     * The name of the KPI.
-     * @minLength 1
-     * @maxLength 64
-     */
-  name: string;
-  /**
-     * A description of what the KPI measures.
-     * @maxLength 512
-     * @nullable
-     */
-  description?: string | null;
-  /**
-     * The target value that defines success for the KPI.
-     * @minLength 1
-     */
-  targetValue: number;
-  /**
-     * The starting (baseline) value of the KPI.
-     * @nullable
-     */
-  startingValue?: number | null;
-  /**
-     * An optional prefix symbol displayed before the numeric value (e.g. "$").
-     * @maxLength 8
-     * @nullable
-     */
-  prefix?: string | null;
-  /**
-     * An optional suffix symbol displayed after the numeric value (e.g. "%", "M").
-     * @maxLength 8
-     * @nullable
-     */
-  suffix?: string | null;
-  /** The target direction for the KPI. */
-  targetDirection: KpiTargetDirection;
 }
 
 export interface CreateStrategicInitiativeRequest {
@@ -9432,29 +9354,6 @@ export interface KpiCheckpointDto {
   atRiskValue?: number | null;
 }
 
-export interface KpiCheckpointPlanItemRequest {
-  /**
-     * The ID of an existing checkpoint to update. Null for new checkpoints.
-     * @nullable
-     */
-  checkpointId?: string | null;
-  /** The target value for this checkpoint. */
-  targetValue: number;
-  /**
-     * An optional at-risk threshold value for this checkpoint.
-     * @nullable
-     */
-  atRiskValue?: number | null;
-  /** The date and time of this checkpoint. */
-  checkpointDate: string & { readonly __brand: 'Instant' };
-  /**
-     * A short label describing this checkpoint (e.g. "Q1 2025").
-     * @minLength 1
-     * @maxLength 16
-     */
-  dateLabel: string;
-}
-
 /**
  * One checkpoint of a KPI's plan.
  */
@@ -9631,6 +9530,14 @@ export type KpiStatus = typeof KpiStatus[keyof typeof KpiStatus];
 export const KpiStatus = {
   Active: 'Active',
   Closed: 'Closed',
+} as const;
+
+export type KpiTargetDirection = typeof KpiTargetDirection[keyof typeof KpiTargetDirection];
+
+
+export const KpiTargetDirection = {
+  Increase: 'Increase',
+  Decrease: 'Decrease',
 } as const;
 
 export type KpiTargetKind = typeof KpiTargetKind[keyof typeof KpiTargetKind];
@@ -10145,21 +10052,6 @@ export interface ManageRoleUsersRequest {
   roleId: string;
   userIdsToAdd: string[];
   userIdsToRemove: string[];
-}
-
-export interface ManageStrategicInitiativeKpiCheckpointPlanRequest {
-  /**
-     * The ID of the strategic initiative to which this KPI belongs.
-     * @minLength 1
-     */
-  strategicInitiativeId: string;
-  /**
-     * The ID of the KPI.
-     * @minLength 1
-     */
-  kpiId: string;
-  /** The list of planned KPI checkpoints. */
-  checkpoints: KpiCheckpointPlanItemRequest[];
 }
 
 export interface ManageStrategicInitiativeProjectsRequest {
@@ -13848,14 +13740,6 @@ export interface ReorderStepRequest {
   newOrder: number;
 }
 
-export interface ReorderStrategicInitiativeKpisRequest {
-  /**
-     * The ordered list of KPI IDs representing the desired display order.
-     * @minItems 1
-     */
-  orderedKpiIds: string[];
-}
-
 export interface ReorderSwimLaneRequest {
   newOrder: number;
 }
@@ -16030,119 +15914,6 @@ export interface StrategicInitiativeDetailsDto {
   strategicInitiativeSponsors: EmployeeNavigationDto[];
   /** The owners of the strategic initiative. */
   strategicInitiativeOwners: EmployeeNavigationDto[];
-}
-
-export interface StrategicInitiativeKpiMeasurementDto {
-  id: string;
-  actualValue: number;
-  measurementDate: string & { readonly __brand: 'Instant' };
-  measuredBy: EmployeeNavigationDto;
-  /** @nullable */
-  note?: string | null;
-}
-
-export interface StrategicInitiativeKpiCheckpointDetailsDto {
-  id: string;
-  targetValue: number;
-  /** @nullable */
-  atRiskValue?: number | null;
-  checkpointDate: string & { readonly __brand: 'Instant' };
-  dateLabel: string;
-  measurement?: StrategicInitiativeKpiMeasurementDto | null;
-  health?: KpiHealth | null;
-  trend?: KpiTrend | null;
-}
-
-export interface StrategicInitiativeKpiCheckpointDto {
-  id: string;
-  targetValue: number;
-  /** @nullable */
-  atRiskValue?: number | null;
-  checkpointDate: string & { readonly __brand: 'Instant' };
-  dateLabel: string;
-}
-
-export interface StrategicInitiativeKpiDetailsDto {
-  id: string;
-  /** The KPI's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
-  key: number;
-  /** The name of the KPI. */
-  name: string;
-  /**
-     * The description detailing what the KPI measures.
-     * @nullable
-     */
-  description?: string | null;
-  /**
-     * The starting (baseline) value of the KPI. Used to track progress relative to where the KPI began.
-     * @nullable
-     */
-  startingValue?: number | null;
-  /** The target value that defines success for the KPI. */
-  targetValue: number;
-  /**
-     * The actual value of the KPI.
-     * @nullable
-     */
-  actualValue?: number | null;
-  /**
-     * The progress towards the KPI target, calculated based on the starting value, actual value, target value, and target direction.
-     * @nullable
-     */
-  progress?: number | null;
-  /**
-     * An optional prefix symbol displayed before the numeric value (e.g. "$").
-     * @nullable
-     */
-  prefix?: string | null;
-  /**
-     * An optional suffix symbol displayed after the numeric value (e.g. "%", "M").
-     * @nullable
-     */
-  suffix?: string | null;
-  /** Whether the KPI succeeds by increasing or by decreasing toward its target value. */
-  targetDirection: KpiTargetDirection;
-  /** The display order of the KPI within its strategic initiative. Lower values appear first. */
-  order: number;
-}
-
-export interface StrategicInitiativeKpiListDto {
-  id: string;
-  /** The KPI's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
-  key: number;
-  /** The name of the KPI. */
-  name: string;
-  /**
-     * The starting (baseline) value of the KPI. Used to track progress relative to where the KPI began.
-     * @nullable
-     */
-  startingValue?: number | null;
-  /** The target value that defines success for the KPI. */
-  targetValue: number;
-  /**
-     * The actual value of the KPI.
-     * @nullable
-     */
-  actualValue?: number | null;
-  /**
-     * The progress towards the KPI target, calculated based on the starting value, actual value, target value, and target direction.
-     * @nullable
-     */
-  progress?: number | null;
-  /**
-     * An optional prefix symbol displayed before the numeric value (e.g. "$").
-     * @nullable
-     */
-  prefix?: string | null;
-  /**
-     * An optional suffix symbol displayed after the numeric value (e.g. "%", "M").
-     * @nullable
-     */
-  suffix?: string | null;
-  /** Whether the KPI succeeds by increasing or by decreasing toward its target value. */
-  targetDirection: KpiTargetDirection;
-  /** The display order of the KPI within its strategic initiative. Lower values appear first. */
-  order: number;
 }
 
 export interface StrategicInitiativeListDto {
@@ -19303,55 +19074,6 @@ export interface UpdateStoryMapRequest {
      * @nullable
      */
   description?: string | null;
-}
-
-export interface UpdateStrategicInitiativeKpiRequest {
-  /**
-     * The ID of the strategic initiative to which this KPI belongs.
-     * @minLength 1
-     */
-  strategicInitiativeId: string;
-  /**
-     * The ID of the KPI.
-     * @minLength 1
-     */
-  kpiId: string;
-  /**
-     * The name of the KPI.
-     * @minLength 1
-     * @maxLength 64
-     */
-  name: string;
-  /**
-     * A description of what the KPI measures.
-     * @maxLength 512
-     * @nullable
-     */
-  description?: string | null;
-  /**
-     * The target value that defines success for the KPI.
-     * @minLength 1
-     */
-  targetValue: number;
-  /**
-     * The starting (baseline) value of the KPI.
-     * @nullable
-     */
-  startingValue?: number | null;
-  /**
-     * An optional prefix symbol displayed before the numeric value (e.g. "$").
-     * @maxLength 8
-     * @nullable
-     */
-  prefix?: string | null;
-  /**
-     * An optional suffix symbol displayed after the numeric value (e.g. "%", "M").
-     * @maxLength 8
-     * @nullable
-     */
-  suffix?: string | null;
-  /** The target direction for the KPI. */
-  targetDirection: KpiTargetDirection;
 }
 
 export interface UpdateStrategicInitiativeRequest {

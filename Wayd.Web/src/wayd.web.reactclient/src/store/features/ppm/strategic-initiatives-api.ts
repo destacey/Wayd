@@ -1,47 +1,25 @@
 import {
-  AddStrategicInitiativeKpiMeasurementRequest,
   PagedResponseOfActivityLogDto,
-  CreateStrategicInitiativeKpiRequest,
-  ManageStrategicInitiativeKpiCheckpointPlanRequest,
   ManageStrategicInitiativeProjectsRequest,
   ProjectListDto,
-  ReorderStrategicInitiativeKpisRequest,
-  StrategicInitiativeKpiCheckpointDetailsDto,
-  StrategicInitiativeKpiCheckpointDto,
-  StrategicInitiativeKpiDetailsDto,
-  StrategicInitiativeKpiListDto,
-  StrategicInitiativeKpiMeasurementDto,
-  UpdateStrategicInitiativeKpiRequest,
 } from '@/src/services/api/wayd.schemas'
 import { apiSlice } from './../apiSlice'
 import { QueryTags } from '../query-tags'
 import { ppmActivityTag } from './ppm-activity-tags'
 import {
   strategicInitiativesActivate,
-  strategicInitiativesAddKpiMeasurement,
   strategicInitiativesApprove,
   strategicInitiativesCancel,
   strategicInitiativesComplete,
   strategicInitiativesCreate,
-  strategicInitiativesCreateKpi,
   strategicInitiativesDelete,
-  strategicInitiativesDeleteKpi,
   strategicInitiativesGetActivities,
-  strategicInitiativesGetKpi,
-  strategicInitiativesGetKpiCheckpointPlan,
-  strategicInitiativesGetKpiCheckpoints,
-  strategicInitiativesGetKpiMeasurements,
-  strategicInitiativesGetKpis,
   strategicInitiativesGetProjects,
   strategicInitiativesGetStrategicInitiative,
   strategicInitiativesGetStrategicInitiativeStatuses,
   strategicInitiativesGetStrategicInitiatives,
-  strategicInitiativesManageKpiCheckpointPlan,
   strategicInitiativesManageProjects,
-  strategicInitiativesRemoveKpiMeasurement,
-  strategicInitiativesReorderKpis,
   strategicInitiativesUpdate,
-  strategicInitiativesUpdateKpi,
 } from '@/src/services/api/strategic-initiatives'
 import {
   CreateStrategicInitiativeRequest,
@@ -266,186 +244,6 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
       providesTags: () => [QueryTags.StrategicInitiativeStatusOptions],
     }),
 
-    getStrategicInitiativeKpis: builder.query<
-      StrategicInitiativeKpiListDto[],
-      string
-    >({
-      queryFn: async (strategicInitiativeId) => {
-        try {
-          const data = await strategicInitiativesGetKpis(strategicInitiativeId)
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      providesTags: (result, error, arg) => [
-        { type: QueryTags.StrategicInitiativeKpi, id: arg },
-      ],
-    }),
-    getStrategicInitiativeKpi: builder.query<
-      StrategicInitiativeKpiDetailsDto,
-      { strategicInitiativeId: string; kpiId: string }
-    >({
-      queryFn: async (request) => {
-        try {
-          const data = await strategicInitiativesGetKpi(
-            request.strategicInitiativeId,
-            request.kpiId,
-          )
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      providesTags: (result, error, arg) => [
-        { type: QueryTags.StrategicInitiativeKpi, id: arg.kpiId },
-      ],
-    }),
-    createStrategicInitiativeKpi: builder.mutation<
-      ObjectIdAndKey,
-      CreateStrategicInitiativeKpiRequest
-    >({
-      queryFn: async (request) => {
-        try {
-          const data = await strategicInitiativesCreateKpi(
-            request.strategicInitiativeId,
-            request,
-          )
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      invalidatesTags: (result, error, arg) => {
-        return [
-          {
-            type: QueryTags.StrategicInitiativeKpi,
-            id: arg.strategicInitiativeId,
-          },
-          ppmActivityTag(arg.strategicInitiativeId),
-        ]
-      },
-    }),
-    updateStrategicInitiativeKpi: builder.mutation<
-      void,
-      UpdateStrategicInitiativeKpiRequest
-    >({
-      queryFn: async (request) => {
-        try {
-          const data = await strategicInitiativesUpdateKpi(
-            request.strategicInitiativeId,
-            request.kpiId,
-            request,
-          )
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      invalidatesTags: (result, error, arg) => {
-        return [
-          {
-            type: QueryTags.StrategicInitiativeKpi,
-            id: arg.strategicInitiativeId,
-          },
-          { type: QueryTags.StrategicInitiativeKpi, id: arg.kpiId },
-          ppmActivityTag(arg.strategicInitiativeId),
-        ]
-      },
-    }),
-    deleteStrategicInitiativeKpi: builder.mutation<
-      void,
-      { strategicInitiativeId: string; kpiId: string }
-    >({
-      queryFn: async (request) => {
-        try {
-          const data = await strategicInitiativesDeleteKpi(
-            request.strategicInitiativeId,
-            request.kpiId,
-          )
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      invalidatesTags: (result, error, arg) => {
-        return [
-          {
-            type: QueryTags.StrategicInitiativeKpi,
-            id: arg.strategicInitiativeId,
-          },
-          ppmActivityTag(arg.strategicInitiativeId),
-        ]
-      },
-    }),
-    reorderStrategicInitiativeKpis: builder.mutation<
-      void,
-      {
-        strategicInitiativeId: string
-        request: ReorderStrategicInitiativeKpisRequest
-      }
-    >({
-      queryFn: async ({ strategicInitiativeId, request }) => {
-        try {
-          const data = await strategicInitiativesReorderKpis(
-            strategicInitiativeId,
-            request,
-          )
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      invalidatesTags: (result, error, arg) => [
-        {
-          type: QueryTags.StrategicInitiativeKpi,
-          id: arg.strategicInitiativeId,
-        },
-        ppmActivityTag(arg.strategicInitiativeId),
-      ],
-    }),
-    addStrategicInitiativeKpiMeasurement: builder.mutation<
-      void,
-      AddStrategicInitiativeKpiMeasurementRequest
-    >({
-      queryFn: async (request) => {
-        try {
-          const data = await strategicInitiativesAddKpiMeasurement(
-            request.strategicInitiativeId,
-            request.kpiId,
-            request,
-          )
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      invalidatesTags: (result, error, arg) => {
-        return [
-          {
-            type: QueryTags.StrategicInitiativeKpi,
-            id: arg.strategicInitiativeId,
-          },
-          { type: QueryTags.StrategicInitiativeKpi, id: arg.kpiId },
-          {
-            type: QueryTags.StrategicInitiativeKpiCheckpointPlan,
-            id: arg.kpiId,
-          },
-          {
-            type: QueryTags.StrategicInitiativeKpiMeasurement,
-            id: arg.kpiId,
-          },
-          ppmActivityTag(arg.strategicInitiativeId),
-        ]
-      },
-    }),
     getStrategicInitiativeProjects: builder.query<ProjectListDto[], string>({
       queryFn: async (idOrKey) => {
         try {
@@ -483,131 +281,6 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
         ppmActivityTag(arg.id),
       ],
     }),
-    getStrategicInitiativeKpiCheckpoints: builder.query<
-      StrategicInitiativeKpiCheckpointDto[],
-      { strategicInitiativeId: string; kpiId: string }
-    >({
-      queryFn: async (request) => {
-        try {
-          const data = await strategicInitiativesGetKpiCheckpoints(
-            request.strategicInitiativeId,
-            request.kpiId,
-          )
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      providesTags: (result, error, arg) => [
-        { type: QueryTags.StrategicInitiativeKpiCheckpoint, id: arg.kpiId },
-      ],
-    }),
-    getStrategicInitiativeKpiCheckpointPlan: builder.query<
-      StrategicInitiativeKpiCheckpointDetailsDto[],
-      { strategicInitiativeId: string; kpiId: string }
-    >({
-      queryFn: async (request) => {
-        try {
-          const data = await strategicInitiativesGetKpiCheckpointPlan(
-            request.strategicInitiativeId,
-            request.kpiId,
-          )
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      providesTags: (result, error, arg) => [
-        {
-          type: QueryTags.StrategicInitiativeKpiCheckpointPlan,
-          id: arg.kpiId,
-        },
-      ],
-    }),
-    manageStrategicInitiativeKpiCheckpointPlan: builder.mutation<
-      void,
-      ManageStrategicInitiativeKpiCheckpointPlanRequest
-    >({
-      queryFn: async (request) => {
-        try {
-          const data = await strategicInitiativesManageKpiCheckpointPlan(
-            request.strategicInitiativeId,
-            request.kpiId,
-            request,
-          )
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      invalidatesTags: (result, error, arg) => [
-        {
-          type: QueryTags.StrategicInitiativeKpiCheckpoint,
-          id: arg.kpiId,
-        },
-        {
-          type: QueryTags.StrategicInitiativeKpiCheckpointPlan,
-          id: arg.kpiId,
-        },
-        ppmActivityTag(arg.strategicInitiativeId),
-      ],
-    }),
-    getStrategicInitiativeKpiMeasurements: builder.query<
-      StrategicInitiativeKpiMeasurementDto[],
-      { strategicInitiativeId: string; kpiId: string }
-    >({
-      queryFn: async (arg) => {
-        try {
-          const data = await strategicInitiativesGetKpiMeasurements(
-            arg.strategicInitiativeId,
-            arg.kpiId,
-          )
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      providesTags: (result, error, arg) => [
-        { type: QueryTags.StrategicInitiativeKpiMeasurement, id: arg.kpiId },
-      ],
-    }),
-    removeStrategicInitiativeKpiMeasurement: builder.mutation<
-      void,
-      { strategicInitiativeId: string; kpiId: string; measurementId: string }
-    >({
-      queryFn: async (request) => {
-        try {
-          const data = await strategicInitiativesRemoveKpiMeasurement(
-            request.strategicInitiativeId,
-            request.kpiId,
-            request.measurementId,
-          )
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      invalidatesTags: (result, error, arg) => [
-        {
-          type: QueryTags.StrategicInitiativeKpiMeasurement,
-          id: arg.kpiId,
-        },
-        {
-          type: QueryTags.StrategicInitiativeKpi,
-          id: arg.kpiId,
-        },
-        {
-          type: QueryTags.StrategicInitiativeKpiCheckpointPlan,
-          id: arg.kpiId,
-        },
-        ppmActivityTag(arg.strategicInitiativeId),
-      ],
-    }),
     getStrategicInitiativeActivities: builder.query<
       PagedResponseOfActivityLogDto,
       { idOrKey: string | number; page?: number; pageSize?: number }
@@ -642,20 +315,8 @@ export const {
   useCancelStrategicInitiativeMutation,
   useDeleteStrategicInitiativeMutation,
   useGetStrategicInitiativeStatusOptionsQuery,
-  useGetStrategicInitiativeKpisQuery,
-  useGetStrategicInitiativeKpiQuery,
-  useCreateStrategicInitiativeKpiMutation,
-  useUpdateStrategicInitiativeKpiMutation,
-  useDeleteStrategicInitiativeKpiMutation,
-  useReorderStrategicInitiativeKpisMutation,
-  useAddStrategicInitiativeKpiMeasurementMutation,
-  useGetStrategicInitiativeKpiMeasurementsQuery,
   useGetStrategicInitiativeProjectsQuery,
   useManageStrategicInitiativeProjectsMutation,
-  useGetStrategicInitiativeKpiCheckpointsQuery,
-  useGetStrategicInitiativeKpiCheckpointPlanQuery,
-  useManageStrategicInitiativeKpiCheckpointPlanMutation,
-  useRemoveStrategicInitiativeKpiMeasurementMutation,
   useGetStrategicInitiativeActivitiesQuery,
   useLazyGetStrategicInitiativeActivitiesQuery,
 } = strategicInitiativesApi

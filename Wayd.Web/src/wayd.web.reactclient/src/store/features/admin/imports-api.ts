@@ -117,7 +117,7 @@ const IMPORTED_RECORD_TAGS: Record<ImportKey, ImportedRecordTag[]> = {
   'ppm.finalizations': [QueryTags.Portfolio, QueryTags.Program],
   'ppm.strategic-initiatives': [
     QueryTags.StrategicInitiative,
-    QueryTags.StrategicInitiativeKpi,
+    QueryTags.Kpi,
     QueryTags.PortfolioStrategicInitiatives,
   ],
   'strategic.themes': [QueryTags.StrategicTheme],

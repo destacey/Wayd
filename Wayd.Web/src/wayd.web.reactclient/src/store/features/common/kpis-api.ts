@@ -45,6 +45,7 @@ export const KpiSubjectTypes = {
   Project: 'ppm.project',
   Program: 'ppm.program',
   Portfolio: 'ppm.portfolio',
+  StrategicInitiative: 'ppm.strategic-initiative',
 } as const
 
 export type KpiSubjectType =

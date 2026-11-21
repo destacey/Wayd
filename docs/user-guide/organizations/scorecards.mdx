@@ -1,15 +1,15 @@
 ---
 title: Scorecards and KPIs
-description: Setting KPIs on a team, team of teams, project, program or portfolio — baselines, targets, at-risk thresholds, checkpoint plans, measurement windows and rolling averages — recording measurements, and reading the scorecard.
+description: Setting KPIs on a team, team of teams, project, program, portfolio or strategic initiative — baselines, targets, at-risk thresholds, checkpoint plans, measurement windows and rolling averages — recording measurements, and reading the scorecard.
 sidebar_position: 3
 audience: [user, agent]
 ---
 
 # Scorecards and KPIs
 
-A **KPI** (key performance indicator) says what a team, a project, a program or a portfolio is aiming for and keeps what its number was at each point in time: where it started, where it is trying to get to, and a measurement for each period since. A record's **scorecard** is every active KPI on it, grouped by category.
+A **KPI** (key performance indicator) says what a team, a project, a program, a portfolio or a strategic initiative is aiming for and keeps what its number was at each point in time: where it started, where it is trying to get to, and a measurement for each period since. A record's **scorecard** is every active KPI on it, grouped by category.
 
-KPIs need the `kpis` feature flag, which an administrator turns on under **Settings → System → Feature Flags**. With it on, every team and team of teams has a **Scorecard** section, right after Overview, as does every [program and portfolio](../ppm/portfolios-programs.mdx); a [project](../ppm/projects.mdx) has it after Deliverables.
+KPIs need the `kpis` feature flag, which an administrator turns on under **Settings → System → Feature Flags**. With it on, every team and team of teams has a **Scorecard** section, right after Overview, as does every [program and portfolio](../ppm/portfolios-programs.mdx); a [project](../ppm/projects.mdx) has it after Deliverables, and a [strategic initiative](../ppm/strategic-initiatives.mdx) has it first.
 
 ## What a KPI holds
 
@@ -109,6 +109,10 @@ Whoever may change the record itself: the record's **Update** permission togethe
 A completed or canceled record's KPIs stay open to change, so the benefits a project was meant to bring can be measured after it closes.
 
 Viewing a record's KPIs needs only permission to view that kind of record.
+
+### Who can change a strategic initiative's KPIs
+
+Whoever may edit the initiative: the **Update Strategic Initiatives** permission alone, with no role on the initiative, as every other change to an initiative works. A completed or canceled initiative's KPIs stay open to change, as a closed project's do.
 
 ## Categories
 

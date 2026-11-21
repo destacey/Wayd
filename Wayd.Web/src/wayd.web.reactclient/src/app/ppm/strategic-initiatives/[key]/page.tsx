@@ -4,10 +4,10 @@ import { LifecycleStatusTag, PageActions } from '@/src/components/common'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
-import { useDocumentTitle } from '@/src/hooks'
+import { useDocumentTitle, useFeatureFlag } from '@/src/hooks'
+import { KpiSubjectTypes } from '@/src/store/features/common/kpis-api'
 import {
   useGetStrategicInitiativeActivitiesQuery,
-  useGetStrategicInitiativeKpisQuery,
   useGetStrategicInitiativeProjectsQuery,
   useGetStrategicInitiativeQuery,
   useLazyGetStrategicInitiativeActivitiesQuery,
@@ -18,16 +18,15 @@ import {
   ActivityLogTimeline,
   useActivityLog,
 } from '@/src/components/common/activities'
-import { Button, MenuProps } from 'antd'
+import { MenuProps, Spin } from 'antd'
 import type { ItemType } from 'antd/es/menu/interface'
+import dynamic from 'next/dynamic'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, use, useState } from 'react'
 import {
   ChangeStrategicInitiativeStatusForm,
-  CreateStrategicInitiativeKpiForm,
   DeleteStrategicInitiativeForm,
   ManageStrategicInitiativeProjectsForm,
-  StrategicInitiativeKpiViewManager,
 } from '@/src/app/ppm/strategic-initiatives/_components'
 import EditStrategicInitiativeForm from '@/src/app/ppm/strategic-initiatives/_components/edit-strategic-initiative-form'
 import { StrategicInitiativeStatusAction } from '@/src/app/ppm/strategic-initiatives/_components/change-strategic-initiative-status-form'
@@ -35,8 +34,13 @@ import { ProjectViewManager } from '@/src/app/ppm/_components'
 import StrategicInitiativeDetailsLoading from './loading'
 import StrategicInitiativeFacts from './_components/strategic-initiative-facts'
 
+const KpiScorecard = dynamic(
+  () => import('@/src/components/common/kpi/scorecard/kpi-scorecard'),
+  { ssr: false, loading: () => <Spin /> },
+)
+
 enum StrategicInitiativeSections {
-  Kpis = 'kpis',
+  Scorecard = 'scorecard',
   Projects = 'projects',
   Activities = 'activities',
 }
@@ -78,11 +82,16 @@ const StrategicInitiativeDetailsPage = (props: {
     openDeleteStrategicInitiativeForm,
     setOpenDeleteStrategicInitiativeForm,
   ] = useState<boolean>(false)
-  const [openCreateKpiForm, setOpenCreateKpiForm] = useState(false)
   const [openManageProjectsForm, setOpenManageProjectsForm] = useState(false)
 
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  const { isEnabled: kpisEnabled, isLoading: isLoadingFeatureFlags } =
+    useFeatureFlag('kpis')
+  const defaultSection = kpisEnabled
+    ? StrategicInitiativeSections.Scorecard
+    : StrategicInitiativeSections.Projects
 
   const { hasPermissionClaim } = useAuth()
   const canUpdateStrategicInitiative = hasPermissionClaim(
@@ -99,14 +108,6 @@ const StrategicInitiativeDetailsPage = (props: {
   } = useGetStrategicInitiativeQuery(siKey)
 
   const {
-    data: kpiData,
-    isLoading: isLoadingKpis,
-    refetch: refetchKpis,
-  } = useGetStrategicInitiativeKpisQuery(strategicInitiativeData?.id ?? '', {
-    skip: !strategicInitiativeData?.id,
-  })
-
-  const {
     data: projectData,
     isLoading: isLoadingProjects,
     refetch: refetchProjects,
@@ -120,7 +121,7 @@ const StrategicInitiativeDetailsPage = (props: {
   // The active section lives in the URL, owned by RecordLayout. Read here only
   // to hold the activity query back until its section is open.
   const activeSection = (searchParams.get('section') ??
-    StrategicInitiativeSections.Kpis) as StrategicInitiativeSections
+    defaultSection) as StrategicInitiativeSections
 
   const activitiesQuery = useGetStrategicInitiativeActivitiesQuery(
     {
@@ -147,7 +148,8 @@ const StrategicInitiativeDetailsPage = (props: {
     `${strategicInitiativeData?.name ?? siKey} - Strategic Initiative Details`,
   )
 
-  // A closed initiative takes no new KPIs or project assignments.
+  // A closed initiative takes no new project assignments. Its KPIs stay open to
+  // change, which the scorecard decides for itself.
   const isReadOnly = !strategicInitiativeData
     ? false
     : (() => {
@@ -320,12 +322,7 @@ const StrategicInitiativeDetailsPage = (props: {
     }
   }
 
-  const onCreateKpiFormClosed = (wasSaved: boolean) => {
-    setOpenCreateKpiForm(false)
-    if (wasSaved) refetchKpis()
-  }
-
-  if (isLoading) {
+  if (isLoading || isLoadingFeatureFlags) {
     return <StrategicInitiativeDetailsLoading />
   }
 
@@ -333,14 +330,10 @@ const StrategicInitiativeDetailsPage = (props: {
     return notFound()
   }
 
-  const canManageKpis = !isReadOnly && canUpdateStrategicInitiative
-
   const sections: RecordSection[] = [
-    {
-      id: StrategicInitiativeSections.Kpis,
-      label: 'KPIs',
-      count: kpiData?.length,
-    },
+    ...(kpisEnabled
+      ? [{ id: StrategicInitiativeSections.Scorecard, label: 'Scorecard' }]
+      : []),
     {
       id: StrategicInitiativeSections.Projects,
       label: 'Projects',
@@ -351,9 +344,18 @@ const StrategicInitiativeDetailsPage = (props: {
 
   const renderSection = (section: StrategicInitiativeSections) => {
     switch (section) {
+      case StrategicInitiativeSections.Scorecard:
+        return kpisEnabled ? (
+          <KpiScorecard
+            subject={{
+              subjectType: KpiSubjectTypes.StrategicInitiative,
+              subjectId: strategicInitiativeData.id,
+            }}
+          />
+        ) : null
       case StrategicInitiativeSections.Activities:
         return <ActivityLogTimeline {...activityLog.timelineProps} />
-      case StrategicInitiativeSections.Projects:
+      default:
         return (
           <ProjectViewManager
             projects={projectData ?? []}
@@ -365,21 +367,6 @@ const StrategicInitiativeDetailsPage = (props: {
             persistStateKey="strategic-initiative-projects"
           />
         )
-      default:
-        return (
-          <StrategicInitiativeKpiViewManager
-            strategicInitiativeId={strategicInitiativeData.id}
-            kpis={kpiData}
-            canManageKpis={canUpdateStrategicInitiative}
-            isLoading={isLoadingKpis}
-            refetch={refetchKpis}
-            gridHeight={400}
-            isReadOnly={isReadOnly}
-            onCreateKpi={
-              canManageKpis ? () => setOpenCreateKpiForm(true) : undefined
-            }
-          />
-        )
     }
   }
 
@@ -387,7 +374,7 @@ const StrategicInitiativeDetailsPage = (props: {
     <>
       <RecordLayout
         sections={sections}
-        defaultSection={StrategicInitiativeSections.Kpis}
+        defaultSection={defaultSection}
         record={{
           name: strategicInitiativeData.name,
           recordKey: String(strategicInitiativeData.key),
@@ -407,10 +394,6 @@ const StrategicInitiativeDetailsPage = (props: {
         sectionActions={
           activeSection === StrategicInitiativeSections.Activities ? (
             <ActivityLogExportButton activityLog={activityLog} />
-          ) : canManageKpis ? (
-            <Button onClick={() => setOpenCreateKpiForm(true)}>
-              Create KPI
-            </Button>
           ) : null
         }
       >
@@ -461,13 +444,6 @@ const StrategicInitiativeDetailsPage = (props: {
           strategicInitiative={strategicInitiativeData}
           onFormComplete={() => onDeleteStrategicInitiativeFormClosed(true)}
           onFormCancel={() => onDeleteStrategicInitiativeFormClosed(false)}
-        />
-      )}
-      {openCreateKpiForm && (
-        <CreateStrategicInitiativeKpiForm
-          strategicInitiativeId={strategicInitiativeData.id}
-          onFormComplete={() => onCreateKpiFormClosed(true)}
-          onFormCancel={() => onCreateKpiFormClosed(false)}
         />
       )}
       {openManageProjectsForm && (

@@ -31,11 +31,11 @@ public sealed record UserDetailsDto
 
     /// <summary>
     /// When the staged tenant link stops being honoured and must be staged again. Null when none is staged, or when it
-    /// was staged before its time was recorded.
+    /// was staged before its time was recorded, which counts as expired.
     /// </summary>
     public Instant? PendingMigrationTenantExpiresAt => PendingMigrationTenantId is null ? null : StagedLinks.ExpiresAt(PendingMigrationTenantStagedAt);
 
-    /// <summary>The identity provider the user's next sign-in through it is staged to move them to.</summary>
+    /// <summary>The name of the identity provider the user is staged to move to; their next sign-in through it completes the move.</summary>
     public string? PendingMigrationProviderId { get; set; }
 
     /// <summary>When the provider move was staged.</summary>

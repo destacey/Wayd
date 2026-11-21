@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Application.Requests.WorkManagement.Commands;
+using Wayd.Common.Domain;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkItems.Dtos;
 
@@ -71,7 +72,7 @@ public sealed class SyncExternalWorkItemParentChangesCommandHandler(IWorkDbConte
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception thrown handling {AppRequestName}", AppRequestName);
-            return Result.Failure(ex.ToString());
+            return Result.Failure(ErrorMessages.UnexpectedInRun);
         }
     }
 }

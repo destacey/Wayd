@@ -26,13 +26,11 @@ public sealed class VerifyTeamsConnectionCommandValidator : CustomValidator<Veri
 
 public sealed class VerifyTeamsConnectionCommandHandler(
     ICurrentUser currentUser,
-    ITeamsCommunicationGraphClient teamsCommunicationGraphClient,
-    ILogger<VerifyTeamsConnectionCommandHandler> logger)
+    ITeamsCommunicationGraphClient teamsCommunicationGraphClient)
     : ICommandHandler<VerifyTeamsConnectionCommand>
 {
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ITeamsCommunicationGraphClient _teamsCommunicationGraphClient = teamsCommunicationGraphClient;
-    private readonly ILogger<VerifyTeamsConnectionCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(VerifyTeamsConnectionCommand request, CancellationToken cancellationToken)
     {
@@ -48,17 +46,9 @@ public sealed class VerifyTeamsConnectionCommandHandler(
             request.ClientId.Trim(),
             request.ClientSecret.Trim());
 
-        try
-        {
-            return await _teamsCommunicationGraphClient.RunHelloWorldTestAsync(
-                credentials,
-                email.Trim(),
-                cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", nameof(VerifyTeamsConnectionCommandHandler));
-            return Result.Failure($"Failed to run the Teams connection test: {ex.Message}");
-        }
+        return await _teamsCommunicationGraphClient.RunHelloWorldTestAsync(
+            credentials,
+            email.Trim(),
+            cancellationToken);
     }
 }

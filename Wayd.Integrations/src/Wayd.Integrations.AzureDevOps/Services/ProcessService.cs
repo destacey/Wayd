@@ -15,68 +15,41 @@ internal sealed class ProcessService(HttpClient httpClient, string organizationU
 
     public async Task<Result<List<AzdoWorkProcess>>> GetProcesses(CancellationToken cancellationToken)
     {
-        try
+        var response = await _processClient.GetProcesses(cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessful)
         {
-            var response = await _processClient.GetProcesses(cancellationToken).ConfigureAwait(false);
-            if (!response.IsSuccessful)
-            {
-                _logger.LogError("Error getting processes from Azure DevOps: {ErrorMessage}.", response.GetErrorText());
-                return Result.Failure<List<AzdoWorkProcess>>(response.GetErrorText());
-            }
-            else if (response.StatusCode == System.Net.HttpStatusCode.NonAuthoritativeInformation)
-            {
-                _logger.LogError("The request was not authorized with Azure DevOps.");
-                return Result.Failure<List<AzdoWorkProcess>>("The request was not authorized with Azure DevOps.");
-            }
-
-            var processes = response.Data?.Items.ToAzdoWorkProcesses() ?? [];
-
-            if (_logger.IsEnabled(LogLevel.Debug))
-                _logger.LogDebug("{ProcessCount} processes found.", processes.Count);
-
-            return Result.Success(processes);
+            _logger.LogError("Error getting processes from Azure DevOps: {ErrorMessage}.", response.GetErrorText());
+            return Result.Failure<List<AzdoWorkProcess>>(response.GetErrorText());
         }
-        catch (OperationCanceledException)
+        else if (response.StatusCode == System.Net.HttpStatusCode.NonAuthoritativeInformation)
         {
-            // A genuine cancellation (caller's token fired) is not a sync failure — let it
-            // propagate so the caller's cancellation handling (e.g. marking a sync run
-            // cancelled rather than partially failed) actually runs.
-            throw;
+            _logger.LogError("The request was not authorized with Azure DevOps.");
+            return Result.Failure<List<AzdoWorkProcess>>("The request was not authorized with Azure DevOps.");
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception thrown getting processes from Azure DevOps.");
-            return Result.Failure<List<AzdoWorkProcess>>(ex.Message);
-        }
+
+        var processes = response.Data?.Items.ToAzdoWorkProcesses() ?? [];
+
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("{ProcessCount} processes found.", processes.Count);
+
+        return Result.Success(processes);
     }
 
     public async Task<Result<AzdoWorkProcessConfiguration>> GetProcess(Guid processId, CancellationToken cancellationToken)
     {
-        try
-        {
-            var processResult = await GetProcessById(processId, cancellationToken).ConfigureAwait(false);
-            if (processResult.IsFailure)
-                return Result.Failure<AzdoWorkProcessConfiguration>(processResult.Error);
+        var processResult = await GetProcessById(processId, cancellationToken).ConfigureAwait(false);
+        if (processResult.IsFailure)
+            return Result.Failure<AzdoWorkProcessConfiguration>(processResult.Error);
 
-            var behaviorsResult = await GetProcessBehaviors(processId, cancellationToken).ConfigureAwait(false);
-            if (behaviorsResult.IsFailure)
-                return Result.Failure<AzdoWorkProcessConfiguration>(behaviorsResult.Error);
+        var behaviorsResult = await GetProcessBehaviors(processId, cancellationToken).ConfigureAwait(false);
+        if (behaviorsResult.IsFailure)
+            return Result.Failure<AzdoWorkProcessConfiguration>(behaviorsResult.Error);
 
-            var workTypesResult = await GetProcessWorkItemTypes(processId, cancellationToken).ConfigureAwait(false);
-            if (workTypesResult.IsFailure)
-                return Result.Failure<AzdoWorkProcessConfiguration>(workTypesResult.Error);
+        var workTypesResult = await GetProcessWorkItemTypes(processId, cancellationToken).ConfigureAwait(false);
+        if (workTypesResult.IsFailure)
+            return Result.Failure<AzdoWorkProcessConfiguration>(workTypesResult.Error);
 
-            return Result.Success(processResult.Value.ToAzdoWorkProcessDetails(behaviorsResult.Value, workTypesResult.Value));
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception thrown getting process {ProcessId} from Azure DevOps.", processId);
-            return Result.Failure<AzdoWorkProcessConfiguration>(ex.Message);
-        }
+        return Result.Success(processResult.Value.ToAzdoWorkProcessDetails(behaviorsResult.Value, workTypesResult.Value));
     }
 
     private async Task<Result<ProcessDto>> GetProcessById(Guid processId, CancellationToken cancellationToken)

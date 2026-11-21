@@ -30,46 +30,39 @@ public class AzureOpenAIConnection : Connection<AzureOpenAIConnectionConfigurati
     /// <param name="apiKey">The new API key, or null to keep the stored one.</param>
     public Result Update(string name, string? description, string baseUrl, string? apiKey, string deploymentName, bool configurationIsValid, EventActor actor, Instant timestamp)
     {
-        try
-        {
-            Guard.Against.Null(Configuration, nameof(Configuration));
+        Guard.Against.Null(Configuration, nameof(Configuration));
 
-            var newName = Guard.Against.NullOrWhiteSpace(name, nameof(name)).Trim();
-            var newDescription = description?.NullIfWhiteSpacePlusTrim();
-            var newBaseUrl = Guard.Against.NullOrWhiteSpace(baseUrl, nameof(baseUrl)).Trim();
-            var newApiKey = apiKey is null
-                ? Configuration.ApiKey
-                : Guard.Against.NullOrWhiteSpace(apiKey, nameof(apiKey)).Trim();
-            var newDeploymentName = Guard.Against.NullOrWhiteSpace(deploymentName, nameof(deploymentName)).Trim();
+        var newName = Guard.Against.NullOrWhiteSpace(name, nameof(name)).Trim();
+        var newDescription = description?.NullIfWhiteSpacePlusTrim();
+        var newBaseUrl = Guard.Against.NullOrWhiteSpace(baseUrl, nameof(baseUrl)).Trim();
+        var newApiKey = apiKey is null
+            ? Configuration.ApiKey
+            : Guard.Against.NullOrWhiteSpace(apiKey, nameof(apiKey)).Trim();
+        var newDeploymentName = Guard.Against.NullOrWhiteSpace(deploymentName, nameof(deploymentName)).Trim();
 
-            if (!UpdateValuesChanged(newName, newDescription, newBaseUrl, newApiKey, newDeploymentName, configurationIsValid))
-                return Result.Success();
-
-            if (!AzureOpenAIConnectionConfiguration.IsValidBaseUrl(newBaseUrl))
-                return Result.Failure($"BaseUrl '{newBaseUrl}' must be an absolute HTTPS URL.");
-
-            var scopeResult = RequireCredentialsForNewScope([Authority(newBaseUrl)], apiKey is null, "API key");
-            if (scopeResult.IsFailure)
-                return scopeResult;
-
-            var before = CaptureState();
-
-            Name = newName;
-            Description = newDescription;
-            IsValidConfiguration = configurationIsValid;
-
-            Configuration.BaseUrl = newBaseUrl;
-            Configuration.ApiKey = newApiKey;
-            Configuration.DeploymentName = newDeploymentName;
-
-            RaiseChangesSince(before, actor, timestamp);
-
+        if (!UpdateValuesChanged(newName, newDescription, newBaseUrl, newApiKey, newDeploymentName, configurationIsValid))
             return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+
+        if (!AzureOpenAIConnectionConfiguration.IsValidBaseUrl(newBaseUrl))
+            return Result.Failure($"BaseUrl '{newBaseUrl}' must be an absolute HTTPS URL.");
+
+        var scopeResult = RequireCredentialsForNewScope([Authority(newBaseUrl)], apiKey is null, "API key");
+        if (scopeResult.IsFailure)
+            return scopeResult;
+
+        var before = CaptureState();
+
+        Name = newName;
+        Description = newDescription;
+        IsValidConfiguration = configurationIsValid;
+
+        Configuration.BaseUrl = newBaseUrl;
+        Configuration.ApiKey = newApiKey;
+        Configuration.DeploymentName = newDeploymentName;
+
+        RaiseChangesSince(before, actor, timestamp);
+
+        return Result.Success();
     }
 
     private bool UpdateValuesChanged(

@@ -11,7 +11,20 @@ namespace Wayd.Infrastructure.Middleware;
 internal static class ConfigureServices
 {
     internal static IServiceCollection AddExceptionMiddleware(this IServiceCollection services) =>
-        services.AddScoped<ExceptionMiddleware>();
+        services
+            .AddProblemDetails(options => options.CustomizeProblemDetails = IdentifyProblem)
+            .AddScoped<ExceptionMiddleware>();
+
+    /// <summary>
+    /// Stamps every problem details response with the request it answers and the ids that find its log
+    /// entries, so a caller given a generic message can still report which failure they saw.
+    /// </summary>
+    internal static void IdentifyProblem(ProblemDetailsContext context)
+    {
+        context.ProblemDetails.Instance = $"{context.HttpContext.Request.Method} {context.HttpContext.Request.Path}";
+        context.ProblemDetails.Extensions.TryAdd("requestId", context.HttpContext.TraceIdentifier);
+        context.ProblemDetails.Extensions.TryAdd("traceId", ProblemTrace.Id(context.HttpContext));
+    }
 
     internal static IApplicationBuilder UseExceptionMiddleware(this IApplicationBuilder app) =>
         app.UseMiddleware<ExceptionMiddleware>();

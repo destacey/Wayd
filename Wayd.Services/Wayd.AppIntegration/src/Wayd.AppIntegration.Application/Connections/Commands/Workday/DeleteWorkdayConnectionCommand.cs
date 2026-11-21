@@ -21,26 +21,18 @@ public sealed class DeleteWorkdayConnectionCommandHandler : ICommandHandler<Dele
 
     public async Task<Result> Handle(DeleteWorkdayConnectionCommand request, CancellationToken cancellationToken)
     {
-        try
+        var connection = await _appIntegrationDbContext.WorkdayConnections
+            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+        if (connection is null)
         {
-            var connection = await _appIntegrationDbContext.WorkdayConnections
-                .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
-            if (connection is null)
-            {
-                _logger.LogError("Workday Connection {ConnectionId} not found.", request.Id);
-                return Result.Failure($"Workday Connection {request.Id} not found.");
-            }
-
-            connection.Delete(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            _appIntegrationDbContext.WorkdayConnections.Remove(connection);
-            await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
+            _logger.LogError("Workday Connection {ConnectionId} not found.", request.Id);
+            return Result.Failure($"Workday Connection {request.Id} not found.");
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting Workday Connection {ConnectionId}.", request.Id);
-            return Result.Failure($"Error deleting Workday Connection {request.Id}. {ex.Message}");
-        }
+
+        connection.Delete(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        _appIntegrationDbContext.WorkdayConnections.Remove(connection);
+        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
     }
 }

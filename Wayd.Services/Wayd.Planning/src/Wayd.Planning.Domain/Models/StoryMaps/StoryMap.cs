@@ -158,16 +158,9 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
 
         if (IsArchived) return Result.Failure(ArchivedError);
 
-        try
-        {
-            Name = name;
-            Description = description;
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.Message);
-        }
+        Name = name;
+        Description = description;
+        return Result.Success();
     }
 
     /// <summary>
@@ -393,17 +386,10 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     {
         if (EnsureCanEdit(actor) is { IsFailure: true } denied) return Result.Failure<Goal>(denied.Error);
 
-        try
-        {
-            int nextOrder = _goals.Count > 0 ? _goals.Max(x => x.Order) + 1 : 0;
-            var goal = new Goal(Id, name, nextOrder);
-            _goals.Add(goal);
-            return goal;
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<Goal>(ex.Message);
-        }
+        int nextOrder = _goals.Count > 0 ? _goals.Max(x => x.Order) + 1 : 0;
+        var goal = new Goal(Id, name, nextOrder);
+        _goals.Add(goal);
+        return goal;
     }
 
     public Result RenameGoal(Guid goalId, string name, StoryMapActor actor)
@@ -414,15 +400,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         if (goalResult.IsFailure)
             return Result.Failure(goalResult.Error);
 
-        try
-        {
-            goalResult.Value.Rename(name);
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.Message);
-        }
+        goalResult.Value.Rename(name);
+        return Result.Success();
     }
 
     /// <summary>
@@ -482,14 +461,7 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         if (goalResult.IsFailure)
             return Result.Failure<Step>(goalResult.Error);
 
-        try
-        {
-            return goalResult.Value.AddStep(name);
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<Step>(ex.Message);
-        }
+        return goalResult.Value.AddStep(name);
     }
 
     public Result RenameStep(Guid stepId, string name, StoryMapActor actor)
@@ -500,15 +472,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         if (located.IsFailure)
             return Result.Failure(located.Error);
 
-        try
-        {
-            located.Value.Step.Rename(name);
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.Message);
-        }
+        located.Value.Step.Rename(name);
+        return Result.Success();
     }
 
     /// <summary>
@@ -620,14 +585,7 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         if (lane is null)
             return Result.Failure<StoryMapTask>("Swim lane does not exist on this story map.");
 
-        try
-        {
-            return located.Value.Step.AddTask(lane.Id, title);
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<StoryMapTask>(ex.Message);
-        }
+        return located.Value.Step.AddTask(lane.Id, title);
     }
 
     /// <summary>
@@ -646,15 +604,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         if (located.IsFailure)
             return Result.Failure(located.Error);
 
-        try
-        {
-            located.Value.Task.UpdateDetails(title, description);
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.Message);
-        }
+        located.Value.Task.UpdateDetails(title, description);
+        return Result.Success();
     }
 
     /// <summary>
@@ -668,15 +619,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         if (located.IsFailure)
             return Result.Failure(located.Error);
 
-        try
-        {
-            located.Value.Task.Rename(title);
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.Message);
-        }
+        located.Value.Task.Rename(title);
+        return Result.Success();
     }
 
     /// <summary>
@@ -690,15 +634,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         if (located.IsFailure)
             return Result.Failure(located.Error);
 
-        try
-        {
-            located.Value.Task.SetDescription(description);
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.Message);
-        }
+        located.Value.Task.SetDescription(description);
+        return Result.Success();
     }
 
     /// <summary>
@@ -848,14 +785,7 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         if (promoteResult.IsFailure)
             return Result.Failure<StoryMapTask>(promoteResult.Error);
 
-        try
-        {
-            return step.AddTask(defaultLane.Value.Id, promoteResult.Value);
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<StoryMapTask>(ex.Message);
-        }
+        return step.AddTask(defaultLane.Value.Id, promoteResult.Value);
     }
 
     #endregion Checklist
@@ -908,17 +838,10 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     {
         if (EnsureCanEdit(actor) is { IsFailure: true } denied) return Result.Failure<SwimLane>(denied.Error);
 
-        try
-        {
-            int nextOrder = _swimLanes.Count > 0 ? _swimLanes.Max(x => x.Order) + 1 : 0;
-            var lane = new SwimLane(Id, name, nextOrder, isDefault: false);
-            _swimLanes.Add(lane);
-            return lane;
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<SwimLane>(ex.Message);
-        }
+        int nextOrder = _swimLanes.Count > 0 ? _swimLanes.Max(x => x.Order) + 1 : 0;
+        var lane = new SwimLane(Id, name, nextOrder, isDefault: false);
+        _swimLanes.Add(lane);
+        return lane;
     }
 
     public Result RenameSwimLane(Guid laneId, string name, StoryMapActor actor)
@@ -1032,17 +955,10 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     {
         if (EnsureCanEdit(actor) is { IsFailure: true } denied) return Result.Failure<Persona>(denied.Error);
 
-        try
-        {
-            int nextOrder = _personas.Count > 0 ? _personas.Max(x => x.Order) + 1 : 0;
-            var persona = new Persona(Id, name, description, color, nextOrder);
-            _personas.Add(persona);
-            return persona;
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<Persona>(ex.Message);
-        }
+        int nextOrder = _personas.Count > 0 ? _personas.Max(x => x.Order) + 1 : 0;
+        var persona = new Persona(Id, name, description, color, nextOrder);
+        _personas.Add(persona);
+        return persona;
     }
 
     public Result UpdatePersona(Guid personaId, string name, string? description, string color, StoryMapActor actor)
@@ -1053,15 +969,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
         if (persona is null)
             return Result.Failure("Persona does not exist on this story map.");
 
-        try
-        {
-            persona.Update(name, description, color);
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.Message);
-        }
+        persona.Update(name, description, color);
+        return Result.Success();
     }
 
     /// <summary>
@@ -1225,15 +1134,8 @@ public sealed class StoryMap : BaseSoftDeletableEntity, IHasIdAndKey
     {
         Guard.Against.Default(ownerEmployeeId, nameof(ownerEmployeeId));
 
-        try
-        {
-            var map = new StoryMap(name, description, visibility, editAccess, ownerEmployeeId);
-            map._swimLanes.Add(SwimLane.CreateDefault(map.Id));
-            return map;
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<StoryMap>(ex.Message);
-        }
+        var map = new StoryMap(name, description, visibility, editAccess, ownerEmployeeId);
+        map._swimLanes.Add(SwimLane.CreateDefault(map.Id));
+        return map;
     }
 }

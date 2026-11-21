@@ -621,23 +621,16 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
     /// </summary>
     public Result<PlanningIntervalObjective> CreateObjective(PlanningTeam team, string name, string? description, bool isStretch, LocalDate? startDate, LocalDate? targetDate, int? order, EventActor actor, Instant timestamp)
     {
-        try
-        {
-            if (!CanCreateObjectives())
-                return Result.Failure<PlanningIntervalObjective>("Objectives are locked for this Planning Interval.");
+        if (!CanCreateObjectives())
+            return Result.Failure<PlanningIntervalObjective>("Objectives are locked for this Planning Interval.");
 
-            if (!HasTeam(team.Id))
-                return Result.Failure<PlanningIntervalObjective>(TeamNotInIntervalError);
+        if (!HasTeam(team.Id))
+            return Result.Failure<PlanningIntervalObjective>(TeamNotInIntervalError);
 
-            var objective = PlanningIntervalObjective.Create(Id, team.Id, name, description, ObjectiveTypeFor(team), isStretch, startDate, targetDate, order, actor, timestamp);
-            _objectives.Add(objective);
+        var objective = PlanningIntervalObjective.Create(Id, team.Id, name, description, ObjectiveTypeFor(team), isStretch, startDate, targetDate, order, actor, timestamp);
+        _objectives.Add(objective);
 
-            return Result.Success(objective);
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<PlanningIntervalObjective>(ex.ToString());
-        }
+        return Result.Success(objective);
     }
 
     /// <summary>
@@ -645,20 +638,13 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
     /// </summary>
     public Result<PlanningIntervalObjective> ImportObjective(PlanningTeam team, string name, string? description, ObjectiveStatus status, double progress, bool isStretch, LocalDate? startDate, LocalDate? targetDate, Instant? closedDate, int? order, EventActor actor, Instant timestamp)
     {
-        try
-        {
-            if (!CanCreateObjectives())
-                return Result.Failure<PlanningIntervalObjective>("Objectives are locked for this Planning Interval.");
+        if (!CanCreateObjectives())
+            return Result.Failure<PlanningIntervalObjective>("Objectives are locked for this Planning Interval.");
 
-            var objective = PlanningIntervalObjective.Import(Id, team.Id, name, description, ObjectiveTypeFor(team), status, progress, isStretch, startDate, targetDate, closedDate, order, actor, timestamp);
-            _objectives.Add(objective);
+        var objective = PlanningIntervalObjective.Import(Id, team.Id, name, description, ObjectiveTypeFor(team), status, progress, isStretch, startDate, targetDate, closedDate, order, actor, timestamp);
+        _objectives.Add(objective);
 
-            return Result.Success(objective);
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<PlanningIntervalObjective>(ex.ToString());
-        }
+        return Result.Success(objective);
     }
 
     /// <summary>
@@ -667,28 +653,21 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
     /// </summary>
     public Result<PlanningIntervalObjective> UpdateObjective(Guid piObjectiveId, string name, string? description, ObjectiveStatus status, double progress, LocalDate? startDate, LocalDate? targetDate, bool isStretch, EventActor actor, Instant timestamp)
     {
-        try
+        var existingObjective = _objectives.FirstOrDefault(x => x.Id == piObjectiveId);
+        if (existingObjective == null)
+            return Result.Failure<PlanningIntervalObjective>($"Objective {piObjectiveId} not found.");
+
+        if (ObjectivesLocked)
         {
-            var existingObjective = _objectives.FirstOrDefault(x => x.Id == piObjectiveId);
-            if (existingObjective == null)
-                return Result.Failure<PlanningIntervalObjective>($"Objective {piObjectiveId} not found.");
-
-            if (ObjectivesLocked)
-            {
-                name = existingObjective.Name;
-                isStretch = existingObjective.IsStretch;
-            }
-
-            var updateResult = existingObjective.Update(name, description, status, progress, startDate, targetDate, isStretch, actor, timestamp);
-            if (updateResult.IsFailure)
-                return Result.Failure<PlanningIntervalObjective>(updateResult.Error);
-
-            return Result.Success(existingObjective);
+            name = existingObjective.Name;
+            isStretch = existingObjective.IsStretch;
         }
-        catch (Exception ex)
-        {
-            return Result.Failure<PlanningIntervalObjective>(ex.ToString());
-        }
+
+        var updateResult = existingObjective.Update(name, description, status, progress, startDate, targetDate, isStretch, actor, timestamp);
+        if (updateResult.IsFailure)
+            return Result.Failure<PlanningIntervalObjective>(updateResult.Error);
+
+        return Result.Success(existingObjective);
     }
 
     /// <summary>
@@ -716,23 +695,16 @@ public sealed class PlanningInterval : BaseSoftDeletableEntity, ILocalSchedule, 
     /// </summary>
     public Result DeleteObjective(Guid piObjectiveId, EventActor actor, Instant timestamp)
     {
-        try
-        {
-            if (ObjectivesLocked)
-                return Result.Failure("Objectives are locked for this Planning Interval.");
+        if (ObjectivesLocked)
+            return Result.Failure("Objectives are locked for this Planning Interval.");
 
-            var existingObjective = _objectives.FirstOrDefault(x => x.Id == piObjectiveId);
-            if (existingObjective == null)
-                return Result.Failure($"Planning Interval Objective {piObjectiveId} not found.");
+        var existingObjective = _objectives.FirstOrDefault(x => x.Id == piObjectiveId);
+        if (existingObjective == null)
+            return Result.Failure($"Planning Interval Objective {piObjectiveId} not found.");
 
-            existingObjective.Delete(actor, timestamp);
+        existingObjective.Delete(actor, timestamp);
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+        return Result.Success();
     }
 
     #endregion Objectives

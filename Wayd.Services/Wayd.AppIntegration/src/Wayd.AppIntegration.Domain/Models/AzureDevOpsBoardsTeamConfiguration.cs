@@ -22,29 +22,22 @@ public sealed class AzureDevOpsBoardsTeamConfiguration
 
     public Result UpsertWorkspaceTeam(Guid workspaceId, Guid teamId, string teamName, Guid? boardId)
     {
-        try
-        {
-            Guard.Against.Default(workspaceId, nameof(workspaceId));
-            Guard.Against.Default(teamId, nameof(teamId));
-            Guard.Against.NullOrWhiteSpace(teamName, nameof(teamName));
-            Guard.Against.Default(boardId, nameof(boardId));
+        Guard.Against.Default(workspaceId, nameof(workspaceId));
+        Guard.Against.Default(teamId, nameof(teamId));
+        Guard.Against.NullOrWhiteSpace(teamName, nameof(teamName));
+        Guard.Against.Default(boardId, nameof(boardId));
 
-            var existingTeam = WorkspaceTeams.SingleOrDefault(w => w.WorkspaceId == workspaceId && w.TeamId == teamId);
-            if (existingTeam is null)
-            {
-                WorkspaceTeams.Add(new AzureDevOpsBoardsWorkspaceTeam(workspaceId, teamId, teamName, boardId));
-            }
-            else
-            {
-                existingTeam.Update(teamName, boardId);
-            }
-
-            return Result.Success();
-        }
-        catch (Exception ex)
+        var existingTeam = WorkspaceTeams.SingleOrDefault(w => w.WorkspaceId == workspaceId && w.TeamId == teamId);
+        if (existingTeam is null)
         {
-            return Result.Failure(ex.ToString());
+            WorkspaceTeams.Add(new AzureDevOpsBoardsWorkspaceTeam(workspaceId, teamId, teamName, boardId));
         }
+        else
+        {
+            existingTeam.Update(teamName, boardId);
+        }
+
+        return Result.Success();
     }
 
     /// <summary>
@@ -54,19 +47,12 @@ public sealed class AzureDevOpsBoardsTeamConfiguration
     /// <returns></returns>
     public Result RemoveTeams(IEnumerable<Guid> teamIds)
     {
-        try
-        {
-            if (teamIds is null || !teamIds.Any())
-                return Result.Success();
-
-            WorkspaceTeams.RemoveAll(w => teamIds.Contains(w.TeamId));
-
+        if (teamIds is null || !teamIds.Any())
             return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+
+        WorkspaceTeams.RemoveAll(w => teamIds.Contains(w.TeamId));
+
+        return Result.Success();
     }
 
     /// <summary>
@@ -78,19 +64,12 @@ public sealed class AzureDevOpsBoardsTeamConfiguration
     {
         Guard.Against.Default(teamId, nameof(teamId));
 
-        try
-        {
-            var team = WorkspaceTeams.Single(w => w.TeamId == teamId);
-            WorkspaceTeams.Remove(team);
+        var team = WorkspaceTeams.Single(w => w.TeamId == teamId);
+        WorkspaceTeams.Remove(team);
 
-            WorkspaceTeams.Add(new AzureDevOpsBoardsWorkspaceTeam(team.WorkspaceId, team.TeamId, team.TeamName, team.BoardId));
+        WorkspaceTeams.Add(new AzureDevOpsBoardsWorkspaceTeam(team.WorkspaceId, team.TeamId, team.TeamName, team.BoardId));
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+        return Result.Success();
     }
 
     /// <summary>
@@ -100,16 +79,9 @@ public sealed class AzureDevOpsBoardsTeamConfiguration
     /// <returns></returns>
     public Result RemoveTeamsForWorkspace(Guid workspaceId)
     {
-        try
-        {
-            WorkspaceTeams.RemoveAll(w => w.WorkspaceId == workspaceId);
+        WorkspaceTeams.RemoveAll(w => w.WorkspaceId == workspaceId);
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+        return Result.Success();
     }
 
     public static AzureDevOpsBoardsTeamConfiguration CreateEmpty()

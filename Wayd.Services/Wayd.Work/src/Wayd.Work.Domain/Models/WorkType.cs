@@ -57,17 +57,10 @@ public sealed class WorkType : BaseSoftDeletableEntity<int>, IActivatable
     /// <returns></returns>
     public Result Update(string? description, int levelId, Instant timestamp)
     {
-        try
-        {
-            Description = description;
-            LevelId = levelId;
+        Description = description;
+        LevelId = levelId;
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+        return Result.Success();
     }
 
     /// <summary>

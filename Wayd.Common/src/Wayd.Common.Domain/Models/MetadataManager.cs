@@ -26,25 +26,18 @@ public static class MetadataManager<TMetadata> where TMetadata : KeyValueObjectM
         }
 
         TMetadata newItem;
-        try
+        if (factory is not null)
         {
-            if (factory is not null)
-            {
-                newItem = factory(objectId, trimmedName, normalizedValue);
-            }
-            else
-            {
-                // Try to create via (Guid, string, string?) constructor
-                if (Activator.CreateInstance(typeof(TMetadata), objectId, trimmedName, normalizedValue) is not TMetadata created)
-                {
-                    return Result.Failure($"No factory provided and could not construct {typeof(TMetadata).FullName} using (Guid, string, string?) constructor.");
-                }
-                newItem = created;
-            }
+            newItem = factory(objectId, trimmedName, normalizedValue);
         }
-        catch (Exception ex)
+        else
         {
-            return Result.Failure($"Failed to create metadata instance: {ex.Message}");
+            // Try to create via (Guid, string, string?) constructor
+            if (Activator.CreateInstance(typeof(TMetadata), objectId, trimmedName, normalizedValue) is not TMetadata created)
+            {
+                return Result.Failure($"No factory provided and could not construct {typeof(TMetadata).FullName} using (Guid, string, string?) constructor.");
+            }
+            newItem = created;
         }
 
         collection.Add(newItem);

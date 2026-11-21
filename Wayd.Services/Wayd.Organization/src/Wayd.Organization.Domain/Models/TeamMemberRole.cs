@@ -63,16 +63,9 @@ public sealed class TeamMemberRole : BaseSoftDeletableEntity, IHasIdAndKey
     /// <returns>A Result indicating whether the update was successful. Returns a failure Result if an exception occurs.</returns>
     public Result Update(string name, string? description)
     {
-        try
-        {
-            Name = name;
-            Description = description;
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+        Name = name;
+        Description = description;
+        return Result.Success();
     }
 
     /// <summary>Sets whether time allocated in this role adds to a team's delivery capacity.</summary>
@@ -111,13 +104,6 @@ public sealed class TeamMemberRole : BaseSoftDeletableEntity, IHasIdAndKey
     /// <returns>A successful <see cref="Result{T}"/> containing the new role, or a failure result if validation fails.</returns>
     public static Result<TeamMemberRole> Create(string name, string? description)
     {
-        try
-        {
-            return Result.Success(new TeamMemberRole(name, description));
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<TeamMemberRole>(ex.ToString());
-        }
+        return Result.Success(new TeamMemberRole(name, description));
     }
 }

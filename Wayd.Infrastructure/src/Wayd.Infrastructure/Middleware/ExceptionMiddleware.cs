@@ -1,18 +1,30 @@
-﻿using System.Diagnostics;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Features;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Context;
 using Serilog.Events;
+using Wayd.Common.Domain;
 
 namespace Wayd.Infrastructure.Middleware;
 
-public sealed class ExceptionMiddleware(IProblemDetailsService problemDetailsService, ICurrentUser currentUser) : IMiddleware
+/// <summary>
+/// Turns an exception that escapes the request pipeline into a problem details response and logs it.
+/// </summary>
+/// <remarks>
+/// A <see cref="CustomException"/> is a deliberate outcome, so its message is the response's
+/// <c>detail</c>. Any other exception is a fault whose text — a database message, a stack trace — is for
+/// the log: outside Development the caller gets <see cref="ErrorMessages.Unexpected"/> and the
+/// <c>traceId</c> that finds the log entry.
+/// </remarks>
+public sealed class ExceptionMiddleware(IProblemDetailsService problemDetailsService, ICurrentUser currentUser, IHostEnvironment environment) : IMiddleware
 {
     private readonly IProblemDetailsService _problemDetailsService = problemDetailsService;
     private readonly ICurrentUser _currentUser = currentUser;
+    private readonly bool _isDevelopment = environment.IsDevelopment();
 
+    /// <summary>Runs the rest of the pipeline and answers for any exception it throws.</summary>
     public async Task InvokeAsync(HttpContext httpContext, RequestDelegate next)
     {
         try
@@ -29,70 +41,102 @@ public sealed class ExceptionMiddleware(IProblemDetailsService problemDetailsSer
             Log.Debug(ex, "Request aborted by the client before completion ({Method} {Path}).",
                 httpContext.Request.Method, httpContext.Request.Path);
         }
+        catch (BadHttpRequestException ex)
+        {
+            await WriteBadRequest(ex, httpContext);
+        }
         catch (Exception ex)
         {
-            using (LogContext.PushProperty("CorrelationId", httpContext.TraceIdentifier))
-            using (LogContext.PushProperty("UserEmail", _currentUser.GetUserEmail() is string userEmail ? userEmail : "Anonymous"))
-            using (LogContext.PushProperty("UserId", _currentUser.GetUserId()))
-            using (LogContext.PushProperty("ExceptionMessage", ex.Message))
-            using (LogContext.PushProperty("SourceContext", $"{typeof(ExceptionMiddleware).FullName}"))
+            await WriteUnhandled(ex, httpContext);
+        }
+    }
+
+    /// <summary>
+    /// Answers a request Kestrel refused — a body over the size limit (413), a malformed body (400) — with
+    /// the status it chose. Its message describes the request, not the server, so it is safe to return.
+    /// </summary>
+    private async Task WriteBadRequest(BadHttpRequestException exception, HttpContext httpContext)
+    {
+        Log.Information(exception, "Rejected a bad request with {StatusCode} ({Method} {Path}).",
+            exception.StatusCode, httpContext.Request.Method, httpContext.Request.Path);
+
+        httpContext.Response.StatusCode = exception.StatusCode;
+        httpContext.Response.ContentType = "application/problem+json";
+
+        await _problemDetailsService.TryWriteAsync(new ProblemDetailsContext
+        {
+            HttpContext = httpContext,
+            Exception = exception,
+            ProblemDetails = new ProblemDetails
             {
-
-                httpContext.Response.ContentType = "application/problem+json";
-                httpContext.Response.StatusCode = GetStatusCodeFromException(ex);
-
-                if (ex is not CustomException && ex.InnerException is not null)
-                {
-                    while (ex.InnerException != null)
-                    {
-                        ex = ex.InnerException;
-                    }
-                }
-
-                var logLevel = GetLogLevelFromException(ex);
-                Log.Write(logLevel, ex, "An unhandled exception has occurred while executing the request.");
-
-                if (ex is ValidationException validationException)
-                {
-                    var validationProblemDetails = CreateValidationProblemDetails(validationException, httpContext);
-
-                    var json = System.Text.Json.JsonSerializer.Serialize(validationProblemDetails);
-                    await httpContext.Response.WriteAsync(json);
-
-                    return;
-                }
-
-                var problemDetails = new ProblemDetails
-                {
-                    Title = "An error occurred while processing your request.",
-                    Detail = ex.Message
-                };
-
-                await _problemDetailsService.TryWriteAsync(new ProblemDetailsContext
-                {
-                    HttpContext = httpContext,
-                    Exception = ex,
-                    ProblemDetails = problemDetails
-                });
+                Title = ReasonPhrases.GetReasonPhrase(exception.StatusCode),
+                Status = exception.StatusCode,
+                Detail = exception.Message
             }
+        });
+    }
+
+    private async Task WriteUnhandled(Exception exception, HttpContext httpContext)
+    {
+        using (LogContext.PushProperty("CorrelationId", httpContext.TraceIdentifier))
+        using (LogContext.PushProperty("UserEmail", _currentUser.GetUserEmail() is string userEmail ? userEmail : "Anonymous"))
+        using (LogContext.PushProperty("UserId", _currentUser.GetUserId()))
+        using (LogContext.PushProperty("ExceptionMessage", exception.Message))
+        using (LogContext.PushProperty("SourceContext", $"{typeof(ExceptionMiddleware).FullName}"))
+        {
+            // A wrapper (an aggregate, a framework's invocation exception) says less than what it wraps, and
+            // a deliberate outcome — a not-found, a validation failure — can arrive wrapped. Unwrapping stops
+            // at the first CustomException, so both the status and the detail describe that outcome.
+            var cause = exception;
+            while (cause is not CustomException && cause.InnerException is not null)
+                cause = cause.InnerException;
+
+            var statusCode = GetStatusCodeFromException(cause);
+            httpContext.Response.ContentType = "application/problem+json";
+            httpContext.Response.StatusCode = statusCode;
+
+            Log.Write(GetLogLevelFromException(cause), exception, "An unhandled exception has occurred while executing the request.");
+
+            if (cause is ValidationException validationException)
+            {
+                var validationProblemDetails = CreateValidationProblemDetails(validationException, httpContext);
+
+                var json = System.Text.Json.JsonSerializer.Serialize(validationProblemDetails);
+                await httpContext.Response.WriteAsync(json);
+
+                return;
+            }
+
+            var problemDetails = new ProblemDetails
+            {
+                Title = "An error occurred while processing your request.",
+                Status = statusCode,
+                Detail = cause is CustomException || _isDevelopment ? cause.Message : ErrorMessages.Unexpected
+            };
+
+            await _problemDetailsService.TryWriteAsync(new ProblemDetailsContext
+            {
+                HttpContext = httpContext,
+                Exception = cause,
+                ProblemDetails = problemDetails
+            });
         }
     }
 
     /// <summary>
     /// True when the exception represents the client abandoning the request rather than a server
-    /// fault: a truncated/malformed request body (<see cref="BadHttpRequestException"/>) or a
-    /// cancellation that lines up with <see cref="HttpContext.RequestAborted"/> firing. These should
-    /// be logged quietly and never produce an error response — the connection is already gone.
+    /// fault: a request body cut short once the response is underway, or a cancellation that lines up
+    /// with <see cref="HttpContext.RequestAborted"/> firing. These are logged quietly and never produce
+    /// an error response — the connection is already gone.
     /// </summary>
     private static bool IsClientDisconnect(Exception exception, HttpContext httpContext)
     {
-        // Kestrel surfaces a truncated/aborted request body as BadHttpRequestException (a client 400).
-        if (exception is BadHttpRequestException)
+        if (httpContext.RequestAborted.IsCancellationRequested
+            && exception is BadHttpRequestException or OperationCanceledException)
             return true;
 
-        // A cancellation that coincides with the request being aborted is the client hanging up, not
-        // an internal timeout — distinguish on RequestAborted so we don't swallow genuine cancellations.
-        if (exception is OperationCanceledException && httpContext.RequestAborted.IsCancellationRequested)
+        // Once the response has started, its status is sent and a problem body can no longer be written.
+        if (exception is BadHttpRequestException && httpContext.Response.HasStarted)
             return true;
 
         return false;
@@ -134,8 +178,6 @@ public sealed class ExceptionMiddleware(IProblemDetailsService problemDetailsSer
 
     public static ValidationProblemDetails EnrichValidationProblemDetails(ValidationProblemDetails validationProblemDetails, HttpContext httpContext)
     {
-        Activity? activity = httpContext.Features.Get<IHttpActivityFeature>()?.Activity;
-
         validationProblemDetails.Type = "https://tools.ietf.org/html/rfc4918#section-11.2";
         validationProblemDetails.Title = "One or more validation errors occurred.";
         validationProblemDetails.Status = StatusCodes.Status422UnprocessableEntity;
@@ -144,7 +186,7 @@ public sealed class ExceptionMiddleware(IProblemDetailsService problemDetailsSer
         validationProblemDetails.Extensions = new Dictionary<string, object?>
         {
             ["requestId"] = httpContext.TraceIdentifier,
-            ["traceId"] = activity?.Id
+            ["traceId"] = ProblemTrace.Id(httpContext)
         };
 
         return validationProblemDetails;

@@ -105,40 +105,33 @@ public sealed class WorkTypeHierarchy : BaseAuditableEntity<int>
     }
     public Result Reinitialize(Instant timestamp)
     {
-        try
-        {
-            bool hasChanged = false;
-            List<WorkTypeLevel> defaultWorkTypeLevels = GetSystemDefaultWorkTypeLevels(timestamp);
+        bool hasChanged = false;
+        List<WorkTypeLevel> defaultWorkTypeLevels = GetSystemDefaultWorkTypeLevels(timestamp);
 
-            // Ensure each tier has a system owned work type level
-            foreach (var tier in Enum.GetValues<WorkTypeTier>())
+        // Ensure each tier has a system owned work type level
+        foreach (var tier in Enum.GetValues<WorkTypeTier>())
+        {
+            if (!_levels.Any(x => x.Tier == tier && x.Ownership == Ownership.System))
             {
-                if (!_levels.Any(x => x.Tier == tier && x.Ownership == Ownership.System))
+                foreach (var defaultWorkTypeLevel in defaultWorkTypeLevels)
                 {
-                    foreach (var defaultWorkTypeLevel in defaultWorkTypeLevels)
+                    if (defaultWorkTypeLevel.Tier == tier && defaultWorkTypeLevel.Ownership == Ownership.System)
                     {
-                        if (defaultWorkTypeLevel.Tier == tier && defaultWorkTypeLevel.Ownership == Ownership.System)
-                        {
-                            _levels.Add(defaultWorkTypeLevel);
-                            hasChanged = true;
-                        }
+                        _levels.Add(defaultWorkTypeLevel);
+                        hasChanged = true;
                     }
                 }
             }
-
-            if (hasChanged)
-            {
-                // TODO: raise a concrete "hierarchy changed" domain event here once a real
-                // subscriber exists. The generic Entity*Event records were removed because
-                // nothing consumed them; this gate preserves the change detection.
-            }
-
-            return Result.Success();
         }
-        catch (Exception ex)
+
+        if (hasChanged)
         {
-            return Result.Failure(ex.ToString());
+            // TODO: raise a concrete "hierarchy changed" domain event here once a real
+            // subscriber exists. The generic Entity*Event records were removed because
+            // nothing consumed them; this gate preserves the change detection.
         }
+
+        return Result.Success();
     }
 
     private static List<WorkTypeLevel> GetSystemDefaultWorkTypeLevels(Instant timestamp)

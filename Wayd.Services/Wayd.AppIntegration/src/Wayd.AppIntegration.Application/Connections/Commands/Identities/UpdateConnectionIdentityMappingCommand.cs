@@ -85,60 +85,51 @@ public sealed class UpdateConnectionIdentityMappingCommandHandler(
 
     public async Task<Result<IdentityMappingDecision>> Handle(UpdateConnectionIdentityMappingCommand request, CancellationToken cancellationToken)
     {
-        try
+        // Scoped by connection as well as id: a mapping id from another connection must not be
+        // reachable by guessing it through this connection's endpoint.
+        var mapping = await _appIntegrationDbContext.ExternalIdentityMappings
+            .FirstOrDefaultAsync(m => m.Id == request.MappingId && m.ConnectionId == request.ConnectionId, cancellationToken);
+        if (mapping is null)
+            return Result.Failure<IdentityMappingDecision>("External identity mapping not found.");
+
+        var actor = EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId());
+        var now = _dateTimeProvider.Now;
+
+        switch (request.Action)
         {
-            // Scoped by connection as well as id: a mapping id from another connection must not be
-            // reachable by guessing it through this connection's endpoint.
-            var mapping = await _appIntegrationDbContext.ExternalIdentityMappings
-                .FirstOrDefaultAsync(m => m.Id == request.MappingId && m.ConnectionId == request.ConnectionId, cancellationToken);
-            if (mapping is null)
-                return Result.Failure<IdentityMappingDecision>("External identity mapping not found.");
+            case IdentityMappingAction.Map:
+                if (!request.EmployeeId.HasValue)
+                    return Result.Failure<IdentityMappingDecision>("An employee is required when mapping an identity.");
 
-            var actor = EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId());
-            var now = _dateTimeProvider.Now;
+                if (!request.ValidEmployeeIds.Contains(request.EmployeeId.Value))
+                {
+                    _logger.LogWarning("{AppRequestName}: Invalid employee {EmployeeId} for connection {ConnectionId} mapping {MappingId}.",
+                        AppRequestName, request.EmployeeId, request.ConnectionId, request.MappingId);
+                    return Result.Failure<IdentityMappingDecision>("The selected employee could not be found.");
+                }
 
-            switch (request.Action)
-            {
-                case IdentityMappingAction.Map:
-                    if (!request.EmployeeId.HasValue)
-                        return Result.Failure<IdentityMappingDecision>("An employee is required when mapping an identity.");
+                var mapResult = mapping.MapToEmployee(request.EmployeeId.Value, actor, now);
+                if (mapResult.IsFailure)
+                    return Result.Failure<IdentityMappingDecision>(mapResult.Error);
+                break;
 
-                    if (!request.ValidEmployeeIds.Contains(request.EmployeeId.Value))
-                    {
-                        _logger.LogWarning("{AppRequestName}: Invalid employee {EmployeeId} for connection {ConnectionId} mapping {MappingId}.",
-                            AppRequestName, request.EmployeeId, request.ConnectionId, request.MappingId);
-                        return Result.Failure<IdentityMappingDecision>("The selected employee could not be found.");
-                    }
+            case IdentityMappingAction.Ignore:
+                mapping.Ignore(actor, now);
+                break;
 
-                    var mapResult = mapping.MapToEmployee(request.EmployeeId.Value, actor, now);
-                    if (mapResult.IsFailure)
-                        return Result.Failure<IdentityMappingDecision>(mapResult.Error);
-                    break;
+            case IdentityMappingAction.Clear:
+                mapping.ClearDecision(actor, now);
+                break;
 
-                case IdentityMappingAction.Ignore:
-                    mapping.Ignore(actor, now);
-                    break;
-
-                case IdentityMappingAction.Clear:
-                    mapping.ClearDecision(actor, now);
-                    break;
-
-                default:
-                    return Result.Failure<IdentityMappingDecision>($"Unsupported identity mapping action '{request.Action}'.");
-            }
-
-            await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("{AppRequestName}: Connection {ConnectionId} identity {MappingId} set to {Status}.",
-                AppRequestName, request.ConnectionId, request.MappingId, mapping.Status);
-
-            return Result.Success(new IdentityMappingDecision(mapping.ExternalId, mapping.EmployeeId));
+            default:
+                return Result.Failure<IdentityMappingDecision>($"Unsupported identity mapping action '{request.Action}'.");
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{AppRequestName}: Error updating connection {ConnectionId} identity {MappingId}.",
-                AppRequestName, request.ConnectionId, request.MappingId);
-            return Result.Failure<IdentityMappingDecision>(ex.Message);
-        }
+
+        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("{AppRequestName}: Connection {ConnectionId} identity {MappingId} set to {Status}.",
+            AppRequestName, request.ConnectionId, request.MappingId, mapping.Status);
+
+        return Result.Success(new IdentityMappingDecision(mapping.ExternalId, mapping.EmployeeId));
     }
 }

@@ -61,18 +61,17 @@ public class RoadmapTests
     }
 
     [Fact]
-    public void Create_NoOwners_ShouldReturnFailure()
+    public void Create_NoOwners_ShouldThrow()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
         var owners = Array.Empty<Guid>();
 
         // Act
-        var result = Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, owners, Actor, Now);
+        var act = () => Roadmap.Create(fakeRoadmap.Name, fakeRoadmap.Description, fakeRoadmap.DateRange, fakeRoadmap.Visibility, owners, Actor, Now);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Required input ownerIds was empty. (Parameter 'ownerIds')");
+        act.Should().Throw<ArgumentException>().WithParameterName("ownerIds");
     }
 
     [Fact]
@@ -467,7 +466,7 @@ public class RoadmapTests
     }
 
     [Fact]
-    public void Copy_NoOwners_ShouldReturnFailure()
+    public void Copy_NoOwners_ShouldThrow()
     {
         // Arrange
         var fakeRoadmap = _faker.Generate();
@@ -478,11 +477,10 @@ public class RoadmapTests
         var owners = Array.Empty<Guid>();
 
         // Act
-        var result = roadmap.Copy(newName, owners, Visibility.Public, Actor, Now);
+        var act = () => roadmap.Copy(newName, owners, Visibility.Public, Actor, Now);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("Required input ownerIds was empty. (Parameter 'ownerIds')");
+        act.Should().Throw<ArgumentException>().WithParameterName("ownerIds");
     }
 
     [Fact]

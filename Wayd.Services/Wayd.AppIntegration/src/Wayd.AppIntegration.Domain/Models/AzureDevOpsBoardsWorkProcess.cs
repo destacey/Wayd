@@ -33,17 +33,10 @@ public sealed class AzureDevOpsBoardsWorkProcess : IntegrationObject<Guid>
 
     public Result Update(string name, string? description)
     {
-        try
-        {
-            Name = name;
-            Description = description;
+        Name = name;
+        Description = description;
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+        return Result.Success();
     }
 
     public static AzureDevOpsBoardsWorkProcess Create(Guid externalId, string name, string? description)

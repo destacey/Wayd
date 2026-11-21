@@ -120,48 +120,41 @@ public sealed class PlanningIntervalObjective : BaseSoftDeletableEntity, IHasIdA
     /// </summary>
     internal Result Update(string name, string? description, ObjectiveStatus status, double progress, LocalDate? startDate, LocalDate? targetDate, bool isStretch, EventActor actor, Instant timestamp)
     {
-        try
-        {
-            var previousDetails = new PlanningIntervalObjectiveDetails(Name, Description);
-            var previousProgress = Progress;
-            var previousIsStretch = IsStretch;
-            var previousStartDate = StartDate;
-            var previousTargetDate = TargetDate;
+        var previousDetails = new PlanningIntervalObjectiveDetails(Name, Description);
+        var previousProgress = Progress;
+        var previousIsStretch = IsStretch;
+        var previousStartDate = StartDate;
+        var previousTargetDate = TargetDate;
 
-            ChangeStatus(status, actor, timestamp);
+        ChangeStatus(status, actor, timestamp);
 
-            Name = name;
-            Description = description;
-            Progress = progress;
-            StartDate = startDate;
-            TargetDate = targetDate;
-            IsStretch = isStretch;
+        Name = name;
+        Description = description;
+        Progress = progress;
+        StartDate = startDate;
+        TargetDate = targetDate;
+        IsStretch = isStretch;
 
-            // Compared after assignment: the text setters trim and the progress setter clamps.
-            var details = new PlanningIntervalObjectiveDetails(Name, Description);
-            if (details != previousDetails)
-                AddKeyedDomainEvent(() => new PlanningIntervalObjectiveDetailsUpdatedEvent(Id, Key, details.Name, details.Description, previousDetails, actor, timestamp));
+        // Compared after assignment: the text setters trim and the progress setter clamps.
+        var details = new PlanningIntervalObjectiveDetails(Name, Description);
+        if (details != previousDetails)
+            AddKeyedDomainEvent(() => new PlanningIntervalObjectiveDetailsUpdatedEvent(Id, Key, details.Name, details.Description, previousDetails, actor, timestamp));
 
-            var newProgress = Progress;
-            if (newProgress != previousProgress)
-                AddKeyedDomainEvent(() => new PlanningIntervalObjectiveProgressChangedEvent(Id, Key, previousProgress, newProgress, actor, timestamp));
+        var newProgress = Progress;
+        if (newProgress != previousProgress)
+            AddKeyedDomainEvent(() => new PlanningIntervalObjectiveProgressChangedEvent(Id, Key, previousProgress, newProgress, actor, timestamp));
 
-            var newIsStretch = IsStretch;
-            if (newIsStretch != previousIsStretch)
-                AddKeyedDomainEvent(() => new PlanningIntervalObjectiveStretchChangedEvent(Id, Key, newIsStretch, actor, timestamp));
+        var newIsStretch = IsStretch;
+        if (newIsStretch != previousIsStretch)
+            AddKeyedDomainEvent(() => new PlanningIntervalObjectiveStretchChangedEvent(Id, Key, newIsStretch, actor, timestamp));
 
-            var newStartDate = StartDate;
-            var newTargetDate = TargetDate;
-            if (newStartDate != previousStartDate || newTargetDate != previousTargetDate)
-                AddKeyedDomainEvent(() => new PlanningIntervalObjectiveTimelineChangedEvent(Id, Key,
-                    previousStartDate, previousTargetDate, newStartDate, newTargetDate, actor, timestamp));
+        var newStartDate = StartDate;
+        var newTargetDate = TargetDate;
+        if (newStartDate != previousStartDate || newTargetDate != previousTargetDate)
+            AddKeyedDomainEvent(() => new PlanningIntervalObjectiveTimelineChangedEvent(Id, Key,
+                previousStartDate, previousTargetDate, newStartDate, newTargetDate, actor, timestamp));
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+        return Result.Success();
     }
 
     internal void UpdateOrder(int? order, EventActor actor, Instant timestamp)

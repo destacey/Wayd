@@ -58,9 +58,9 @@ internal sealed class WorkItemClient : BaseClient
 
             var response = await ExecuteAsync<ListResponse<WorkItemProjectResponse?>>(request, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessful)
-                throw new Exception($"Error getting the projects of work items from Azure DevOps: {response.GetErrorText()}");
+                throw new AzureDevOpsResponseException($"Error getting the projects of work items from Azure DevOps: {response.GetErrorText()}");
             if (response.Data is null)
-                throw new Exception("Successful response, but no work item data returned when getting the projects of work items from Azure DevOps");
+                throw new AzureDevOpsResponseException("Successful response, but no work item data returned when getting the projects of work items from Azure DevOps");
 
             // Under errorPolicy=omit an id Azure DevOps cannot return arrives as a null entry.
             foreach (var workItem in response.Data.Value)
@@ -97,7 +97,7 @@ internal sealed class WorkItemClient : BaseClient
             var response = await ExecuteAsync<WiqlResponse>(request, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessful)
             {
-                throw new Exception($"Error getting work item ids for {description} from Azure DevOps: {response.GetErrorText()}");
+                throw new AzureDevOpsResponseException($"Error getting work item ids for {description} from Azure DevOps: {response.GetErrorText()}");
             }
             else if (response.Data?.WorkItems is null || response.Data.WorkItems.Count == 0)
             {
@@ -138,11 +138,11 @@ internal sealed class WorkItemClient : BaseClient
             var response = await ExecuteAsync<ListResponse<WorkItemResponse>>(request, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessful)
             {
-                throw new Exception($"Error getting work items for project {projectName} from Azure DevOps: {response.GetErrorText()}");
+                throw new AzureDevOpsResponseException($"Error getting work items for project {projectName} from Azure DevOps: {response.GetErrorText()}");
             }
             else if (response.Data is null)
             {
-                throw new Exception($"Successful response, but no work item data returned for project {projectName} from Azure DevOps");
+                throw new AzureDevOpsResponseException($"Successful response, but no work item data returned for project {projectName} from Azure DevOps");
             }
 
             // An empty batch is legitimate under errorPolicy=omit: every id in it was deleted
@@ -195,7 +195,7 @@ internal sealed class WorkItemClient : BaseClient
 
             if (!response.IsSuccessful)
             {
-                throw new Exception($"Error getting work item link changes for project {projectName} from Azure DevOps: {response.GetErrorText()}");
+                throw new AzureDevOpsResponseException($"Error getting work item link changes for project {projectName} from Azure DevOps: {response.GetErrorText()}");
             }
             else if (response.Data?.Values is null)
             {
@@ -214,7 +214,7 @@ internal sealed class WorkItemClient : BaseClient
             var nextContinuationToken = response.Data.ContinuationToken;
             if (string.IsNullOrEmpty(nextContinuationToken) || nextContinuationToken == continuationToken)
             {
-                throw new Exception($"Error getting work item link changes for project {projectName} from Azure DevOps: continuation token did not advance (token: '{nextContinuationToken}').");
+                throw new AzureDevOpsResponseException($"Error getting work item link changes for project {projectName} from Azure DevOps: continuation token did not advance (token: '{nextContinuationToken}').");
             }
 
             continuationToken = nextContinuationToken;
@@ -249,10 +249,10 @@ internal sealed class WorkItemClient : BaseClient
         var response = await ExecuteAsync<BatchResponse<ReportingWorkItemRevisionResponse>>(request, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessful)
         {
-            throw new Exception($"Error getting work item revisions for project {projectName} from Azure DevOps: {response.GetErrorText()}");
+            throw new AzureDevOpsResponseException($"Error getting work item revisions for project {projectName} from Azure DevOps: {response.GetErrorText()}");
         }
 
-        return response.Data ?? throw new Exception($"Successful response, but no work item revision data returned for project {projectName} from Azure DevOps");
+        return response.Data ?? throw new AzureDevOpsResponseException($"Successful response, but no work item revision data returned for project {projectName} from Azure DevOps");
     }
 
     /// <summary>
@@ -276,7 +276,7 @@ internal sealed class WorkItemClient : BaseClient
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 return [];
             if (!response.IsSuccessful)
-                throw new Exception($"Error getting revisions of work item {workItemId} from Azure DevOps: {response.GetErrorText()}");
+                throw new AzureDevOpsResponseException($"Error getting revisions of work item {workItemId} from Azure DevOps: {response.GetErrorText()}");
 
             var page = response.Data?.Value ?? [];
             revisions.AddRange(page);
@@ -297,7 +297,7 @@ internal sealed class WorkItemClient : BaseClient
 
         return response.IsSuccessful
             ? response.Data?.Value.Select(w => w.Id).ToArray() ?? []
-            : throw new Exception($"Error getting deleted work item ids for project {projectName} from Azure DevOps: {response.GetErrorText()}");
+            : throw new AzureDevOpsResponseException($"Error getting deleted work item ids for project {projectName} from Azure DevOps: {response.GetErrorText()}");
     }
 
     private static WiqlRequest CreateWiqlQueryForSync(string project, DateTime dateTime, string[] workItemTypes, int startingId, bool excludeWorkItemTypes)

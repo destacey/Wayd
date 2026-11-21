@@ -67,15 +67,8 @@ public sealed class SwimLane : BaseAuditableEntity
         if (IsDefault)
             return Result.Failure("The default lane cannot be renamed.");
 
-        try
-        {
-            Name = name;
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.Message);
-        }
+        Name = name;
+        return Result.Success();
     }
 
     internal void SetOrder(int order) => Order = order;

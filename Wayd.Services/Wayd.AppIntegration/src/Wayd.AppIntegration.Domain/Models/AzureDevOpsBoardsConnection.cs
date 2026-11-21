@@ -47,41 +47,34 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
     /// <param name="personalAccessToken">The new token, or null to keep the stored one.</param>
     public Result Update(string name, string? description, string organization, string? personalAccessToken, bool configurationIsValid, EventActor actor, Instant timestamp)
     {
-        try
-        {
-            Guard.Against.Null(Configuration, nameof(Configuration));
+        Guard.Against.Null(Configuration, nameof(Configuration));
 
-            var newName = Guard.Against.NullOrWhiteSpace(name, nameof(name)).Trim();
-            var newDescription = description?.NullIfWhiteSpacePlusTrim();
-            var newOrganization = Guard.Against.NullOrWhiteSpace(organization, nameof(organization)).Trim();
-            var newPersonalAccessToken = personalAccessToken is null
-                ? Configuration.PersonalAccessToken
-                : Guard.Against.NullOrWhiteSpace(personalAccessToken, nameof(personalAccessToken)).Trim();
+        var newName = Guard.Against.NullOrWhiteSpace(name, nameof(name)).Trim();
+        var newDescription = description?.NullIfWhiteSpacePlusTrim();
+        var newOrganization = Guard.Against.NullOrWhiteSpace(organization, nameof(organization)).Trim();
+        var newPersonalAccessToken = personalAccessToken is null
+            ? Configuration.PersonalAccessToken
+            : Guard.Against.NullOrWhiteSpace(personalAccessToken, nameof(personalAccessToken)).Trim();
 
-            var scopeResult = CheckCredentialsFor(newOrganization, personalAccessToken);
-            if (scopeResult.IsFailure)
-                return scopeResult;
+        var scopeResult = CheckCredentialsFor(newOrganization, personalAccessToken);
+        if (scopeResult.IsFailure)
+            return scopeResult;
 
-            if (!UpdateValuesChanged(newName, newDescription, newOrganization, newPersonalAccessToken, configurationIsValid))
-                return Result.Success();
-
-            var before = CaptureState();
-
-            Name = newName;
-            Description = newDescription;
-            IsValidConfiguration = configurationIsValid;
-
-            Configuration.Organization = newOrganization;
-            Configuration.PersonalAccessToken = newPersonalAccessToken;
-
-            RaiseChangesSince(before, actor, timestamp);
-
+        if (!UpdateValuesChanged(newName, newDescription, newOrganization, newPersonalAccessToken, configurationIsValid))
             return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+
+        var before = CaptureState();
+
+        Name = newName;
+        Description = newDescription;
+        IsValidConfiguration = configurationIsValid;
+
+        Configuration.Organization = newOrganization;
+        Configuration.PersonalAccessToken = newPersonalAccessToken;
+
+        RaiseChangesSince(before, actor, timestamp);
+
+        return Result.Success();
     }
 
     /// <summary>
@@ -106,124 +99,102 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
 
     public Result SyncWorkspaces(IEnumerable<AzureDevOpsBoardsWorkspace> workspaces, Instant timestamp)
     {
-        try
+        Guard.Against.Null(Configuration, nameof(Configuration));
+        bool hasChanges = false;
+
+        // remove workspaces that are not in the new list
+        var workspacesToRemove = Configuration.Workspaces.Where(w => !workspaces.Any(nw => nw.ExternalId == w.ExternalId)).ToList();
+        foreach (var workspace in workspacesToRemove)
         {
-            Guard.Against.Null(Configuration, nameof(Configuration));
-            bool hasChanges = false;
+            // TODO - what if the workspace had been configured to sync and has data?
+            var result = Configuration.RemoveWorkspace(workspace);
+            if (result.IsFailure)
+                return result;
 
-            // remove workspaces that are not in the new list
-            var workspacesToRemove = Configuration.Workspaces.Where(w => !workspaces.Any(nw => nw.ExternalId == w.ExternalId)).ToList();
-            foreach (var workspace in workspacesToRemove)
+            // remove any teams associated with the workspace if any exist
+            if (TeamConfiguration?.WorkspaceTeams.Any(t => t.WorkspaceId == workspace.ExternalId) == true)
             {
-                // TODO - what if the workspace had been configured to sync and has data?
-                var result = Configuration.RemoveWorkspace(workspace);
-                if (result.IsFailure)
-                    return result;
-
-                // remove any teams associated with the workspace if any exist
-                if (TeamConfiguration?.WorkspaceTeams.Any(t => t.WorkspaceId == workspace.ExternalId) == true)
-                {
-                    var removeTeamsResult = TeamConfiguration.RemoveTeamsForWorkspace(workspace.ExternalId);
-                    if (removeTeamsResult.IsFailure)
-                        return removeTeamsResult;
-                }
-
-                hasChanges = true;
+                var removeTeamsResult = TeamConfiguration.RemoveTeamsForWorkspace(workspace.ExternalId);
+                if (removeTeamsResult.IsFailure)
+                    return removeTeamsResult;
             }
 
-            // update existing or add new workspaces
-            foreach (var workspace in workspaces)
+            hasChanges = true;
+        }
+
+        // update existing or add new workspaces
+        foreach (var workspace in workspaces)
+        {
+            var existing = Configuration.Workspaces.FirstOrDefault(w => w.ExternalId == workspace.ExternalId);
+            if (existing is not null)
             {
-                var existing = Configuration.Workspaces.FirstOrDefault(w => w.ExternalId == workspace.ExternalId);
-                if (existing is not null)
+                // compare before calling Update
+                if (!string.Equals(existing.Name, workspace.Name, StringComparison.Ordinal)
+                    || !string.Equals(existing.Description, workspace.Description, StringComparison.Ordinal)
+                    || existing.WorkProcessId != workspace.WorkProcessId)
                 {
-                    // compare before calling Update
-                    if (!string.Equals(existing.Name, workspace.Name, StringComparison.Ordinal)
-                        || !string.Equals(existing.Description, workspace.Description, StringComparison.Ordinal)
-                        || existing.WorkProcessId != workspace.WorkProcessId)
-                    {
-                        var result = existing.Update(workspace.Name, workspace.Description, workspace.WorkProcessId);
-                        if (result.IsFailure)
-                            return result;
-
-                        hasChanges = true;
-                    }
-                }
-                else
-                {
-                    var result = Configuration.AddWorkspace(AzureDevOpsBoardsWorkspace.Create(
-                        workspace.ExternalId,
-                        workspace.Name,
-                        workspace.Description,
-                        workspace.WorkProcessId));
-
+                    var result = existing.Update(workspace.Name, workspace.Description, workspace.WorkProcessId);
                     if (result.IsFailure)
                         return result;
 
                     hasChanges = true;
                 }
             }
-
-            if (hasChanges)
+            else
             {
-                // TODO: raise a concrete "connection configuration changed" domain event here
-                // once a real subscriber exists. The generic Entity*Event records were removed
-                // because nothing consumed them; this gate preserves the change detection.
-            }
+                var result = Configuration.AddWorkspace(AzureDevOpsBoardsWorkspace.Create(
+                    workspace.ExternalId,
+                    workspace.Name,
+                    workspace.Description,
+                    workspace.WorkProcessId));
 
-            return Result.Success();
+                if (result.IsFailure)
+                    return result;
+
+                hasChanges = true;
+            }
         }
-        catch (Exception ex)
+
+        if (hasChanges)
         {
-            return Result.Failure(ex.ToString());
+            // TODO: raise a concrete "connection configuration changed" domain event here
+            // once a real subscriber exists. The generic Entity*Event records were removed
+            // because nothing consumed them; this gate preserves the change detection.
         }
+
+        return Result.Success();
     }
 
     public Result SyncProcesses(IEnumerable<AzureDevOpsBoardsWorkProcess> processes, Instant timestamp)
     {
-        try
+        Guard.Against.Null(Configuration, nameof(Configuration));
+        bool hasChanges = false;
+
+        // remove processes that are not in the new list
+        var processesToRemove = Configuration.WorkProcesses.Where(w => !processes.Any(nw => nw.ExternalId == w.ExternalId)).ToList();
+        foreach (var process in processesToRemove)
         {
-            Guard.Against.Null(Configuration, nameof(Configuration));
-            bool hasChanges = false;
+            // TODO - what if the process had been configured to sync and has data?
+            var result = Configuration.RemoveWorkProcess(process);
+            if (result.IsFailure)
+                return result;
 
-            // remove processes that are not in the new list
-            var processesToRemove = Configuration.WorkProcesses.Where(w => !processes.Any(nw => nw.ExternalId == w.ExternalId)).ToList();
-            foreach (var process in processesToRemove)
+            hasChanges = true;
+        }
+
+        // update existing or add new processes
+        foreach (var process in processes)
+        {
+            var existingProcess = Configuration.WorkProcesses.FirstOrDefault(w => w.ExternalId == process.ExternalId);
+            if (existingProcess is not null)
             {
-                // TODO - what if the process had been configured to sync and has data?
-                var result = Configuration.RemoveWorkProcess(process);
-                if (result.IsFailure)
-                    return result;
-
-                hasChanges = true;
-            }
-
-            // update existing or add new processes
-            foreach (var process in processes)
-            {
-                var existingProcess = Configuration.WorkProcesses.FirstOrDefault(w => w.ExternalId == process.ExternalId);
-                if (existingProcess is not null)
+                // compare before calling Update
+                if (!string.Equals(existingProcess.Name, process.Name, StringComparison.Ordinal)
+                    || !string.Equals(existingProcess.Description, process.Description, StringComparison.Ordinal))
                 {
-                    // compare before calling Update
-                    if (!string.Equals(existingProcess.Name, process.Name, StringComparison.Ordinal)
-                        || !string.Equals(existingProcess.Description, process.Description, StringComparison.Ordinal))
-                    {
-                        var result = existingProcess.Update(
-                            process.Name,
-                            process.Description);
-
-                        if (result.IsFailure)
-                            return result;
-
-                        hasChanges = true;
-                    }
-                }
-                else
-                {
-                    var result = Configuration.AddWorkProcess(AzureDevOpsBoardsWorkProcess.Create(
-                        process.ExternalId,
+                    var result = existingProcess.Update(
                         process.Name,
-                        process.Description));
+                        process.Description);
 
                     if (result.IsFailure)
                         return result;
@@ -231,61 +202,58 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
                     hasChanges = true;
                 }
             }
-
-            if (hasChanges)
+            else
             {
-                // TODO: raise a concrete "connection configuration changed" domain event here
-                // once a real subscriber exists. The generic Entity*Event records were removed
-                // because nothing consumed them; this gate preserves the change detection.
-            }
+                var result = Configuration.AddWorkProcess(AzureDevOpsBoardsWorkProcess.Create(
+                    process.ExternalId,
+                    process.Name,
+                    process.Description));
 
-            return Result.Success();
+                if (result.IsFailure)
+                    return result;
+
+                hasChanges = true;
+            }
         }
-        catch (Exception ex)
+
+        if (hasChanges)
         {
-            return Result.Failure(ex.ToString());
+            // TODO: raise a concrete "connection configuration changed" domain event here
+            // once a real subscriber exists. The generic Entity*Event records were removed
+            // because nothing consumed them; this gate preserves the change detection.
         }
+
+        return Result.Success();
     }
 
     public Result SyncTeams(List<IExternalTeam> teams, Instant timestamp)
     {
-        try
+        TeamConfiguration ??= AzureDevOpsBoardsTeamConfiguration.CreateEmpty();
+        bool hasChanges = false;
+
+        var teamsToRemove = TeamConfiguration.WorkspaceTeams
+            .Where(t => !teams.Any(nw => nw.Id == t.TeamId))
+            .Select(t => t.TeamId)
+            .ToArray();
+
+        if (teamsToRemove.Length > 0)
         {
-            TeamConfiguration ??= AzureDevOpsBoardsTeamConfiguration.CreateEmpty();
-            bool hasChanges = false;
+            var removeResult = TeamConfiguration.RemoveTeams(teamsToRemove);
+            if (removeResult.IsFailure)
+                return removeResult;
 
-            var teamsToRemove = TeamConfiguration.WorkspaceTeams
-                .Where(t => !teams.Any(nw => nw.Id == t.TeamId))
-                .Select(t => t.TeamId)
-                .ToArray();
+            hasChanges = true;
+        }
 
-            if (teamsToRemove.Length > 0)
+        foreach (var team in teams)
+        {
+            var existing = TeamConfiguration.WorkspaceTeams.FirstOrDefault(t => t.TeamId == team.Id);
+            if (existing is not null)
             {
-                var removeResult = TeamConfiguration.RemoveTeams(teamsToRemove);
-                if (removeResult.IsFailure)
-                    return removeResult;
-
-                hasChanges = true;
-            }
-
-            foreach (var team in teams)
-            {
-                var existing = TeamConfiguration.WorkspaceTeams.FirstOrDefault(t => t.TeamId == team.Id);
-                if (existing is not null)
-                {
-                    // compare before calling Upsert to avoid no-op
-                    if (existing.WorkspaceId != team.WorkspaceId
-                        || !string.Equals(existing.TeamName, team.Name, StringComparison.Ordinal)
-                        || existing.BoardId != team.BoardId)
-                    {
-                        var result = TeamConfiguration.UpsertWorkspaceTeam(team.WorkspaceId, team.Id, team.Name, team.BoardId);
-                        if (result.IsFailure)
-                            return result;
-
-                        hasChanges = true;
-                    }
-                }
-                else
+                // compare before calling Upsert to avoid no-op
+                if (existing.WorkspaceId != team.WorkspaceId
+                    || !string.Equals(existing.TeamName, team.Name, StringComparison.Ordinal)
+                    || existing.BoardId != team.BoardId)
                 {
                     var result = TeamConfiguration.UpsertWorkspaceTeam(team.WorkspaceId, team.Id, team.Name, team.BoardId);
                     if (result.IsFailure)
@@ -294,134 +262,117 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
                     hasChanges = true;
                 }
             }
-
-            if (hasChanges)
+            else
             {
-                // TODO: raise a concrete "connection configuration changed" domain event here
-                // once a real subscriber exists. The generic Entity*Event records were removed
-                // because nothing consumed them; this gate preserves the change detection.
-            }
+                var result = TeamConfiguration.UpsertWorkspaceTeam(team.WorkspaceId, team.Id, team.Name, team.BoardId);
+                if (result.IsFailure)
+                    return result;
 
-            return Result.Success();
+                hasChanges = true;
+            }
         }
-        catch (Exception ex)
+
+        if (hasChanges)
         {
-            return Result.Failure(ex.ToString());
+            // TODO: raise a concrete "connection configuration changed" domain event here
+            // once a real subscriber exists. The generic Entity*Event records were removed
+            // because nothing consumed them; this gate preserves the change detection.
         }
+
+        return Result.Success();
     }
 
     public Result UpdateWorkProcessIntegrationState(IntegrationRegistration<Guid, Guid> registration, Instant timestamp)
     {
-        try
+        Guard.Against.Null(Configuration, nameof(Configuration));
+
+        var workProcess = Configuration.WorkProcesses.FirstOrDefault(wp => wp.ExternalId == registration.ExternalId);
+        if (workProcess is null)
+            return Result.Failure($"Unable to find work process with id {registration.ExternalId} in Azure DevOps connection with id {Id}.");
+
+        // if already has integration, only update if the active flag changed
+        if (workProcess.HasIntegration)
         {
-            Guard.Against.Null(Configuration, nameof(Configuration));
-
-            var workProcess = Configuration.WorkProcesses.FirstOrDefault(wp => wp.ExternalId == registration.ExternalId);
-            if (workProcess is null)
-                return Result.Failure($"Unable to find work process with id {registration.ExternalId} in Azure DevOps connection with id {Id}.");
-
-            // if already has integration, only update if the active flag changed
-            if (workProcess.HasIntegration)
+            // If the live registration points at a different InternalId than what we hold,
+            // the underlying Wayd.Work.WorkProcess was deleted and recreated. Rebind to
+            // the live row rather than continuing to point at a dead id.
+            if (workProcess.IntegrationState is not null
+                && workProcess.IntegrationState.InternalId != registration.IntegrationState.InternalId)
             {
-                // If the live registration points at a different InternalId than what we hold,
-                // the underlying Wayd.Work.WorkProcess was deleted and recreated. Rebind to
-                // the live row rather than continuing to point at a dead id.
-                if (workProcess.IntegrationState is not null
-                    && workProcess.IntegrationState.InternalId != registration.IntegrationState.InternalId)
-                {
-                    var replaceResult = workProcess.ReplaceIntegrationState(registration.IntegrationState);
-                    if (replaceResult.IsFailure)
-                        return replaceResult;
-                }
-                else
-                {
-                    if (workProcess.IntegrationState is not null && workProcess.IntegrationState.IsActive == registration.IntegrationState.IsActive)
-                    {
-                        // no change
-                        return Result.Success();
-                    }
-
-                    var setResult = workProcess.UpdateIntegrationState(registration.IntegrationState.IsActive);
-                    if (setResult.IsFailure)
-                        return setResult;
-                }
+                var replaceResult = workProcess.ReplaceIntegrationState(registration.IntegrationState);
+                if (replaceResult.IsFailure)
+                    return replaceResult;
             }
             else
             {
-                var setResult = workProcess.AddIntegrationState(registration.IntegrationState);
-                if (setResult.IsFailure)
-                    return setResult;
-            }
-
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
-    }
-
-    public Result ClearWorkProcessIntegrationState(Guid workProcessExternalId, Instant timestamp)
-    {
-        try
-        {
-            Guard.Against.Null(Configuration, nameof(Configuration));
-
-            var workProcess = Configuration.WorkProcesses.FirstOrDefault(wp => wp.ExternalId == workProcessExternalId);
-            if (workProcess is null)
-                return Result.Failure($"Unable to find work process with id {workProcessExternalId} in Azure DevOps connection with id {Id}.");
-
-            if (!workProcess.HasIntegration)
-                return Result.Success();
-
-            var clearResult = workProcess.RemoveIntegrationState();
-            if (clearResult.IsFailure)
-                return clearResult;
-
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
-    }
-
-    public Result UpdateWorkspaceIntegrationState(IntegrationRegistration<Guid, Guid> registration, Instant timestamp)
-    {
-        try
-        {
-            Guard.Against.Null(Configuration, nameof(Configuration));
-
-            var workspace = Configuration.Workspaces.FirstOrDefault(wp => wp.ExternalId == registration.ExternalId);
-            if (workspace is null)
-                return Result.Failure($"Unable to find workspace with id {registration.ExternalId} in Azure DevOps connection with id {Id}.");
-
-            // if already has integration, only update if the active flag changed
-            if (workspace.HasIntegration)
-            {
-                if (workspace.IntegrationState is not null && workspace.IntegrationState.IsActive == registration.IntegrationState.IsActive)
+                if (workProcess.IntegrationState is not null && workProcess.IntegrationState.IsActive == registration.IntegrationState.IsActive)
                 {
                     // no change
                     return Result.Success();
                 }
 
-                var setResult = workspace.UpdateIntegrationState(registration.IntegrationState.IsActive);
+                var setResult = workProcess.UpdateIntegrationState(registration.IntegrationState.IsActive);
                 if (setResult.IsFailure)
                     return setResult;
             }
-            else
+        }
+        else
+        {
+            var setResult = workProcess.AddIntegrationState(registration.IntegrationState);
+            if (setResult.IsFailure)
+                return setResult;
+        }
+
+        return Result.Success();
+    }
+
+    public Result ClearWorkProcessIntegrationState(Guid workProcessExternalId, Instant timestamp)
+    {
+        Guard.Against.Null(Configuration, nameof(Configuration));
+
+        var workProcess = Configuration.WorkProcesses.FirstOrDefault(wp => wp.ExternalId == workProcessExternalId);
+        if (workProcess is null)
+            return Result.Failure($"Unable to find work process with id {workProcessExternalId} in Azure DevOps connection with id {Id}.");
+
+        if (!workProcess.HasIntegration)
+            return Result.Success();
+
+        var clearResult = workProcess.RemoveIntegrationState();
+        if (clearResult.IsFailure)
+            return clearResult;
+
+        return Result.Success();
+    }
+
+    public Result UpdateWorkspaceIntegrationState(IntegrationRegistration<Guid, Guid> registration, Instant timestamp)
+    {
+        Guard.Against.Null(Configuration, nameof(Configuration));
+
+        var workspace = Configuration.Workspaces.FirstOrDefault(wp => wp.ExternalId == registration.ExternalId);
+        if (workspace is null)
+            return Result.Failure($"Unable to find workspace with id {registration.ExternalId} in Azure DevOps connection with id {Id}.");
+
+        // if already has integration, only update if the active flag changed
+        if (workspace.HasIntegration)
+        {
+            if (workspace.IntegrationState is not null && workspace.IntegrationState.IsActive == registration.IntegrationState.IsActive)
             {
-                var setResult = workspace.AddIntegrationState(registration.IntegrationState);
-                if (setResult.IsFailure)
-                    return setResult;
+                // no change
+                return Result.Success();
             }
 
-            return Result.Success();
+            var setResult = workspace.UpdateIntegrationState(registration.IntegrationState.IsActive);
+            if (setResult.IsFailure)
+                return setResult;
         }
-        catch (Exception ex)
+        else
         {
-            return Result.Failure(ex.ToString());
+            var setResult = workspace.AddIntegrationState(registration.IntegrationState);
+            if (setResult.IsFailure)
+                return setResult;
         }
+
+        return Result.Success();
     }
 
     /// <summary>

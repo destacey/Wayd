@@ -22,14 +22,12 @@ public sealed class TestTeamsConnectionCommandValidator : CustomValidator<TestTe
 public sealed class TestTeamsConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
     ICurrentUser currentUser,
-    ITeamsCommunicationGraphClient teamsCommunicationGraphClient,
-    ILogger<TestTeamsConnectionCommandHandler> logger)
+    ITeamsCommunicationGraphClient teamsCommunicationGraphClient)
     : ICommandHandler<TestTeamsConnectionCommand>
 {
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ITeamsCommunicationGraphClient _teamsCommunicationGraphClient = teamsCommunicationGraphClient;
-    private readonly ILogger<TestTeamsConnectionCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(TestTeamsConnectionCommand request, CancellationToken cancellationToken)
     {
@@ -50,17 +48,9 @@ public sealed class TestTeamsConnectionCommandHandler(
         var config = connection.Configuration;
         var credentials = new TeamsGraphCredentials(config.TenantId, config.ClientId, config.ClientSecret);
 
-        try
-        {
-            return await _teamsCommunicationGraphClient.RunHelloWorldTestAsync(
-                credentials,
-                email.Trim(),
-                cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {Id}", nameof(TestTeamsConnectionCommandHandler), request.Id);
-            return Result.Failure($"Failed to run the Teams connection test: {ex.Message}");
-        }
+        return await _teamsCommunicationGraphClient.RunHelloWorldTestAsync(
+            credentials,
+            email.Trim(),
+            cancellationToken);
     }
 }

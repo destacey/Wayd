@@ -1,5 +1,6 @@
 ﻿using CSharpFunctionalExtensions;
 using Microsoft.Extensions.Logging;
+using Wayd.Common.Domain;
 using Wayd.Integrations.AzureDevOps.Clients;
 using Wayd.Integrations.AzureDevOps.Models;
 using Wayd.Integrations.AzureDevOps.Models.WorkItems;
@@ -68,10 +69,15 @@ internal sealed class WorkItemService(HttpClient httpClient, string organization
             // cancelled rather than partially failed) actually runs.
             throw;
         }
-        catch (Exception ex)
+        catch (AzureDevOpsResponseException ex)
         {
             _logger.LogError(ex, "Exception thrown getting work items for project {Project} from Azure DevOps", projectName);
             return Result.Failure<List<WorkItemResponse>>(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception thrown getting work items for project {Project} from Azure DevOps", projectName);
+            return Result.Failure<List<WorkItemResponse>>(ErrorMessages.UnexpectedInRun);
         }
     }
 
@@ -92,10 +98,15 @@ internal sealed class WorkItemService(HttpClient httpClient, string organization
         {
             throw;
         }
-        catch (Exception ex)
+        catch (AzureDevOpsResponseException ex)
         {
             _logger.LogError(ex, "Exception thrown getting parent link changes for project {Project} from Azure DevOps", projectName);
             return Result.Failure<List<ReportingWorkItemLinkResponse>>(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception thrown getting parent link changes for project {Project} from Azure DevOps", projectName);
+            return Result.Failure<List<ReportingWorkItemLinkResponse>>(ErrorMessages.UnexpectedInRun);
         }
     }
 
@@ -116,10 +127,15 @@ internal sealed class WorkItemService(HttpClient httpClient, string organization
         {
             throw;
         }
-        catch (Exception ex)
+        catch (AzureDevOpsResponseException ex)
         {
             _logger.LogError(ex, "Exception thrown getting dependency link changes for project {Project} from Azure DevOps", projectName);
             return Result.Failure<List<ReportingWorkItemLinkResponse>>(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception thrown getting dependency link changes for project {Project} from Azure DevOps", projectName);
+            return Result.Failure<List<ReportingWorkItemLinkResponse>>(ErrorMessages.UnexpectedInRun);
         }
     }
 
@@ -153,10 +169,15 @@ internal sealed class WorkItemService(HttpClient httpClient, string organization
         {
             throw;
         }
-        catch (Exception ex)
+        catch (AzureDevOpsResponseException ex)
         {
             _logger.LogError(ex, "Exception thrown getting work item revisions for project {Project} from Azure DevOps", projectName);
             return Result.Failure<BatchResponse<ReportingWorkItemRevisionResponse>>(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception thrown getting work item revisions for project {Project} from Azure DevOps", projectName);
+            return Result.Failure<BatchResponse<ReportingWorkItemRevisionResponse>>(ErrorMessages.UnexpectedInRun);
         }
     }
 
@@ -209,10 +230,15 @@ internal sealed class WorkItemService(HttpClient httpClient, string organization
         {
             throw;
         }
-        catch (Exception ex)
+        catch (AzureDevOpsResponseException ex)
         {
             _logger.LogError(ex, "Exception thrown getting work items changed outside the synced projects from Azure DevOps");
             return Result.Failure<int[]>(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception thrown getting work items changed outside the synced projects from Azure DevOps");
+            return Result.Failure<int[]>(ErrorMessages.UnexpectedInRun);
         }
     }
 
@@ -242,10 +268,15 @@ internal sealed class WorkItemService(HttpClient httpClient, string organization
         {
             throw;
         }
-        catch (Exception ex)
+        catch (AzureDevOpsResponseException ex)
         {
             _logger.LogError(ex, "Exception thrown getting the projects of work items from Azure DevOps");
             return Result.Failure<int[]>(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception thrown getting the projects of work items from Azure DevOps");
+            return Result.Failure<int[]>(ErrorMessages.UnexpectedInRun);
         }
     }
 
@@ -279,10 +310,15 @@ internal sealed class WorkItemService(HttpClient httpClient, string organization
         {
             throw;
         }
-        catch (Exception ex)
+        catch (AzureDevOpsResponseException ex)
         {
             _logger.LogError(ex, "Exception thrown getting deleted work item ids for project {Project} from Azure DevOps", projectName);
             return Result.Failure<int[]>(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception thrown getting deleted work item ids for project {Project} from Azure DevOps", projectName);
+            return Result.Failure<int[]>(ErrorMessages.UnexpectedInRun);
         }
     }
 }

@@ -46,13 +46,13 @@ public class PokerSessionTests
     }
 
     [Fact]
-    public void Create_WhitespaceName_ShouldReturnFailure()
+    public void Create_WhitespaceName_ShouldThrow()
     {
         // Act
-        var result = PokerSession.Create("  ", Scale, Visibility.Public, PokerSessionActors.FacilitatorEmployeeId, Now);
+        var act = () => PokerSession.Create("  ", Scale, Visibility.Public, PokerSessionActors.FacilitatorEmployeeId, Now);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
+        act.Should().Throw<ArgumentException>().WithParameterName("Name");
     }
 
     [Fact]

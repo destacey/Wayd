@@ -3109,7 +3109,7 @@ public class UserServiceTests
         var act = () => sut.TryApplyPendingTenantMigration(newTenantId, newObjectId, upn);
 
         await act.Should().ThrowAsync<InternalServerException>()
-            .WithMessage("*Failed to clear pending migration flag*Concurrency failure*");
+            .WithMessage("Sign-in could not complete the tenant migration. Contact an administrator.");
         RaisedEvents(user).Should().BeEmpty("nothing was saved, so nothing may be recorded");
 
         captured.Should().NotBeNull("the transaction lambda must throw so ExecuteInTransaction rolls back");
@@ -4447,7 +4447,7 @@ public class UserServiceTests
         var act = () => sut.TryApplyPendingProviderMigration(targetProvider, null, "sub-123", email);
 
         await act.Should().ThrowAsync<InternalServerException>()
-            .WithMessage("*Failed to apply pending provider migration*Concurrency failure*");
+            .WithMessage("Sign-in could not complete the provider migration. Contact an administrator.");
         RaisedEvents(user).Should().BeEmpty("nothing was saved, so nothing may be recorded");
 
         captured.Should().NotBeNull("the transaction lambda must throw to trigger rollback");

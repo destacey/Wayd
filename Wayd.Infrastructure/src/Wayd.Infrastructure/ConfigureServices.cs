@@ -1,11 +1,9 @@
-﻿using System.Diagnostics;
-using System.Reflection;
+﻿using System.Reflection;
 using Mapster;
 using Mapster.Utils;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -171,17 +169,6 @@ public static class ConfigureServices
             .AddCorsPolicy(config)
             .AddRateLimiting(config)
             .AddUserActivityTracking()
-            .AddProblemDetails(options =>
-            {
-                options.CustomizeProblemDetails = (context) =>
-                {
-                    context.ProblemDetails.Instance = $"{context.HttpContext.Request.Method} {context.HttpContext.Request.Path}";
-                    context.ProblemDetails.Extensions.TryAdd("requestId", context.HttpContext.TraceIdentifier);
-
-                    Activity? activity = context.HttpContext.Features.Get<IHttpActivityFeature>()?.Activity;
-                    context.ProblemDetails.Extensions.TryAdd("traceId", activity?.Id);
-                };
-            })
             .AddExceptionMiddleware()
             .AddWaydFeatureManagement()
             .AddSystemSettings()

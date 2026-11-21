@@ -43,7 +43,7 @@ public class AzureDevOpsService(
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception thrown testing Azure DevOps connection.");
-            return Result.Failure(ex.InnerException?.Message ?? ex.Message);
+            return Result.Failure("Unable to verify connection.");
         }
     }
 

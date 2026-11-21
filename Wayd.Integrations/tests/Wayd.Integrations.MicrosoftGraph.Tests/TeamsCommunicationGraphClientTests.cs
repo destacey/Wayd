@@ -136,6 +136,24 @@ public sealed class TeamsCommunicationGraphClientTests
     }
 
     [Fact]
+    public async Task CreateGroupChat_LetsANonGraphFailurePropagate()
+    {
+        // Arrange
+        var adapter = new RecordingGraphAdapter { ThrowDefectOnChatPost = true };
+        var sut = CreateClient(adapter);
+
+        // Act
+        var act = () => sut.CreateGroupChatAsync(
+            new TeamsGraphCredentials("tenant", "client", "secret"),
+            "INC-1 Outage",
+            ["user-a"],
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
     public async Task CreateGroupChat_DoesNotCallGraph_WhenNobodyCanBeAdded()
     {
         // Arrange
@@ -186,6 +204,8 @@ public sealed class TeamsCommunicationGraphClientTests
 
         public bool ThrowOnChatPost { get; init; }
 
+        public bool ThrowDefectOnChatPost { get; init; }
+
         public string ChatId { get; init; } = "chat-1";
 
         public string? ChatWebUrl { get; init; }
@@ -216,7 +236,10 @@ public sealed class TeamsCommunicationGraphClientTests
             {
                 ChatBodies.Add(ReadContent(requestInfo));
                 if (ThrowOnChatPost)
-                    throw new InvalidOperationException("Graph rejected the chat.");
+                    throw new ODataError { Error = new MainError { Message = "Graph rejected the chat." } };
+
+                if (ThrowDefectOnChatPost)
+                    throw new InvalidOperationException("defect");
 
                 return Task.FromResult((ModelType?)(object)new Chat { Id = ChatId, WebUrl = ChatWebUrl });
             }

@@ -41,18 +41,11 @@ public sealed class AzureDevOpsBoardsWorkspace : IntegrationObject<Guid>
 
     public Result Update(string name, string? description, Guid? workProcessId)
     {
-        try
-        {
-            Name = name;
-            Description = description;
-            WorkProcessId = workProcessId;
+        Name = name;
+        Description = description;
+        WorkProcessId = workProcessId;
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+        return Result.Success();
     }
 
     public static AzureDevOpsBoardsWorkspace Create(Guid externalId, string name, string? description, Guid? workProcessId)

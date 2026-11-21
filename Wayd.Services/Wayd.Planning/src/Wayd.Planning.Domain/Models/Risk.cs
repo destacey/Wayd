@@ -96,58 +96,51 @@ public sealed class Risk : BaseSoftDeletableEntity, IHasIdAndKey
     /// </summary>
     public Result Update(string summary, string? description, RiskStatus status, RiskCategory category, RiskGrade impact, RiskGrade likelihood, Guid? assigneeId, LocalDate? followUpDate, string? response, EventActor actor, Instant timestamp)
     {
-        try
-        {
-            var previousDetails = new RiskDetails(Summary, Description, Response);
-            var previousCategory = Category;
-            var previousImpact = Impact;
-            var previousLikelihood = Likelihood;
-            var previousAssigneeId = AssigneeId;
-            var previousFollowUpDate = FollowUpDate;
+        var previousDetails = new RiskDetails(Summary, Description, Response);
+        var previousCategory = Category;
+        var previousImpact = Impact;
+        var previousLikelihood = Likelihood;
+        var previousAssigneeId = AssigneeId;
+        var previousFollowUpDate = FollowUpDate;
 
-            //TeamId isn't updatable at this time
-            Summary = summary;
-            Description = description;
-            Category = category;
-            Impact = impact;
-            Likelihood = likelihood;
-            AssigneeId = assigneeId;
-            FollowUpDate = followUpDate;
-            Response = response;
+        //TeamId isn't updatable at this time
+        Summary = summary;
+        Description = description;
+        Category = category;
+        Impact = impact;
+        Likelihood = likelihood;
+        AssigneeId = assigneeId;
+        FollowUpDate = followUpDate;
+        Response = response;
 
-            // Compared after assignment because the text setters trim.
-            var details = new RiskDetails(Summary, Description, Response);
-            if (details != previousDetails)
-                AddKeyedDomainEvent(() => new RiskDetailsUpdatedEvent(Id, Key, details.Summary, details.Description, details.Response, previousDetails, actor, timestamp));
+        // Compared after assignment because the text setters trim.
+        var details = new RiskDetails(Summary, Description, Response);
+        if (details != previousDetails)
+            AddKeyedDomainEvent(() => new RiskDetailsUpdatedEvent(Id, Key, details.Summary, details.Description, details.Response, previousDetails, actor, timestamp));
 
-            var newCategory = Category;
-            if (newCategory != previousCategory)
-                AddKeyedDomainEvent(() => new RiskCategoryChangedEvent(Id, Key, previousCategory, newCategory, actor, timestamp));
+        var newCategory = Category;
+        if (newCategory != previousCategory)
+            AddKeyedDomainEvent(() => new RiskCategoryChangedEvent(Id, Key, previousCategory, newCategory, actor, timestamp));
 
-            var newImpact = Impact;
-            var newLikelihood = Likelihood;
-            if (newImpact != previousImpact || newLikelihood != previousLikelihood)
-                AddKeyedDomainEvent(() => new RiskAssessmentChangedEvent(Id, Key,
-                    previousImpact, previousLikelihood, ExposureOf(previousImpact, previousLikelihood),
-                    newImpact, newLikelihood, ExposureOf(newImpact, newLikelihood),
-                    actor, timestamp));
+        var newImpact = Impact;
+        var newLikelihood = Likelihood;
+        if (newImpact != previousImpact || newLikelihood != previousLikelihood)
+            AddKeyedDomainEvent(() => new RiskAssessmentChangedEvent(Id, Key,
+                previousImpact, previousLikelihood, ExposureOf(previousImpact, previousLikelihood),
+                newImpact, newLikelihood, ExposureOf(newImpact, newLikelihood),
+                actor, timestamp));
 
-            var newAssigneeId = AssigneeId;
-            if (newAssigneeId != previousAssigneeId)
-                AddKeyedDomainEvent(() => new RiskAssigneeChangedEvent(Id, Key, previousAssigneeId, newAssigneeId, actor, timestamp));
+        var newAssigneeId = AssigneeId;
+        if (newAssigneeId != previousAssigneeId)
+            AddKeyedDomainEvent(() => new RiskAssigneeChangedEvent(Id, Key, previousAssigneeId, newAssigneeId, actor, timestamp));
 
-            var newFollowUpDate = FollowUpDate;
-            if (newFollowUpDate != previousFollowUpDate)
-                AddKeyedDomainEvent(() => new RiskFollowUpDateChangedEvent(Id, Key, previousFollowUpDate, newFollowUpDate, actor, timestamp));
+        var newFollowUpDate = FollowUpDate;
+        if (newFollowUpDate != previousFollowUpDate)
+            AddKeyedDomainEvent(() => new RiskFollowUpDateChangedEvent(Id, Key, previousFollowUpDate, newFollowUpDate, actor, timestamp));
 
-            UpdateStatus(status, actor, timestamp);
+        UpdateStatus(status, actor, timestamp);
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+        return Result.Success();
     }
 
     /// <summary>

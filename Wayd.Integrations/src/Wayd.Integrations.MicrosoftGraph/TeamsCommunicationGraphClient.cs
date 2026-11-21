@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
+using Microsoft.Kiota.Abstractions;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Interfaces.Communication;
@@ -71,7 +72,7 @@ public sealed class TeamsCommunicationGraphClient : ITeamsCommunicationGraphClie
 
             return Result.Success();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (IsGraphFailure(ex))
         {
             _logger.LogError(ex, "Teams hello-world Graph test failed for tenant {TenantId}", credentials.TenantId);
             return Result.Failure($"Microsoft Graph rejected the connection test: {ex.Message}");
@@ -92,7 +93,7 @@ public sealed class TeamsCommunicationGraphClient : ITeamsCommunicationGraphClie
             var user = await FindUserByEmailAsync(_clientFactory(credentials), email.Trim(), cancellationToken);
             return Result.Success(user?.Id);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (IsGraphFailure(ex))
         {
             _logger.LogError(ex, "Teams user lookup failed for tenant {TenantId}", credentials.TenantId);
             return Result.Failure<string?>($"Microsoft Graph could not look up a Teams user: {ex.Message}");
@@ -134,12 +135,22 @@ public sealed class TeamsCommunicationGraphClient : ITeamsCommunicationGraphClie
 
             return Result.Success(new TeamsCreatedChat(created.Id, ChatLink(created.Id, created.WebUrl)));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (IsGraphFailure(ex))
         {
             _logger.LogError(ex, "Teams chat creation failed for tenant {TenantId}", credentials.TenantId);
             return Result.Failure<TeamsCreatedChat>($"Microsoft Graph could not create the Teams chat: {ex.Message}");
         }
     }
+
+    /// <summary>
+    /// The failures that carry Graph's own reply or the network's: Graph's error response, a failed
+    /// sign-in to the tenant, an unreachable endpoint, or a reply missing what the call needs.
+    /// Anything else is a defect and propagates.
+    /// </summary>
+    private static bool IsGraphFailure(Exception ex) =>
+        ex is ApiException or AuthenticationFailedException or HttpRequestException or GraphResponseException;
+
+    private sealed class GraphResponseException(string message) : Exception(message);
 
     /// <summary>An https link Graph returned, or the Teams deep link for <paramref name="chatId"/>.</summary>
     internal static string ChatLink(string chatId, string? webUrl)
@@ -242,10 +253,10 @@ public sealed class TeamsCommunicationGraphClient : ITeamsCommunicationGraphClie
         };
 
         var createdChat = await client.Chats.PostAsync(chat, cancellationToken: cancellationToken)
-            ?? throw new InvalidOperationException("Graph did not return a chat id for the hello-world test.");
+            ?? throw new GraphResponseException("Graph did not return a chat id for the hello-world test.");
 
         if (string.IsNullOrEmpty(createdChat.Id))
-            throw new InvalidOperationException("Graph returned a chat without an id for the hello-world test.");
+            throw new GraphResponseException("Graph returned a chat without an id for the hello-world test.");
     }
 
     private static ConversationMember Owner(string userId) =>

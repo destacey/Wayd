@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Application.Requests.WorkManagement.Commands;
+using Wayd.Common.Domain;
 using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkItems.Commands;
@@ -87,7 +88,7 @@ public sealed class RepointWorkItemAttributionCommandHandler(
         {
             _logger.LogError(ex,
                 "Error repointing work item attribution for external identity {ExternalId}.", externalId);
-            return Result.Failure(ex.Message);
+            return Result.Failure(ErrorMessages.UnexpectedInRun);
         }
     }
 }

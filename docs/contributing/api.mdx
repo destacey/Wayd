@@ -66,6 +66,41 @@ public class ProductsController(IDispatcher dispatcher) : ControllerBase
 - `[McpTool]` and `[McpTools]` publish the action as a hosted MCP tool; see
   [MCP Server](./mcp-server.mdx#the-hosted-endpoint).
 
+## What an error response may contain
+
+Every error body is a `ProblemDetails` carrying `requestId` and `traceId`, which find the request's log
+entries. Its `detail` is written for the caller, so it holds only what the caller can act on:
+
+| Source | Status | `detail` |
+| --- | --- | --- |
+| A business rule (`Result.Failure("…")`) | 400 | The rule's message |
+| A `CustomException` (`NotFoundException`, `ConflictException`, …), wrapped or not | Its status | Its message |
+| Validation | 422 | A fixed line; the messages are in `errors` |
+| A request Kestrel refused (`BadHttpRequestException`) | 400 or 413 | Kestrel's message |
+| Any other exception | 500 | `ErrorMessages.Unexpected` |
+
+In Development the last row's `detail` is the innermost exception's message instead. The docker-compose stack
+runs as Development, so it shows those messages too; never expose it as a real deployment.
+
+Exception text — a database message, a stack trace, an `ex.ToString()` — goes to the log, never into a
+response. So a handler or aggregate does not wrap its body in `try`/`catch` to return
+`Result.Failure(ex.Message)`: an unexpected exception propagates, and `ExceptionMiddleware` logs it and answers
+500. A `CustomException`'s message is returned as written, so it is a fixed sentence for the caller: log the
+detail behind it (Identity's errors, an id) and leave it out of the message. A catch stays only where a caller
+must carry on past one failure, such as a sync working through many records; there it logs the exception and
+records `ErrorMessages.UnexpectedInRun`, which points at the log because a background run has no `traceId` to
+quote.
+
+An external system's reply an admin needs to put a connection right — a "401 Unauthorized", an `AADSTS` code, a
+host that cannot be reached — may be returned or recorded, but only from a catch of that client's own failure
+types, never a bare `catch (Exception)`:
+
+| Client | Types whose message may be shown |
+| --- | --- |
+| Azure DevOps work items | `AzureDevOpsResponseException` |
+| Microsoft Graph (Teams) | `ApiException` (Graph's `ODataError`), `AuthenticationFailedException`, `HttpRequestException` |
+| Workday | `WorkdaySoapException` |
+
 ## Authentication and authorization
 
 Every controller requires an authenticated caller: controllers are mapped with `RequireAuthorization()`

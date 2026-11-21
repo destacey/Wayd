@@ -210,7 +210,8 @@ export const importTemplates = {
             name: 'OriginUrl',
             type: 'text',
             required: false,
-            description: 'A link to the request in that system.',
+            description:
+              'A link to the request in that system, a full web address starting with `http://` or `https://`.',
           },
           {
             name: 'Status',

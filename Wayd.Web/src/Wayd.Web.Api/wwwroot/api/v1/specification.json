@@ -66945,7 +66945,7 @@
               "null",
               "string"
             ],
-            "description": "A link to the request in that system.",
+            "description": "A link to the request in that system, a full web address starting with `http://` or `https://`.",
             "x-csv-column": "OriginUrl"
           },
           "status": {
@@ -84934,7 +84934,7 @@
               "null",
               "string"
             ],
-            "description": "The URL prefix a work item's external id is appended to; null, empty or whitespace clears it."
+            "description": "The URL prefix a work item's external id is appended to, an absolute http or https address; null, empty or whitespace clears it."
           }
         },
         "additionalProperties": false,

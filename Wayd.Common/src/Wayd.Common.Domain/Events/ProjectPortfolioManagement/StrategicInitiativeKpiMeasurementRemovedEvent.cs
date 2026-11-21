@@ -10,6 +10,7 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// Removing the latest measurement changes the KPI's actual value, so this is a fact in its own right. Carries
 /// the value and date that were taken away, since the measurement is gone.
 /// </remarks>
+[Obsolete("Strategic initiative KPIs moved onto the shared KPI model, whose Kpi*Event types record them now. Kept only to deserialize payloads already written as this type.")]
 public sealed record StrategicInitiativeKpiMeasurementRemovedEvent : DomainEvent<StrategicInitiativeKpiMeasurementRemovedEvent>, IDomainEventDescriptor, IPpmEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;

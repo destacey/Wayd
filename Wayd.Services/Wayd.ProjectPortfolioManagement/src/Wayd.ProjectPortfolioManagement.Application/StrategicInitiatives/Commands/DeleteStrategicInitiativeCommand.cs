@@ -39,10 +39,6 @@ public sealed class DeleteStrategicInitiativeCommandHandler(
         {
             var strategicInitiative = await _projectPortfolioManagementDbContext.StrategicInitiatives
                 .Include(s => s.Roles)
-                .Include(s => s.Kpis)
-                    .ThenInclude(k => k.Measurements)
-                .Include(s => s.Kpis)
-                    .ThenInclude(k => k.Checkpoints)
                 .Include(s => s.StrategicInitiativeProjects)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
             if (strategicInitiative == null)

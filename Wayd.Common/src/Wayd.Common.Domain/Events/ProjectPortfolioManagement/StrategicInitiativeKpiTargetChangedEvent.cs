@@ -11,6 +11,7 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// Carries both ends: a moved target is how an initiative's success gets redefined after the fact, and a
 /// reader needs the goal it was held to before.
 /// </remarks>
+[Obsolete("Strategic initiative KPIs moved onto the shared KPI model, whose Kpi*Event types record them now. Kept only to deserialize payloads already written as this type.")]
 public sealed record StrategicInitiativeKpiTargetChangedEvent : DomainEvent<StrategicInitiativeKpiTargetChangedEvent>, IDomainEventDescriptor, IPpmEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;

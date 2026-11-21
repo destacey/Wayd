@@ -25,8 +25,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.HasSequence("StrategicInitiativeKpiSequence");
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
                     b.Property<int>("Id")
@@ -8312,171 +8310,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("StrategicInitiatives", "Ppm");
                 });
 
-            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives.StrategicInitiativeKpi", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<double?>("ActualValue")
-                        .HasColumnType("float");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)");
-
-                    b.Property<int>("Key")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValueSql("NEXT VALUE FOR [Work].[StrategicInitiativeKpiSequence]");
-
-                    SqlServerPropertyBuilderExtensions.UseSequence(b.Property<int>("Key"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Prefix")
-                        .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)");
-
-                    b.Property<double?>("StartingValue")
-                        .HasColumnType("float");
-
-                    b.Property<Guid>("StrategicInitiativeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Suffix")
-                        .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)");
-
-                    b.Property<DateTime>("SystemCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemCreatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("SystemLastModified")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemLastModifiedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("TargetDirection")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar");
-
-                    b.Property<double>("TargetValue")
-                        .HasColumnType("float");
-
-                    b.HasKey("Id");
-
-                    b.HasAlternateKey("Key");
-
-                    b.HasIndex("StrategicInitiativeId");
-
-                    b.ToTable("StrategicInitiativeKpis", "Ppm");
-
-                    b.UseTpcMappingStrategy();
-                });
-
-            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives.StrategicInitiativeKpiCheckpoint", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<double?>("AtRiskValue")
-                        .HasColumnType("float");
-
-                    b.Property<DateTime>("CheckpointDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DateLabel")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)");
-
-                    b.Property<Guid>("KpiId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("SystemCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemCreatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("SystemLastModified")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemLastModifiedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<double>("TargetValue")
-                        .HasColumnType("float");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("KpiId");
-
-                    b.ToTable("StrategicInitiativeKpiCheckpoints", "Ppm");
-
-                    b.UseTpcMappingStrategy();
-                });
-
-            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives.StrategicInitiativeKpiMeasurement", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<double>("ActualValue")
-                        .HasColumnType("float");
-
-                    b.Property<Guid>("KpiId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("MeasuredById")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("MeasurementDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(1024)
-                        .HasColumnType("nvarchar(1024)");
-
-                    b.Property<DateTime>("SystemCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemCreatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("SystemLastModified")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemLastModifiedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("KpiId");
-
-                    b.HasIndex("MeasuredById");
-
-                    b.ToTable("StrategicInitiativeKpiMeasurements", "Ppm");
-
-                    b.UseTpcMappingStrategy();
-                });
-
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives.StrategicInitiativeProject", b =>
                 {
                     b.Property<Guid>("StrategicInitiativeId")
@@ -12560,41 +12393,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Portfolio");
                 });
 
-            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives.StrategicInitiativeKpi", b =>
-                {
-                    b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives.StrategicInitiative", null)
-                        .WithMany("Kpis")
-                        .HasForeignKey("StrategicInitiativeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives.StrategicInitiativeKpiCheckpoint", b =>
-                {
-                    b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives.StrategicInitiativeKpi", null)
-                        .WithMany("Checkpoints")
-                        .HasForeignKey("KpiId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives.StrategicInitiativeKpiMeasurement", b =>
-                {
-                    b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives.StrategicInitiativeKpi", null)
-                        .WithMany("Measurements")
-                        .HasForeignKey("KpiId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Wayd.Common.Domain.Employees.Employee", "MeasuredBy")
-                        .WithMany()
-                        .HasForeignKey("MeasuredById")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("MeasuredBy");
-                });
-
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives.StrategicInitiativeProject", b =>
                 {
                     b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.Project", "Project")
@@ -13352,18 +13150,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives.StrategicInitiative", b =>
                 {
-                    b.Navigation("Kpis");
-
                     b.Navigation("Roles");
 
                     b.Navigation("StrategicInitiativeProjects");
-                });
-
-            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives.StrategicInitiativeKpi", b =>
-                {
-                    b.Navigation("Checkpoints");
-
-                    b.Navigation("Measurements");
                 });
 
             modelBuilder.Entity("Wayd.Work.Domain.Models.Iteration", b =>

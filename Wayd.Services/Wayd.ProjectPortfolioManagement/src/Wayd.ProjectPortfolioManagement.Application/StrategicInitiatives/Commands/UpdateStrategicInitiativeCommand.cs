@@ -53,7 +53,6 @@ public sealed class UpdateStrategicInitiativeCommandHandler(
         {
             var strategicInitiative = await _projectPortfolioManagementDbContext.StrategicInitiatives
                 .Include(s => s.Roles)
-                .Include(s => s.Kpis)
                 .Include(s => s.StrategicInitiativeProjects)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
             if (strategicInitiative == null)

@@ -9,6 +9,7 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// <remarks>
 /// A ledger entry, so it has one end. The person who took the measurement is carried by id.
 /// </remarks>
+[Obsolete("Strategic initiative KPIs moved onto the shared KPI model, whose Kpi*Event types record them now. Kept only to deserialize payloads already written as this type.")]
 public sealed record StrategicInitiativeKpiMeasurementAddedEvent : DomainEvent<StrategicInitiativeKpiMeasurementAddedEvent>, IDomainEventDescriptor, IPpmEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;

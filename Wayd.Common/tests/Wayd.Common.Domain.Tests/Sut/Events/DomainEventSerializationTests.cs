@@ -913,6 +913,7 @@ public sealed class DomainEventSerializationTests
         restored.EventVersion.Should().Be("1.0");
     }
 
+#pragma warning disable CS0618 // retired, but payloads written as it must still round-trip
     [Fact]
     public void StrategicInitiativeKpiCheckpointPlanChangedEvent_RoundTripsThroughDurableSerializer()
     {
@@ -937,6 +938,7 @@ public sealed class DomainEventSerializationTests
         roundTripped.Checkpoints.Should().Equal(original.Checkpoints);
         roundTripped.KpiId.Should().Be(original.KpiId);
     }
+#pragma warning restore CS0618
 
     [Fact]
     public void KpiCheckpointPlanChangedEvent_RoundTripsThroughDurableSerializer()
@@ -964,6 +966,7 @@ public sealed class DomainEventSerializationTests
         roundTripped.SubjectType.Should().Be(original.SubjectType);
     }
 
+#pragma warning disable CS0618 // retired, but payloads written as it must still round-trip
     [Fact]
     public void StrategicInitiativeKpiMeasurementAddedEvent_RoundTripsThroughDurableSerializer()
     {
@@ -979,6 +982,7 @@ public sealed class DomainEventSerializationTests
         // Assert
         roundTripped.Should().BeEquivalentTo(original);
     }
+#pragma warning restore CS0618
 
     [Fact]
     public void WorkflowCreatedEvent_RoundTripsThroughDurableSerializer()

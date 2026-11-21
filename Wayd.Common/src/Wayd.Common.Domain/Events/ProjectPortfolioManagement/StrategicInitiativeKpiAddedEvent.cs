@@ -11,6 +11,7 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// The KPI is part of the initiative's aggregate, so the entry belongs to the initiative and carries the KPI
 /// as it was added.
 /// </remarks>
+[Obsolete("Strategic initiative KPIs moved onto the shared KPI model, whose Kpi*Event types record them now. Kept only to deserialize payloads already written as this type.")]
 public sealed record StrategicInitiativeKpiAddedEvent : DomainEvent<StrategicInitiativeKpiAddedEvent>, IDomainEventDescriptor, IPpmEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;

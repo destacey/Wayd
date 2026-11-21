@@ -2,7 +2,6 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
-using Wayd.Common.Domain.Enums;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
@@ -41,9 +40,7 @@ public sealed class StrategicInitiativeActivityTests(SqlServerDbContextFixture f
         var dateRange = new LocalDateRange(now.InUtc().Date, now.InUtc().Date.PlusDays(90));
         var initiative = portfolio.CreateStrategicInitiative("Atlas", "Move the estate", dateRange, null, EventActor.System, now).Value;
         initiative.Approve(EventActor.System, now);
-        initiative.CreateKpi(
-            new StrategicInitiativeKpiUpsertParameters("Uptime", null, null, 99.9, null, "%", KpiTargetDirection.Increase),
-            EventActor.System, now);
+        initiative.Activate(EventActor.System, now);
 
         // Act
         await context.SaveChangesAsync(ct);
@@ -61,7 +58,7 @@ public sealed class StrategicInitiativeActivityTests(SqlServerDbContextFixture f
         entries.Select(e => e.EventType).Should().Equal(
             nameof(StrategicInitiativeCreatedEvent),
             nameof(StrategicInitiativeStatusChangedEvent),
-            nameof(StrategicInitiativeKpiAddedEvent));
+            nameof(StrategicInitiativeStatusChangedEvent));
         entries.Should().OnlyContain(e => e.AggregateType == "StrategicInitiative");
         entries.Should().OnlyContain(e => JsonDocument.Parse(e.Payload).RootElement.GetProperty("key").GetInt32() == initiative.Key);
     }

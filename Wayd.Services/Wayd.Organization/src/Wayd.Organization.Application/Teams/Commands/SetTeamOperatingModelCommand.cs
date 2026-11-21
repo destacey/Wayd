@@ -61,8 +61,6 @@ public sealed class SetTeamOperatingModelCommandHandler(
     ICurrentUser currentUser,
     ILogger<SetTeamOperatingModelCommandHandler> logger) : ICommandHandler<SetTeamOperatingModelCommand, Guid>
 {
-    private const string RequestName = nameof(SetTeamOperatingModelCommand);
-
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -70,50 +68,42 @@ public sealed class SetTeamOperatingModelCommandHandler(
 
     public async Task<Result<Guid>> Handle(SetTeamOperatingModelCommand request, CancellationToken cancellationToken)
     {
-        try
+        var team = await _organizationDbContext.Teams
+            .Include(t => t.OperatingModels.Where(m => m.DateRange.End == null))
+            .FirstOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
+        if (team is null)
         {
-            var team = await _organizationDbContext.Teams
-                .Include(t => t.OperatingModels.Where(m => m.DateRange.End == null))
-                .FirstOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
-            if (team is null)
-            {
-                _logger.LogInformation("Team {TeamId} not found", request.TeamId);
-                return Result.Failure<Guid>($"Team with Id {request.TeamId} not found.");
-            }
-
-            var workingWeek = request.WorkingDays is null
-                ? Result.Success(team.OperatingModels.SingleOrDefault(m => m.IsCurrent)?.WorkingWeek ?? WorkingWeek.MondayToFriday)
-                : WorkingWeek.Create(request.WorkingDays);
-            if (workingWeek.IsFailure)
-                return Result.Failure<Guid>(workingWeek.Error);
-
-            if (request.HolidayCalendarId is { } calendarId
-                && !await _organizationDbContext.HolidayCalendars.AnyAsync(c => c.Id == calendarId, cancellationToken))
-                return Result.Failure<Guid>($"Holiday calendar {calendarId} not found.");
-
-            var cadence = ReportingCadence.CreateOptional(request.CadenceWeeks, request.CadenceAnchor);
-            if (cadence.IsFailure)
-                return Result.Failure<Guid>(cadence.Error);
-
-            var result = team.SetOperatingModel(request.StartDate, request.Methodology, request.SizingMethod, request.TimeZone, request.CommitmentGraceDays, workingWeek.Value, request.HolidayCalendarId, cadence.Value, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                _logger.LogError("Failed to set operating model for Team {TeamId}. Error: {Error}",
-                    request.TeamId, result.Error);
-                return Result.Failure<Guid>(result.Error);
-            }
-
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogDebug("Created TeamOperatingModel {OperatingModelId} for Team {TeamId}",
-                result.Value.Id, request.TeamId);
-
-            return Result.Success(result.Value.Id);
+            _logger.LogInformation("Team {TeamId} not found", request.TeamId);
+            return Result.Failure<Guid>($"Team with Id {request.TeamId} not found.");
         }
-        catch (Exception ex)
+
+        var workingWeek = request.WorkingDays is null
+            ? Result.Success(team.OperatingModels.SingleOrDefault(m => m.IsCurrent)?.WorkingWeek ?? WorkingWeek.MondayToFriday)
+            : WorkingWeek.Create(request.WorkingDays);
+        if (workingWeek.IsFailure)
+            return Result.Failure<Guid>(workingWeek.Error);
+
+        if (request.HolidayCalendarId is { } calendarId
+            && !await _organizationDbContext.HolidayCalendars.AnyAsync(c => c.Id == calendarId, cancellationToken))
+            return Result.Failure<Guid>($"Holiday calendar {calendarId} not found.");
+
+        var cadence = ReportingCadence.CreateOptional(request.CadenceWeeks, request.CadenceAnchor);
+        if (cadence.IsFailure)
+            return Result.Failure<Guid>(cadence.Error);
+
+        var result = team.SetOperatingModel(request.StartDate, request.Methodology, request.SizingMethod, request.TimeZone, request.CommitmentGraceDays, workingWeek.Value, request.HolidayCalendarId, cadence.Value, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception for request {RequestName}", RequestName);
-            return Result.Failure<Guid>($"Exception for request {RequestName}: {ex.Message}");
+            _logger.LogError("Failed to set operating model for Team {TeamId}. Error: {Error}",
+                request.TeamId, result.Error);
+            return Result.Failure<Guid>(result.Error);
         }
+
+        await _organizationDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug("Created TeamOperatingModel {OperatingModelId} for Team {TeamId}",
+            result.Value.Id, request.TeamId);
+
+        return Result.Success(result.Value.Id);
     }
 }

@@ -76,24 +76,17 @@ public sealed class EstimationScale : BaseAuditableEntity, IHasIdAndKey
     /// </summary>
     public Result UpdateDetails(string name, string? description, EventActor actor, Instant timestamp)
     {
-        try
-        {
-            // Compared after assignment, never against the arguments: the setters trim.
-            var before = new EstimationScaleDetails(Name, Description);
+        // Compared after assignment, never against the arguments: the setters trim.
+        var before = new EstimationScaleDetails(Name, Description);
 
-            Name = name;
-            Description = description;
+        Name = name;
+        Description = description;
 
-            var after = new EstimationScaleDetails(Name, Description);
-            if (before != after)
-                AddKeyedDomainEvent(() => new EstimationScaleDetailsUpdatedEvent(Id, Key, after.Name, after.Description, before, actor, timestamp));
+        var after = new EstimationScaleDetails(Name, Description);
+        if (before != after)
+            AddKeyedDomainEvent(() => new EstimationScaleDetailsUpdatedEvent(Id, Key, after.Name, after.Description, before, actor, timestamp));
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.Message);
-        }
+        return Result.Success();
     }
 
     /// <summary>
@@ -165,23 +158,16 @@ public sealed class EstimationScale : BaseAuditableEntity, IHasIdAndKey
         if (validation.IsFailure)
             return Result.Failure<EstimationScale>(validation.Error);
 
-        try
-        {
-            var scale = new EstimationScale(name, description);
-            var version = new EstimationScaleVersion(scale.Id, 1, valueList, timestamp);
-            scale._versions.Add(version);
+        var scale = new EstimationScale(name, description);
+        var version = new EstimationScaleVersion(scale.Id, 1, valueList, timestamp);
+        scale._versions.Add(version);
 
-            var (createdName, createdDescription, isActive) = (scale.Name, scale.Description, scale.IsActive);
-            var versionValues = ToValues(version);
-            scale.AddPostPersistenceAction(() => scale.AddDomainEvent(new EstimationScaleCreatedEvent(
-                scale.Id, scale.Key, createdName, createdDescription, isActive, versionValues, actor, timestamp)));
+        var (createdName, createdDescription, isActive) = (scale.Name, scale.Description, scale.IsActive);
+        var versionValues = ToValues(version);
+        scale.AddPostPersistenceAction(() => scale.AddDomainEvent(new EstimationScaleCreatedEvent(
+            scale.Id, scale.Key, createdName, createdDescription, isActive, versionValues, actor, timestamp)));
 
-            return Result.Success(scale);
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<EstimationScale>(ex.Message);
-        }
+        return Result.Success(scale);
     }
 
     private static Result Validate(IReadOnlyList<EstimationScaleValue> values)

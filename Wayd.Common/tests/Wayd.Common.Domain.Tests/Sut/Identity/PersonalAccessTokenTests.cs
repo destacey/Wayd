@@ -64,42 +64,42 @@ public sealed class PersonalAccessTokenTests
     }
 
     [Fact]
-    public void Create_ShouldReturnFailure_WhenNameIsEmpty()
+    public void Create_ShouldThrow_WhenNameIsEmpty()
     {
         // Arrange
         var fakePat = _tokenFaker.Generate();
 
         // Act
-        var result = PersonalAccessToken.Create(string.Empty, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scope, Actor, _now);
+        var act = () => PersonalAccessToken.Create(string.Empty, fakePat.TokenIdentifier, fakePat.TokenHash, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scope, Actor, _now);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
+        act.Should().Throw<ArgumentException>().WithParameterName("Name");
     }
 
     [Fact]
-    public void Create_ShouldReturnFailure_WhenTokenHashIsEmpty()
+    public void Create_ShouldThrow_WhenTokenHashIsEmpty()
     {
         // Arrange
         var fakePat = _tokenFaker.Generate();
 
         // Act
-        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, string.Empty, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scope, Actor, _now);
+        var act = () => PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, string.Empty, fakePat.UserId, fakePat.ExpiresAt, fakePat.Scope, Actor, _now);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
+        act.Should().Throw<ArgumentException>().WithParameterName("TokenHash");
     }
 
     [Fact]
-    public void Create_ShouldReturnFailure_WhenUserIdIsEmpty()
+    public void Create_ShouldThrow_WhenUserIdIsEmpty()
     {
         // Arrange
         var fakePat = _tokenFaker.Generate();
 
         // Act
-        var result = PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, string.Empty, fakePat.ExpiresAt, fakePat.Scope, Actor, _now);
+        var act = () => PersonalAccessToken.Create(fakePat.Name, fakePat.TokenIdentifier, fakePat.TokenHash, string.Empty, fakePat.ExpiresAt, fakePat.Scope, Actor, _now);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
+        act.Should().Throw<ArgumentException>().WithParameterName("UserId");
     }
 
     [Fact]

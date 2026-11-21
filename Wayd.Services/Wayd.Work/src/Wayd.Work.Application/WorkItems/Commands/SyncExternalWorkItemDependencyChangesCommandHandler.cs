@@ -1,6 +1,7 @@
 ﻿using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain;
 using Wayd.Common.Domain.Settings;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkItemDependencies;
@@ -58,7 +59,7 @@ public sealed class SyncExternalWorkItemDependencyChangesCommandHandler(
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception thrown handling {AppRequestName}", AppRequestName);
-            return Result.Failure(ex.ToString());
+            return Result.Failure(ErrorMessages.UnexpectedInRun);
         }
     }
 

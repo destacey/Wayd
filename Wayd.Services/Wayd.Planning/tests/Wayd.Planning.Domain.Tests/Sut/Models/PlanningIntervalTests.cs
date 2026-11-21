@@ -1039,17 +1039,17 @@ public class PlanningIntervalTests
     }
 
     [Fact]
-    public void CreateObjective_WhenNameIsBlank_Fails()
+    public void CreateObjective_WhenNameIsBlank_Throws()
     {
         // Arrange
         var team = new PlanningTeamFaker(TeamType.Team).Generate();
         var sut = _planningIntervalFaker.WithTeams(team.Id).Generate();
 
         // Act
-        var result = sut.CreateObjective(team, "   ", null, false, null, null, null, EventActor.System, _dateTimeProvider.Now);
+        var act = () => sut.CreateObjective(team, "   ", null, false, null, null, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
+        act.Should().Throw<ArgumentException>().WithParameterName("Name");
         sut.Objectives.Should().BeEmpty();
     }
 

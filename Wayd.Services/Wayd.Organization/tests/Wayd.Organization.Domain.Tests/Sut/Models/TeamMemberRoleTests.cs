@@ -68,11 +68,11 @@ public class TeamMemberRoleTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void Create_WithNullOrWhitespaceName_ReturnsFailure(string? name)
+    public void Create_WithNullOrWhitespaceName_Throws(string? name)
     {
-        var result = TeamMemberRole.Create(name!, null);
+        var act = () => TeamMemberRole.Create(name!, null);
 
-        result.IsFailure.Should().BeTrue();
+        act.Should().Throw<ArgumentException>().WithParameterName("Name");
     }
 
     #endregion
@@ -119,13 +119,13 @@ public class TeamMemberRoleTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void Update_WithNullOrWhitespaceName_ReturnsFailure(string? name)
+    public void Update_WithNullOrWhitespaceName_Throws(string? name)
     {
         var role = TeamMemberRole.Create("Role", null).Value;
 
-        var result = role.Update(name!, null);
+        var act = () => role.Update(name!, null);
 
-        result.IsFailure.Should().BeTrue();
+        act.Should().Throw<ArgumentException>().WithParameterName("Name");
     }
 
     #endregion

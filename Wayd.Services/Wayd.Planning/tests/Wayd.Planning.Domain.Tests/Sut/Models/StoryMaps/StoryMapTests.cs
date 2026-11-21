@@ -89,13 +89,13 @@ public class StoryMapTests
     }
 
     [Fact]
-    public void Create_WhitespaceName_ShouldReturnFailure()
+    public void Create_WhitespaceName_ShouldThrow()
     {
         // Act
-        var result = StoryMap.Create("   ", null, StoryMapActors.OwnerEmployeeId);
+        var act = () => StoryMap.Create("   ", null, StoryMapActors.OwnerEmployeeId);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
+        act.Should().Throw<ArgumentException>().WithParameterName("Name");
     }
 
     #endregion
@@ -118,16 +118,16 @@ public class StoryMapTests
     }
 
     [Fact]
-    public void Update_WhitespaceName_ShouldReturnFailure()
+    public void Update_WhitespaceName_ShouldThrow()
     {
         // Arrange
         var map = CreateMap();
 
         // Act
-        var result = map.Update("   ", "desc", StoryMapActors.Owner);
+        var act = () => map.Update("   ", "desc", StoryMapActors.Owner);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
+        act.Should().Throw<ArgumentException>().WithParameterName("Name");
     }
 
     [Fact]
@@ -180,16 +180,16 @@ public class StoryMapTests
     }
 
     [Fact]
-    public void AddGoal_WhitespaceName_ShouldReturnFailure()
+    public void AddGoal_WhitespaceName_ShouldThrow()
     {
         // Arrange
         var map = CreateMap();
 
         // Act
-        var result = map.AddGoal("   ", StoryMapActors.Owner);
+        var act = () => map.AddGoal("   ", StoryMapActors.Owner);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
+        act.Should().Throw<ArgumentException>().WithParameterName("Name");
     }
 
     [Fact]
@@ -1341,10 +1341,10 @@ public class StoryMapTests
         var persona = map.AddPersona("Admin", "An admin user", "#4096FF", StoryMapActors.Owner).Value;
 
         // Act — the colour is rejected, so the whole update must be rejected.
-        var result = map.UpdatePersona(persona.Id, "Super Admin", "new desc", "  ", StoryMapActors.Owner);
+        var act = () => map.UpdatePersona(persona.Id, "Super Admin", "new desc", "  ", StoryMapActors.Owner);
 
-        // Assert — a failed call leaving the persona renamed would be a silent partial write.
-        result.IsFailure.Should().BeTrue();
+        // Assert — a rejected call leaving the persona renamed would be a silent partial write.
+        act.Should().Throw<ArgumentException>().WithParameterName("color");
         var unchanged = map.Personas.Single();
         unchanged.Name.Should().Be("Admin");
         unchanged.Description.Should().Be("An admin user");
@@ -1359,10 +1359,10 @@ public class StoryMapTests
         var persona = map.AddPersona("Admin", "An admin user", "#4096FF", StoryMapActors.Owner).Value;
 
         // Act
-        var result = map.UpdatePersona(persona.Id, "  ", "new desc", "#FF0000", StoryMapActors.Owner);
+        var act = () => map.UpdatePersona(persona.Id, "  ", "new desc", "#FF0000", StoryMapActors.Owner);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
+        act.Should().Throw<ArgumentException>().WithParameterName("name");
         var unchanged = map.Personas.Single();
         unchanged.Name.Should().Be("Admin");
         unchanged.Description.Should().Be("An admin user");

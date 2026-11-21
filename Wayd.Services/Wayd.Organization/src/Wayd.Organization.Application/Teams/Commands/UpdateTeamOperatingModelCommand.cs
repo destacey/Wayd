@@ -60,8 +60,6 @@ public sealed class UpdateTeamOperatingModelCommandHandler(
     ICurrentUser currentUser,
     ILogger<UpdateTeamOperatingModelCommandHandler> logger) : ICommandHandler<UpdateTeamOperatingModelCommand>
 {
-    private const string RequestName = nameof(UpdateTeamOperatingModelCommand);
-
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -69,69 +67,61 @@ public sealed class UpdateTeamOperatingModelCommandHandler(
 
     public async Task<Result> Handle(UpdateTeamOperatingModelCommand request, CancellationToken cancellationToken)
     {
-        try
+        // Load through Team aggregate
+        var team = await _organizationDbContext.Teams
+            .Include(t => t.OperatingModels)
+            .FirstOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
+
+        if (team is null)
         {
-            // Load through Team aggregate
-            var team = await _organizationDbContext.Teams
-                .Include(t => t.OperatingModels)
-                .FirstOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
+            _logger.LogInformation("Team {TeamId} not found", request.TeamId);
+            return Result.Failure($"Team with Id {request.TeamId} not found.");
+        }
 
-            if (team is null)
-            {
-                _logger.LogInformation("Team {TeamId} not found", request.TeamId);
-                return Result.Failure($"Team with Id {request.TeamId} not found.");
-            }
-
-            if (!team.OperatingModels.Any(m => m.Id == request.OperatingModelId))
-            {
-                _logger.LogInformation("Operating model {OperatingModelId} for Team {TeamId} not found",
-                    request.OperatingModelId, request.TeamId);
-                return Result.Failure($"Operating model with Id {request.OperatingModelId} for Team {request.TeamId} not found.");
-            }
-
-            var workingWeek = request.WorkingDays is null
-                ? Result.Success(team.OperatingModels.Single(m => m.Id == request.OperatingModelId).WorkingWeek)
-                : WorkingWeek.Create(request.WorkingDays);
-            if (workingWeek.IsFailure)
-                return Result.Failure(workingWeek.Error);
-
-            if (request.HolidayCalendarId is { } calendarId
-                && !await _organizationDbContext.HolidayCalendars.AnyAsync(c => c.Id == calendarId, cancellationToken))
-                return Result.Failure($"Holiday calendar {calendarId} not found.");
-
-            var cadence = ReportingCadence.CreateOptional(request.CadenceWeeks, request.CadenceAnchor);
-            if (cadence.IsFailure)
-                return Result.Failure(cadence.Error);
-
-            var updateResult = team.CorrectOperatingModel(
-                request.OperatingModelId,
-                request.Methodology,
-                request.SizingMethod,
-                request.TimeZone,
-                request.CommitmentGraceDays,
-                workingWeek.Value,
-                request.HolidayCalendarId,
-                cadence.Value,
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                _dateTimeProvider.Now);
-            if (updateResult.IsFailure)
-            {
-                _logger.LogError("Failed to update operating model {OperatingModelId}. Error: {Error}",
-                    request.OperatingModelId, updateResult.Error);
-                return Result.Failure(updateResult.Error);
-            }
-
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Updated TeamOperatingModel {OperatingModelId} for Team {TeamId}",
+        if (!team.OperatingModels.Any(m => m.Id == request.OperatingModelId))
+        {
+            _logger.LogInformation("Operating model {OperatingModelId} for Team {TeamId} not found",
                 request.OperatingModelId, request.TeamId);
+            return Result.Failure($"Operating model with Id {request.OperatingModelId} for Team {request.TeamId} not found.");
+        }
 
-            return Result.Success();
-        }
-        catch (Exception ex)
+        var workingWeek = request.WorkingDays is null
+            ? Result.Success(team.OperatingModels.Single(m => m.Id == request.OperatingModelId).WorkingWeek)
+            : WorkingWeek.Create(request.WorkingDays);
+        if (workingWeek.IsFailure)
+            return Result.Failure(workingWeek.Error);
+
+        if (request.HolidayCalendarId is { } calendarId
+            && !await _organizationDbContext.HolidayCalendars.AnyAsync(c => c.Id == calendarId, cancellationToken))
+            return Result.Failure($"Holiday calendar {calendarId} not found.");
+
+        var cadence = ReportingCadence.CreateOptional(request.CadenceWeeks, request.CadenceAnchor);
+        if (cadence.IsFailure)
+            return Result.Failure(cadence.Error);
+
+        var updateResult = team.CorrectOperatingModel(
+            request.OperatingModelId,
+            request.Methodology,
+            request.SizingMethod,
+            request.TimeZone,
+            request.CommitmentGraceDays,
+            workingWeek.Value,
+            request.HolidayCalendarId,
+            cadence.Value,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            _dateTimeProvider.Now);
+        if (updateResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception for request {RequestName}", RequestName);
-            return Result.Failure($"Exception for request {RequestName}: {ex.Message}");
+            _logger.LogError("Failed to update operating model {OperatingModelId}. Error: {Error}",
+                request.OperatingModelId, updateResult.Error);
+            return Result.Failure(updateResult.Error);
         }
+
+        await _organizationDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Updated TeamOperatingModel {OperatingModelId} for Team {TeamId}",
+            request.OperatingModelId, request.TeamId);
+
+        return Result.Success();
     }
 }

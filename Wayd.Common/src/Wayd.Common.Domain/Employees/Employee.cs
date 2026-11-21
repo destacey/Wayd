@@ -179,55 +179,48 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable<EmployeeAct
         Instant timestamp
         )
     {
-        try
+        // Every caller sends every field, a sync on every run, so the events are raised only for what
+        // actually moved — compared after assignment, because the setters trim.
+        var previousDetails = Details();
+
+        if (Name != name) Name = name;
+        if (Email != email)
         {
-            // Every caller sends every field, a sync on every run, so the events are raised only for what
-            // actually moved — compared after assignment, because the setters trim.
-            var previousDetails = Details();
-
-            if (Name != name) Name = name;
-            if (Email != email)
-            {
-                Email = email;
-                // Emails carries the canonical address as its primary row, so changing the scalar
-                // has to move that flag with it — otherwise the collection keeps pointing at the
-                // previous address until a connector happens to reconcile.
-                SyncPrimaryEmail();
-            }
-
-            EmployeeNumber = employeeNumber;
-            HireDate = hireDate;
-            JobTitle = jobTitle;
-            Department = department;
-            OfficeLocation = officeLocation;
-            EmployeeType = employeeType;
-
-            if (Details() != previousDetails)
-            {
-                AddDomainEvent(new EmployeeDetailsUpdatedEvent(Id, actor, timestamp));
-            }
-
-            if (ManagerId != managerId)
-            {
-                ChangeManager(managerId, actor, timestamp);
-            }
-
-            if (IsActive != isActive)
-            {
-                var args = EmployeeActivatableArgs.Create(actor, timestamp);
-                var result = isActive ? Activate(args) : Deactivate(args);
-                if (result.IsFailure)
-                {
-                    return Result.Failure(result.Error);
-                }
-            }
-
-            return Result.Success();
+            Email = email;
+            // Emails carries the canonical address as its primary row, so changing the scalar
+            // has to move that flag with it — otherwise the collection keeps pointing at the
+            // previous address until a connector happens to reconcile.
+            SyncPrimaryEmail();
         }
-        catch (Exception ex)
+
+        EmployeeNumber = employeeNumber;
+        HireDate = hireDate;
+        JobTitle = jobTitle;
+        Department = department;
+        OfficeLocation = officeLocation;
+        EmployeeType = employeeType;
+
+        if (Details() != previousDetails)
         {
-            return Result.Failure(ex.ToString());
+            AddDomainEvent(new EmployeeDetailsUpdatedEvent(Id, actor, timestamp));
         }
+
+        if (ManagerId != managerId)
+        {
+            ChangeManager(managerId, actor, timestamp);
+        }
+
+        if (IsActive != isActive)
+        {
+            var args = EmployeeActivatableArgs.Create(actor, timestamp);
+            var result = isActive ? Activate(args) : Deactivate(args);
+            if (result.IsFailure)
+            {
+                return Result.Failure(result.Error);
+            }
+        }
+
+        return Result.Success();
     }
 
     /// <summary>Updates the manager identifier.</summary>

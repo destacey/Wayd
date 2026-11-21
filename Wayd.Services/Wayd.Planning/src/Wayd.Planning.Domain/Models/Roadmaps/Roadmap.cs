@@ -500,61 +500,54 @@ public sealed class Roadmap : BaseAuditableEntity, ILocalSchedule, IHasIdAndKey
         int? activityOrder = null)
         where T : BaseRoadmapItem
     {
-        try
+        var canModifyResult = CanModify(caller);
+        if (canModifyResult.IsFailure)
         {
-            var canModifyResult = CanModify(caller);
-            if (canModifyResult.IsFailure)
-            {
-                return Result.Failure<T>(canModifyResult.Error);
-            }
-
-            var before = SnapshotItems();
-
-            RoadmapActivity? parent = null;
-            if (newItem.ParentId.HasValue)
-            {
-                var parentActivityResult = GetActivity(newItem.ParentId.Value);
-                if (parentActivityResult.IsFailure)
-                {
-                    return Result.Failure<T>(parentActivityResult.Error);
-                }
-                parent = parentActivityResult.Value;
-            }
-
-            if (activityOrder.HasValue)
-            {
-                var lastOrder = (parent?.Children.OfType<RoadmapActivity>().Count() ?? RootActivities.Count) + 1;
-                if (activityOrder.Value < 1 || activityOrder.Value > lastOrder)
-                {
-                    return Result.Failure<T>($"Order must be between 1 and {lastOrder}.");
-                }
-            }
-
-            var item = parent is null
-                ? createRootFunc(Id, newItem)
-                : createChildFunc(parent, newItem);
-
-            _items.Add(item);
-
-            // Created last, then moved into place before the changes are raised, so the added event
-            // carries the final order and no reader sees the activity last.
-            if (activityOrder.HasValue)
-            {
-                var orderResult = ApplyActivityOrder(item.Id, activityOrder.Value);
-                if (orderResult.IsFailure)
-                {
-                    return Result.Failure<T>(orderResult.Error);
-                }
-            }
-
-            RaiseItemChanges(before, item.Id, actor, timestamp);
-
-            return item;
+            return Result.Failure<T>(canModifyResult.Error);
         }
-        catch (Exception ex)
+
+        var before = SnapshotItems();
+
+        RoadmapActivity? parent = null;
+        if (newItem.ParentId.HasValue)
         {
-            return Result.Failure<T>(ex.Message);
+            var parentActivityResult = GetActivity(newItem.ParentId.Value);
+            if (parentActivityResult.IsFailure)
+            {
+                return Result.Failure<T>(parentActivityResult.Error);
+            }
+            parent = parentActivityResult.Value;
         }
+
+        if (activityOrder.HasValue)
+        {
+            var lastOrder = (parent?.Children.OfType<RoadmapActivity>().Count() ?? RootActivities.Count) + 1;
+            if (activityOrder.Value < 1 || activityOrder.Value > lastOrder)
+            {
+                return Result.Failure<T>($"Order must be between 1 and {lastOrder}.");
+            }
+        }
+
+        var item = parent is null
+            ? createRootFunc(Id, newItem)
+            : createChildFunc(parent, newItem);
+
+        _items.Add(item);
+
+        // Created last, then moved into place before the changes are raised, so the added event
+        // carries the final order and no reader sees the activity last.
+        if (activityOrder.HasValue)
+        {
+            var orderResult = ApplyActivityOrder(item.Id, activityOrder.Value);
+            if (orderResult.IsFailure)
+            {
+                return Result.Failure<T>(orderResult.Error);
+            }
+        }
+
+        RaiseItemChanges(before, item.Id, actor, timestamp);
+
+        return item;
     }
 
     /// <summary>
@@ -608,64 +601,57 @@ public sealed class Roadmap : BaseAuditableEntity, ILocalSchedule, IHasIdAndKey
         Func<T, IUpsertRoadmapItem, RoadmapActivity?, Result> updateFunc)
     where T : BaseRoadmapItem
     {
-        try
+        var canModifyResult = CanModify(caller);
+        if (canModifyResult.IsFailure)
         {
-            var canModifyResult = CanModify(caller);
-            if (canModifyResult.IsFailure)
-            {
-                return canModifyResult;
-            }
-
-            var roadmapItem = _items.OfType<T>().FirstOrDefault(x => x.Id == itemId);
-            if (roadmapItem is null)
-            {
-                // switch against the type of the item to provide a readable type name
-                var typeName = typeof(T).Name switch
-                {
-                    nameof(RoadmapActivity) => "Roadmap Activity",
-                    nameof(RoadmapMilestone) => "Roadmap Milestone",
-                    nameof(RoadmapTimebox) => "Roadmap Timebox",
-                    _ => "Roadmap Item"
-                };
-
-                return Result.Failure($"{typeName} does not exist on this roadmap.");
-            }
-
-            RoadmapActivity? parentActivity = null;
-            if (item.ParentId.HasValue)
-            {
-                var parentActivityResult = GetActivity(item.ParentId.Value);
-                if (parentActivityResult.IsFailure)
-                {
-                    return Result.Failure(parentActivityResult.Error);
-                }
-                parentActivity = parentActivityResult.Value;
-            }
-
-            var before = SnapshotItems();
-
-            var parentChanged = item.ParentId != roadmapItem.ParentId;
-            var updateRootActivitiesOrder = parentChanged && (item.ParentId is null || roadmapItem.ParentId is null);
-
-            var updateResult = updateFunc(roadmapItem, item, parentActivity);
-            if (updateResult.IsFailure)
-            {
-                return updateResult;
-            }
-
-            if (updateRootActivitiesOrder && typeof(T) == typeof(RoadmapActivity))
-            {
-                ResetRootActivitiesOrder();
-            }
-
-            RaiseItemChanges(before, itemId, actor, timestamp);
-
-            return Result.Success();
+            return canModifyResult;
         }
-        catch (Exception ex)
+
+        var roadmapItem = _items.OfType<T>().FirstOrDefault(x => x.Id == itemId);
+        if (roadmapItem is null)
         {
-            return Result.Failure(ex.Message);
+            // switch against the type of the item to provide a readable type name
+            var typeName = typeof(T).Name switch
+            {
+                nameof(RoadmapActivity) => "Roadmap Activity",
+                nameof(RoadmapMilestone) => "Roadmap Milestone",
+                nameof(RoadmapTimebox) => "Roadmap Timebox",
+                _ => "Roadmap Item"
+            };
+
+            return Result.Failure($"{typeName} does not exist on this roadmap.");
         }
+
+        RoadmapActivity? parentActivity = null;
+        if (item.ParentId.HasValue)
+        {
+            var parentActivityResult = GetActivity(item.ParentId.Value);
+            if (parentActivityResult.IsFailure)
+            {
+                return Result.Failure(parentActivityResult.Error);
+            }
+            parentActivity = parentActivityResult.Value;
+        }
+
+        var before = SnapshotItems();
+
+        var parentChanged = item.ParentId != roadmapItem.ParentId;
+        var updateRootActivitiesOrder = parentChanged && (item.ParentId is null || roadmapItem.ParentId is null);
+
+        var updateResult = updateFunc(roadmapItem, item, parentActivity);
+        if (updateResult.IsFailure)
+        {
+            return updateResult;
+        }
+
+        if (updateRootActivitiesOrder && typeof(T) == typeof(RoadmapActivity))
+        {
+            ResetRootActivitiesOrder();
+        }
+
+        RaiseItemChanges(before, itemId, actor, timestamp);
+
+        return Result.Success();
     }
 
     public Result UpdateActivity(Guid itemId, IUpsertRoadmapActivity activity, RoadmapActor caller, EventActor actor, Instant timestamp)
@@ -1033,16 +1019,9 @@ public sealed class Roadmap : BaseAuditableEntity, ILocalSchedule, IHasIdAndKey
     /// </summary>
     public static Result<Roadmap> Create(string name, string? description, LocalDateRange dateRange, Visibility visibility, IEnumerable<Guid> ownerIds, EventActor actor, Instant timestamp)
     {
-        try
-        {
-            var roadmap = new Roadmap(name, description, dateRange, visibility, RoadmapState.Active, ownerIds);
-            roadmap.RaiseCreated(actor, timestamp);
-            return roadmap;
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<Roadmap>(ex.Message);
-        }
+        var roadmap = new Roadmap(name, description, dateRange, visibility, RoadmapState.Active, ownerIds);
+        roadmap.RaiseCreated(actor, timestamp);
+        return roadmap;
     }
 
     /// <summary>
@@ -1054,83 +1033,76 @@ public sealed class Roadmap : BaseAuditableEntity, ILocalSchedule, IHasIdAndKey
     /// <returns>A new Roadmap that is a copy of the current one.</returns>
     public Result<Roadmap> Copy(string name, IEnumerable<Guid> ownerIds, Visibility visibility, EventActor actor, Instant timestamp)
     {
-        try
+        var newRoadmap = new Roadmap(name, Description, DateRange, visibility, RoadmapState.Active, ownerIds);
+
+        // Copy all items - we need to maintain a mapping of old items to new items for parent references
+        var itemMapping = new Dictionary<Guid, BaseRoadmapItem>();
+
+        // First pass: copy all items without parent relationships
+        foreach (var item in _items)
         {
-            var newRoadmap = new Roadmap(name, Description, DateRange, visibility, RoadmapState.Active, ownerIds);
+            BaseRoadmapItem newItem;
 
-            // Copy all items - we need to maintain a mapping of old items to new items for parent references
-            var itemMapping = new Dictionary<Guid, BaseRoadmapItem>();
-
-            // First pass: copy all items without parent relationships
-            foreach (var item in _items)
+            switch (item)
             {
-                BaseRoadmapItem newItem;
-
-                switch (item)
-                {
-                    case RoadmapActivity activity:
-                        newItem = new RoadmapActivity(
-                            newRoadmap.Id,
-                            activity.Name,
-                            activity.Description,
-                            activity.DateRange,
-                            null, // Will set parent in second pass
-                            activity.Color,
-                            activity.Order);
-                        break;
-                    case RoadmapMilestone milestone:
-                        newItem = new RoadmapMilestone(
-                            newRoadmap.Id,
-                            milestone.Name,
-                            milestone.Description,
-                            milestone.Date,
-                            null, // Will set parent in second pass
-                            milestone.Color);
-                        break;
-                    case RoadmapTimebox timebox:
-                        newItem = new RoadmapTimebox(
-                            newRoadmap.Id,
-                            timebox.Name,
-                            timebox.Description,
-                            timebox.DateRange,
-                            null, // Will set parent in second pass
-                            timebox.Color);
-                        break;
-                    default:
-                        continue;
-                }
-
-                // Map old item ID to new item instance (not ID, since new IDs aren't generated yet)
-                itemMapping[item.Id] = newItem;
-                newRoadmap._items.Add(newItem);
+                case RoadmapActivity activity:
+                    newItem = new RoadmapActivity(
+                        newRoadmap.Id,
+                        activity.Name,
+                        activity.Description,
+                        activity.DateRange,
+                        null, // Will set parent in second pass
+                        activity.Color,
+                        activity.Order);
+                    break;
+                case RoadmapMilestone milestone:
+                    newItem = new RoadmapMilestone(
+                        newRoadmap.Id,
+                        milestone.Name,
+                        milestone.Description,
+                        milestone.Date,
+                        null, // Will set parent in second pass
+                        milestone.Color);
+                    break;
+                case RoadmapTimebox timebox:
+                    newItem = new RoadmapTimebox(
+                        newRoadmap.Id,
+                        timebox.Name,
+                        timebox.Description,
+                        timebox.DateRange,
+                        null, // Will set parent in second pass
+                        timebox.Color);
+                    break;
+                default:
+                    continue;
             }
 
-            // Second pass: update parent references using the item mapping
-            foreach (var oldItem in _items)
-            {
-                if (!oldItem.ParentId.HasValue) continue;
-
-                // Find the corresponding new item
-                if (!itemMapping.TryGetValue(oldItem.Id, out var newItem)) continue;
-
-                // Find the new parent item
-                if (!itemMapping.TryGetValue(oldItem.ParentId.Value, out var newParent)) continue;
-
-                // Only activities can be parents
-                if (newParent is RoadmapActivity newParentActivity)
-                {
-                    newItem.SetParentDirect(newParentActivity);
-                }
-            }
-
-            newRoadmap.RaiseCreated(actor, timestamp);
-
-            return newRoadmap;
+            // Map old item ID to new item instance (not ID, since new IDs aren't generated yet)
+            itemMapping[item.Id] = newItem;
+            newRoadmap._items.Add(newItem);
         }
-        catch (Exception ex)
+
+        // Second pass: update parent references using the item mapping
+        foreach (var oldItem in _items)
         {
-            return Result.Failure<Roadmap>(ex.Message);
+            if (!oldItem.ParentId.HasValue) continue;
+
+            // Find the corresponding new item
+            if (!itemMapping.TryGetValue(oldItem.Id, out var newItem)) continue;
+
+            // Find the new parent item
+            if (!itemMapping.TryGetValue(oldItem.ParentId.Value, out var newParent)) continue;
+
+            // Only activities can be parents
+            if (newParent is RoadmapActivity newParentActivity)
+            {
+                newItem.SetParentDirect(newParentActivity);
+            }
         }
+
+        newRoadmap.RaiseCreated(actor, timestamp);
+
+        return newRoadmap;
     }
 
     /// <summary>

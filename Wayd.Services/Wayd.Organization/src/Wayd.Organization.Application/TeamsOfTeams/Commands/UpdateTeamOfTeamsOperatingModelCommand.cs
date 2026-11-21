@@ -28,8 +28,6 @@ public sealed class UpdateTeamOfTeamsOperatingModelCommandHandler(
     ICurrentUser currentUser,
     ILogger<UpdateTeamOfTeamsOperatingModelCommandHandler> logger) : ICommandHandler<UpdateTeamOfTeamsOperatingModelCommand>
 {
-    private const string RequestName = nameof(UpdateTeamOfTeamsOperatingModelCommand);
-
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -37,40 +35,32 @@ public sealed class UpdateTeamOfTeamsOperatingModelCommandHandler(
 
     public async Task<Result> Handle(UpdateTeamOfTeamsOperatingModelCommand request, CancellationToken cancellationToken)
     {
-        try
+        var team = await _organizationDbContext.TeamOfTeams
+            .Include(t => t.OperatingModels)
+            .FirstOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
+        if (team is null)
         {
-            var team = await _organizationDbContext.TeamOfTeams
-                .Include(t => t.OperatingModels)
-                .FirstOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
-            if (team is null)
-            {
-                _logger.LogInformation("Team of Teams {TeamId} not found", request.TeamId);
-                return Result.Failure($"Team of Teams with Id {request.TeamId} not found.");
-            }
-
-            var result = team.CorrectOperatingModel(
-                request.OperatingModelId,
-                request.TimeZone,
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                _logger.LogError("Failed to update operating model {OperatingModelId}. Error: {Error}",
-                    request.OperatingModelId, result.Error);
-                return result;
-            }
-
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Updated TeamOfTeamsOperatingModel {OperatingModelId} for Team of Teams {TeamId}",
-                request.OperatingModelId, request.TeamId);
-
-            return Result.Success();
+            _logger.LogInformation("Team of Teams {TeamId} not found", request.TeamId);
+            return Result.Failure($"Team of Teams with Id {request.TeamId} not found.");
         }
-        catch (Exception ex)
+
+        var result = team.CorrectOperatingModel(
+            request.OperatingModelId,
+            request.TimeZone,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            _dateTimeProvider.Now);
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception for request {RequestName}", RequestName);
-            return Result.Failure($"Exception for request {RequestName}: {ex.Message}");
+            _logger.LogError("Failed to update operating model {OperatingModelId}. Error: {Error}",
+                request.OperatingModelId, result.Error);
+            return result;
         }
+
+        await _organizationDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Updated TeamOfTeamsOperatingModel {OperatingModelId} for Team of Teams {TeamId}",
+            request.OperatingModelId, request.TeamId);
+
+        return Result.Success();
     }
 }

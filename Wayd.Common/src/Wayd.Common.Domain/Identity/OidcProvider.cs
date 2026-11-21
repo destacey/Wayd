@@ -182,44 +182,37 @@ public sealed class OidcProvider : BaseAuditableEntity
         Instant timestamp,
         RegistrationPolicy? registrationPolicy = null)
     {
-        try
+        var validation = ValidateInvariants(name, authority, providerType, allowedTenantIds, clockSkewSeconds);
+        if (validation.IsFailure)
         {
-            var validation = ValidateInvariants(name, authority, providerType, allowedTenantIds, clockSkewSeconds);
-            if (validation.IsFailure)
-            {
-                return Result.Failure<OidcProvider>(validation.Error);
-            }
-
-            var provider = new OidcProvider(
-                name,
-                displayName,
-                providerType,
-                authority,
-                clientId,
-                audience,
-                scopes ?? [],
-                NormalizeAllowedTenantIds(allowedTenantIds),
-                clockSkewSeconds,
-                isEnabled,
-                registrationPolicy ?? RegistrationPolicy.Disabled());
-
-            provider.AddDomainEvent(new OidcProviderCreatedEvent(
-                provider.Id,
-                provider.Name,
-                provider.DisplayName,
-                provider.ProviderType,
-                provider.CurrentConfiguration(),
-                OidcProviderRegistrationPolicy.From(provider.RegistrationPolicy),
-                provider.IsEnabled,
-                actor,
-                timestamp));
-
-            return Result.Success(provider);
+            return Result.Failure<OidcProvider>(validation.Error);
         }
-        catch (Exception ex)
-        {
-            return Result.Failure<OidcProvider>(ex.Message);
-        }
+
+        var provider = new OidcProvider(
+            name,
+            displayName,
+            providerType,
+            authority,
+            clientId,
+            audience,
+            scopes ?? [],
+            NormalizeAllowedTenantIds(allowedTenantIds),
+            clockSkewSeconds,
+            isEnabled,
+            registrationPolicy ?? RegistrationPolicy.Disabled());
+
+        provider.AddDomainEvent(new OidcProviderCreatedEvent(
+            provider.Id,
+            provider.Name,
+            provider.DisplayName,
+            provider.ProviderType,
+            provider.CurrentConfiguration(),
+            OidcProviderRegistrationPolicy.From(provider.RegistrationPolicy),
+            provider.IsEnabled,
+            actor,
+            timestamp));
+
+        return Result.Success(provider);
     }
 
     /// <summary>
@@ -254,55 +247,48 @@ public sealed class OidcProvider : BaseAuditableEntity
         Instant timestamp,
         RegistrationPolicy? registrationPolicy = null)
     {
-        try
+        var validation = ValidateInvariants(Name, authority, ProviderType, allowedTenantIds, clockSkewSeconds);
+        if (validation.IsFailure)
         {
-            var validation = ValidateInvariants(Name, authority, ProviderType, allowedTenantIds, clockSkewSeconds);
-            if (validation.IsFailure)
-            {
-                return Result.Failure(validation.Error);
-            }
-
-            // Compared after assignment, never against the arguments: the setters trim and the tenant list is
-            // normalized.
-            var previousDetails = new OidcProviderDetails(DisplayName);
-            var previousConfiguration = CurrentConfiguration();
-            var previousPolicy = OidcProviderRegistrationPolicy.From(RegistrationPolicy);
-
-            DisplayName = displayName;
-            Authority = authority;
-            ClientId = clientId;
-            Audience = audience;
-            Scopes = scopes ?? [];
-            AllowedTenantIds = NormalizeAllowedTenantIds(allowedTenantIds);
-            ClockSkewSeconds = clockSkewSeconds;
-            RegistrationPolicy = registrationPolicy ?? RegistrationPolicy.Disabled();
-
-            var details = new OidcProviderDetails(DisplayName);
-            if (details != previousDetails)
-            {
-                AddDomainEvent(new OidcProviderDetailsUpdatedEvent(Id, details.Label, previousDetails, actor, timestamp));
-            }
-
-            var configuration = CurrentConfiguration();
-            if (!configuration.IsEquivalentTo(previousConfiguration))
-            {
-                AddDomainEvent(new OidcProviderConfigurationChangedEvent(Id, configuration, previousConfiguration, actor, timestamp));
-            }
-
-            var policy = OidcProviderRegistrationPolicy.From(RegistrationPolicy);
-            if (policy != previousPolicy)
-            {
-                AddDomainEvent(new OidcProviderRegistrationPolicyChangedEvent(Id, policy, previousPolicy, actor, timestamp));
-            }
-
-            SetEnabled(isEnabled, actor, timestamp);
-
-            return Result.Success();
+            return Result.Failure(validation.Error);
         }
-        catch (Exception ex)
+
+        // Compared after assignment, never against the arguments: the setters trim and the tenant list is
+        // normalized.
+        var previousDetails = new OidcProviderDetails(DisplayName);
+        var previousConfiguration = CurrentConfiguration();
+        var previousPolicy = OidcProviderRegistrationPolicy.From(RegistrationPolicy);
+
+        DisplayName = displayName;
+        Authority = authority;
+        ClientId = clientId;
+        Audience = audience;
+        Scopes = scopes ?? [];
+        AllowedTenantIds = NormalizeAllowedTenantIds(allowedTenantIds);
+        ClockSkewSeconds = clockSkewSeconds;
+        RegistrationPolicy = registrationPolicy ?? RegistrationPolicy.Disabled();
+
+        var details = new OidcProviderDetails(DisplayName);
+        if (details != previousDetails)
         {
-            return Result.Failure(ex.Message);
+            AddDomainEvent(new OidcProviderDetailsUpdatedEvent(Id, details.Label, previousDetails, actor, timestamp));
         }
+
+        var configuration = CurrentConfiguration();
+        if (!configuration.IsEquivalentTo(previousConfiguration))
+        {
+            AddDomainEvent(new OidcProviderConfigurationChangedEvent(Id, configuration, previousConfiguration, actor, timestamp));
+        }
+
+        var policy = OidcProviderRegistrationPolicy.From(RegistrationPolicy);
+        if (policy != previousPolicy)
+        {
+            AddDomainEvent(new OidcProviderRegistrationPolicyChangedEvent(Id, policy, previousPolicy, actor, timestamp));
+        }
+
+        SetEnabled(isEnabled, actor, timestamp);
+
+        return Result.Success();
     }
 
     /// <summary>

@@ -164,28 +164,21 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
     /// <returns>A Result indicating success or failure.</returns>
     public Result UpdateName(string name, EventActor actor, Instant timestamp)
     {
-        try
+        if (IsRevoked)
         {
-            if (IsRevoked)
-            {
-                return Result.Failure("Cannot update a revoked token.");
-            }
-
-            // Compared after assignment, never against the argument: the setter trims.
-            var previousName = Name;
-            Name = name;
-
-            if (Name != previousName)
-            {
-                AddDomainEvent(new PersonalAccessTokenRenamedEvent(Id, UserId, previousName, Name, actor, timestamp));
-            }
-
-            return Result.Success();
+            return Result.Failure("Cannot update a revoked token.");
         }
-        catch (Exception ex)
+
+        // Compared after assignment, never against the argument: the setter trims.
+        var previousName = Name;
+        Name = name;
+
+        if (Name != previousName)
         {
-            return Result.Failure(ex.Message);
+            AddDomainEvent(new PersonalAccessTokenRenamedEvent(Id, UserId, previousName, Name, actor, timestamp));
         }
+
+        return Result.Success();
     }
 
     /// <summary>
@@ -250,26 +243,19 @@ public sealed class PersonalAccessToken : BaseAuditableEntity
         EventActor actor,
         Instant timestamp)
     {
-        try
+        if (expiresAt <= timestamp)
         {
-            if (expiresAt <= timestamp)
-            {
-                return Result.Failure<PersonalAccessToken>("Expiration date must be in the future.");
-            }
-
-            var token = new PersonalAccessToken(name, tokenIdentifier, tokenHash, userId, expiresAt, timestamp)
-            {
-                Scopes = scope.ToScopeString()
-            };
-
-            token.AddDomainEvent(new PersonalAccessTokenCreatedEventV2(
-                token.Id, token.UserId, token.Name, token.ExpiresAt, token.Scope, actor, timestamp));
-
-            return Result.Success(token);
+            return Result.Failure<PersonalAccessToken>("Expiration date must be in the future.");
         }
-        catch (Exception ex)
+
+        var token = new PersonalAccessToken(name, tokenIdentifier, tokenHash, userId, expiresAt, timestamp)
         {
-            return Result.Failure<PersonalAccessToken>(ex.Message);
-        }
+            Scopes = scope.ToScopeString()
+        };
+
+        token.AddDomainEvent(new PersonalAccessTokenCreatedEventV2(
+            token.Id, token.UserId, token.Name, token.ExpiresAt, token.Scope, actor, timestamp));
+
+        return Result.Success(token);
     }
 }

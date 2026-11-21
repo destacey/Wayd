@@ -213,18 +213,17 @@ public class TeamOfTeamsTests
     }
 
     [Fact]
-    public void UpdateDetails_WithNullName_ReturnsFailedResult()
+    public void UpdateDetails_WithNullName_Throws()
     {
         // Arrange
         var team = _teamOfTeamsFaker.Generate();
         string name = null!;
 
         // Act
-        var result = team.UpdateDetails(name, team.Code, team.Description, EventActor.System, _dateTimeProvider.Now);
+        var act = () => team.UpdateDetails(name, team.Code, team.Description, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().StartWith("System.ArgumentNullException: Value cannot be null. (Parameter 'Name')");
+        act.Should().Throw<ArgumentNullException>().WithParameterName("Name");
 
         team.DomainEvents.Should().BeEmpty();
     }
@@ -232,34 +231,32 @@ public class TeamOfTeamsTests
     [Theory]
     [InlineData("")]
     [InlineData("  ")]
-    public void UpdateDetails_WithInvalidName_ReturnsFailedResult(string name)
+    public void UpdateDetails_WithInvalidName_Throws(string name)
     {
         // Arrange
         var team = _teamOfTeamsFaker.Generate();
 
         // Act
-        var result = team.UpdateDetails(name, team.Code, team.Description, EventActor.System, _dateTimeProvider.Now);
+        var act = () => team.UpdateDetails(name, team.Code, team.Description, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().StartWith("System.ArgumentException: Required input Name was empty. (Parameter 'Name')");
+        act.Should().Throw<ArgumentException>().WithParameterName("Name");
 
         team.DomainEvents.Should().BeEmpty();
     }
 
     [Fact]
-    public void UpdateDetails_WithNullCode_ReturnsFailedResult()
+    public void UpdateDetails_WithNullCode_Throws()
     {
         // Arrange
         var team = _teamOfTeamsFaker.Generate();
         TeamCode code = null!;
 
         // Act
-        var result = team.UpdateDetails(team.Name, code, team.Description, EventActor.System, _dateTimeProvider.Now);
+        var act = () => team.UpdateDetails(team.Name, code, team.Description, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().StartWith("System.ArgumentNullException: Value cannot be null. (Parameter 'Code')");
+        act.Should().Throw<ArgumentNullException>().WithParameterName("Code");
 
         team.DomainEvents.Should().BeEmpty();
     }

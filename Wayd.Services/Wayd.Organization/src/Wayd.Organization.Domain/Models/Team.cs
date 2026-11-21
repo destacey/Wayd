@@ -96,27 +96,20 @@ public sealed class Team : BaseTeam, IActivatable<TeamActivatableArgs, TeamDeact
     /// <returns></returns>
     public Result UpdateDetails(string name, TeamCode code, string? description, EventActor actor, Instant timestamp)
     {
-        try
-        {
-            var before = new TeamDetails(Code, Name, Description);
+        var before = new TeamDetails(Code, Name, Description);
 
-            Name = name;
-            Code = code;
-            Description = description;
+        Name = name;
+        Code = code;
+        Description = description;
 
-            // Compared after assignment because the setters normalise.
-            var after = new TeamDetails(Code, Name, Description);
-            if (after == before)
-                return Result.Success();
-
-            AddKeyedDomainEvent(() => new TeamDetailsUpdatedEvent(Id, Key, after.Code, after.Name, after.Description, before, actor, timestamp));
-
+        // Compared after assignment because the setters normalise.
+        var after = new TeamDetails(Code, Name, Description);
+        if (after == before)
             return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+
+        AddKeyedDomainEvent(() => new TeamDetailsUpdatedEvent(Id, Key, after.Code, after.Name, after.Description, before, actor, timestamp));
+
+        return Result.Success();
     }
 
     /// <summary>

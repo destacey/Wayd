@@ -125,17 +125,10 @@ public sealed class StoryMapTask : BaseAuditableEntity
 
     internal Result<ChecklistItem> AddChecklistItem(string name)
     {
-        try
-        {
-            int nextOrder = _checklist.Count > 0 ? _checklist.Max(x => x.Order) + 1 : 0;
-            var item = new ChecklistItem(name, nextOrder);
-            _checklist.Add(item);
-            return item;
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<ChecklistItem>(ex.Message);
-        }
+        int nextOrder = _checklist.Count > 0 ? _checklist.Max(x => x.Order) + 1 : 0;
+        var item = new ChecklistItem(name, nextOrder);
+        _checklist.Add(item);
+        return item;
     }
 
     internal Result RenameChecklistItem(Guid itemId, string name)
@@ -144,15 +137,8 @@ public sealed class StoryMapTask : BaseAuditableEntity
         if (item is null)
             return Result.Failure("Checklist item does not exist on this task.");
 
-        try
-        {
-            item.Rename(name);
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.Message);
-        }
+        item.Rename(name);
+        return Result.Success();
     }
 
     internal Result SetChecklistItemChecked(Guid itemId, bool isChecked)

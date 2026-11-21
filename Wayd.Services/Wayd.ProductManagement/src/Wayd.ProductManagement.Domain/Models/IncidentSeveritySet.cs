@@ -58,16 +58,9 @@ public sealed class IncidentSeveritySet : BaseAuditableEntity
             return Result.Failure<IncidentSeveritySet>("A severity set must have at least two levels.");
         }
 
-        try
-        {
-            var set = new IncidentSeveritySet(name, description, isSystem: false);
-            set.AddLevels(levels);
-            return Result.Success(set);
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<IncidentSeveritySet>(ex.Message);
-        }
+        var set = new IncidentSeveritySet(name, description, isSystem: false);
+        set.AddLevels(levels);
+        return Result.Success(set);
     }
 
     /// <summary>Creates a system scale at seed time.</summary>
@@ -94,16 +87,9 @@ public sealed class IncidentSeveritySet : BaseAuditableEntity
             return Result.Failure("System severity sets cannot be edited.");
         }
 
-        try
-        {
-            Name = name;
-            Description = description;
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.Message);
-        }
+        Name = name;
+        Description = description;
+        return Result.Success();
     }
 
     /// <summary>

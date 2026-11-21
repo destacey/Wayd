@@ -247,7 +247,7 @@ public class TeamTests
     }
 
     [Fact]
-    public void UpdateDetails_WithNullName_ReturnsFailedResult()
+    public void UpdateDetails_WithNullName_Throws()
     {
         // Arrange
         var team = _teamFaker.Generate();
@@ -255,11 +255,10 @@ public class TeamTests
         string name = null!;
 
         // Act
-        var result = team.UpdateDetails(name, team.Code, team.Description, EventActor.System, _dateTimeProvider.Now);
+        var act = () => team.UpdateDetails(name, team.Code, team.Description, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().StartWith("System.ArgumentNullException: Value cannot be null. (Parameter 'Name')");
+        act.Should().Throw<ArgumentNullException>().WithParameterName("Name");
 
         team.DomainEvents.Should().BeEmpty();
     }
@@ -267,34 +266,32 @@ public class TeamTests
     [Theory]
     [InlineData("")]
     [InlineData("  ")]
-    public void UpdateDetails_WithInvalidName_ReturnsFailedResult(string name)
+    public void UpdateDetails_WithInvalidName_Throws(string name)
     {
         // Arrange
         var team = _teamFaker.Generate();
 
         // Act
-        var result = team.UpdateDetails(name, team.Code, team.Description, EventActor.System, _dateTimeProvider.Now);
+        var act = () => team.UpdateDetails(name, team.Code, team.Description, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().StartWith("System.ArgumentException: Required input Name was empty. (Parameter 'Name')");
+        act.Should().Throw<ArgumentException>().WithParameterName("Name");
 
         team.DomainEvents.Should().BeEmpty();
     }
 
     [Fact]
-    public void UpdateDetails_WithNullCode_ReturnsFailedResult()
+    public void UpdateDetails_WithNullCode_Throws()
     {
         // Arrange
         var team = _teamFaker.Generate();
         TeamCode code = null!;
 
         // Act
-        var result = team.UpdateDetails(team.Name, code, team.Description, EventActor.System, _dateTimeProvider.Now);
+        var act = () => team.UpdateDetails(team.Name, code, team.Description, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().StartWith("System.ArgumentNullException: Value cannot be null. (Parameter 'Code')");
+        act.Should().Throw<ArgumentNullException>().WithParameterName("Code");
 
         team.DomainEvents.Should().BeEmpty();
     }
@@ -720,6 +717,39 @@ public class TeamTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         team.ParentMemberships.Count.Should().Be(0);
+    }
+
+    [Fact]
+    public void RemoveTeamMembership_WhenTheMembershipIsUnknown_Failure()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var unknownMembershipId = Guid.NewGuid();
+
+        // Act
+        var result = team.RemoveTeamMembership(unknownMembershipId, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be($"Membership {unknownMembershipId} was not found on this team.");
+        team.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void UpdateTeamMembership_WhenTheMembershipIsUnknown_Failure()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var unknownMembershipId = Guid.NewGuid();
+        MembershipDateRange dateRange = new(team.ActiveDate.PlusDays(10), null);
+
+        // Act
+        var result = team.UpdateTeamMembership(unknownMembershipId, dateRange, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be($"Membership {unknownMembershipId} was not found on this team.");
+        team.DomainEvents.Should().BeEmpty();
     }
 
     [Fact]

@@ -57,17 +57,10 @@ public sealed class WorkTypeLevel : BaseAuditableEntity<int>
     /// <returns></returns>
     internal Result Update(string name, string? description, Instant timestamp)
     {
-        try
-        {
-            Name = name;
-            Description = description;
+        Name = name;
+        Description = description;
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+        return Result.Success();
     }
 
     /// <summary>

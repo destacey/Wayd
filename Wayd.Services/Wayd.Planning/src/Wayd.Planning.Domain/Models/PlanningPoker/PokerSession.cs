@@ -392,18 +392,11 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         if (Status != PokerSessionStatus.Active)
             return Result.Failure<PokerRound>("Rounds can only be added to an active session.");
 
-        try
-        {
-            int nextOrder = _rounds.Count > 0 ? _rounds.Max(r => r.Order) + 1 : 0;
-            var round = new PokerRound(Id, label, description, nextOrder);
-            _rounds.Add(round);
+        int nextOrder = _rounds.Count > 0 ? _rounds.Max(r => r.Order) + 1 : 0;
+        var round = new PokerRound(Id, label, description, nextOrder);
+        _rounds.Add(round);
 
-            return Result.Success(round);
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<PokerRound>(ex.ToString());
-        }
+        return Result.Success(round);
     }
 
     /// <summary>
@@ -685,21 +678,14 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         if (scaleChanged && !estimationScale.IsActive)
             return Result.Failure(InactiveScaleError);
 
-        try
+        Name = name;
+        if (scaleChanged)
         {
-            Name = name;
-            if (scaleChanged)
-            {
-                var version = estimationScale.CurrentVersion;
-                EstimationScaleId = estimationScale.Id;
-                EstimationScaleVersionId = version.Id;
-            }
-            return Result.Success();
+            var version = estimationScale.CurrentVersion;
+            EstimationScaleId = estimationScale.Id;
+            EstimationScaleVersionId = version.Id;
         }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+        return Result.Success();
     }
 
     /// <summary>
@@ -737,19 +723,12 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         Guard.Against.Null(host, nameof(host));
         Guard.Against.Default(facilitatorEmployeeId, nameof(facilitatorEmployeeId));
 
-        try
+        var session = new PokerSession(name, estimationScaleVersion, Visibility.Private, facilitatorEmployeeId, host)
         {
-            var session = new PokerSession(name, estimationScaleVersion, Visibility.Private, facilitatorEmployeeId, host)
-            {
-                Status = PokerSessionStatus.Active,
-                ActivatedOn = timestamp
-            };
-            return Result.Success(session);
-        }
-        catch (ArgumentException ex)
-        {
-            return Result.Failure<PokerSession>(ex.Message);
-        }
+            Status = PokerSessionStatus.Active,
+            ActivatedOn = timestamp
+        };
+        return Result.Success(session);
     }
 
     /// <summary>
@@ -766,18 +745,11 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         if (!estimationScale.IsActive)
             return Result.Failure<PokerSession>(InactiveScaleError);
 
-        try
+        var session = new PokerSession(name, estimationScale.CurrentVersion, visibility, facilitatorEmployeeId)
         {
-            var session = new PokerSession(name, estimationScale.CurrentVersion, visibility, facilitatorEmployeeId)
-            {
-                Status = PokerSessionStatus.Active,
-                ActivatedOn = timestamp
-            };
-            return Result.Success(session);
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure<PokerSession>(ex.ToString());
-        }
+            Status = PokerSessionStatus.Active,
+            ActivatedOn = timestamp
+        };
+        return Result.Success(session);
     }
 }

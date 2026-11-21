@@ -95,6 +95,7 @@ export const WorkdayConfigurationSection: React.FC<ConfigSectionProps> = ({
         name="isuPassword"
         maxLength={512}
         mode={mode}
+        requiredAgainWhen="the WSDL URL's host or tenant, or the ISU username"
       />
 
       <Item

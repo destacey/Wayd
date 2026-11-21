@@ -25,6 +25,7 @@ export const AzureOpenAIConfigurationSection: React.FC<ConfigSectionProps> = ({
         name="apiKey"
         maxLength={256}
         mode={mode}
+        requiredAgainWhen="the Base URL's host"
       />
 
       <Item

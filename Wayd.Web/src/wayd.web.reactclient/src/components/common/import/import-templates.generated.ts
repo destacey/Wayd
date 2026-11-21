@@ -388,7 +388,7 @@ export const importTemplates = {
             type: 'text',
             required: true,
             description:
-              'The kind of record the KPI goes on: `organization.team` for a team or a team of teams, `ppm.project`, `ppm.program` or `ppm.portfolio`.',
+              'The kind of record the KPI goes on: `organization.team` for a team or a team of teams, `ppm.project`, `ppm.program`, `ppm.portfolio` or `ppm.strategic-initiative`.',
             maxLength: 64,
           },
           {
@@ -1563,7 +1563,7 @@ export const importTemplates = {
   'ppm.strategic-initiatives': {
     module: 'ppm',
     description:
-      "An initiative's KPIs are not part of this file: import them through the KPI import, naming the initiative by the id this run returns for it.",
+      "An initiative's KPIs are not part of this file: import them through the KPI import, naming the initiative by the id this run returns for it. That import needs `Permissions.Kpis.Administer` as well.",
     files: [
       {
         field: 'file',
@@ -1574,7 +1574,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it, and the KPI file names it to say which initiative a KPI belongs to. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it, with the id of the initiative it created. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
           },
           {
             name: 'Name',

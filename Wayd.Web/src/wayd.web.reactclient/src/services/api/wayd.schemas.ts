@@ -7509,9 +7509,8 @@ export interface ImportRiskRequest {
 export interface ImportStrategicInitiativeRequest {
   /**
      * The caller's own key for this row, unique within the file (case-insensitively). Results are
-     * reported against it, and the KPI file names it to say which initiative a KPI belongs to. Leave a
-     * cell blank and the row is known by its position instead, but the column itself must be in the
-     * file.
+     * reported against it, with the id of the initiative it created. Leave a cell blank and the row is
+     * known by its position instead, but the column itself must be in the file.
      * @nullable
      */
   importId?: string | null;

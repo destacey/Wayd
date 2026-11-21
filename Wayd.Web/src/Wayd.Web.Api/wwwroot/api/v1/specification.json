@@ -69122,7 +69122,7 @@
               "null",
               "string"
             ],
-            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, and the KPI file names it to say which initiative a KPI belongs to. Leave a\ncell blank and the row is known by its position instead, but the column itself must be in the\nfile.",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it, with the id of the initiative it created. Leave a cell blank and the row is\nknown by its position instead, but the column itself must be in the file.",
             "x-csv-column": "ImportId"
           },
           "name": {

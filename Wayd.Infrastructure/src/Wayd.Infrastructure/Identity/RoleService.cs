@@ -4,6 +4,7 @@ using Mapster;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Wayd.Common.Application.Identity.OidcProviders;
 using Wayd.Common.Domain.Events.Identity;
 
 namespace Wayd.Infrastructure.Identity;
@@ -154,6 +155,15 @@ internal class RoleService(
         {
             _logger.LogWarning("Role permissions update rejected for {RoleId}: unknown permissions {Permissions}.", role.Id, unknown);
             return Result.Failure($"Unknown permissions: {string.Join(", ", unknown)}.");
+        }
+
+        // Auto-registration grants a provider's default role to everyone who signs in, so it must not come to grant a
+        // privileged permission after the provider was set up with it.
+        if (!DefaultRoleRules.MayBeDefault(role.Name!, requested)
+            && await _defaultRoleChecker.CountProvidersUsingRole(role.Id, cancellationToken) > 0)
+        {
+            _logger.LogWarning("Role permissions update rejected for {RoleId}: it is an identity provider's default role.", role.Id);
+            return Result.Failure("This role is an identity provider's default role, so it cannot grant a privileged permission. Choose another default role first.");
         }
 
         var administrators = await Administrators.Load(_userManager, _roleManager, cancellationToken);

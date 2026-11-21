@@ -79,7 +79,9 @@ public sealed class CreateOidcProviderCommandValidator : CustomValidator<CreateO
             .DependentRules(() =>
                 RuleFor(x => x.DefaultRoleId)
                     .MustAsync(BeAnExistingRole)
-                    .WithMessage("The selected default role does not exist."))
+                    .WithMessage("The selected default role does not exist.")
+                    .MustAsync((roleId, ct) => DefaultRoleRules.MayBeDefault(_roleService, roleId, ct))
+                    .WithMessage(DefaultRoleRules.PrivilegedRole))
             .When(x => x.AllowAutoRegistration);
     }
 

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Web;
 using Wayd.Common.Application.Employees.Queries;
 using Wayd.Common.Application.Identity;
+using Wayd.Common.Application.Identity.OidcProviders;
 using Wayd.Common.Extensions;
 using Wayd.Infrastructure.Auth.Local;
 using NotFoundException = Wayd.Common.Application.Exceptions.NotFoundException;
@@ -86,34 +87,12 @@ internal partial class UserService
         // (see below) — a fresh install must always be able to create its admin.
         var policy = await ResolveRegistrationPolicy(LoginProviders.MicrosoftEntraId);
 
+        // A role is granted only with the account it is created for: an existing user whose roles an administrator
+        // removed keeps none, rather than regaining the default role on their next sign-in.
         var user = await ResolveUserByEntraIdentityAsync(tenantId, objectId, upn)
             ?? await CreateOrUpdateFromPrincipalAsync(principal, isFirstUser, policy);
 
-        if (isFirstUser)
-        {
-            await AddSignInRole(user, ApplicationRoles.Admin);
-        }
-        else
-        {
-            var roles = await _userManager.GetRolesAsync(user);
-            if (roles is null || !roles.Any())
-            {
-                await AddSignInRole(user, await ResolveDefaultRoleName(policy));
-            }
-        }
-
         return (user.Id, user.EmployeeId?.ToString());
-    }
-
-    private async Task AddSignInRole(ApplicationUser user, string roleName)
-    {
-        var roleIdsByName = await GetRoleIdsByName(CancellationToken.None);
-        var result = await AddToRoleRecorded(user, roleName, roleIdsByName, EventActor.System);
-        if (!result.Succeeded)
-        {
-            _logger.LogError("Failed to add user {UserId} to role {RoleName} at sign-in: {Errors}",
-                user.Id, roleName, string.Join(", ", result.Errors.Select(e => e.Description)));
-        }
     }
 
     /// <summary>
@@ -182,6 +161,19 @@ internal partial class UserService
                 "Default role {RoleId} configured for auto-registration no longer exists; cannot provision user.",
                 roleId);
             throw new InternalServerException("The configured registration role no longer exists. Contact an administrator.");
+        }
+
+        // The provider commands and role permission updates both refuse this; a row written before they did, or by
+        // hand, is caught here, before anyone is given administration by signing in.
+        var permissions = (await _roleManager.GetClaimsAsync(role) ?? [])
+            .Where(c => c.Type == ApplicationClaims.Permission)
+            .Select(c => c.Value);
+        if (!DefaultRoleRules.MayBeDefault(role.Name, permissions))
+        {
+            _logger.LogError(
+                "Default role {RoleId} configured for auto-registration is built in or grants a privileged permission; cannot provision user.",
+                roleId);
+            throw new ForbiddenException("Registration is unavailable for this identity provider. Contact an administrator.");
         }
 
         return role.Name;
@@ -677,6 +669,9 @@ internal partial class UserService
                 username, email, !string.IsNullOrWhiteSpace(firstName), !string.IsNullOrWhiteSpace(lastName));
         }
 
+        // Resolved before anything is written, so a default role that cannot be granted leaves no account behind.
+        var roleName = isFirstUser ? ApplicationRoles.Admin : await ResolveDefaultRoleName(policy);
+
         var user = new ApplicationUser
         {
             FirstName = Guard.Against.NullOrWhiteSpace(firstName, nameof(ClaimTypes.GivenName)),
@@ -692,16 +687,35 @@ internal partial class UserService
             LoginProvider = LoginProviders.MicrosoftEntraId,
         };
         user.RecordCreation(EventActor.System, _dateTimeProvider.Now);
-        var result = await _userManager.CreateAsync(user);
+        var roleIdsByName = await GetRoleIdsByName(CancellationToken.None);
 
-        if (!result.Succeeded)
+        // The account, its role and its identity row land together. Apart, a first user created without Admin would
+        // leave the install with a user and no administrator, and every later sign-in would no longer be the first.
+        IdentityResult result = IdentityResult.Success;
+        try
         {
-            user.ClearDomainEvents();
-            _logger.LogError("Error creating user from principal: {Errors}", result.Errors.Select(e => e.Description));
+            await _userIdentityStore.ExecuteInTransaction(async _ =>
+            {
+                result = await _userManager.CreateAsync(user);
+                if (!result.Succeeded)
+                {
+                    user.ClearDomainEvents();
+                    throw new UserCreationRollbackException();
+                }
+
+                result = await AddToRoleRecorded(user, roleName, roleIdsByName, EventActor.System);
+                if (!result.Succeeded)
+                    throw new UserCreationRollbackException();
+
+                await EnsureEntraIdentityRowAsync(user, principalTenantId, principalObjectId);
+            });
+        }
+        catch (UserCreationRollbackException)
+        {
+            _logger.LogError("Error creating user from principal with role {RoleName}: {Errors}",
+                roleName, result.Errors.Select(e => e.Description));
             throw new InternalServerException("Validation Errors Occurred.");
         }
-
-        await EnsureEntraIdentityRowAsync(user, principalTenantId, principalObjectId);
 
         return user;
     }

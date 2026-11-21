@@ -1,6 +1,9 @@
 ﻿using FluentValidation.TestHelper;
+using Wayd.Common.Application.Identity;
+using Wayd.Common.Application.Identity.OidcProviders;
 using Wayd.Common.Application.Identity.OidcProviders.Commands;
 using Wayd.Common.Application.Identity.Roles;
+using Wayd.Common.Domain.Authorization;
 
 namespace Wayd.Common.Application.Tests.Sut.Identity.OidcProviders;
 
@@ -109,5 +112,48 @@ public class UpdateOidcProviderCommandValidatorTests
         var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);
         result.ShouldHaveValidationErrorFor(x => x.DefaultRoleId)
             .WithErrorMessage("The selected default role does not exist.");
+    }
+
+    [Fact]
+    public async Task Validate_RefusesABuiltInDefaultRole()
+    {
+        // Arrange
+        _roleService.Setup(s => s.GetByIdWithPermissions(ExistingRoleId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RoleDto { Id = ExistingRoleId, Name = ApplicationRoles.Admin, Permissions = [] });
+
+        // Act
+        var result = await _sut.TestValidateAsync(ValidCommand(), cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.DefaultRoleId).WithErrorMessage(DefaultRoleRules.PrivilegedRole);
+    }
+
+    [Fact]
+    public async Task Validate_RefusesADefaultRoleThatGrantsAPrivilegedPermission()
+    {
+        // Arrange
+        var privileged = ApplicationPermission.NameFor(ApplicationAction.Manage, ApplicationResource.PrivilegedUsers);
+        _roleService.Setup(s => s.GetByIdWithPermissions(ExistingRoleId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RoleDto { Id = ExistingRoleId, Name = "Helpdesk", Permissions = ["Permissions.Users.View", privileged] });
+
+        // Act
+        var result = await _sut.TestValidateAsync(ValidCommand(), cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.DefaultRoleId).WithErrorMessage(DefaultRoleRules.PrivilegedRole);
+    }
+
+    [Fact]
+    public async Task Validate_AcceptsADefaultRoleWithOnlyOrdinaryPermissions()
+    {
+        // Arrange
+        _roleService.Setup(s => s.GetByIdWithPermissions(ExistingRoleId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RoleDto { Id = ExistingRoleId, Name = "Contributor", Permissions = ["Permissions.Users.View"] });
+
+        // Act
+        var result = await _sut.TestValidateAsync(ValidCommand(), cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.DefaultRoleId);
     }
 }

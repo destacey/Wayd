@@ -3367,6 +3367,80 @@ public class UserServiceTests
 
     #endregion
 
+    #region The roles a sign-in grants
+
+    [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldGrantNoRole_WhenAnExistingUserWithNoRolesSignsIn()
+    {
+        // Arrange
+        const string tenantId = "tenant-1";
+        const string objectId = "oid-existing";
+        var user = CreateUser(id: "user-roleless");
+        ArrangeNewUserCreatePath(CreateEntraProviderWithPolicy(requireEmployeeRecord: false, defaultRoleId: "role-guid-default"));
+        _mockUserIdentityStore.Setup(s => s.FindActive(LoginProviders.MicrosoftEntraId, tenantId, objectId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UserIdentity
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                User = user,
+                Provider = LoginProviders.MicrosoftEntraId,
+                ProviderTenantId = tenantId,
+                ProviderSubject = objectId,
+                IsActive = true,
+            });
+        var sut = CreateSut();
+
+        // Act
+        var (resolvedId, _) = await sut.GetOrCreateFromPrincipalAsync(CreateEntraPrincipal(objectId, tenantId));
+
+        // Assert
+        resolvedId.Should().Be(user.Id);
+        _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldRefuseRegistrationAndCreateNoUser_WhenTheDefaultRoleIsPrivileged()
+    {
+        // Arrange
+        const string roleId = "role-guid-privileged";
+        var role = new ApplicationRole("Helpdesk") { Id = roleId };
+        ArrangeNewUserCreatePath(CreateEntraProviderWithPolicy(requireEmployeeRecord: false, defaultRoleId: roleId));
+        _mockRoleManager.Setup(x => x.FindByIdAsync(roleId)).ReturnsAsync(role);
+        _mockRoleManager.Setup(x => x.GetClaimsAsync(role)).ReturnsAsync(
+        [
+            new Claim(ApplicationClaims.Permission, ApplicationPermission.NameFor(ApplicationAction.Manage, ApplicationResource.PrivilegedUsers)),
+        ]);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.GetOrCreateFromPrincipalAsync(CreateNewUserPrincipal("oid-p", "tenant-1", "user@acme.example"));
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>();
+        _mockUserManager.Verify(x => x.CreateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldThrowAndWriteNoIdentity_WhenTheFirstUserCannotBeMadeAdmin()
+    {
+        // Arrange
+        ArrangeNewUserCreatePath(CreateEntraProviderWithPolicy(allowAutoRegistration: false));
+        _mockUserManager.Setup(x => x.Users).Returns(Array.Empty<ApplicationUser>().AsQueryable().BuildMockDbSet().Object);
+        _mockUserManager.Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), ApplicationRoles.Admin))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "boom" }));
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.GetOrCreateFromPrincipalAsync(CreateNewUserPrincipal("oid-first", "tenant-1", "first@acme.example"));
+
+        // Assert
+        await act.Should().ThrowAsync<InternalServerException>();
+        _mockUserManager.Verify(x => x.CreateAsync(It.IsAny<ApplicationUser>()), Times.Once);
+        _mockUserIdentityStore.Verify(s => s.Add(It.IsAny<UserIdentity>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    #endregion
+
     #region GetOrCreateFromPrincipalAsync — unstaged link denial (F3)
 
     // Arranges the Entra sign-in path so that identity resolution finds nothing —

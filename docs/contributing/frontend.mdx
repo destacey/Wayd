@@ -89,6 +89,7 @@ committed client differs from what the committed spec generates.
   every call in flight;
 - signs the user out on a 401 the refresh cannot cure;
 - sends the browser's trace context and times a request out after 30 seconds;
+- resolves an empty body (a 204) as `null`, never `undefined`, which RTK Query rejects as a `queryFn` result;
 - throws a response outside 2xx as an `ApiResponseError`: its problem details with `status`, `url` and
   `headers`, whatever the status and whether or not the endpoint documents it. A network failure throws what
   `fetch` throws (a `TypeError`).

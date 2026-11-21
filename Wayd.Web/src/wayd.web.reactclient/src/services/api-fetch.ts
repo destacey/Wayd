@@ -62,7 +62,9 @@ const readBody = async (response: Response): Promise<unknown> => {
   if (response.ok && response.headers.get('content-type')?.startsWith('image/'))
     return response.blob()
   const text = await response.text()
-  if (!text) return undefined
+  // null, not undefined: store code returns a 204's result as `{ data }`, and
+  // RTK Query rejects `{ data: undefined }` as an invalid queryFn result.
+  if (!text) return null
   const contentType = response.headers.get('content-type') ?? ''
   // application/json and application/problem+json
   if (!contentType.includes('json')) return text

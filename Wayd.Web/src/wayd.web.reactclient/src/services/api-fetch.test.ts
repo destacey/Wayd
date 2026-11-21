@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { configureStore } from '@reduxjs/toolkit'
+import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react'
 import type { MockInstance } from 'vitest'
 import { navigateWithFullReload } from '@/src/utils/window-utils'
 import {
@@ -50,6 +52,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.unstubAllEnvs()
   vi.mocked(navigateWithFullReload).mockReset()
   localStorage.clear()
   sessionStorage.clear()
@@ -91,7 +94,7 @@ describe('apiFetch', () => {
     expect(new Uint8Array(await blob.arrayBuffer())).toEqual(bytes)
   })
 
-  it('returns undefined for an empty response', async () => {
+  it('returns null for an empty response', async () => {
     // Arrange
     storeSession()
     fetchSpy.mockResolvedValue(new Response(null, { status: 204 }))
@@ -102,7 +105,40 @@ describe('apiFetch', () => {
     })
 
     // Assert
-    expect(result).toBeUndefined()
+    expect(result).toBeNull()
+  })
+
+  it('lets an RTK Query mutation passing an empty response through succeed', async () => {
+    // Arrange
+    // RTK Query checks a queryFn's result only in development.
+    vi.stubEnv('NODE_ENV', 'development')
+    storeSession()
+    fetchSpy.mockResolvedValue(new Response(null, { status: 204 }))
+    const api = createApi({
+      baseQuery: fakeBaseQuery(),
+      endpoints: (builder) => ({
+        remove: builder.mutation<void, string>({
+          queryFn: async (id) => {
+            const data = await apiFetch<void>(`/api/ppm/projects/${id}`, {
+              method: 'DELETE',
+            })
+            return { data }
+          },
+        }),
+      }),
+    })
+    const store = configureStore({
+      reducer: { [api.reducerPath]: api.reducer },
+      middleware: (getDefault) => getDefault().concat(api.middleware),
+    })
+
+    // Act
+    const result = await store.dispatch(api.endpoints.remove.initiate('p-1'))
+
+    // Assert
+    expect(result.error).toBeUndefined()
+    expect(result.data).toBeNull()
+    expect(console.error).not.toHaveBeenCalled()
   })
 
   it('throws the problem details with the status for a failed response', async () => {

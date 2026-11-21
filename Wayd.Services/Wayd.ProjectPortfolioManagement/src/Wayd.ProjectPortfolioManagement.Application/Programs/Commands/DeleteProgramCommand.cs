@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Application.Links;
+﻿using Wayd.Common.Application.Kpis;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Events;
 using Wayd.ProjectPortfolioManagement.Application.Projects;
 using Wayd.ProjectPortfolioManagement.Domain;
@@ -21,12 +22,14 @@ public sealed class DeleteProgramCommandHandler(
     ICurrentUser currentUser,
     ILogger<DeleteProgramCommandHandler> logger,
     IDateTimeProvider dateTimeProvider,
-    ILinkWriter linkWriter)
+    ILinkWriter linkWriter,
+    IKpiWriter kpiWriter)
     : ICommandHandler<DeleteProgramCommand>
 {
     private const string AppRequestName = nameof(DeleteProgramCommand);
 
     private readonly ILinkWriter _linkWriter = linkWriter;
+    private readonly IKpiWriter _kpiWriter = kpiWriter;
 
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -67,6 +70,7 @@ public sealed class DeleteProgramCommandHandler(
 
             // A link has no foreign key to its record, so it would outlive the program.
             await _linkWriter.RemoveAll(PpmLinkOwners.Program.Key, program.Id, actor, cancellationToken);
+            await _kpiWriter.RemoveAll(PpmKpiSubjects.Program.Key, program.Id, actor, cancellationToken);
 
             await _ppmDbContext.SaveChangesAsync(cancellationToken);
 

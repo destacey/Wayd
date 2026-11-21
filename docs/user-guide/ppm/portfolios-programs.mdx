@@ -60,7 +60,7 @@ stateDiagram-v2
 - A portfolio's dates come from its transitions: activating sets today as its start date, and closing sets today as its end date
 - All [programs](#programs) and [projects](./projects.mdx) must be completed or canceled before closing a portfolio
 - Programs, projects, and strategic initiatives can be created only in an Active or On Hold portfolio
-- Only Proposed portfolios can be deleted
+- Only Proposed portfolios can be deleted. Deleting a portfolio also removes its KPIs, with their measurements and checkpoint plans
 - Archived portfolios are read-only
 
 ### Portfolio Project Scoring
@@ -148,7 +148,7 @@ stateDiagram-v2
 - Only active programs accept new [projects](./projects.mdx)
 - All projects must be completed or canceled before an active program can be completed or canceled
 - Projects cannot be moved out of a completed or canceled program
-- Only Proposed programs can be deleted, and only while no projects belong to them
+- Only Proposed programs can be deleted, and only while no projects belong to them. Deleting a program also removes its KPIs, with their measurements and checkpoint plans
 - Active and Completed programs require a start and end date
 
 ### Program Detail Page

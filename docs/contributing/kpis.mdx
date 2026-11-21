@@ -7,7 +7,7 @@ audience: [developer, agent]
 
 # KPIs
 
-KPIs are one model in `Wayd.Common` that any module puts on its own records, the way [discussions](./architecture.mdx#discussions) are. A record carrying KPIs is a **subject**, held by a registered **subject type** and an id. The core never knows what a team is: each module registers its subject types and answers, for each, who may read and change a record's KPIs. Teams and teams of teams are the first subject type; projects, programs and portfolios follow.
+KPIs are one model in `Wayd.Common` that any module puts on its own records, the way [discussions](./architecture.mdx#discussions) are. A record carrying KPIs is a **subject**, held by a registered **subject type** and an id. The core never knows what a team is: each module registers its subject types and answers, for each, who may read and change a record's KPIs. Teams and teams of teams are one subject type; projects, programs and portfolios are three more, registered by PPM.
 
 The user-facing rules are in [Scorecards and KPIs](../user-guide/organizations/scorecards.mdx).
 
@@ -41,6 +41,8 @@ The measurements belong to the `Kpi` aggregate so that the rule that no two peri
 Every KPI command and query goes through `KpiSubjectAccessResolver`, which asks the record's subject type and then applies two rules once for every subject type: **Administer KPIs** (`Permissions.Kpis.Administer`) manages any record's KPIs, and a read-only token manages none. The endpoints carry `[Authorize]` only, so the handler's check is the whole gate. A record the caller cannot read is 404, never 403.
 
 The team subject type, `TeamKpiSubjectType`, reads a team's KPIs with `Permissions.Teams.View`, and lets them be changed by members of the team or of any team of teams above it as the hierarchy stands today — not only the direct parent, unlike sprints and allocations.
+
+The PPM subject types (`ProjectKpiSubjectType`, `ProgramKpiSubjectType`, `PortfolioKpiSubjectType`) read with the record's `View` permission and let a record be changed by the rule every other change to it follows: its `Update` permission and delivery leadership, through the aggregate's own `CanManage*` predicate, with the PPM administrator standing in for the role. Each loads the ancestors' roles with `.Include` — without them the predicate silently finds no inherited leader — which only a real provider can check (`PpmKpiSubjectTypeTests` in the PPM integration tests). A closed record's KPIs stay changeable.
 
 The import is gated on Administer KPIs rather than on each record's rule: its passes may run after the request has ended, when there is no caller to ask about membership.
 

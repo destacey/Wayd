@@ -329,6 +329,8 @@ public partial class EventCoverageTests
             "Gives a team that predates operating models, and that their backfill missed, its first model; shipped without an activity log entry for it: #914.",
         ["20260927023231_Add-TeamOfTeamsOperatingModels.cs"] =
             "Gives each existing team of teams its first operating model, and records each in the activity log itself: #915.",
+        ["20261121131927_Move-Strategic-Initiative-Kpis-To-Shared-Model.cs"] =
+            "Copies each strategic initiative KPI, with its checkpoints and measurements, into the shared KPI tables and records each copy's baseline in the activity log itself: #1480.",
         ["20261108141829_Retire-WorkStatus-Admin.cs"] =
             "Copies each shared work status's description onto the managed statuses made from it, which already held it in Work; no status changed meaning: #1237.",
         ["20261101221206_Version-Estimation-Scales.cs"] =

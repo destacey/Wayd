@@ -116,36 +116,21 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
 
     public static TheoryData<string, string> Refusals => new()
     {
-        { "at-risk", "not short of its planned value" },
-        { "same-day", "two of its checkpoints fall on one day" },
-        { "blank-label", "a checkpoint has a blank label" },
+        { "baseline", "already at its target" },
         { "direction", "neither Increase nor Decrease" },
     };
 
     [Theory]
     [MemberData(nameof(Refusals))]
-    public async Task Move_KpiTheSharedModelWouldRefuse_StopsAndMovesNothing(string problem, string message)
+    public async Task Move_KpiTheOldModelCouldNotHaveHeld_StopsAndMovesNothing(string problem, string message)
     {
         await InDatabase(async (context, migrator, connectionString, ct) =>
         {
-            // Arrange
+            // Arrange — written straight to the table, which only a direct edit could have done
             await migrator.MigrateAsync(Previous, ct);
             var seed = await SeedInitiative(context, ct);
-            var kpi = await AddOldKpi(context, seed.InitiativeId, "NPS", null, 20, 40, null, null, problem == "direction" ? "Sideways" : "Increase", 1, ct);
-            switch (problem)
-            {
-                case "at-risk":
-                    // The old plan accepted an at-risk value above the planned value of a KPI that should increase.
-                    await AddOldCheckpoint(context, kpi, 30, "2026-06-01T12:00:00", "Jun", 35, ct);
-                    break;
-                case "same-day":
-                    await AddOldCheckpoint(context, kpi, 30, "2026-06-01T01:00:00", "Early", null, ct);
-                    await AddOldCheckpoint(context, kpi, 32, "2026-06-01T20:00:00", "Late", null, ct);
-                    break;
-                case "blank-label":
-                    await AddOldCheckpoint(context, kpi, 30, "2026-06-01T12:00:00", "   ", null, ct);
-                    break;
-            }
+            await AddOldKpi(context, seed.InitiativeId, "NPS", null, problem == "baseline" ? 40 : 20, 40, null, null,
+                problem == "direction" ? "Sideways" : "Increase", 1, ct);
 
             // Act
             var act = () => migrator.MigrateAsync(Move, ct);
@@ -153,6 +138,42 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
             // Assert
             (await act.Should().ThrowAsync<SqlException>()).Which.Message.Should().Contain(message);
             (await Scalar<int>(context, "SELECT COUNT(*) FROM [Kpis].[Kpis];", ct)).Should().Be(0);
+        });
+    }
+
+    [Fact]
+    public async Task Move_RepairsAPlanTheSharedModelWouldRefuse_RatherThanStopping()
+    {
+        await InDatabase(async (context, migrator, connectionString, ct) =>
+        {
+            // Arrange
+            await migrator.MigrateAsync(Previous, ct);
+            var seed = await SeedInitiative(context, ct);
+            var nps = await AddOldKpi(context, seed.InitiativeId, "NPS", null, 20, 40, null, null, "Increase", 1, ct);
+            // An at-risk value above the planned value of a KPI that should increase.
+            await AddOldCheckpoint(context, nps, 30, "2026-06-01T12:00:00", "Jun", 35, ct);
+            await AddOldCheckpoint(context, nps, 32, "2026-07-01T12:00:00", "   ", 31, ct);
+            // Two checkpoints on one day: the later is kept.
+            await AddOldCheckpoint(context, nps, 34, "2026-08-01T01:00:00", "Early", null, ct);
+            await AddOldCheckpoint(context, nps, 35, "2026-08-01T20:00:00", "Late", null, ct);
+            var crowded = await AddOldKpi(context, seed.InitiativeId, "Uptime", null, null, 99.9, null, "%", "Increase", 2, ct);
+            // One past the most a plan holds: the one furthest from today goes.
+            await AddOldCheckpoint(context, crowded, 99, "1990-01-01T12:00:00", "Old", null, ct);
+            for (var day = 0; day < 104; day++)
+                await AddOldCheckpoint(context, crowded, 99, $"2026-01-01T12:00:00", $"D{day}", null, ct, dayOffset: day);
+
+            // Act
+            await migrator.MigrateAsync(Move, ct);
+
+            // Assert
+            (await Rows(context, $"SELECT [Date], [Label], [PlannedValue], [AtRiskValue] FROM [Kpis].[Checkpoints] WHERE [KpiId] = '{nps}' ORDER BY [Date];", ct))
+                .Select(r => ((DateTime)r[0], (string)r[1], (double)r[2], r[3] is DBNull ? (double?)null : (double)r[3]))
+                .Should().Equal(
+                    (new DateTime(2026, 6, 1), "Jun", 30d, (double?)null),
+                    (new DateTime(2026, 7, 1), "2026-07-01", 32d, 31d),
+                    (new DateTime(2026, 8, 1), "Late", 35d, (double?)null));
+            (await Scalar<int>(context, $"SELECT COUNT(*) FROM [Kpis].[Checkpoints] WHERE [KpiId] = '{crowded}';", ct)).Should().Be(104);
+            (await Scalar<int>(context, $"SELECT COUNT(*) FROM [Kpis].[Checkpoints] WHERE [KpiId] = '{crowded}' AND [Date] < '2000-01-01';", ct)).Should().Be(0);
         });
     }
 
@@ -438,10 +459,10 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
             VALUES ('{Guid.CreateVersion7()}', '{kpiId}', {Number(value)}, '{at}', '{employeeId}', {Text(note)}, SYSUTCDATETIME(), SYSUTCDATETIME());
             """, ct);
 
-    private static Task AddOldCheckpoint(WaydDbContext context, Guid kpiId, double target, string at, string label, double? atRisk, CancellationToken ct) =>
+    private static Task AddOldCheckpoint(WaydDbContext context, Guid kpiId, double target, string at, string label, double? atRisk, CancellationToken ct, int dayOffset = 0) =>
         Execute(context, $"""
             INSERT INTO [Ppm].[StrategicInitiativeKpiCheckpoints] ([Id], [KpiId], [TargetValue], [AtRiskValue], [CheckpointDate], [DateLabel], [SystemCreated], [SystemLastModified])
-            VALUES ('{Guid.CreateVersion7()}', '{kpiId}', {Number(target)}, {Number(atRisk)}, '{at}', {Text(label)}, SYSUTCDATETIME(), SYSUTCDATETIME());
+            VALUES ('{Guid.CreateVersion7()}', '{kpiId}', {Number(target)}, {Number(atRisk)}, DATEADD(day, {dayOffset}, CAST('{at}' AS datetime2)), {Text(label)}, SYSUTCDATETIME(), SYSUTCDATETIME());
             """, ct);
 
     /// <summary>The entry the old model wrote when the KPI was added, which names who added it.</summary>

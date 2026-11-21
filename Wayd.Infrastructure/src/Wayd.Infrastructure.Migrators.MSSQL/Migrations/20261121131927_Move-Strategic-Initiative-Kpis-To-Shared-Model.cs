@@ -27,10 +27,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
         // run copies them again. A KPI that already has a creation entry in the shared model, one created there and then
         // copied back by a rollback, is not given a baseline beside it.
         //
-        // The old KPI checked less than the shared one. A KPI the shared model would refuse — a starting value already
-        // at its target, a checkpoint at-risk value on the wrong side of its planned value, two checkpoints on one
-        // day, more checkpoints than a plan holds — stops the migration with the KPIs named, so the data is corrected
-        // through the initiative screens before it moves rather than carried across broken.
+        // The old checkpoint checked less than the shared one, and the migration runs at startup with the old screens
+        // already gone, so a plan the shared model would refuse is repaired as it moves rather than stopping the API:
+        // an at-risk value on the wrong side of its planned value is dropped, a blank label becomes the checkpoint's
+        // day, of two checkpoints on one day the later is kept, and past the most a plan holds the checkpoints nearest
+        // today are kept. Only a KPI the old model itself could not have held — a starting value already at its target,
+        // a direction that is neither Increase nor Decrease, written straight to the table — stops the migration,
+        // with the KPIs named.
         //
         // Each payload is written by hand, frozen at the shape KpiBaselinedEvent has when this ships, and has to
         // deserialize into that type exactly as the serializer would have written it. EventId is BaselineEventId.For,
@@ -132,34 +135,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             INNER JOIN #Source s ON s.[Id] = k.[Id]
             WHERE k.[TargetDirection] NOT IN ('Increase', 'Decrease');
 
-            INSERT INTO #Problem
-            SELECT DISTINCT k.[Id], N'a checkpoint''s at-risk value is not short of its planned value'
-            FROM [Ppm].[StrategicInitiativeKpis] k
-            INNER JOIN #Source s ON s.[Id] = k.[Id]
-            INNER JOIN [Ppm].[StrategicInitiativeKpiCheckpoints] c ON c.[KpiId] = k.[Id]
-            WHERE (k.[TargetDirection] = 'Increase' AND c.[AtRiskValue] >= c.[TargetValue])
-               OR (k.[TargetDirection] = 'Decrease' AND c.[AtRiskValue] <= c.[TargetValue]);
-
-            INSERT INTO #Problem
-            SELECT DISTINCT c.[KpiId], N'a checkpoint has a blank label'
-            FROM [Ppm].[StrategicInitiativeKpiCheckpoints] c
-            INNER JOIN #Source s ON s.[Id] = c.[KpiId]
-            WHERE LTRIM(RTRIM(c.[DateLabel])) = '';
-
-            INSERT INTO #Problem
-            SELECT DISTINCT c.[KpiId], N'two of its checkpoints fall on one day'
-            FROM [Ppm].[StrategicInitiativeKpiCheckpoints] c
-            INNER JOIN #Source s ON s.[Id] = c.[KpiId]
-            GROUP BY c.[KpiId], {{LocalDay("c.[CheckpointDate]")}}
-            HAVING COUNT(*) > 1;
-
-            INSERT INTO #Problem
-            SELECT c.[KpiId], N'it has more than {{MaxCheckpoints}} checkpoints'
-            FROM [Ppm].[StrategicInitiativeKpiCheckpoints] c
-            INNER JOIN #Source s ON s.[Id] = c.[KpiId]
-            GROUP BY c.[KpiId]
-            HAVING COUNT(*) > {{MaxCheckpoints}};
-
             IF EXISTS (SELECT 1 FROM #Problem)
             BEGIN
                 DECLARE @Problems nvarchar(2000) = (
@@ -207,17 +182,63 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             INNER JOIN #Source s ON s.[Id] = m.[KpiId]
             CROSS APPLY (SELECT {{LocalDay("m.[MeasurementDate]")}} AS [Day]) d;
 
+            -- Each checkpoint as the shared plan can hold it: see the class comment for the repairs.
+            DECLARE @Today date = {{LocalDay("SYSUTCDATETIME()")}};
+
+            CREATE TABLE #Checkpoint
+            (
+                [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+                [KpiId] uniqueidentifier NOT NULL,
+                [Moment] datetime2 NOT NULL,
+                [Day] date NOT NULL,
+                [Label] nvarchar(32) NOT NULL,
+                [PlannedValue] float NOT NULL,
+                [AtRiskValue] float NULL,
+                [SystemCreated] datetime2 NOT NULL,
+                [SystemCreatedBy] nvarchar(450) NULL,
+                [SystemLastModified] datetime2 NOT NULL,
+                [SystemLastModifiedBy] nvarchar(450) NULL
+            );
+
+            INSERT INTO #Checkpoint
+            SELECT
+                c.[Id], c.[KpiId], c.[CheckpointDate], d.[Day],
+                CASE WHEN LTRIM(RTRIM(c.[DateLabel])) = '' THEN CONVERT(nvarchar(10), d.[Day], 23) ELSE LTRIM(RTRIM(c.[DateLabel])) END,
+                c.[TargetValue],
+                CASE WHEN (k.[TargetDirection] = 'Increase' AND c.[AtRiskValue] >= c.[TargetValue])
+                       OR (k.[TargetDirection] = 'Decrease' AND c.[AtRiskValue] <= c.[TargetValue])
+                     THEN NULL ELSE c.[AtRiskValue] END,
+                c.[SystemCreated], c.[SystemCreatedBy], c.[SystemLastModified], c.[SystemLastModifiedBy]
+            FROM [Ppm].[StrategicInitiativeKpiCheckpoints] c
+            INNER JOIN #Source s ON s.[Id] = c.[KpiId]
+            INNER JOIN [Ppm].[StrategicInitiativeKpis] k ON k.[Id] = c.[KpiId]
+            CROSS APPLY (SELECT {{LocalDay("c.[CheckpointDate]")}} AS [Day]) d;
+
+            WITH [Ranked] AS
+            (
+                SELECT [Id], ROW_NUMBER() OVER (PARTITION BY [KpiId], [Day] ORDER BY [Moment] DESC, [Id] DESC) AS [OnDay]
+                FROM #Checkpoint
+            )
+            DELETE c FROM #Checkpoint c INNER JOIN [Ranked] r ON r.[Id] = c.[Id] WHERE r.[OnDay] > 1;
+
+            WITH [Ranked] AS
+            (
+                SELECT [Id], ROW_NUMBER() OVER (PARTITION BY [KpiId] ORDER BY ABS(DATEDIFF(day, @Today, [Day])), [Day]) AS [Nearest]
+                FROM #Checkpoint
+            )
+            DELETE c FROM #Checkpoint c INNER JOIN [Ranked] r ON r.[Id] = c.[Id] WHERE r.[Nearest] > {{MaxCheckpoints}};
+
             INSERT INTO [Kpis].[Checkpoints]
             (
                 [Id], [KpiId], [Date], [Label], [PlannedValue], [AtRiskValue],
                 [SystemCreated], [SystemCreatedBy], [SystemLastModified], [SystemLastModifiedBy]
             )
             SELECT
-                c.[Id], c.[KpiId], {{LocalDay("c.[CheckpointDate]")}}, LTRIM(RTRIM(c.[DateLabel])), c.[TargetValue],
-                c.[AtRiskValue],
+                c.[Id], c.[KpiId], c.[Day], c.[Label], c.[PlannedValue], c.[AtRiskValue],
                 c.[SystemCreated], c.[SystemCreatedBy], c.[SystemLastModified], c.[SystemLastModifiedBy]
-            FROM [Ppm].[StrategicInitiativeKpiCheckpoints] c
-            INNER JOIN #Source s ON s.[Id] = c.[KpiId];
+            FROM #Checkpoint c;
+
+            DROP TABLE #Checkpoint;
 
             -- The baseline names who created the KPI where the initiative's activity recorded a linked employee.
             CREATE TABLE #Baseline

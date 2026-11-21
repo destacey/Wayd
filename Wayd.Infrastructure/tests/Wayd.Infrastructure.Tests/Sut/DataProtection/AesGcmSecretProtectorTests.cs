@@ -35,14 +35,33 @@ public class AesGcmSecretProtectorTests
     }
 
     [Fact]
-    public void Protect_is_idempotent_when_input_is_already_protected()
+    public void Protect_encrypts_a_value_that_already_looks_protected()
     {
+        // Arrange
         var protector = NewProtector();
         var protectedOnce = protector.Protect("hello");
 
+        // Act
         var protectedTwice = protector.Protect(protectedOnce);
 
-        protectedTwice.Should().Be(protectedOnce);
+        // Assert
+        protectedTwice.Should().NotBe(protectedOnce);
+        protector.Unprotect(protectedTwice).Should().Be(protectedOnce);
+    }
+
+    [Fact]
+    public void Protect_encrypts_a_plaintext_that_starts_with_the_version_tag()
+    {
+        // Arrange
+        var protector = NewProtector();
+        var lookalike = "wayd1:secret-that-starts-with-the-tag";
+
+        // Act
+        var protectedValue = protector.Protect(lookalike);
+
+        // Assert
+        protectedValue.Should().NotContain(lookalike);
+        protector.Unprotect(protectedValue).Should().Be(lookalike);
     }
 
     [Fact]

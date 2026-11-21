@@ -11256,6 +11256,12 @@ export interface PendingTenantMigrationDto {
   targetTenantId: string;
   /** @nullable */
   stagedAt?: string & { readonly __brand: 'Instant' } | null;
+  /**
+     * When the staged link stops being honoured, from which the user's sign-in no longer completes the migration and
+     * it must be staged again. Null when it was staged before its time was recorded, which counts as expired.
+     * @nullable
+     */
+  expiresAt?: string & { readonly __brand: 'Instant' } | null;
 }
 
 /**
@@ -19480,10 +19486,38 @@ export interface UserDetailsDto {
   /** @nullable */
   phoneNumber?: string | null;
   loginProvider: string;
-  /** @nullable */
+  /**
+     * The Entra tenant the user's next sign-in is staged to move them to, or their first sign-in is staged from.
+     * @nullable
+     */
   pendingMigrationTenantId?: string | null;
-  /** @nullable */
+  /**
+     * When the tenant link was staged.
+     * @nullable
+     */
+  pendingMigrationTenantStagedAt?: string & { readonly __brand: 'Instant' } | null;
+  /**
+     * When the staged tenant link stops being honoured and must be staged again. Null when none is staged, or when it
+     * was staged before its time was recorded.
+     * @nullable
+     */
+  pendingMigrationTenantExpiresAt?: string & { readonly __brand: 'Instant' } | null;
+  /**
+     * The identity provider the user's next sign-in through it is staged to move them to.
+     * @nullable
+     */
   pendingMigrationProviderId?: string | null;
+  /**
+     * When the provider move was staged.
+     * @nullable
+     */
+  pendingMigrationProviderStagedAt?: string & { readonly __brand: 'Instant' } | null;
+  /**
+     * When the staged provider move stops being honoured and must be staged again. Null when none is staged, or when
+     * it was staged before its time was recorded, which counts as expired.
+     * @nullable
+     */
+  pendingMigrationProviderExpiresAt?: string & { readonly __brand: 'Instant' } | null;
   /**
      * Whether the user has an identity they can sign in with. False for an admin-created
      * Entra user who has not yet signed in.

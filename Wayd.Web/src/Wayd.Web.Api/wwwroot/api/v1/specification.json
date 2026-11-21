@@ -76643,6 +76643,14 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the staged link stops being honoured, from which the user's sign-in no longer completes the migration and\nit must be staged again. Null when it was staged before its time was recorded, which counts as expired.",
+            "format": "date-time"
           }
         },
         "additionalProperties": false,
@@ -95303,13 +95311,47 @@
             "type": [
               "null",
               "string"
-            ]
+            ],
+            "description": "The Entra tenant the user's next sign-in is staged to move them to, or their first sign-in is staged from."
+          },
+          "pendingMigrationTenantStagedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the tenant link was staged.",
+            "format": "date-time"
+          },
+          "pendingMigrationTenantExpiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the staged tenant link stops being honoured and must be staged again. Null when none is staged, or when it\nwas staged before its time was recorded.",
+            "format": "date-time"
           },
           "pendingMigrationProviderId": {
             "type": [
               "null",
               "string"
-            ]
+            ],
+            "description": "The identity provider the user's next sign-in through it is staged to move them to."
+          },
+          "pendingMigrationProviderStagedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the provider move was staged.",
+            "format": "date-time"
+          },
+          "pendingMigrationProviderExpiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the staged provider move stops being honoured and must be staged again. Null when none is staged, or when\nit was staged before its time was recorded, which counts as expired.",
+            "format": "date-time"
           },
           "hasActiveIdentity": {
             "type": "boolean",

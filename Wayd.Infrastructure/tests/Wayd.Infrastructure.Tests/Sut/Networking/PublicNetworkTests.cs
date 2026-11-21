@@ -1,7 +1,7 @@
 using System.Net;
-using Wayd.Infrastructure.Auth.OAuth;
+using Wayd.Infrastructure.Networking;
 
-namespace Wayd.Infrastructure.Tests.Sut.Auth.OAuth;
+namespace Wayd.Infrastructure.Tests.Sut.Networking;
 
 /// <summary>
 /// Holds the outbound guard for client-chosen URLs to the public internet: the addresses a server-side request
@@ -93,5 +93,70 @@ public sealed class PublicNetworkTests
         // Assert
         (await send.Should().ThrowAsync<HttpRequestException>())
             .Which.ToString().Should().Contain("'client.acme.example' does not resolve to a public address");
+    }
+
+    [Theory]
+    [InlineData("10.1.2.3")]
+    [InlineData("192.168.1.1")]
+    [InlineData("127.0.0.1")]
+    [InlineData("::1")]
+    [InlineData("fd12::1")]
+    [InlineData("8.8.8.8")]
+    [InlineData("100.64.0.1")]
+    [InlineData("64:ff9b::a00:1")]
+    [InlineData("2002:a00:1::")]
+    [InlineData("::ffff:0:a00:1")]
+    public void IsReachableOnPrivateNetwork_AcceptsAPrivateOrPublicAddress(string address)
+    {
+        // Arrange
+        var ip = IPAddress.Parse(address);
+
+        // Act
+        var result = PublicNetwork.IsReachableOnPrivateNetwork(ip);
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("169.254.169.254")]
+    [InlineData("::ffff:169.254.169.254")]
+    [InlineData("fe80::1")]
+    [InlineData("fd00:ec2::254")]
+    [InlineData("0.0.0.0")]
+    [InlineData("::")]
+    [InlineData("224.0.0.1")]
+    [InlineData("100.100.100.200")]
+    [InlineData("64:ff9b::a9fe:a9fe")]
+    [InlineData("2002:a9fe:a9fe::")]
+    [InlineData("::a9fe:a9fe")]
+    [InlineData("::ffff:0:a9fe:a9fe")]
+    [InlineData("64:ff9b:1::a9fe:a9fe")]
+    [InlineData("2001:0:4136:e378:8000:63bf:3fff:fdd2")]
+    public void IsReachableOnPrivateNetwork_RefusesMetadataUnspecifiedAndMulticastAddresses(string address)
+    {
+        // Arrange
+        var ip = IPAddress.Parse(address);
+
+        // Act
+        var result = PublicNetwork.IsReachableOnPrivateNetwork(ip);
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CreatePrivateNetworkHandler_RefusesAHostNameThatResolvesToCloudMetadata()
+    {
+        // Arrange
+        IPAddress[] addresses = [IPAddress.Parse("10.0.0.5"), IPAddress.Parse("169.254.169.254")];
+        using var client = new HttpClient(PublicNetwork.CreatePrivateNetworkHandler(TimeSpan.FromSeconds(5), (_, _) => Task.FromResult(addresses)));
+
+        // Act
+        var send = () => client.GetAsync("https://idp.corp.example/.well-known/openid-configuration", TestContext.Current.CancellationToken);
+
+        // Assert
+        (await send.Should().ThrowAsync<HttpRequestException>())
+            .Which.ToString().Should().Contain("'idp.corp.example' does not resolve to an allowed address");
     }
 }

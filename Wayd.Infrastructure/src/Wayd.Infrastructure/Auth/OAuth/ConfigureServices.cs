@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Wayd.Infrastructure.Networking;
 
 namespace Wayd.Infrastructure.Auth.OAuth;
 

@@ -1,4 +1,5 @@
 ﻿using Wayd.Infrastructure.Auth.Oidc;
+using Wayd.Infrastructure.Networking;
 
 namespace Wayd.Infrastructure.Tests.Sut.Auth.Oidc;
 
@@ -12,7 +13,7 @@ public class OidcConfigurationManagerFactoryTests
     [Fact]
     public void Get_WithSameAuthority_ReturnsSameInstance()
     {
-        var factory = new OidcConfigurationManagerFactory();
+        var factory = new OidcConfigurationManagerFactory(new HttpClient());
         const string authority = "https://login.microsoftonline.com/common/v2.0";
 
         var first = factory.Get(authority);
@@ -27,7 +28,7 @@ public class OidcConfigurationManagerFactoryTests
     [Fact]
     public void Get_WithDifferentAuthorities_ReturnsDifferentInstances()
     {
-        var factory = new OidcConfigurationManagerFactory();
+        var factory = new OidcConfigurationManagerFactory(new HttpClient());
 
         var entra = factory.Get("https://login.microsoftonline.com/common/v2.0");
         var google = factory.Get("https://accounts.google.com");
@@ -44,7 +45,7 @@ public class OidcConfigurationManagerFactoryTests
         // Trailing slash, host case, surrounding whitespace must all resolve to
         // the same manager. Without normalization an operator typo would
         // silently double the JWKS fetch rate.
-        var factory = new OidcConfigurationManagerFactory();
+        var factory = new OidcConfigurationManagerFactory(new HttpClient());
 
         var canonicalManager = factory.Get(canonical);
         var variantManager = factory.Get(variant);
@@ -58,7 +59,7 @@ public class OidcConfigurationManagerFactoryTests
         // Path segments are case-sensitive per RFC 3986. Treating them as
         // equivalent could route a token to the wrong tenant's OIDC config in
         // edge cases (rare in practice for Entra, but the rule is the rule).
-        var factory = new OidcConfigurationManagerFactory();
+        var factory = new OidcConfigurationManagerFactory(new HttpClient());
 
         var lower = factory.Get("https://example.com/tenants/abc");
         var upper = factory.Get("https://example.com/tenants/ABC");
@@ -72,7 +73,7 @@ public class OidcConfigurationManagerFactoryTests
     [InlineData(null)]
     public void Get_WithBlankAuthority_Throws(string? authority)
     {
-        var factory = new OidcConfigurationManagerFactory();
+        var factory = new OidcConfigurationManagerFactory(new HttpClient());
 
         var act = () => factory.Get(authority!);
 
@@ -90,7 +91,7 @@ public class OidcConfigurationManagerFactoryTests
         // is a better error experience. Note: "ftp://example.com" parses as an
         // absolute URI so the failure here surfaces only at fetch time — we
         // accept that and check that the constructor itself doesn't throw on it.
-        var factory = new OidcConfigurationManagerFactory();
+        var factory = new OidcConfigurationManagerFactory(new HttpClient());
 
         if (Uri.TryCreate(authority, UriKind.Absolute, out _))
         {
@@ -112,7 +113,7 @@ public class OidcConfigurationManagerFactoryTests
         // ConcurrentDictionary.GetOrAdd's factory can run more than once under
         // contention, but only one of the candidates is kept and returned to all
         // callers. This test verifies that contract under real concurrency.
-        var factory = new OidcConfigurationManagerFactory();
+        var factory = new OidcConfigurationManagerFactory(new HttpClient());
         const string authority = "https://example.com/oidc";
         var results = new System.Collections.Concurrent.ConcurrentBag<object>();
 
@@ -122,5 +123,56 @@ public class OidcConfigurationManagerFactoryTests
         });
 
         results.Distinct().Should().HaveCount(1);
+    }
+
+    [Theory]
+    [InlineData("https://127.0.0.1/realms/wayd")]
+    [InlineData("https://169.254.169.254/metadata")]
+    [InlineData("https://10.0.0.5")]
+    public async Task GetConfiguration_ThroughAPublicNetworkClient_RefusesANonPublicAuthority(string authority)
+    {
+        // Arrange
+        using var client = new HttpClient(PublicNetwork.CreateHandler(TimeSpan.FromSeconds(5)));
+        var manager = new OidcConfigurationManagerFactory(client).Get(authority);
+
+        // Act
+        var act = () => manager.GetConfigurationAsync(TestContext.Current.CancellationToken);
+
+        // Assert — the guard's refusal, not a connection failure an unguarded client would also meet
+        (await act.Should().ThrowAsync<Exception>())
+            .Which.ToString().Should().Contain("does not resolve to a public address");
+    }
+
+    [Fact]
+    public async Task GetConfiguration_RefusesADiscoveryDocumentLargerThanTheCap()
+    {
+        // Arrange
+        var body = new string(' ', Wayd.Infrastructure.Auth.Oidc.ConfigureServices.MaxResponseBytes + 1);
+        using var client = Wayd.Infrastructure.Auth.Oidc.ConfigureServices.CreateClient(new StaticResponseHandler(body));
+        var manager = new OidcConfigurationManagerFactory(client).Get("https://idp.acme.example");
+
+        // Act
+        var act = () => manager.GetConfigurationAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        var thrown = (await act.Should().ThrowAsync<Exception>()).Which;
+        SelfAndInner(thrown).OfType<HttpRequestException>()
+            .Should().Contain(e => e.HttpRequestError == HttpRequestError.ConfigurationLimitExceeded);
+    }
+
+    private static IEnumerable<Exception> SelfAndInner(Exception exception)
+    {
+        yield return exception;
+        var inner = exception is AggregateException aggregate ? aggregate.InnerExceptions : [exception.InnerException];
+        foreach (var child in inner.OfType<Exception>())
+            foreach (var descendant in SelfAndInner(child))
+                yield return descendant;
+    }
+
+    /// <summary>Answers every request with the same body, without a network.</summary>
+    private sealed class StaticResponseHandler(string body) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(body) });
     }
 }

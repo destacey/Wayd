@@ -18,7 +18,9 @@ public class IdentityMappingConfig : IRegister
                 .Map(dest => dest.PhoneNumber, src => src.PhoneNumber)
                 .Map(dest => dest.LoginProvider, src => src.LoginProvider)
                 .Map(dest => dest.PendingMigrationTenantId, src => src.PendingMigrationTenantId)
+                .Map(dest => dest.PendingMigrationTenantStagedAt, src => src.PendingMigrationStagedAt)
                 .Map(dest => dest.PendingMigrationProviderId, src => src.PendingMigrationProviderId)
+                .Map(dest => dest.PendingMigrationProviderStagedAt, src => src.PendingProviderMigrationStagedAt)
                 .Map(dest => dest.HasActiveIdentity, src => src.Identities.Any(i => i.IsActive))
                 .Map(dest => dest.IsActive, src => src.IsActive)
                 .Map(dest => dest.LockoutEnd, src => src.LockoutEnd != null && src.LockoutEnd > DateTimeOffset.UtcNow

@@ -23,4 +23,10 @@ public sealed record PendingTenantMigrationDto
     public required string TargetTenantId { get; init; }
 
     public Instant? StagedAt { get; init; }
+
+    /// <summary>
+    /// When the staged link stops being honoured, from which the user's sign-in no longer completes the migration and
+    /// it must be staged again. Null when it was staged before its time was recorded, which counts as expired.
+    /// </summary>
+    public Instant? ExpiresAt => StagedLinks.ExpiresAt(StagedAt);
 }

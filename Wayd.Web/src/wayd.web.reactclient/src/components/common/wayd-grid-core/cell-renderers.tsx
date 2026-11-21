@@ -3,6 +3,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { teamUrl, type TeamUrlTarget } from '@/src/utils'
+import { safeLinkHref } from '@/src/components/common/markdown/wysiwyg/safe-urls'
 import DependencyHealthTag from '@/src/components/common/work/dependency-health-tag'
 import WorkStatusTag from '@/src/components/common/work/work-status-tag'
 import type {
@@ -185,6 +186,7 @@ export const renderWorkItemLink = (
   workItem: WorkItemLinkTarget | null | undefined,
 ): ReactNode => {
   if (!workItem) return null
+  const externalHref = safeLinkHref(workItem.externalViewWorkItemUrl)
   return (
     <>
       <Link
@@ -193,9 +195,9 @@ export const renderWorkItemLink = (
       >
         {workItem.label ?? workItem.key}
       </Link>
-      {workItem.externalViewWorkItemUrl && (
+      {externalHref && (
         <Link
-          href={workItem.externalViewWorkItemUrl}
+          href={externalHref}
           target="_blank"
           rel="noopener noreferrer"
           title="Open in external system"

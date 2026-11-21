@@ -12,6 +12,7 @@ import {
 } from '@/src/store/features/common/links-api'
 import { useMessage } from '../../contexts/messaging'
 import { toApiError } from '@/src/utils'
+import { safeLinkHref } from '../markdown/wysiwyg/safe-urls'
 
 export interface LinkItemProps {
   owner: LinkOwner
@@ -54,9 +55,11 @@ const LinkItem = ({ owner, link, editModeEnabled }: LinkItemProps) => {
     }
   }
 
-  const externalLink = (
+  // A link saved before addresses were checked may hold any scheme; it shows as text, never as an href.
+  const href = safeLinkHref(link.url)
+  const externalLink = href ? (
     <Link
-      href={link.url}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       prefetch={false}
@@ -65,6 +68,10 @@ const LinkItem = ({ owner, link, editModeEnabled }: LinkItemProps) => {
     >
       {link.name}
     </Link>
+  ) : (
+    <span style={editModeEnabled ? truncateStyle : undefined} title={link.name}>
+      {link.name}
+    </span>
   )
 
   if (!editModeEnabled) {

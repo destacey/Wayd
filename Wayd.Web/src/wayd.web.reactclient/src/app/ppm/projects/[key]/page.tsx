@@ -46,6 +46,7 @@ import ProjectFacts from './_components/project-facts'
 import ProjectIntakeRequests from './_components/project-intake-requests'
 import ProjectOverview from './_components/project-overview'
 import { canActOnPpmRecord } from '../../_components/ppm-authorization'
+import { KpiSubjectTypes } from '@/src/store/features/common/kpis-api'
 import ProjectTaskMetricsInline from '@/src/app/ppm/projects/_components/project-task-metrics-inline'
 
 const ProjectPlan = dynamic(
@@ -74,11 +75,17 @@ const ProjectDeliverables = dynamic(
   { ssr: false, loading: () => <Spin /> },
 )
 
+const KpiScorecard = dynamic(
+  () => import('@/src/components/common/kpi/scorecard/kpi-scorecard'),
+  { ssr: false, loading: () => <Spin /> },
+)
+
 enum ProjectSections {
   Overview = 'overview',
   Discussion = 'discussion',
   Definition = 'definition',
   Deliverables = 'deliverables',
+  Scorecard = 'scorecard',
   Team = 'team',
   Plan = 'plan',
   WorkItems = 'work-items',
@@ -117,6 +124,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   )
   const { isEnabled: demandManagementEnabled } =
     useFeatureFlag('demand-management')
+  const { isEnabled: kpisEnabled } = useFeatureFlag('kpis')
 
   const [openEditProjectForm, setOpenEditProjectForm] = useState<boolean>(false)
   const [openChangeProgramForm, setOpenChangeProgramForm] =
@@ -441,6 +449,9 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     { id: ProjectSections.Overview, label: 'Overview' },
     { id: ProjectSections.Definition, label: 'Definition' },
     { id: ProjectSections.Deliverables, label: 'Deliverables' },
+    ...(kpisEnabled
+      ? [{ id: ProjectSections.Scorecard, label: 'Scorecard' }]
+      : []),
     // Draws its own heading, with its counts and filters beside it.
     { id: ProjectSections.Discussion, label: 'Discussion', hideHeading: true },
     { id: ProjectSections.Team, label: 'Team' },
@@ -500,6 +511,15 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             showIntakeRequests={demandManagementEnabled}
           />
         )
+      case ProjectSections.Scorecard:
+        return kpisEnabled ? (
+          <KpiScorecard
+            subject={{
+              subjectType: KpiSubjectTypes.Project,
+              subjectId: projectData.id,
+            }}
+          />
+        ) : null
       case ProjectSections.Team:
         return <ProjectTeamGrid projectIdOrKey={projectKey} />
       case ProjectSections.Plan:

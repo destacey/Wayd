@@ -42,6 +42,9 @@ import { QueryTags } from '../query-tags'
  */
 export const KpiSubjectTypes = {
   Team: 'organization.team',
+  Project: 'ppm.project',
+  Program: 'ppm.program',
+  Portfolio: 'ppm.portfolio',
 } as const
 
 export type KpiSubjectType =

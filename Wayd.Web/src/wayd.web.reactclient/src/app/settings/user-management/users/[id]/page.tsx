@@ -276,18 +276,28 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
   const tags = (
     <Space size={4} wrap>
       <InactiveTag isActive={user.isActive} />
-      {hasPendingMigration && (
-        <StagedLinkTag
-          label="Tenant migration"
-          expiresAt={user.pendingMigrationTenantExpiresAt}
-          now={now}
-        />
-      )}
+      {hasPendingMigration &&
+        (awaitsFirstEntraSignIn ? (
+          <StagedLinkTag
+            label="First sign-in"
+            expiresAt={user.pendingMigrationTenantExpiresAt}
+            now={now}
+            renewal="Use Set Sign-in Tenant to give them another 14 days."
+          />
+        ) : (
+          <StagedLinkTag
+            label="Tenant migration"
+            expiresAt={user.pendingMigrationTenantExpiresAt}
+            now={now}
+            renewal="Stage them again with Migrate Users to New Tenant on the provider's page."
+          />
+        ))}
       {hasPendingProviderMigration && (
         <StagedLinkTag
           label="Provider migration"
           expiresAt={user.pendingMigrationProviderExpiresAt}
           now={now}
+          renewal="Use Replace Pending Provider Migration with the same provider to give them another 14 days."
         />
       )}
     </Space>

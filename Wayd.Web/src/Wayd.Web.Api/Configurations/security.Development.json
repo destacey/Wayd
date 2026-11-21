@@ -1,0 +1,12 @@
+{
+    "//": "Development-only secrets, loaded only when ASPNETCORE_ENVIRONMENT is Development. A host outside Development refuses to start with either value, wherever it comes from.",
+    "SecuritySettings": {
+        "LocalJwt": {
+            "Secret": "DEV-ONLY-SECRET-REPLACE-IN-PRODUCTION!!"
+        },
+        "//DataProtection": "Master key for at-rest secret encryption (AES-256-GCM), intentionally separate from LocalJwt:Secret (one key per purpose, NIST SP 800-57). Generate a key of your own with: openssl rand -base64 32",
+        "DataProtection": {
+            "MasterKey": "Nu9l+Qcm+J4yh5x+DFke5qzs0NSP5rPbvCiT2s8sIG8="
+        }
+    }
+}

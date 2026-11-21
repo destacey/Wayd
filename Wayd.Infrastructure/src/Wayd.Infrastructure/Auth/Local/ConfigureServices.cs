@@ -18,23 +18,15 @@ internal static class ConfigureServices
 
     private const string DevOnlySecretPrefix = "DEV-ONLY-SECRET";
 
+    /// <summary>
+    /// The shortest signing secret accepted, in characters: 32 characters are at least the 256 bits HMAC-SHA256
+    /// needs to be keyed at full strength.
+    /// </summary>
+    internal const int MinimumSecretLength = 32;
+
     internal static IServiceCollection AddLocalJwtAuth(this IServiceCollection services, IConfiguration config, IHostEnvironment environment)
     {
-        var settings = config.GetSection(LocalJwtSettings.SectionName).Get<LocalJwtSettings>()
-            ?? throw new InvalidOperationException($"Configuration section '{LocalJwtSettings.SectionName}' is missing.");
-
-        if (string.IsNullOrWhiteSpace(settings.Secret))
-        {
-            throw new InvalidOperationException($"'{LocalJwtSettings.SectionName}:Secret' must be configured.");
-        }
-
-        if (!environment.IsDevelopment() && settings.Secret.StartsWith(DevOnlySecretPrefix, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException(
-                $"'{LocalJwtSettings.SectionName}:Secret' contains a development-only placeholder. "
-                + "Configure a secure secret via user-secrets or environment variables for non-development environments.");
-        }
-
+        var settings = ReadSettings(config, environment);
         var signingKey = CreateSigningKey(settings.Secret);
 
         services.AddAuthentication()
@@ -142,6 +134,37 @@ internal static class ConfigureServices
             context.Fail("The token's user is not active.");
         else if (CredentialVersion.Of(user.SecurityStamp) != issuedUnder)
             context.Fail("The token was issued before the user's credentials changed.");
+    }
+
+    /// <summary>
+    /// Reads <c>SecuritySettings:LocalJwt</c>, refusing to start when the signing secret is missing, shorter than
+    /// <see cref="MinimumSecretLength"/>, or, on a host outside Development, still the checked-in placeholder.
+    /// </summary>
+    internal static LocalJwtSettings ReadSettings(IConfiguration config, IHostEnvironment environment)
+    {
+        var settings = config.GetSection(LocalJwtSettings.SectionName).Get<LocalJwtSettings>()
+            ?? throw new InvalidOperationException($"Configuration section '{LocalJwtSettings.SectionName}' is missing.");
+
+        if (string.IsNullOrWhiteSpace(settings.Secret))
+        {
+            throw new InvalidOperationException($"'{LocalJwtSettings.SectionName}:Secret' must be configured.");
+        }
+
+        if (settings.Secret.Length < MinimumSecretLength)
+        {
+            throw new InvalidOperationException(
+                $"'{LocalJwtSettings.SectionName}:Secret' must be at least {MinimumSecretLength} characters (got {settings.Secret.Length}). "
+                + "Generate one with: openssl rand -base64 48");
+        }
+
+        if (!environment.IsDevelopment() && settings.Secret.StartsWith(DevOnlySecretPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"'{LocalJwtSettings.SectionName}:Secret' contains a development-only placeholder. "
+                + "Configure a secure secret via user-secrets or environment variables for non-development environments.");
+        }
+
+        return settings;
     }
 
     internal static SymmetricSecurityKey CreateSigningKey(string secret)

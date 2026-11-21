@@ -248,6 +248,51 @@ public class OidcTokenValidatorTests
     }
 
     [Fact]
+    public async Task Validate_Entra_Throws_WhenTidDoesNotMatchTheIssuersTenant()
+    {
+        // Arrange
+        SetupRegistry(CreateEntraProvider());
+        var sut = CreateSut();
+        var token = BuildToken(tid: AllowedTenantId, issuer: $"https://login.microsoftonline.com/{OtherTenantId}/v2.0");
+
+        // Act
+        var act = () => sut.Validate(EntraProviderName, token, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>();
+    }
+
+    [Fact]
+    public async Task Validate_Entra_Throws_WhenTidIsPresentButTheIssuerNamesNoTenant()
+    {
+        // Arrange
+        SetupRegistry(CreateEntraProvider());
+        var sut = CreateSut();
+        var token = BuildToken(tid: AllowedTenantId, issuer: "https://login.microsoftonline.com/common/v2.0");
+
+        // Act
+        var act = () => sut.Validate(EntraProviderName, token, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>();
+    }
+
+    [Fact]
+    public async Task Validate_Entra_Accepts_WhenTidMatchesAV1IssuerInAnotherCase()
+    {
+        // Arrange
+        SetupRegistry(CreateEntraProvider());
+        var sut = CreateSut();
+        var token = BuildToken(tid: AllowedTenantId.ToUpperInvariant(), issuer: $"https://sts.windows.net/{AllowedTenantId}/");
+
+        // Act
+        var (principal, _) = await sut.Validate(EntraProviderName, token, CancellationToken.None);
+
+        // Assert
+        principal.Should().NotBeNull();
+    }
+
+    [Fact]
     public async Task Validate_Entra_WithNoTidAndUnparseableIssuer_Throws()
     {
         SetupRegistry(CreateEntraProvider());
@@ -539,7 +584,7 @@ public class OidcTokenValidatorTests
         var handler = new JwtSecurityTokenHandler();
         handler.OutboundClaimTypeMap.Clear();
         var jwt = handler.CreateJwtSecurityToken(
-            issuer: issuer ?? $"https://login.microsoftonline.com/{AllowedTenantId}/v2.0",
+            issuer: issuer ?? $"https://login.microsoftonline.com/{tid ?? AllowedTenantId}/v2.0",
             audience: audience ?? TestAudience,
             subject: new ClaimsIdentity(claims),
             notBefore: notBefore,

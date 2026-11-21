@@ -20,7 +20,10 @@ public sealed class ImportKpiRequest
     /// </summary>
     public string? ImportId { get; set; }
 
-    /// <summary>The kind of record the KPI goes on: `organization.team` for a team or a team of teams.</summary>
+    /// <summary>
+    /// The kind of record the KPI goes on: `organization.team` for a team or a team of teams, `ppm.project`,
+    /// `ppm.program` or `ppm.portfolio`.
+    /// </summary>
     public string SubjectType { get; set; } = "organization.team";
 
     /// <summary>The record the KPI goes on, by id.</summary>

@@ -2,7 +2,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 
 /// <summary>
 /// The generated KPIs, keyed throughout by the generator's own handles. The seed area projects them to CSV rows,
-/// substituting the team ids and category ids the environment has handed back by then.
+/// substituting the record ids and category ids the environment has handed back by then.
 /// </summary>
 public sealed record GeneratedKpis(
     IReadOnlyList<string> Categories,
@@ -18,13 +18,31 @@ public sealed record KpiCheckpointModel(
     double PlannedValue,
     double? AtRiskValue);
 
+/// <summary>The kinds of generated record a KPI can sit on.</summary>
+public enum KpiSubject
+{
+    /// <summary>A team or an ART, named by its team code.</summary>
+    Team,
+
+    /// <summary>A project, named by its key.</summary>
+    Project,
+
+    /// <summary>A program, named by its name.</summary>
+    Program,
+
+    /// <summary>A portfolio, named by its name.</summary>
+    Portfolio,
+}
+
 /// <summary>
-/// One KPI on a team or an ART, as the import takes it. <see cref="TeamCode"/> names the record; the category is
-/// named and resolved to its id when seeded.
+/// One KPI on a team, an ART, a project, a program or a portfolio, as the import takes it. <see cref="Subject"/> and
+/// <see cref="SubjectHandle"/> name the record by the handle its own generator gave it; the category is named and
+/// resolved to its id when seeded.
 /// </summary>
 public sealed record KpiModel(
     string Handle,
-    string TeamCode,
+    KpiSubject Subject,
+    string SubjectHandle,
     string Name,
     string Description,
     string Category,

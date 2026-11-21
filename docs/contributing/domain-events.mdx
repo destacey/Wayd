@@ -779,7 +779,8 @@ guarded by a different permission would show one to readers who were only allowe
 On the read side, `ActivityLogDto.IsRelated` marks an entry raised on another record, and `AggregateType`
 and `AggregateId` are then that record. The log holds ids only, so the module's query handler names it: it
 sets `RaisedOn` for the records it can resolve, as `GetProductActivitiesQueryHandler` does, and the page
-passes `raisedOnHref` to `ActivityLogTimeline` to link it. An entry whose record cannot be resolved, because
-it has since been removed, is still listed and described by its type. The timeline compares an entry only
+passes `raisedOnHref` to `ActivityLogTimeline` to link it. KPIs are the exception: any module's record can
+carry them, so `ActivityLogReader` itself names the KPI a related KPI entry was raised on. An entry whose
+record cannot be resolved, because it has since been removed, is still listed and described by its type. The timeline compares an entry only
 with earlier entries raised on the same record, since two related records' events share a type but not a
 subject.

@@ -185,7 +185,7 @@ public sealed class FollowQueryTranslationIntegrationTests(SqlServerDbContextFix
         await using var context = fixture.CreateContext();
         var principal = Principal(follower.Id);
         var handler = new GetFollowedRecordQueryHandler(
-            context, context, new ActivityLogReader(context), ReadRules(context, principal.Object, readable: [followed.Id], unhealthy: []), principal.Object);
+            context, context, new ActivityLogReader(context, context), ReadRules(context, principal.Object, readable: [followed.Id], unhealthy: []), principal.Object);
 
         // Act
         var result = await handler.Handle(new GetFollowedRecordQuery(EmployeeOwner.Key, followed.Id), cancellationToken);

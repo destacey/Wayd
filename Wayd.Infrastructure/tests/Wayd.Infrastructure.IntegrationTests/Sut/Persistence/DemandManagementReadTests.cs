@@ -383,7 +383,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         }
 
         await using var context = _fixture.CreateContext();
-        var reader = new ActivityLogReader(context);
+        var reader = new ActivityLogReader(context, context);
 
         // Act
         var asOutsider = await new GetIntakeRequestActivitiesQueryHandler(context, Principal(Guid.NewGuid()), reader)

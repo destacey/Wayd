@@ -1,15 +1,15 @@
 ---
 title: Scorecards and KPIs
-description: Setting KPIs on a team or team of teams — baselines, targets, at-risk thresholds, checkpoint plans, measurement windows and rolling averages — recording measurements, and reading the scorecard.
+description: Setting KPIs on a team, team of teams, project, program or portfolio — baselines, targets, at-risk thresholds, checkpoint plans, measurement windows and rolling averages — recording measurements, and reading the scorecard.
 sidebar_position: 3
 audience: [user, agent]
 ---
 
 # Scorecards and KPIs
 
-A **KPI** (key performance indicator) says what a team is aiming for and keeps what its number was at each point in time: where it started, where it is trying to get to, and a measurement for each period since. A team's **scorecard** is every active KPI on it, grouped by category.
+A **KPI** (key performance indicator) says what a team, a project, a program or a portfolio is aiming for and keeps what its number was at each point in time: where it started, where it is trying to get to, and a measurement for each period since. A record's **scorecard** is every active KPI on it, grouped by category.
 
-KPIs need the `kpis` feature flag, which an administrator turns on under **Settings → System → Feature Flags**. With it on, every team and team of teams has a **Scorecard** section, right after Overview.
+KPIs need the `kpis` feature flag, which an administrator turns on under **Settings → System → Feature Flags**. With it on, every team and team of teams has a **Scorecard** section, right after Overview, as does every [program and portfolio](../ppm/portfolios-programs.mdx); a [project](../ppm/projects.mdx) has it after Deliverables.
 
 ## What a KPI holds
 
@@ -94,13 +94,21 @@ From the scorecard, **Add KPI** adds one at the end. From a KPI's view:
 - **Close** takes it off the scorecard and keeps its measurements; a closed KPI takes no new measurements until it is **reopened**.
 - **Remove** deletes it and its measurements for good. Close it instead to keep its history.
 
-Every change is recorded in the KPI's history and in the team's **Activity**.
+Every change is recorded in the KPI's history and in the team's, project's, program's or portfolio's **Activity**.
 
 ### Who can change a team's KPIs
 
 Members of the team, in any role, and members of **any** team of teams above it in the hierarchy as it stands today. A team of teams' own KPIs are changed by its members and those of the teams of teams above it. Viewing a team's KPIs needs only permission to view teams.
 
-The **Administer KPIs** permission changes any team's KPIs and manages the categories. See [KPIs: team membership](../settings/permissions.mdx#kpis-team-membership).
+The **Administer KPIs** permission changes any record's KPIs and manages the categories. See [KPIs: who may change them](../settings/permissions.mdx#kpis-who-may-change-them).
+
+### Who can change a project's, program's or portfolio's KPIs
+
+Whoever may change the record itself: the record's **Update** permission together with [delivery leadership](../settings/permissions.mdx#delivery-leadership-in-ppm) — Owner or Manager on the record, or on its program or portfolio. A project's KPIs can therefore be set by its portfolio's Owner without a role on the project. Sponsors and project Members cannot change them. The [PPM Administrator](../settings/permissions.mdx#ppm-administrator) permission stands in for the role, never for the Update permission.
+
+A completed or canceled record's KPIs stay open to change, so the benefits a project was meant to bring can be measured after it closes.
+
+Viewing a record's KPIs needs only permission to view that kind of record.
 
 ## Categories
 
@@ -108,7 +116,7 @@ The **Administer KPIs** permission changes any team's KPIs and manages the categ
 
 ## Bringing in history
 
-A year or more of history per team, from a spreadsheet, is loaded with the [KPI import](./bulk-import.mdx#kpi-import): one file of KPIs, one of their measurements, and optionally one of their checkpoint plans.
+A year or more of history per team, project, program or portfolio, from a spreadsheet, is loaded with the [KPI import](./bulk-import.mdx#kpi-import): one file of KPIs, one of their measurements, and optionally one of their checkpoint plans.
 
 ## From an AI assistant
 

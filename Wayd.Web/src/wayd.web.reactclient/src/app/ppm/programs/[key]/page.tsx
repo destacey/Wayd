@@ -5,7 +5,8 @@ import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
-import { useDocumentTitle } from '@/src/hooks'
+import { useDocumentTitle, useFeatureFlag } from '@/src/hooks'
+import { KpiSubjectTypes } from '@/src/store/features/common/kpis-api'
 import {
   useGetProgramActivitiesQuery,
   useGetProgramProjectsQuery,
@@ -18,7 +19,8 @@ import {
   ActivityLogTimeline,
   useActivityLog,
 } from '@/src/components/common/activities'
-import { Alert, Flex, MenuProps } from 'antd'
+import { Alert, Flex, MenuProps, Spin } from 'antd'
+import dynamic from 'next/dynamic'
 import type { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, use, useState } from 'react'
@@ -39,17 +41,17 @@ import ProgramFacts from './_components/program-facts'
 import ProgramOverview from './_components/program-overview'
 import { ProjectStatus } from '@/src/services/api/wayd.schemas'
 
+const KpiScorecard = dynamic(
+  () => import('@/src/components/common/kpi/scorecard/kpi-scorecard'),
+  { ssr: false, loading: () => <Spin /> },
+)
+
 enum ProgramSections {
   Overview = 'overview',
+  Scorecard = 'scorecard',
   Projects = 'projects',
   Activities = 'activities',
 }
-
-const sections: RecordSection[] = [
-  { id: ProgramSections.Overview, label: 'Overview' },
-  { id: ProgramSections.Projects, label: 'Projects' },
-  { id: ProgramSections.Activities, label: 'Activity' },
-]
 
 /** What a program's delivery is usually about. */
 const DEFAULT_PROJECT_STATUSES: ProjectStatus[] = [
@@ -68,6 +70,8 @@ enum ProgramAction {
 const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { key } = use(props.params)
   const programKey = Number(key)
+
+  const { isEnabled: kpisEnabled } = useFeatureFlag('kpis')
 
   const [openEditProgramForm, setOpenEditProgramForm] = useState<boolean>(false)
   const [openActivateProgramForm, setOpenActivateProgramForm] =
@@ -298,8 +302,26 @@ const ProgramDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     />
   )
 
+  const sections: RecordSection[] = [
+    { id: ProgramSections.Overview, label: 'Overview' },
+    ...(kpisEnabled
+      ? [{ id: ProgramSections.Scorecard, label: 'Scorecard' }]
+      : []),
+    { id: ProgramSections.Projects, label: 'Projects' },
+    { id: ProgramSections.Activities, label: 'Activity' },
+  ]
+
   const renderSection = (section: ProgramSections) => {
     switch (section) {
+      case ProgramSections.Scorecard:
+        return kpisEnabled && programData ? (
+          <KpiScorecard
+            subject={{
+              subjectType: KpiSubjectTypes.Program,
+              subjectId: programData.id,
+            }}
+          />
+        ) : null
       case ProgramSections.Activities:
         return <ActivityLogTimeline {...activityLog.timelineProps} />
       case ProgramSections.Projects:

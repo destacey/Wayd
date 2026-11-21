@@ -82,7 +82,7 @@ public sealed class ActivityLogOrderingTests(SqlServerDbContextFixture fixture)
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _ = Mappings.Value;
-        var reader = new ActivityLogReader(context);
+        var reader = new ActivityLogReader(context, context);
 
         // Act
         var page = await reader.Read(theme.Id, cancellationToken: TestContext.Current.CancellationToken);
@@ -108,7 +108,7 @@ public sealed class ActivityLogOrderingTests(SqlServerDbContextFixture fixture)
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _ = Mappings.Value;
-        var reader = new ActivityLogReader(context);
+        var reader = new ActivityLogReader(context, context);
 
         // Act
         var paged = new List<ActivityLogDto>();

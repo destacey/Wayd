@@ -4,7 +4,8 @@ import { LifecycleStatusTag, PageActions } from '@/src/components/common'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
-import { useDocumentTitle } from '@/src/hooks'
+import { useDocumentTitle, useFeatureFlag } from '@/src/hooks'
+import { KpiSubjectTypes } from '@/src/store/features/common/kpis-api'
 import {
   useGetPortfolioActivitiesQuery,
   useGetPortfolioProgramsQuery,
@@ -20,7 +21,8 @@ import {
   ActivityLogTimeline,
   useActivityLog,
 } from '@/src/components/common/activities'
-import { MenuProps } from 'antd'
+import { MenuProps, Spin } from 'antd'
+import dynamic from 'next/dynamic'
 import type { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, use, useState } from 'react'
@@ -54,8 +56,14 @@ import {
   StrategicInitiativeStatus,
 } from '@/src/services/api/wayd.schemas'
 
+const KpiScorecard = dynamic(
+  () => import('@/src/components/common/kpi/scorecard/kpi-scorecard'),
+  { ssr: false, loading: () => <Spin /> },
+)
+
 enum PortfolioSections {
   Overview = 'overview',
+  Scorecard = 'scorecard',
   Programs = 'programs',
   Projects = 'projects',
   StrategicInitiatives = 'strategic-initiatives',
@@ -95,6 +103,8 @@ enum MenuActions {
 const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { key } = use(props.params)
   const portfolioKey = Number(key)
+
+  const { isEnabled: kpisEnabled } = useFeatureFlag('kpis')
 
   const [openEditPortfolioForm, setOpenEditPortfolioForm] =
     useState<boolean>(false)
@@ -444,6 +454,9 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const sections: RecordSection[] = [
     { id: PortfolioSections.Overview, label: 'Overview' },
+    ...(kpisEnabled
+      ? [{ id: PortfolioSections.Scorecard, label: 'Scorecard' }]
+      : []),
     {
       id: PortfolioSections.Programs,
       label: 'Programs',
@@ -465,6 +478,15 @@ const PortfolioDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const renderSection = (section: PortfolioSections) => {
     switch (section) {
+      case PortfolioSections.Scorecard:
+        return kpisEnabled && portfolioData ? (
+          <KpiScorecard
+            subject={{
+              subjectType: KpiSubjectTypes.Portfolio,
+              subjectId: portfolioData.id,
+            }}
+          />
+        ) : null
       case PortfolioSections.Activities:
         return <ActivityLogTimeline {...activityLog.timelineProps} />
       case PortfolioSections.Programs:

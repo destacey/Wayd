@@ -16,6 +16,25 @@ public static class KpiArea
 
     /// <summary>The subject type a team's or a team of teams' KPIs are stored under.</summary>
     public const string TeamSubjectType = "organization.team";
+
+    /// <summary>The subject type a project's KPIs are stored under.</summary>
+    public const string ProjectSubjectType = "ppm.project";
+
+    /// <summary>The subject type a program's KPIs are stored under.</summary>
+    public const string ProgramSubjectType = "ppm.program";
+
+    /// <summary>The subject type a portfolio's KPIs are stored under.</summary>
+    public const string PortfolioSubjectType = "ppm.portfolio";
+
+    /// <summary>The subject type a KPI's record is stored under, and the area that published the record's id.</summary>
+    public static (string SubjectType, string Area) For(KpiSubject subject) => subject switch
+    {
+        KpiSubject.Team => (TeamSubjectType, OrganizationArea.Teams),
+        KpiSubject.Project => (ProjectSubjectType, PpmArea.Projects),
+        KpiSubject.Program => (ProgramSubjectType, PpmArea.Programs),
+        KpiSubject.Portfolio => (PortfolioSubjectType, PpmArea.Portfolios),
+        _ => throw new ArgumentOutOfRangeException(nameof(subject), subject, null),
+    };
 }
 
 /// <summary>A KPI area, which has nothing to do when the seed was asked to skip KPIs.</summary>
@@ -63,11 +82,12 @@ public sealed class KpiCategoriesArea() : KpiSeedArea(KpiArea.Categories, KpiAre
 }
 
 /// <summary>
-/// Loads every team's and ART's KPIs with their monthly history and any checkpoint plan, resolving each one's record
-/// and category. A KPI travels with its measurements and plan, so a batch never splits one from them. A point-in-time moment is
-/// written with its offset, which the import requires.
+/// Loads every team's, ART's, portfolio's, program's and project's KPIs with their monthly history and any checkpoint
+/// plan, resolving each one's record and category. A KPI travels with its measurements and plan, so a batch never
+/// splits one from them. A point-in-time moment is written with its offset, which the import requires.
 /// </summary>
-public sealed class KpisArea() : KpiSeedArea(KpiArea.Kpis, KpiArea.Categories, OrganizationArea.Teams)
+public sealed class KpisArea() : KpiSeedArea(
+    KpiArea.Kpis, KpiArea.Categories, OrganizationArea.Teams, PpmArea.Portfolios, PpmArea.Programs, PpmArea.Projects)
 {
     public override string BatchedImport => "kpis.kpis";
 
@@ -88,8 +108,8 @@ public sealed class KpisArea() : KpiSeedArea(KpiArea.Kpis, KpiArea.Categories, O
         var rows = data.Kpis.Select(k => new KpiCsvRow
         {
             ImportId = k.Handle,
-            SubjectType = KpiArea.TeamSubjectType,
-            SubjectId = context.Id(OrganizationArea.Teams, k.TeamCode),
+            SubjectType = KpiArea.For(k.Subject).SubjectType,
+            SubjectId = context.Id(KpiArea.For(k.Subject).Area, k.SubjectHandle),
             Name = k.Name,
             Description = k.Description,
             CategoryId = context.Id(KpiArea.Categories, k.Category),

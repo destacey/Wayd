@@ -72,6 +72,17 @@ public static class ProgramFakerExtensions
         return faker;
     }
 
+    /// <summary>
+    /// Attaches the parent portfolio itself, not just its id, for rules that read the portfolio's roles.
+    /// </summary>
+    public static ProgramFaker WithPortfolio(this ProgramFaker faker, ProjectPortfolio portfolio)
+    {
+        faker.RuleFor(x => x.PortfolioId, portfolio.Id);
+        faker.RuleFor(x => x.Portfolio, portfolio);
+
+        return faker;
+    }
+
     public static ProgramFaker WithRoles(this ProgramFaker faker, Dictionary<ProgramRole, HashSet<Guid>>? roles)
     {
         faker.RuleFor("_roles", (_, program) =>

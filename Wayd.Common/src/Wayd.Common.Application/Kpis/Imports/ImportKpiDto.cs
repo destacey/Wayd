@@ -11,7 +11,7 @@ namespace Wayd.Common.Application.Kpis.Imports;
 /// apply together or not at all, so a period that overlaps another rejects the KPI it belongs to rather than
 /// leaving it half-imported.
 /// </remarks>
-/// <param name="SubjectType">The registered subject type, such as <c>organization.team</c>.</param>
+/// <param name="SubjectType">The registered subject type, such as <c>organization.team</c> or <c>ppm.project</c>.</param>
 /// <param name="SubjectId">The record the KPI goes on, by id.</param>
 /// <param name="Name">What the KPI is called.</param>
 /// <param name="Description">What it measures and why.</param>

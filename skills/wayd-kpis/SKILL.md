@@ -1,6 +1,6 @@
 ---
 name: wayd-kpis
-description: Read before calling the Wayd MCP tools named Kpis_* or KpiCategories_*. Guides agents working with a Wayd team's or team of teams' scorecard via the Wayd MCP server — reading its KPIs with their baselines, targets, health and trend, reading one KPI's measurement history, recording and correcting measurements, managing a KPI's checkpoint plan, and adding, changing, closing, reordering and removing KPIs. Use when the user asks how a team is doing against its KPIs, what a KPI's latest value or trend is, which KPIs are at risk or behind plan, wants to record this period's value for a KPI, wants to set or change a KPI's checkpoints, or wants to set up or change a team's KPIs.
+description: Read before calling the Wayd MCP tools named Kpis_* or KpiCategories_*. Guides agents working with the scorecard of a Wayd team, team of teams, project, program or portfolio via the Wayd MCP server — reading its KPIs with their baselines, targets, health and trend, reading one KPI's measurement history, recording and correcting measurements, managing a KPI's checkpoint plan, and adding, changing, closing, reordering and removing KPIs. Use when the user asks how a team or a project is doing against its KPIs, what a KPI's latest value or trend is, which KPIs are at risk or behind plan, wants to record this period's value for a KPI, wants to set or change a KPI's checkpoints, or wants to set up or change a team's or a project's KPIs.
 ---
 
 # Wayd KPIs
@@ -10,14 +10,17 @@ The KPI tools are in the `kpis` toolset, and need the `kpis` feature flag. They 
 | Record | `subjectType` | `subjectId` |
 | --- | --- | --- |
 | Team or team of teams | `organization.team` | The team's UUID (see the `wayd-teams` skill) |
+| Project | `ppm.project` | The project's UUID (see the `wayd-ppm` skill) |
+| Program | `ppm.program` | The program's UUID |
+| Portfolio | `ppm.portfolio` | The portfolio's UUID |
 
 A `subjectType` that cannot carry KPIs returns 400. A record that does not exist, or that the caller cannot read, returns 404 — never 403 — so treat 404 as "not visible to you" and say so rather than retrying.
 
 ## Before any change
 
-Every tool here except the reads changes the team's scorecard and appears in its Activity. Show the user exactly what you will do — the KPI, the value and when it was taken, or the fields you will change — and wait for their go-ahead. Reads need no confirmation. When the user approves, do exactly what they approved.
+Every tool here except the reads changes the record's scorecard and appears in its Activity. Show the user exactly what you will do — the KPI, the value and when it was taken, or the fields you will change — and wait for their go-ahead. Reads need no confirmation. When the user approves, do exactly what they approved.
 
-Only members of the team, members of any team of teams above it, and KPI administrators may change a team's KPIs. `canManage` on the scorecard says whether the caller may; when it is false, tell the user rather than calling a change tool. Every change requires the caller's account to be linked to an employee.
+Only members of the team, members of any team of teams above it, and KPI administrators may change a team's KPIs. A project's, program's or portfolio's KPIs are changed by whoever may change the record: its Update permission plus Owner or Manager on it or on its program or portfolio, or a KPI administrator; this holds after the record closes too. `canManage` on the scorecard says whether the caller may; when it is false, tell the user rather than calling a change tool. Every change requires the caller's account to be linked to an employee.
 
 ## Reading a scorecard
 
@@ -27,7 +30,7 @@ Only members of the team, members of any team of teams above it, and KPI adminis
 - **`window`** — what span of time each value covers (see "Measurement windows" below). Say which when you quote a value: "cycle time since Feb 16", "over the last 90 days", "as of 3 pm".
 - **`reading`** — what the latest value means: `value`, `changeFromBaseline` and `changeFromBaselinePercent`, `progressToTarget` (1 is the target reached, above 1 past it), `health` (`Healthy`, `AtRisk` or `Unhealthy`; absent before anything is measured) and `trend` (`Improving`, `Worsening`, `Stable` or `NoData`).
 - **`rollingAverageOf`** — when set, the reading's `value` is the average of that many latest measurements, and health and trend judge the average; `latestValue` is the newest single measurement and `averagedCount` how many were averaged (fewer than asked while the KPI is new). Report it as "average of the last 7", not as the latest value.
-- **`expressedAs`** — the reading the team leads with: `Value`, `ChangeFromBaseline` or `ProgressToTarget`. Lead with the same reading when summarising the KPI.
+- **`expressedAs`** — the reading the record leads with: `Value`, `ChangeFromBaseline` or `ProgressToTarget`. Lead with the same reading when summarising the KPI.
 - **`reading.checkpoint`** — when set, health was judged against that checkpoint of the plan, not the target: say "against the Q2 plan of 24", not "against the target". Progress and change are still toward the target. See "Checkpoint plans".
 - **`checkpoints`** — the KPI's checkpoint plan in date order; empty when it has none.
 - **`recentValues`** — up to twelve recent values, oldest first.

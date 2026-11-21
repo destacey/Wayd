@@ -107,7 +107,7 @@ const KpiScorecard = ({ subject }: KpiScorecardProps) => {
             showClosed
               ? 'No closed KPIs'
               : data.canManage
-                ? 'No KPIs yet. Add one to say what this team is aiming for.'
+                ? 'No KPIs yet. Add one to say what you are aiming for.'
                 : 'No KPIs yet'
           }
         />

@@ -5,7 +5,7 @@ using Wayd.Common.Domain.Enums.AppIntegrations;
 
 namespace Wayd.AppIntegration.Application.Connections.Commands.AzureDevOps;
 
-/// <param name="PersonalAccessToken">Blank or masked keeps the stored token — see <see cref="ConnectionSecret.Resolve"/>.</param>
+/// <param name="PersonalAccessToken">Blank or masked keeps the stored token — see <see cref="ConnectionSecret.Replacement"/>.</param>
 public sealed record UpdateAzureDevOpsConnectionCommand(Guid Id, string Name, string? Description, string Organization, string? PersonalAccessToken) : ICommand<Guid>;
 
 public sealed class UpdateAzureDevOpsConnectionCommandValidator : CustomValidator<UpdateAzureDevOpsConnectionCommand>
@@ -65,9 +65,14 @@ public sealed class UpdateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbC
             if (connection is null)
                 return Result.Failure<Guid>("Azure DevOps connection not found.");
 
-            var pat = ConnectionSecret.Resolve(request.PersonalAccessToken, connection.Configuration!.PersonalAccessToken);
+            var newPat = ConnectionSecret.Replacement(request.PersonalAccessToken, connection.Configuration!.PersonalAccessToken);
 
-            var config = new AzureDevOpsBoardsConnectionConfiguration(request.Organization, pat);
+            // Before the connection test, which sends the token to the organization being saved.
+            var credentialsResult = connection.CheckCredentialsFor(request.Organization, newPat);
+            if (credentialsResult.IsFailure)
+                return Result.Failure<Guid>(credentialsResult.Error);
+
+            var config = new AzureDevOpsBoardsConnectionConfiguration(request.Organization, newPat ?? connection.Configuration.PersonalAccessToken);
 
             var systemIdAndTestResult = await _azureDevOpsService.GetSystemId(new AzureDevOpsConnectionContext(config.Organization, config.PersonalAccessToken), cancellationToken);
             if (systemIdAndTestResult.IsFailure)
@@ -85,7 +90,7 @@ public sealed class UpdateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbC
 
             var configurationIsValid = systemIdAndTestResult.IsSuccess && !string.IsNullOrWhiteSpace(connection.SystemId);
 
-            var updateResult = connection.Update(request.Name, request.Description, request.Organization, pat, configurationIsValid, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+            var updateResult = connection.Update(request.Name, request.Description, request.Organization, newPat, configurationIsValid, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (updateResult.IsFailure)
             {
                 // Reset the entity

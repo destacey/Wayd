@@ -57,6 +57,22 @@ public sealed class UpdateTeamsConnectionCommandHandlerTests
         _db.SaveChangesCallCount.Should().Be(1);
     }
 
+    [Fact]
+    public async Task Handle_Refuses_WhenTheTenantChangesWithoutANewSecret()
+    {
+        // Arrange
+        var connection = CreateConnection();
+        var command = new UpdateTeamsConnectionCommand(connection.Id, "Teams", null, "another-tenant", ClientId, null);
+
+        // Act
+        var result = await _sut.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        connection.Configuration.TenantId.Should().Be(TenantId);
+        _db.SaveChangesCallCount.Should().Be(0);
+    }
+
     private TeamsConnection CreateConnection()
     {
         var connection = TeamsConnection.Create(

@@ -48,4 +48,23 @@ public sealed class AzureOpenAIConnectionConfiguration
     #endregion
 
     public int ConfigVersion { get; init; }
+
+    /// <summary>
+    /// Whether this configuration names the same deployment as <paramref name="baseUrl"/> and
+    /// <paramref name="deploymentName"/>, ignoring case, surrounding whitespace and a trailing slash on the URL.
+    /// </summary>
+    public bool IsSameDeployment(string baseUrl, string deploymentName) =>
+        string.Equals(NormalizeBaseUrl(BaseUrl), NormalizeBaseUrl(baseUrl), StringComparison.OrdinalIgnoreCase)
+        && string.Equals(DeploymentName.Trim(), deploymentName.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private static string NormalizeBaseUrl(string baseUrl) => baseUrl.Trim().TrimEnd('/');
+
+    /// <summary>
+    /// Whether <paramref name="baseUrl"/> can be the resource URL: absolute HTTPS with no credentials in it,
+    /// since the API key is sent to it.
+    /// </summary>
+    public static bool IsValidBaseUrl(string? baseUrl) =>
+        Uri.TryCreate(baseUrl?.Trim(), UriKind.Absolute, out var uri)
+        && uri.Scheme == Uri.UriSchemeHttps
+        && string.IsNullOrEmpty(uri.UserInfo);
 }

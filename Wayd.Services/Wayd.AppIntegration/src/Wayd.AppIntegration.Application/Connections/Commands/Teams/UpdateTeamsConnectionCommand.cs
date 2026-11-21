@@ -45,7 +45,7 @@ public sealed class UpdateTeamsConnectionCommandHandler(
             if (connection is null)
                 return Result.Failure<Guid>("Teams connection not found.");
 
-            var clientSecret = ConnectionSecret.Resolve(request.ClientSecret, connection.Configuration!.ClientSecret);
+            var clientSecret = ConnectionSecret.Replacement(request.ClientSecret, connection.Configuration!.ClientSecret);
             var configurationIsValid = true;
 
             var updateResult = connection.Update(

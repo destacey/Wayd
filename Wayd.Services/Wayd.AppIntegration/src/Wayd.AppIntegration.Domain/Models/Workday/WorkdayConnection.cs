@@ -32,12 +32,14 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
 
     public bool CanSync => IsActive && IsValidConfiguration && HasActiveIntegrationObjects;
 
+    /// <summary>Applies an administrator's edit, refusing one that sends the kept password somewhere new.</summary>
+    /// <param name="isuPassword">The new ISU password, or null to keep the stored one.</param>
     public Result Update(
         string name,
         string? description,
         string wsdlUrl,
         string isuUsername,
-        string isuPassword,
+        string? isuPassword,
         WorkdayWorkerKey workerKey,
         bool includeInactive,
         EmployeeMatchProperty matchBy,
@@ -58,7 +60,10 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
             var newDescription = description?.NullIfWhiteSpacePlusTrim();
             var newWsdlUrl = Guard.Against.NullOrWhiteSpace(wsdlUrl, nameof(wsdlUrl)).Trim();
             var newIsuUsername = Guard.Against.NullOrWhiteSpace(isuUsername, nameof(isuUsername)).Trim();
-            var newIsuPassword = Guard.Against.NullOrWhiteSpace(isuPassword, nameof(isuPassword)).Trim();
+            var passwordKept = isuPassword is null;
+            var newIsuPassword = passwordKept
+                ? Configuration.IsuPassword
+                : Guard.Against.NullOrWhiteSpace(isuPassword, nameof(isuPassword)).Trim();
             var newDepartmentOrgTypeId = string.IsNullOrWhiteSpace(departmentOrganizationTypeId) ? null : departmentOrganizationTypeId.Trim();
             var newOrgExclusions = orgExclusions?.ToList() ?? [];
 
@@ -72,6 +77,11 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
             if (!WorkdayConnectionConfiguration.TryParse(newWsdlUrl, out var parts))
                 return Result.Failure(
                     $"WsdlUrl '{newWsdlUrl}' is not a valid Workday Staffing endpoint URL. Expected form: https://{{host}}/ccx/service/{{tenant}}/Staffing/{{version}}.");
+
+            var scopeResult = RequireCredentialsForNewScope(
+                [EndpointAuthority(parts.SoapEndpoint), parts.TenantAlias, newIsuUsername], passwordKept, "ISU password");
+            if (scopeResult.IsFailure)
+                return scopeResult;
 
             var before = CaptureState();
 
@@ -213,4 +223,12 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
 
     protected override IReadOnlyList<(string Name, string Value)> Credentials() =>
         [(nameof(Configuration.IsuPassword), Configuration.IsuPassword)];
+
+    // The host with any non-default port, not the full endpoint: a WWS version change keeps the password.
+    protected override IReadOnlyList<string?> CredentialScope() =>
+        [EndpointAuthority(Configuration.SoapEndpoint), Configuration.TenantAlias, Configuration.IsuUsername];
+
+    // A stored endpoint that no longer parses is compared as it is, so any edit to it is a new scope.
+    private static string EndpointAuthority(string soapEndpoint) =>
+        Uri.TryCreate(soapEndpoint, UriKind.Absolute, out var uri) ? uri.Authority : soapEndpoint;
 }

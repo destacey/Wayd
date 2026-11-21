@@ -2,7 +2,7 @@ namespace Wayd.AppIntegration.Application.Connections;
 
 /// <summary>
 /// The single seam for connector secrets crossing the API boundary — masking on the way out,
-/// resolving a submitted value against the stored one on the way in.
+/// telling a replacement from a kept secret on the way in.
 /// </summary>
 public static class ConnectionSecret
 {
@@ -20,7 +20,8 @@ public static class ConnectionSecret
     public static string Masked(string? secret) => string.IsNullOrWhiteSpace(secret) ? string.Empty : Mask;
 
     /// <summary>
-    /// Resolves the secret to persist for an update.
+    /// The new secret an update supplies, or null when it keeps the stored one — what a connection's
+    /// <c>Update</c> takes, so the domain can refuse to send a kept secret to a new endpoint.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -44,9 +45,9 @@ public static class ConnectionSecret
     /// </remarks>
     /// <param name="submitted">The caller's value. Blank (or absent, which deserializes to null) or masked means "keep".</param>
     /// <param name="stored">The secret currently persisted on the connection.</param>
-    public static string Resolve(string? submitted, string stored)
+    public static string? Replacement(string? submitted, string stored)
         => string.IsNullOrWhiteSpace(submitted) || IsMaskOf(submitted, stored)
-            ? stored
+            ? null
             : submitted;
 
     /// <summary>

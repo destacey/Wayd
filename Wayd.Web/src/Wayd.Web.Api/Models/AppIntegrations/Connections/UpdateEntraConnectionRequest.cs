@@ -16,10 +16,11 @@ public sealed record UpdateEntraConnectionRequest : UpdateConnectionRequest
     public required string ClientId { get; set; }
 
     /// <summary>
-    /// The client secret for the Entra app registration.
+    /// The client secret for the Entra app registration. Leave blank to keep the stored value, unless the
+    /// update changes the tenant or client ID, which needs it entered again.
     /// </summary>
     /// <remarks>
-    /// Leave blank to keep the stored value. There is no way to clear it: the connection
+    /// A stored credential is only sent where it was entered for. There is no way to clear it: the connection
     /// cannot function without a credential, so removal means deleting the connection.
     /// </remarks>
     public string? ClientSecret { get; set; }

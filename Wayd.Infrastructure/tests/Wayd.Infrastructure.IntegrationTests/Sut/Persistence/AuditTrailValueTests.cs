@@ -95,7 +95,7 @@ public sealed class AuditTrailValueTests(SqlServerDbContextFixture fixture)
 
         await using var context = _fixture.CreateContext();
         var connection = await context.Set<AzureOpenAIConnection>().SingleAsync(c => c.Id == id, ct);
-        connection.Update("AI", null, newKey, "gpt-4o", true, EventActor.System, Now).IsSuccess.Should().BeTrue();
+        connection.Update("AI", null, "https://acme.openai.example", newKey, "gpt-4o", true, EventActor.System, Now).IsSuccess.Should().BeTrue();
 
         // Act
         await context.SaveChangesAsync(ct);

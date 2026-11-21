@@ -26,7 +26,9 @@ public class AzureOpenAIConnection : Connection<AzureOpenAIConnectionConfigurati
 
     public override bool HasActiveIntegrationObjects => IsValidConfiguration;
 
-    public Result Update(string name, string? description, string apiKey, string deploymentName, bool configurationIsValid, EventActor actor, Instant timestamp)
+    /// <summary>Applies an administrator's edit, refusing one that sends the kept key to another resource.</summary>
+    /// <param name="apiKey">The new API key, or null to keep the stored one.</param>
+    public Result Update(string name, string? description, string baseUrl, string? apiKey, string deploymentName, bool configurationIsValid, EventActor actor, Instant timestamp)
     {
         try
         {
@@ -34,11 +36,21 @@ public class AzureOpenAIConnection : Connection<AzureOpenAIConnectionConfigurati
 
             var newName = Guard.Against.NullOrWhiteSpace(name, nameof(name)).Trim();
             var newDescription = description?.NullIfWhiteSpacePlusTrim();
-            var newApiKey = Guard.Against.NullOrWhiteSpace(apiKey, nameof(apiKey)).Trim();
+            var newBaseUrl = Guard.Against.NullOrWhiteSpace(baseUrl, nameof(baseUrl)).Trim();
+            var newApiKey = apiKey is null
+                ? Configuration.ApiKey
+                : Guard.Against.NullOrWhiteSpace(apiKey, nameof(apiKey)).Trim();
             var newDeploymentName = Guard.Against.NullOrWhiteSpace(deploymentName, nameof(deploymentName)).Trim();
 
-            if (!UpdateValuesChanged(newName, newDescription, newApiKey, newDeploymentName, configurationIsValid))
+            if (!UpdateValuesChanged(newName, newDescription, newBaseUrl, newApiKey, newDeploymentName, configurationIsValid))
                 return Result.Success();
+
+            if (!AzureOpenAIConnectionConfiguration.IsValidBaseUrl(newBaseUrl))
+                return Result.Failure($"BaseUrl '{newBaseUrl}' must be an absolute HTTPS URL.");
+
+            var scopeResult = RequireCredentialsForNewScope([Authority(newBaseUrl)], apiKey is null, "API key");
+            if (scopeResult.IsFailure)
+                return scopeResult;
 
             var before = CaptureState();
 
@@ -46,6 +58,7 @@ public class AzureOpenAIConnection : Connection<AzureOpenAIConnectionConfigurati
             Description = newDescription;
             IsValidConfiguration = configurationIsValid;
 
+            Configuration.BaseUrl = newBaseUrl;
             Configuration.ApiKey = newApiKey;
             Configuration.DeploymentName = newDeploymentName;
 
@@ -62,15 +75,17 @@ public class AzureOpenAIConnection : Connection<AzureOpenAIConnectionConfigurati
     private bool UpdateValuesChanged(
         string name,
         string? description,
+        string baseUrl,
         string apiKey,
         string deploymentName,
         bool configurationIsValid)
     {
         return Name != name.Trim()
             || Description != description.NullIfWhiteSpacePlusTrim()
+            || Configuration.BaseUrl != baseUrl
             || Configuration.ApiKey != apiKey.Trim()
             || Configuration.DeploymentName != deploymentName.Trim()
-            || IsValidConfiguration != configurationIsValid; // Assuming AzureOpenAIConnectionConfiguration has an appropriate Equals method
+            || IsValidConfiguration != configurationIsValid;
     }
 
     public static AzureOpenAIConnection Create(
@@ -81,6 +96,10 @@ public class AzureOpenAIConnection : Connection<AzureOpenAIConnectionConfigurati
         EventActor actor,
         Instant timestamp)
     {
+        // The API key is sent to BaseUrl; the command validator refuses anything else, so reaching this is a bug.
+        Guard.Against.InvalidInput(configuration.BaseUrl, nameof(configuration), AzureOpenAIConnectionConfiguration.IsValidBaseUrl,
+            "BaseUrl must be an absolute HTTPS URL.");
+
         var connection = new AzureOpenAIConnection(
             name,
             description,
@@ -103,4 +122,11 @@ public class AzureOpenAIConnection : Connection<AzureOpenAIConnectionConfigurati
 
     protected override IReadOnlyList<(string Name, string Value)> Credentials() =>
         [(nameof(Configuration.ApiKey), Configuration.ApiKey)];
+
+    // The host with any non-default port: the deployment and path can change under the same key.
+    protected override IReadOnlyList<string?> CredentialScope() => [Authority(Configuration.BaseUrl)];
+
+    // A stored URL from before BaseUrl was validated may not parse; compared as it is, any edit to it is a new scope.
+    private static string Authority(string baseUrl) =>
+        Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri) ? uri.Authority : baseUrl;
 }

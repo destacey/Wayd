@@ -4,7 +4,7 @@ using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 
 namespace Wayd.AppIntegration.Application.Connections.Commands.AzureOpenAI;
 
-/// <param name="ApiKey">Blank or masked keeps the stored key — see <see cref="ConnectionSecret.Resolve"/>.</param>
+/// <param name="ApiKey">Blank or masked keeps the stored key — see <see cref="ConnectionSecret.Replacement"/>.</param>
 public sealed record UpdateAzureOpenAIConnectionCommand(Guid Id, string Name, string BaseUrl, string? Description, string DeploymentName, string? ApiKey) : ICommand<Guid>;
 
 public sealed class UpdateAzureOpenAIConnectionCommandValidator : CustomValidator<UpdateAzureOpenAIConnectionCommand>
@@ -24,10 +24,15 @@ public sealed class UpdateAzureOpenAIConnectionCommandValidator : CustomValidato
         RuleFor(c => c.Description)
             .MaximumLength(1024);
 
+        RuleFor(c => c.BaseUrl)
+            .NotEmpty()
+            .MaximumLength(256)
+            .Must(AzureOpenAIConnectionConfiguration.IsValidBaseUrl).WithMessage("BaseUrl must be an absolute HTTPS URL.");
+
         RuleFor(c => c.DeploymentName)
             .NotEmpty()
             .MaximumLength(128)
-            .MustAsync(async (cmd, deploymentName, cancellationToken) => await BeUniqueAzureAIDeployment(cmd.BaseUrl, deploymentName, cancellationToken)).WithMessage("The deployment name for this connection already exists in an existing connection.");
+            .MustAsync(async (cmd, deploymentName, cancellationToken) => await BeUniqueAzureAIDeployment(cmd.Id, cmd.BaseUrl, deploymentName, cancellationToken)).WithMessage("The deployment name for this connection already exists in an existing connection.");
 
         // Deliberately not NotEmpty: a blank key means "keep the stored one".
         RuleFor(c => c.ApiKey)
@@ -35,16 +40,22 @@ public sealed class UpdateAzureOpenAIConnectionCommandValidator : CustomValidato
     }
 
     /// <summary>
-    /// Ensures that the combination of BaseUrl and DeploymentName is unique across existing Azure OpenAI connections.
+    /// Ensures that the combination of BaseUrl and DeploymentName is unique across the other Azure OpenAI connections.
     /// </summary>
+    /// <param name="id">The connection being updated, which may keep its own combination.</param>
     /// <param name="baseUrl"></param>
     /// <param name="deploymentName"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public async Task<bool> BeUniqueAzureAIDeployment(string baseUrl, string deploymentName, CancellationToken cancellationToken)
+    public async Task<bool> BeUniqueAzureAIDeployment(Guid id, string baseUrl, string deploymentName, CancellationToken cancellationToken)
     {
-        return await _appIntegrationDbContext.AzureOpenAIConnections
-            .AllAsync(c => c.Configuration!.BaseUrl != baseUrl && c.Configuration!.DeploymentName != deploymentName, cancellationToken);
+        // Compared in memory: the configuration is one encrypted column, which SQL cannot look inside.
+        var configurations = await _appIntegrationDbContext.AzureOpenAIConnections
+            .Where(c => c.Id != id)
+            .Select(c => c.Configuration)
+            .ToListAsync(cancellationToken);
+
+        return !configurations.Any(c => c.IsSameDeployment(baseUrl, deploymentName));
     }
 }
 
@@ -66,14 +77,12 @@ public sealed class UpdateAzureOpenAIConnectionCommandHandler(IAppIntegrationDbC
             if (connection is null)
                 return Result.Failure<Guid>("Azure OpenAI connection not found.");
 
-            var apiKey = ConnectionSecret.Resolve(request.ApiKey, connection.Configuration!.ApiKey);
-
-            var config = new AzureOpenAIConnectionConfiguration(request.BaseUrl, request.DeploymentName, apiKey);
+            var apiKey = ConnectionSecret.Replacement(request.ApiKey, connection.Configuration!.ApiKey);
 
             // TODO: Check the connection validity via some service making a "Test message" chat call using the connection creds
             var configurationIsValid = true;
 
-            var updateResult = connection.Update(request.Name, request.Description, apiKey, request.DeploymentName, configurationIsValid, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+            var updateResult = connection.Update(request.Name, request.Description, request.BaseUrl, apiKey, request.DeploymentName, configurationIsValid, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             if (updateResult.IsFailure)
             {
                 // Reset the entity

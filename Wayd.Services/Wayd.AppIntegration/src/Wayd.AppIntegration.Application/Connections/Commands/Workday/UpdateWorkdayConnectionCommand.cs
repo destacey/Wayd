@@ -68,7 +68,7 @@ public sealed class UpdateWorkdayConnectionCommandHandler(
             if (connection is null)
                 return Result.Failure<Guid>("Workday connection not found.");
 
-            var isuPassword = ConnectionSecret.Resolve(request.IsuPassword, connection.Configuration!.IsuPassword);
+            var isuPassword = ConnectionSecret.Replacement(request.IsuPassword, connection.Configuration!.IsuPassword);
 
             // Map the API-level input list to the domain WorkdayOrgExclusion. Fully qualified
             // because Common.Application also exports a WorkdayOrgExclusion record (the runtime

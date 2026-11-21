@@ -26,7 +26,8 @@ public sealed class CreateAzureOpenAIConnectionCommandValidator : CustomValidato
 
         RuleFor(c => c.BaseUrl)
             .NotEmpty()
-            .MaximumLength(256);
+            .MaximumLength(256)
+            .Must(AzureOpenAIConnectionConfiguration.IsValidBaseUrl).WithMessage("BaseUrl must be an absolute HTTPS URL.");
 
         RuleFor(c => c.ApiKey)
             .NotEmpty()
@@ -47,8 +48,12 @@ public sealed class CreateAzureOpenAIConnectionCommandValidator : CustomValidato
     /// <returns></returns>
     public async Task<bool> BeUniqueAzureAIDeployment(string baseUrl, string deploymentName, CancellationToken cancellationToken)
     {
-        return await _appIntegrationDbContext.AzureOpenAIConnections
-            .AllAsync(c => c.Configuration!.BaseUrl != baseUrl && c.Configuration!.DeploymentName != deploymentName, cancellationToken);
+        // Compared in memory: the configuration is one encrypted column, which SQL cannot look inside.
+        var configurations = await _appIntegrationDbContext.AzureOpenAIConnections
+            .Select(c => c.Configuration)
+            .ToListAsync(cancellationToken);
+
+        return !configurations.Any(c => c.IsSameDeployment(baseUrl, deploymentName));
     }
 }
 

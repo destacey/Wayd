@@ -29,12 +29,14 @@ public sealed class TeamsConnection : Connection<TeamsConnectionConfiguration>
 
     public override bool HasActiveIntegrationObjects => IsValidConfiguration;
 
+    /// <summary>Applies an administrator's edit, refusing one that sends the kept secret to another tenant or app.</summary>
+    /// <param name="clientSecret">The new client secret, or null to keep the stored one.</param>
     public Result Update(
         string name,
         string? description,
         string tenantId,
         string clientId,
-        string clientSecret,
+        string? clientSecret,
         bool configurationIsValid,
         EventActor actor,
         Instant timestamp)
@@ -47,7 +49,13 @@ public sealed class TeamsConnection : Connection<TeamsConnectionConfiguration>
             var newDescription = description?.NullIfWhiteSpacePlusTrim();
             var newTenantId = Guard.Against.NullOrWhiteSpace(tenantId, nameof(tenantId)).Trim();
             var newClientId = Guard.Against.NullOrWhiteSpace(clientId, nameof(clientId)).Trim();
-            var newClientSecret = Guard.Against.NullOrWhiteSpace(clientSecret, nameof(clientSecret)).Trim();
+            var newClientSecret = clientSecret is null
+                ? Configuration.ClientSecret
+                : Guard.Against.NullOrWhiteSpace(clientSecret, nameof(clientSecret)).Trim();
+
+            var scopeResult = RequireCredentialsForNewScope([newTenantId, newClientId], clientSecret is null, "client secret");
+            if (scopeResult.IsFailure)
+                return scopeResult;
 
             if (!UpdateValuesChanged(newName, newDescription, newTenantId, newClientId, newClientSecret, configurationIsValid))
                 return Result.Success();
@@ -109,4 +117,6 @@ public sealed class TeamsConnection : Connection<TeamsConnectionConfiguration>
 
     protected override IReadOnlyList<(string Name, string Value)> Credentials() =>
         [(nameof(Configuration.ClientSecret), Configuration.ClientSecret)];
+
+    protected override IReadOnlyList<string?> CredentialScope() => [Configuration.TenantId, Configuration.ClientId];
 }

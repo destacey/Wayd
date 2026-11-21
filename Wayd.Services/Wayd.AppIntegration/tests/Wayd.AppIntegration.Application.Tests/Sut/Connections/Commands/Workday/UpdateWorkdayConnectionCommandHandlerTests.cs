@@ -115,16 +115,34 @@ public class UpdateWorkdayConnectionCommandHandlerTests
             "a rotated password must save even when it happens to match the stored one's prefix and length");
     }
 
+    [Fact]
+    public async Task Handle_RefusesAndNeverProbes_WhenTheHostChangesWithoutANewPassword()
+    {
+        // Arrange
+        var connection = CreateConnection();
+        var command = CreateCommand(connection.Id, isuPassword: null,
+            wsdlUrl: "https://attacker.example.com/ccx/service/acme_corp/Staffing/v46.1");
+
+        // Act
+        var result = await _sut.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        _probedPassword.Should().BeNull("the stored password must not be sent to a host it was not entered for");
+        _db.SaveChangesCallCount.Should().Be(0);
+    }
+
     private static UpdateWorkdayConnectionCommand CreateCommand(
         Guid id,
         string? isuPassword,
         string name = "Workday",
-        string? description = "Original description")
+        string? description = "Original description",
+        string wsdlUrl = WsdlUrl)
         => new(
             id,
             name,
             description,
-            WsdlUrl,
+            wsdlUrl,
             IsuUsername,
             isuPassword,
             WorkerKey: WorkdayWorkerKey.EmployeeId,

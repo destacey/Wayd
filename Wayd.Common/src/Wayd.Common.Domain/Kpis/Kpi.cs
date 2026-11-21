@@ -20,10 +20,6 @@ namespace Wayd.Common.Domain.Kpis;
 /// Its measurements are part of the aggregate and are loaded with it, so the rule that no two periods overlap is
 /// checked here. A scorecard never loads them: it reads the latest two values in its query.
 /// </para>
-/// <para>
-/// Not <c>Models.KeyPerformanceIndicators.Kpi</c>, the base strategic initiative KPIs derive from, which has no
-/// subject, no measurement periods and no target rule.
-/// </para>
 /// </remarks>
 public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
 {

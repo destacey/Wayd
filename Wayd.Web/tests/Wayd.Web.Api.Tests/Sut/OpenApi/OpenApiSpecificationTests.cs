@@ -85,12 +85,9 @@ public sealed class OpenApiSpecificationTests
     [InlineData("ImportReleaseContentRequest", "versionId")]
     [InlineData("CreateProjectTaskRequest", "progress")]
     [InlineData("CreateProjectTaskRequest", "plannedDate")]
-    [InlineData("CreateStrategicInitiativeKpiRequest", "description")]
-    [InlineData("CreateStrategicInitiativeKpiRequest", "prefix")]
-    [InlineData("CreateStrategicInitiativeKpiRequest", "suffix")]
-    [InlineData("UpdateStrategicInitiativeKpiRequest", "description")]
-    [InlineData("UpdateStrategicInitiativeKpiRequest", "prefix")]
-    [InlineData("UpdateStrategicInitiativeKpiRequest", "suffix")]
+    [InlineData("KpiRequest", "description")]
+    [InlineData("KpiRequest", "prefix")]
+    [InlineData("KpiRequest", "suffix")]
     public void OptionalField_IsNotPublishedAsRequired(string schemaName, string property)
     {
         // Arrange
@@ -106,8 +103,6 @@ public sealed class OpenApiSpecificationTests
     }
 
     [Theory]
-    [InlineData("CreateStrategicInitiativeKpiRequest", "description", "maxLength", 512)]
-    [InlineData("CreateStrategicInitiativeKpiRequest", "prefix", "maxLength", 8)]
     [InlineData("ImportProjectTaskRequest", "progress", "maximum", 100)]
     [InlineData("UpdateSchedulingSettingsRequest", "workingDayHours", "maximum", 24)]
     [InlineData("ChangeEmployeeWorkingDayHoursRequest", "workingDayHours", "minimum", 1)]

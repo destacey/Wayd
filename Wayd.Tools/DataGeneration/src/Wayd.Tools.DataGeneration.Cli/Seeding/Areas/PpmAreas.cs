@@ -359,8 +359,8 @@ public sealed class ProjectDeliverablesArea() : PpmSeedArea(
 }
 
 /// <summary>
-/// Loads the initiatives and their KPIs in one call, since a closed initiative accepts neither new
-/// projects nor new KPIs — so both have to land before it is driven to its final status.
+/// Loads the initiatives with their linked projects; a closed initiative accepts no new projects, so they land
+/// before it is driven to its final status. Their KPIs go through the KPI areas, like every other record's.
 /// </summary>
 public sealed class StrategicInitiativesArea() : PpmSeedArea(
     PpmArea.Initiatives, PpmArea.Portfolios, PpmArea.Projects, OrganizationArea.Employees)
@@ -370,7 +370,7 @@ public sealed class StrategicInitiativesArea() : PpmSeedArea(
     public override async Task Run(SeedContext context, CancellationToken cancellationToken)
     {
         var ppm = Ppm(context);
-        context.Log($"Importing {ppm.StrategicInitiatives.Count} strategic initiatives and {ppm.StrategicInitiativeKpis.Count} KPIs...");
+        context.Log($"Importing {ppm.StrategicInitiatives.Count} strategic initiatives...");
 
         var rows = ppm.StrategicInitiatives.Select(i => new StrategicInitiativeCsvRow
         {
@@ -387,25 +387,7 @@ public sealed class StrategicInitiativesArea() : PpmSeedArea(
             Links = SeedLinks.For(SeedLinkKind.StrategicInitiative, i.Name),
         });
 
-        // The KPI file names its initiative by that row's import id, which the seed sets to the initiative
-        // name — so this is the same value the generator already carried, under a column that now says
-        // which file it points into.
-        var kpiRows = ppm.StrategicInitiativeKpis.Select(k => new StrategicInitiativeKpiCsvRow
-        {
-            StrategicInitiativeImportId = k.StrategicInitiativeName,
-            Name = k.Name,
-            Description = k.Description,
-            TargetValue = k.TargetValue,
-            StartingValue = k.StartingValue,
-            Prefix = k.Prefix,
-            Suffix = k.Suffix,
-            TargetDirection = k.TargetDirection,
-        }).ToList();
-
-        var run = await context.Client.ImportStrategicInitiatives(
-            CsvFile.ToBytes(rows),
-            kpiRows.Count > 0 ? CsvFile.ToBytes(kpiRows) : null,
-            cancellationToken);
+        var run = await context.Client.ImportStrategicInitiatives(CsvFile.ToBytes(rows), cancellationToken);
 
         context.Publish(Name, run.CreatedIdsByImportId);
     }

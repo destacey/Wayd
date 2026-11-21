@@ -10,6 +10,7 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// The plan is saved whole, so one event covers every checkpoint the save added, removed or revised.
 /// <see cref="Checkpoints"/> is the plan afterwards, for a consumer keeping a copy.
 /// </remarks>
+[Obsolete("Strategic initiative KPIs moved onto the shared KPI model, whose Kpi*Event types record them now. Kept only to deserialize payloads already written as this type.")]
 public sealed record StrategicInitiativeKpiCheckpointPlanChangedEvent : DomainEvent<StrategicInitiativeKpiCheckpointPlanChangedEvent>, IDomainEventDescriptor, IPpmEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;

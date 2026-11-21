@@ -28,7 +28,7 @@ A preflight is **advice, not a promise**. Each row is checked again when it is a
 1. **`Imports_GetDefinitions`** — the kinds of import you may see. Use one with `canSubmit: true`. Note its `atomicity` and `preflightMaxRows`.
 2. **`Imports_GetFileFormat`** with the `importType` key — every file the import takes and every column: its exact `header`, whether a row must fill it, its type, and the values it accepts.
 3. **Write the CSV.** Start from the `header` string. Every column must be present even when no row fills it, or the whole file is refused with `Header with name 'X' was not found`.
-4. **`Imports_Preflight`** with `importType`, the CSV text in `file`, and a second file where the format lists one (`manifestFile`, `contentsFile`, `kpiFile`).
+4. **`Imports_Preflight`** with `importType`, the CSV text in `file`, and a second file where the format lists one (`manifestFile`, `contentsFile`, `measurementsFile`, `checkpointsFile`).
 5. **Wait for it.** The answer is the run. If `isTerminal` is false, poll `Imports_GetById` until it is true.
 6. **`Imports_GetRows`** with `status: Failed` — each refused row's `importId` and `error`. Rows with a `warning` would be imported but record something worth telling the user. Rows come 50 to a `page` unless you ask for a larger `pageSize` (at most 500): while `hasNextPage` is true, ask for the next `page` before telling the user every row passed. To find rows by their reason or key rather than reading every page, pass `filter` (`error=*duplicate` contains, `importId=r12` equals, `,` and, `|` or) and `sort` (`rowNumber desc`); the tool's description lists the fields.
 7. **Fix and check again**, or present the result. Fix the file, or the data a row depends on, then run a new preflight. A preflight cannot be resumed or retried.
@@ -40,7 +40,7 @@ A file refused outright — a missing header, a cell that is the wrong type, too
 
 ## Rules every file follows
 
-- **`ImportId` is yours.** Any value unique within the file (compared case-insensitively). Outcomes are reported against it, and rows refer to each other by it: a KPI names its initiative's `ImportId`, a manifest line its package's. Left blank, a row is known by its position. It is never stored on the record.
+- **`ImportId` is yours.** Any value unique within the file (compared case-insensitively). Outcomes are reported against it, and rows refer to each other by it: a KPI measurement names its KPI's `ImportId`, a manifest line its package's. Left blank, a row is known by its position. It is never stored on the record.
 - **References are by id or natural key, never by display name.** A project is named by its `Key` and a person by employee number, but portfolios, programs, teams, products and most other records by id. Look ids up with the area's read tools before writing the file. The column descriptions from `Imports_GetFileFormat` say which a column takes.
 - **Lists are semicolon-separated** (`E-1001;E-1002`), because a comma is the field delimiter.
 - **Dates are `yyyy-MM-dd`.** A date column refuses a timestamp rather than truncating it. Timestamp columns say so in the format.
@@ -70,7 +70,7 @@ Records reference each other, so files go in dependency order, and **each must b
 
 - **Organization**: employees → teams → team hierarchy (`team-memberships`) → team staffing (`team-members`). Team member roles must exist first.
 - **Planning**: teams → planning intervals → objectives and risks.
-- **PPM**: expenditure categories and lifecycles (in Settings, not imported) → strategic themes → portfolios → programs → projects → project tasks → project stage statuses → strategic initiatives with KPIs → finalizations. Programs and portfolios that should end up closed are imported active, and `ppm.finalizations` closes them once their contents are in.
+- **PPM**: expenditure categories and lifecycles (in Settings, not imported) → strategic themes → portfolios → programs → projects → project tasks → project stage statuses → strategic initiatives → finalizations. A portfolio's, program's, project's or initiative's KPIs go through the KPI import once the record exists, which needs `Permissions.Kpis.Administer` on top of the record's own import permission. Programs and portfolios that should end up closed are imported active, and `ppm.finalizations` closes them once their contents are in.
 - **Product Management**: product types and tags (in Settings) → products → versions → release packages → releases → incidents. Incidents are per row and have no natural key; they name employees, products, and releases that already exist, and a severity level in the selected set. Environments → deployments, after versions and packages. Product dependencies after products; terms that changed (strength or interaction styles) are two rows on the same pair, the first ending the day before the second starts.
 
 To show files as one batch in Settings → Imports, pass the same `submissionGroupId` (a GUID you choose) on each preflight and apply. It is a label only and changes nothing about ordering.

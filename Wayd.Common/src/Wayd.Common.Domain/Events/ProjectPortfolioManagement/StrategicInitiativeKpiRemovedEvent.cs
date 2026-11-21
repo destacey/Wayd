@@ -9,6 +9,7 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// <remarks>
 /// The name is carried because the KPI is gone by the time anyone reads the entry.
 /// </remarks>
+[Obsolete("Strategic initiative KPIs moved onto the shared KPI model, whose Kpi*Event types record them now. Kept only to deserialize payloads already written as this type.")]
 public sealed record StrategicInitiativeKpiRemovedEvent : DomainEvent<StrategicInitiativeKpiRemovedEvent>, IDomainEventDescriptor, IPpmEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;

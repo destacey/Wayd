@@ -8,10 +8,6 @@ namespace Wayd.Common.Domain.Kpis;
 /// One point of a KPI's checkpoint plan: a day by which the KPI is expected to reach a planned value. Part of the
 /// <see cref="Kpi"/> aggregate, changed only through it, and only as a whole plan.
 /// </summary>
-/// <remarks>
-/// Not <c>Models.KeyPerformanceIndicators.KpiCheckpoint</c>, the base strategic initiative checkpoints derive from,
-/// which is dated by an instant rather than a day.
-/// </remarks>
 public sealed class KpiCheckpoint : BaseAuditableEntity
 {
     private string _label = default!;

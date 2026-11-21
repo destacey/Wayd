@@ -1,7 +1,7 @@
 ﻿using Wayd.Common.Domain.Enums;
-using Wayd.Common.Domain.Models.KeyPerformanceIndicators;
+using Wayd.Common.Domain.Kpis;
 
-namespace Wayd.Common.Domain.Tests.Sut.Models.KeyPerformanceIndicators;
+namespace Wayd.Common.Domain.Tests.Sut.Kpis;
 
 public sealed class KpiUtilsTests
 {

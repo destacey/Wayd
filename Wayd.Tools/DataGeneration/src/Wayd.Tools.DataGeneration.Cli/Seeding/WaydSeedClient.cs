@@ -199,9 +199,8 @@ public sealed class WaydSeedClient : IDisposable
     public Task<ImportRun> ImportProjectDeliverables(byte[] csv, CancellationToken cancellationToken) =>
         Import("api/ppm/projects/deliverables/import", csv, "project-deliverables.csv", "project deliverables", cancellationToken);
 
-    public Task<ImportRun> ImportStrategicInitiatives(byte[] initiativesCsv, byte[]? kpisCsv, CancellationToken cancellationToken) =>
-        Import("api/ppm/strategic-initiatives/import", initiativesCsv, "strategic-initiatives.csv", "strategic initiatives", cancellationToken,
-            secondFieldName: "kpiFile", secondCsv: kpisCsv, secondFileName: "strategic-initiative-kpis.csv");
+    public Task<ImportRun> ImportStrategicInitiatives(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/ppm/strategic-initiatives/import", csv, "strategic-initiatives.csv", "strategic initiatives", cancellationToken);
 
     public Task<ImportRun> ImportPpmFinalizations(byte[] csv, CancellationToken cancellationToken) =>
         Import("api/ppm/portfolios/finalize/import", csv, "ppm-finalizations.csv", "finalize", cancellationToken);

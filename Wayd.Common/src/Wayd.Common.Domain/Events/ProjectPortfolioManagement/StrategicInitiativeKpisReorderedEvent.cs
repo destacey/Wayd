@@ -6,6 +6,7 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// <summary>
 /// A strategic initiative's KPIs were put in a different order.
 /// </summary>
+[Obsolete("Strategic initiative KPIs moved onto the shared KPI model, whose Kpi*Event types record them now. Kept only to deserialize payloads already written as this type.")]
 public sealed record StrategicInitiativeKpisReorderedEvent : DomainEvent<StrategicInitiativeKpisReorderedEvent>, IDomainEventDescriptor, IPpmEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;

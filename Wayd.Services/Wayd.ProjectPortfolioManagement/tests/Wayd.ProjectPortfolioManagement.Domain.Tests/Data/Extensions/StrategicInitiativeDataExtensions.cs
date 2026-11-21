@@ -7,23 +7,6 @@ namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Data.Extensions;
 
 public static class StrategicInitiativeDataExtensions
 {
-    public static StrategicInitiative AddKpis(this StrategicInitiative strategicInitiative, int count)
-    {
-        if (count <= 0) return strategicInitiative;
-
-        var kpiFaker = new StrategicInitiativeKpiFaker();
-
-        var kpisList = GenericExtensions.GetPrivateHashSet<StrategicInitiativeKpi>(strategicInitiative, "_kpis");
-
-        for (int i = 0; i < count; i++)
-        {
-            var kpi = kpiFaker.WithStrategicInitiativeId(strategicInitiative.Id).WithOrder(i + 1).Generate();
-            kpisList.Add(kpi);
-        }
-
-        return strategicInitiative;
-    }
-
     public static StrategicInitiative AddProjects(this StrategicInitiative strategicInitiative, int count, TestingDateTimeProvider dateTimeProvider)
     {
         if (count <= 0) return strategicInitiative;

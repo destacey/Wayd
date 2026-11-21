@@ -11,7 +11,7 @@ public static class FeatureFlags
     /// <summary>Following records, the Following list and in-app notifications.</summary>
     public static readonly FeatureFlagDefinition Following = new(Names.Following, "Following", "Follow projects, programs, PI objectives and intake requests, with a Following list and in-app notifications when they change.", FeatureFlagModule.Platform);
     /// <summary>KPIs and the scorecards that read them.</summary>
-    public static readonly FeatureFlagDefinition Kpis = new(Names.Kpis, "KPIs and Scorecards", "KPIs with baselines, targets and measurements on teams and teams of teams, read together as each one's scorecard.", FeatureFlagModule.Platform);
+    public static readonly FeatureFlagDefinition Kpis = new(Names.Kpis, "KPIs and Scorecards", "KPIs with baselines, targets and measurements on teams, teams of teams, portfolios, programs, projects and strategic initiatives, read together as each one's scorecard.", FeatureFlagModule.Platform);
     /// <summary>The hosted MCP endpoint.</summary>
     public static readonly FeatureFlagDefinition McpServer = new(Names.McpServer, "MCP Server", "The hosted MCP endpoint (/mcp) that exposes the Wayd API as tools for AI agents.", FeatureFlagModule.Platform);
     /// <summary>Planning Poker sessions.</summary>

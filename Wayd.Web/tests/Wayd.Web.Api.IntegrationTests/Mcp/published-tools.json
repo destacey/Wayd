@@ -444,7 +444,6 @@
         "contentsFile",
         "file",
         "importType",
-        "kpiFile",
         "manifestFile",
         "submissionGroupId"
       ],
@@ -3836,26 +3835,6 @@
       ]
     },
     {
-      "name": "StrategicInitiatives_AddKpiMeasurement",
-      "title": "Record a KPI measurement",
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": false
-      },
-      "arguments": [
-        "id",
-        "kpiId",
-        "requestBody"
-      ],
-      "required": [
-        "id",
-        "kpiId",
-        "requestBody"
-      ]
-    },
-    {
       "name": "StrategicInitiatives_Approve",
       "title": "Approve strategic initiative",
       "annotations": {
@@ -3922,94 +3901,6 @@
       ]
     },
     {
-      "name": "StrategicInitiatives_GetKpi",
-      "title": "Get KPI",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      },
-      "arguments": [
-        "id",
-        "kpiId"
-      ],
-      "required": [
-        "id",
-        "kpiId"
-      ]
-    },
-    {
-      "name": "StrategicInitiatives_GetKpiCheckpointPlan",
-      "title": "Get KPI checkpoint plan",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      },
-      "arguments": [
-        "id",
-        "kpiId"
-      ],
-      "required": [
-        "id",
-        "kpiId"
-      ]
-    },
-    {
-      "name": "StrategicInitiatives_GetKpiCheckpoints",
-      "title": "List KPI checkpoints",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      },
-      "arguments": [
-        "id",
-        "kpiId"
-      ],
-      "required": [
-        "id",
-        "kpiId"
-      ]
-    },
-    {
-      "name": "StrategicInitiatives_GetKpiMeasurements",
-      "title": "List KPI measurements",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      },
-      "arguments": [
-        "id",
-        "kpiId"
-      ],
-      "required": [
-        "id",
-        "kpiId"
-      ]
-    },
-    {
-      "name": "StrategicInitiatives_GetKpis",
-      "title": "List a strategic initiative's KPIs",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      },
-      "arguments": [
-        "id"
-      ],
-      "required": [
-        "id"
-      ]
-    },
-    {
       "name": "StrategicInitiatives_GetProjects",
       "title": "List a strategic initiative's projects",
       "annotations": {
@@ -4067,26 +3958,6 @@
         "status"
       ],
       "required": []
-    },
-    {
-      "name": "StrategicInitiatives_RemoveKpiMeasurement",
-      "title": "Remove a KPI measurement",
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": true,
-        "openWorldHint": false
-      },
-      "arguments": [
-        "id",
-        "kpiId",
-        "measurementId"
-      ],
-      "required": [
-        "id",
-        "kpiId",
-        "measurementId"
-      ]
     },
     {
       "name": "Tasks_AddTaskDependency",

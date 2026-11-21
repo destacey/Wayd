@@ -4,6 +4,7 @@ using Moq;
 using NodaTime;
 using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Kpis;
 using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Events;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
@@ -21,6 +22,7 @@ public sealed class DeleteProgramCommandHandlerTests : IDisposable
     private readonly FakeProjectPortfolioManagementDbContext _dbContext = new();
     private readonly Mock<ICurrentUser> _currentUser = new();
     private readonly Mock<ILinkWriter> _linkWriter = new();
+    private readonly Mock<IKpiWriter> _kpiWriter = new();
 
     public DeleteProgramCommandHandlerTests()
     {
@@ -28,7 +30,7 @@ public sealed class DeleteProgramCommandHandlerTests : IDisposable
     }
 
     private DeleteProgramCommandHandler CreateHandler() => new(
-        _dbContext, _currentUser.Object, Mock.Of<ILogger<DeleteProgramCommandHandler>>(), _dateTimeProvider, _linkWriter.Object);
+        _dbContext, _currentUser.Object, Mock.Of<ILogger<DeleteProgramCommandHandler>>(), _dateTimeProvider, _linkWriter.Object, _kpiWriter.Object);
 
     /// <summary>
     /// A program in an active portfolio. The portfolio's programs are populated directly because the fake context
@@ -63,6 +65,7 @@ public sealed class DeleteProgramCommandHandlerTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         _linkWriter.Verify(w => w.RemoveAll("ppm.program", program.Id, It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Once);
+        _kpiWriter.Verify(w => w.RemoveAll("ppm.program", program.Id, It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Once);
         removedBeforeSave.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(1);
     }
@@ -79,6 +82,7 @@ public sealed class DeleteProgramCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         _linkWriter.Verify(w => w.RemoveAll(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Never);
+        _kpiWriter.Verify(w => w.RemoveAll(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Never);
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 

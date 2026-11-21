@@ -139,19 +139,6 @@ public sealed class StrategicInitiativeModel
     public string? Owners { get; init; }
 }
 
-/// <summary>A generated KPI, attached to the initiative named by <see cref="StrategicInitiativeName"/>.</summary>
-public sealed class StrategicInitiativeKpiModel
-{
-    public required string StrategicInitiativeName { get; init; }
-    public required string Name { get; init; }
-    public string? Description { get; init; }
-    public double TargetValue { get; init; }
-    public double? StartingValue { get; init; }
-    public string? Prefix { get; init; }
-    public string? Suffix { get; init; }
-    public required string TargetDirection { get; init; }
-}
-
 /// <summary>A generated finalization: closes one program or portfolio once its contents exist.</summary>
 public sealed class PpmFinalizationModel
 {

@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Application.Links;
+﻿using Wayd.Common.Application.Kpis;
+using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Events;
 using Wayd.ProjectPortfolioManagement.Domain;
 
@@ -15,11 +16,12 @@ public sealed class DeleteProjectPortfolioCommandValidator : AbstractValidator<D
     }
 }
 
-public sealed class DeleteProjectPortfolioCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ICurrentUser currentUser, ILogger<DeleteProjectPortfolioCommandHandler> logger, IDateTimeProvider dateTimeProvider, ILinkWriter linkWriter) : ICommandHandler<DeleteProjectPortfolioCommand>
+public sealed class DeleteProjectPortfolioCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ICurrentUser currentUser, ILogger<DeleteProjectPortfolioCommandHandler> logger, IDateTimeProvider dateTimeProvider, ILinkWriter linkWriter, IKpiWriter kpiWriter) : ICommandHandler<DeleteProjectPortfolioCommand>
 {
     private const string AppRequestName = nameof(DeleteProjectPortfolioCommand);
 
     private readonly ILinkWriter _linkWriter = linkWriter;
+    private readonly IKpiWriter _kpiWriter = kpiWriter;
 
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -51,6 +53,7 @@ public sealed class DeleteProjectPortfolioCommandHandler(IProjectPortfolioManage
 
             // A link has no foreign key to its record, so it would outlive the portfolio.
             await _linkWriter.RemoveAll(PpmLinkOwners.Portfolio.Key, portfolio.Id, actor, cancellationToken);
+            await _kpiWriter.RemoveAll(PpmKpiSubjects.Portfolio.Key, portfolio.Id, actor, cancellationToken);
             await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Project Portfolio {ProjectPortfolioId} deleted.", request.Id);

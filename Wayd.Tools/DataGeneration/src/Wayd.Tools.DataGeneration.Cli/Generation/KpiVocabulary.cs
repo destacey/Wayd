@@ -127,6 +127,21 @@ public static class KpiVocabulary
             120, 40, true, 40, 0, null, "ChangeFromBaseline", 0, 0, 1000000, null, Cumulative),
     ];
 
+    /// <summary>What a strategic initiative can be measured on: the outcomes it was started for.</summary>
+    public static readonly IReadOnlyList<KpiDefinition> InitiativeKpis =
+    [
+        new("Customer Satisfaction", "CSAT across the products the initiative changes, surveyed monthly.", Benefits, null, "%", true,
+            74, 5, false, 0, 0.3, 70, "ProgressToTarget", 0, 0, 100, 400),
+        new("Time to Market", "Median weeks from kickoff to launch for the initiative's projects.", Delivery, null, "wks", false,
+            16, 3, false, 0, 0.4, 60, "ProgressToTarget", 1, 2, 52, null),
+        new("Adoption Rate", "Share of eligible customers using the new capability, read twice a month.", Benefits, null, "%", true,
+            10, 4, false, 0, 0.5, 70, "ProgressToTarget", 0, 0, 100, null, PointInTime),
+        new("Operating Cost", "Run cost of the platform the initiative replaces, per month, in thousands.", Benefits, "$", "k", false,
+            540, 60, true, 30, 0, null, "ChangeFromBaseline", 0, 0, 100000, null),
+        new("Incident Rate", "Sev-1 incidents in the month on the systems the initiative touches.", Delivery, null, "incidents", false,
+            5, 2, false, 0, 0.6, null, "Value", 0, 0, 50, null),
+    ];
+
     /// <summary>What a portfolio can be measured on.</summary>
     public static readonly IReadOnlyList<KpiDefinition> PortfolioKpis =
     [

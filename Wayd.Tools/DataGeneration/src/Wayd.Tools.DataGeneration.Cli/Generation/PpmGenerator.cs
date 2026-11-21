@@ -7,7 +7,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 /// becomes a portfolio, each ART a program, and each leaf team a handful of projects staffed from that
 /// team's own people; a couple of cross-cutting business-function portfolios pull projects from teams across
 /// value streams. Strategic themes sit above and are tagged onto programs and projects; strategic
-/// initiatives with KPIs give each portfolio a longer-horizon outcome.
+/// initiatives give each portfolio a longer-horizon outcome, measured by KPIs the KPI generator adds.
 /// <para>
 /// Work is spread across a four-year window — two years of history and a two-year runway — and each item's
 /// status follows its position on that window: finished in the past, in flight around today, proposed in the
@@ -41,7 +41,6 @@ public sealed class PpmGenerator
     private readonly List<ProjectStageModel> _stageStatuses = [];
     private readonly List<ProjectDeliverableModel> _deliverables = [];
     private readonly List<StrategicInitiativeModel> _initiatives = [];
-    private readonly List<StrategicInitiativeKpiModel> _kpis = [];
     private readonly List<PpmFinalizationModel> _finalizations = [];
 
     private readonly HashSet<string> _usedProjectKeys = new(StringComparer.OrdinalIgnoreCase);
@@ -121,7 +120,6 @@ public sealed class PpmGenerator
             _stageStatuses,
             _deliverables,
             _initiatives,
-            _kpis,
             _finalizations,
             PpmVocabulary.ExpenditureCategories,
             PpmVocabulary.StandardLifecycle);
@@ -741,22 +739,6 @@ public sealed class PpmGenerator
             Sponsors = Join([Holder(leadProduct, namedOn)]),
             Owners = Join([Holder(leadEng, namedOn)]),
         });
-
-        // A couple of KPIs per initiative.
-        foreach (var template in _faker.PickRandom(PpmVocabulary.KpiTemplates, Math.Min(2, PpmVocabulary.KpiTemplates.Length)))
-        {
-            _kpis.Add(new StrategicInitiativeKpiModel
-            {
-                StrategicInitiativeName = name,
-                Name = template.Name,
-                Description = template.Description,
-                TargetValue = template.TargetValue,
-                StartingValue = template.StartingValue,
-                Prefix = template.Prefix,
-                Suffix = template.Suffix,
-                TargetDirection = template.TargetDirection,
-            });
-        }
     }
 
     // ---- Row builders -------------------------------------------------------------------------

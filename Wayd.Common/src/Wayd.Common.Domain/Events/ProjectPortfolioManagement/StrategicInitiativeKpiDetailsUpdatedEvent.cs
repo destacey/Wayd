@@ -10,6 +10,7 @@ namespace Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 /// Separate from <see cref="StrategicInitiativeKpiTargetChangedEvent"/>, although one form saves both:
 /// relabelling a KPI changes how it reads, while moving its target changes what counts as success.
 /// </remarks>
+[Obsolete("Strategic initiative KPIs moved onto the shared KPI model, whose Kpi*Event types record them now. Kept only to deserialize payloads already written as this type.")]
 public sealed record StrategicInitiativeKpiDetailsUpdatedEvent : DomainEvent<StrategicInitiativeKpiDetailsUpdatedEvent>, IDomainEventDescriptor, IPpmEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;

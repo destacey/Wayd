@@ -1,7 +1,11 @@
 ﻿using Wayd.Common.Domain.Enums;
 
-namespace Wayd.Common.Domain.Models.KeyPerformanceIndicators;
+namespace Wayd.Common.Domain.Kpis;
 
+/// <summary>
+/// The arithmetic every KPI reading shares: whether a value is on track, its health against a target and an
+/// optional at-risk value, its trend against the previous value, and its progress from a baseline.
+/// </summary>
 public static class KpiUtils
 {
     /// <summary>

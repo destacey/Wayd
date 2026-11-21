@@ -4,6 +4,7 @@ using Moq;
 using NodaTime;
 using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Kpis;
 using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Events;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands;
@@ -22,6 +23,7 @@ public sealed class DeleteStrategicInitiativeCommandHandlerTests : IDisposable
     private readonly FakeProjectPortfolioManagementDbContext _dbContext = new();
     private readonly Mock<ICurrentUser> _currentUser = new();
     private readonly Mock<ILinkWriter> _linkWriter = new();
+    private readonly Mock<IKpiWriter> _kpiWriter = new();
 
     public DeleteStrategicInitiativeCommandHandlerTests()
     {
@@ -29,7 +31,7 @@ public sealed class DeleteStrategicInitiativeCommandHandlerTests : IDisposable
     }
 
     private DeleteStrategicInitiativeCommandHandler CreateHandler() => new(
-        _dbContext, _currentUser.Object, Mock.Of<ILogger<DeleteStrategicInitiativeCommandHandler>>(), _dateTimeProvider, _linkWriter.Object);
+        _dbContext, _currentUser.Object, Mock.Of<ILogger<DeleteStrategicInitiativeCommandHandler>>(), _dateTimeProvider, _linkWriter.Object, _kpiWriter.Object);
 
     /// <summary>An initiative of the given status in an active portfolio that holds it.</summary>
     private StrategicInitiative SeedInitiative(StrategicInitiativeStatus status)
@@ -57,6 +59,7 @@ public sealed class DeleteStrategicInitiativeCommandHandlerTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         _linkWriter.Verify(w => w.RemoveAll("ppm.strategic-initiative", initiative.Id, It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Once);
+        _kpiWriter.Verify(w => w.RemoveAll("ppm.strategic-initiative", initiative.Id, It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Once);
         removedBeforeSave.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(1);
     }
@@ -73,6 +76,7 @@ public sealed class DeleteStrategicInitiativeCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         _linkWriter.Verify(w => w.RemoveAll(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Never);
+        _kpiWriter.Verify(w => w.RemoveAll(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Never);
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 

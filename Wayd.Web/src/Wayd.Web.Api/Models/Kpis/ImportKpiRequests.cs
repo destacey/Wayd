@@ -22,7 +22,7 @@ public sealed class ImportKpiRequest
 
     /// <summary>
     /// The kind of record the KPI goes on: `organization.team` for a team or a team of teams, `ppm.project`,
-    /// `ppm.program` or `ppm.portfolio`.
+    /// `ppm.program`, `ppm.portfolio` or `ppm.strategic-initiative`.
     /// </summary>
     public string SubjectType { get; set; } = "organization.team";
 

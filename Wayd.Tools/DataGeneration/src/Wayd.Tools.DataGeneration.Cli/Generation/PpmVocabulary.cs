@@ -146,17 +146,6 @@ public static class PpmVocabulary
             new("Closure", "Release, hand over and capture learnings."),
         ]);
 
-    /// <summary>KPI templates used to give strategic initiatives realistic measures.</summary>
-    public static readonly KpiTemplate[] KpiTemplates =
-    [
-        new("Annual Recurring Revenue", null, TargetValue: 25_000_000, StartingValue: 12_000_000, Prefix: "$", Suffix: "M", "Increase"),
-        new("Customer Satisfaction", "CSAT across the portfolio's products.", TargetValue: 90, StartingValue: 74, Prefix: null, Suffix: "%", "Increase"),
-        new("Time to Market", "Median weeks from kickoff to launch.", TargetValue: 8, StartingValue: 16, Prefix: null, Suffix: " wks", "Decrease"),
-        new("Operating Cost", "Run cost of the platform per year.", TargetValue: 4_000_000, StartingValue: 6_500_000, Prefix: "$", Suffix: "M", "Decrease"),
-        new("Adoption Rate", "Share of eligible customers using the new capability.", TargetValue: 60, StartingValue: 10, Prefix: null, Suffix: "%", "Increase"),
-        new("Incident Rate", "Sev-1 incidents per quarter.", TargetValue: 1, StartingValue: 5, Prefix: null, Suffix: null, "Decrease"),
-    ];
-
     /// <summary>
     /// What projects commit to, each with the criteria it is accepted against. Listed in the order a project
     /// usually delivers them, so a project's deliverables read as a sequence when their target dates are spread
@@ -221,13 +210,4 @@ public static class PpmVocabulary
         IReadOnlyList<ProjectLifecycleStageDefinition> Stages);
 
     public sealed record ProjectLifecycleStageDefinition(string Name, string Description);
-
-    public sealed record KpiTemplate(
-        string Name,
-        string? Description,
-        double TargetValue,
-        double StartingValue,
-        string? Prefix,
-        string? Suffix,
-        string TargetDirection);
 }

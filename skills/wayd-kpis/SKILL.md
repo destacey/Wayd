@@ -1,6 +1,6 @@
 ---
 name: wayd-kpis
-description: Read before calling the Wayd MCP tools named Kpis_* or KpiCategories_*. Guides agents working with the scorecard of a Wayd team, team of teams, project, program or portfolio via the Wayd MCP server — reading its KPIs with their baselines, targets, health and trend, reading one KPI's measurement history, recording and correcting measurements, managing a KPI's checkpoint plan, and adding, changing, closing, reordering and removing KPIs. Use when the user asks how a team or a project is doing against its KPIs, what a KPI's latest value or trend is, which KPIs are at risk or behind plan, wants to record this period's value for a KPI, wants to set or change a KPI's checkpoints, or wants to set up or change a team's or a project's KPIs.
+description: Read before calling the Wayd MCP tools named Kpis_* or KpiCategories_*. Guides agents working with the scorecard of a Wayd team, team of teams, project, program, portfolio or strategic initiative via the Wayd MCP server — reading its KPIs with their baselines, targets, health and trend, reading one KPI's measurement history, recording and correcting measurements, managing a KPI's checkpoint plan, and adding, changing, closing, reordering and removing KPIs. Use when the user asks how a team, a project or a strategic initiative is doing against its KPIs, what a KPI's latest value or trend is, which KPIs are at risk or behind plan, wants to record this period's value for a KPI, wants to set or change a KPI's checkpoints, or wants to set up or change a team's or a project's KPIs.
 ---
 
 # Wayd KPIs
@@ -13,6 +13,7 @@ The KPI tools are in the `kpis` toolset, and need the `kpis` feature flag. They 
 | Project | `ppm.project` | The project's UUID (see the `wayd-ppm` skill) |
 | Program | `ppm.program` | The program's UUID |
 | Portfolio | `ppm.portfolio` | The portfolio's UUID |
+| Strategic initiative | `ppm.strategic-initiative` | The initiative's UUID (see the `wayd-ppm` skill) |
 
 A `subjectType` that cannot carry KPIs returns 400. A record that does not exist, or that the caller cannot read, returns 404 — never 403 — so treat 404 as "not visible to you" and say so rather than retrying.
 
@@ -20,7 +21,7 @@ A `subjectType` that cannot carry KPIs returns 400. A record that does not exist
 
 Every tool here except the reads changes the record's scorecard and appears in its Activity. Show the user exactly what you will do — the KPI, the value and when it was taken, or the fields you will change — and wait for their go-ahead. Reads need no confirmation. When the user approves, do exactly what they approved.
 
-Only members of the team, members of any team of teams above it, and KPI administrators may change a team's KPIs. A project's, program's or portfolio's KPIs are changed by whoever may change the record: its Update permission plus Owner or Manager on it or on its program or portfolio, or a KPI administrator; this holds after the record closes too. `canManage` on the scorecard says whether the caller may; when it is false, tell the user rather than calling a change tool. Every change requires the caller's account to be linked to an employee.
+Only members of the team, members of any team of teams above it, and KPI administrators may change a team's KPIs. A project's, program's or portfolio's KPIs are changed by whoever may change the record: its Update permission plus Owner or Manager on it or on its program or portfolio, or a KPI administrator; this holds after the record closes too. A strategic initiative's KPIs need only the Update Strategic Initiatives permission, or a KPI administrator, with no role on the initiative; they too stay open to change after it closes. `canManage` on the scorecard says whether the caller may; when it is false, tell the user rather than calling a change tool. Every change requires the caller's account to be linked to an employee.
 
 ## Reading a scorecard
 

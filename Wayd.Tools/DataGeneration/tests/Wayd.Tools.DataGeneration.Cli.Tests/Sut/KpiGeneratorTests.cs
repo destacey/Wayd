@@ -319,7 +319,7 @@ public class KpiGeneratorTests
     }
 
     [Fact]
-    public void Generate_GivesEveryLiveProjectProgramAndPortfolioItsKpis_AndNothingElse()
+    public void Generate_GivesEveryLiveProjectProgramPortfolioAndInitiativeItsKpis_AndNothingElse()
     {
         // Arrange
         var ppm = _default.Ppm!;
@@ -327,6 +327,7 @@ public class KpiGeneratorTests
         var expected = ppm.Portfolios.Where(p => p.ActivatedOn is not null && p.Status == "Active").Select(p => (KpiSubject.Portfolio, p.Name))
             .Concat(ppm.Programs.Where(p => p.ActivatedOn is not null && Live(p.Status)).Select(p => (KpiSubject.Program, p.Name)))
             .Concat(ppm.Projects.Where(p => p.ActivatedOn is not null && Live(p.Status)).Select(p => (KpiSubject.Project, p.Key)))
+            .Concat(ppm.StrategicInitiatives.Where(i => Live(i.Status)).Select(i => (KpiSubject.StrategicInitiative, i.Name)))
             .ToHashSet();
 
         // Act
@@ -340,6 +341,7 @@ public class KpiGeneratorTests
         bySubject.Keys.Should().Contain(k => k.Item1 == KpiSubject.Project);
         bySubject.Keys.Should().Contain(k => k.Item1 == KpiSubject.Program);
         bySubject.Keys.Should().Contain(k => k.Item1 == KpiSubject.Portfolio);
+        bySubject.Keys.Should().Contain(k => k.Item1 == KpiSubject.StrategicInitiative);
         bySubject.Keys.Should().BeSubsetOf(expected);
         bySubject.Values.Should().AllSatisfy(kpis =>
         {
@@ -369,6 +371,29 @@ public class KpiGeneratorTests
             x.Measurement.LastDay.Should().BeAfter(x.Project.ActivatedOn!.Value);
             if (x.Project.Status == "Completed" && (x.Project.ClosedOn ?? x.Project.End) is { } closed)
                 x.Measurement.LastDay.Should().BeOnOrBefore(new DateOnly(closed.Year, closed.Month, 1).AddMonths(1).AddDays(-1));
+        });
+    }
+
+    [Fact]
+    public void Generate_MeasuresAnInitiativeOnlyWhileItWasLive()
+    {
+        // Arrange
+        var initiatives = _default.Ppm!.StrategicInitiatives.ToDictionary(i => i.Name);
+        var kpis = Data.Kpis.Where(k => k.Subject == KpiSubject.StrategicInitiative).ToDictionary(k => k.Handle);
+
+        // Act
+        var measured = Data.Measurements
+            .Where(m => kpis.ContainsKey(m.KpiHandle))
+            .Select(m => (Initiative: initiatives[kpis[m.KpiHandle].SubjectHandle], Measurement: m))
+            .ToList();
+
+        // Assert
+        measured.Should().NotBeEmpty();
+        measured.Should().AllSatisfy(x =>
+        {
+            x.Measurement.LastDay.Should().BeAfter(x.Initiative.Start);
+            if (x.Initiative.Status == "Completed")
+                x.Measurement.LastDay.Should().BeOnOrBefore(new DateOnly(x.Initiative.End.Year, x.Initiative.End.Month, 1).AddMonths(1).AddDays(-1));
         });
     }
 }

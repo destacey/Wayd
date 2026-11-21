@@ -1,6 +1,6 @@
 ---
 title: Strategic Initiatives
-description: Strategic initiative tracking with KPIs, checkpoints, and measurements in Wayd.
+description: Strategic initiative tracking in Wayd — status, roles, linked projects, and a scorecard of KPIs.
 sidebar_position: 3
 audience: [user, agent]
 ---
@@ -14,7 +14,7 @@ Each initiative has:
 - **Status** — Proposed, Approved, Active, On Hold, Completed, or Canceled
 - **Date Range** — Timeline for the initiative
 - **Roles** — Sponsor and Owner
-- **[KPIs](#kpis)** — Measurable indicators with targets, checkpoints, and measurements
+- **[KPIs](#kpis)** — Measurable indicators with baselines, targets, checkpoint plans, and measurements, read together as its scorecard
 - **[Projects](./projects.mdx)** — Associated projects that contribute to the initiative
 
 ```mermaid
@@ -34,7 +34,8 @@ stateDiagram-v2
 - Can only be created in Active or On Hold [portfolios](./portfolios-programs.mdx#portfolios)
 - An initiative must be approved before it can be activated
 - Can be deleted only in Proposed or Approved states
-- Completed and Canceled initiatives are read-only: their page offers no **Edit**, **Manage Projects**, or KPI actions, and KPIs and linked projects cannot be added, changed, or removed
+- Completed and Canceled initiatives are read-only: their page offers no **Edit** or **Manage Projects**, and linked projects cannot be added or removed. Their KPIs stay open to change, so benefits can be measured after the initiative closes
+- Deleting an initiative also removes its KPIs, with their measurements and checkpoint plans
 
 ## Strategic Initiative Detail Page
 
@@ -42,59 +43,25 @@ The detail page has an identity bar naming the initiative, a section rail down t
 
 **Record facts panel** — [Portfolio](./portfolios-programs.mdx#portfolios) link, date range, timeline progress bar, sponsors/owners, description, and links.
 
-**[KPIs](#kpis)** — The default section, with **Card** and **List** views:
-- **Card View**: Visual cards showing KPI name, description, current/target values, checkpoint timeline, health status, and trend indicator. An **Add KPI** card appears when the initiative is editable.
-- **List View**: Grid with Key, Name, Target Value, Actual Value, Format (prefix and suffix), and Target Direction. Click a KPI name to open its detail drawer. Each row's menu offers **Edit KPI**, **Delete KPI**, **Manage Checkpoint Plan**, and **Add Measurement**, and KPIs can be dragged to reorder them once sorting, filters, and search are cleared.
-
-A **Create KPI** button sits beside the section heading when the initiative is editable. The KPI detail drawer shows the starting, target, and actual values with the KPI's checkpoints and measurements, and offers **Edit**, **Delete**, **Checkpoint Plan**, and **Add Measurement**; a measurement can be deleted from the drawer.
+**Scorecard** — with the `kpis` feature flag on, the first section: the initiative's [KPIs](#kpis), grouped by category. Without the flag the page opens on **Projects**.
 
 **[Projects](./projects.mdx)** — Card/List/Timeline views showing linked projects. **Actions → Manage Projects** chooses which projects the initiative is linked to.
 
 **Activity** — The initiative's recorded history: edits, role and status changes, KPIs added, edited, reordered and removed, checkpoint plans, measurements, and linked projects. See [Activity Log](../activity-log.mdx).
 
-KPIs and Projects show their count in the rail.
+Projects show their count in the rail.
 
 ## KPIs
 
-Each KPI tracks progress toward a measurable outcome:
-- **Name** (up to 64 characters) and optional **Description** (up to 512)
-- **Starting Value** — Optional baseline measurement. It must be below the target when the direction is Increase, and above it when the direction is Decrease
-- **Target Value** — Goal to achieve
-- **Actual Value** — Automatically set from the most recent measurement
-- **Prefix** and **Suffix** — Unit display (e.g., "$" prefix, "%" suffix), up to 8 characters each
-- **Target Direction** — Whether higher or lower values are better (Increase or Decrease)
+An initiative's KPIs are [scorecard KPIs](../organizations/scorecards.mdx), the same as a team's or a project's: a baseline, a target, an optional at-risk threshold and checkpoint plan, a measurement window, and measurements over time. They need the `kpis` feature flag; while it is off, an initiative shows no scorecard and its KPIs cannot be read or changed. Who can change them is under [Who can change a strategic initiative's KPIs](../organizations/scorecards.mdx#who-can-change-a-strategic-initiatives-kpis).
 
-When a KPI has a starting value, its progress is how far the actual value has moved from the starting value toward the target.
-- **[Checkpoints](#checkpoints)** — Planned target values at specific dates with optional at-risk thresholds
-- **[Measurements](#measurements)** — Actual recorded values over time
+KPIs recorded before initiatives moved onto scorecards were carried across as they were:
 
-### Checkpoints
-
-Checkpoints define expected KPI values at specific dates, creating a plan for measuring progress:
-- **Checkpoint Date** — When the target should be reached
-- **Date Label** — Human-readable label for the date, up to 16 characters
-- **Target Value** — Expected value on that date
-- **At-Risk Value** — Optional threshold between on track and unhealthy. It must be below the checkpoint's target when the direction is Increase, and above it when the direction is Decrease
-
-Checkpoint dates must be unique within a KPI. Checkpoints are managed together from **Manage Checkpoint Plan** (or **Checkpoint Plan** in the KPI drawer).
-
-Each checkpoint is judged against the latest measurement taken on or before its date and after the previous checkpoint's date:
-
-- **Healthy** — the measurement meets the checkpoint's target (at or above it for Increase, at or below it for Decrease)
-- **At Risk** — it misses the target but meets the at-risk value
-- **Unhealthy** — it misses both, or misses the target when there is no at-risk value
-- The **trend** compares that measurement with the one judged at the previous checkpoint: Improving, Worsening, or Stable
-
-A checkpoint with no measurement in its window has no health. The KPI card shows the health and trend of the next checkpoint once it has a measurement, and otherwise those of the last measured checkpoint.
-
-### Measurements
-
-Measurements record actual KPI values over time:
-- **Measurement Date** — When the value was recorded; it cannot be in the future
-- **Actual Value** — The measured value
-- **Note** — Optional, up to 1024 characters
-
-The person who records a measurement is kept with it. The most recent measurement automatically becomes the KPI's **Actual Value**. Measurement dates must be unique within a KPI.
+- **Starting value** became the baseline and **target value** the target.
+- Each measurement kept its moment, so these KPIs measure **at a moment** (see [Measurement windows](../organizations/scorecards.mdx#measurement-windows)), and two readings on one day are kept apart.
+- Each checkpoint's date became the calendar day it falls on in the [system time zone](../settings/index.mdx#general), with its label, planned value and at-risk value.
+- A KPI with a starting value leads with its progress to target; one without leads with its value.
+- Each carried-across KPI's Activity starts with a baseline entry. What happened to it before is in the initiative's own Activity.
 
 ## Common Tasks
 
@@ -104,7 +71,7 @@ The person who records a measurement is kept with it. The most recent measuremen
 2. Click **Create Strategic Initiative**
 3. Choose an Active or On Hold **Portfolio**, then enter **Name**, **Description**, and **Planned Date Range**
 4. Optionally assign **Sponsors** and **Owners**
-5. Add **[KPIs](#kpis)** with target values and [checkpoints](#checkpoints)
+5. With the `kpis` feature flag on, add **[KPIs](#kpis)** on the **Scorecard**, with targets and, optionally, [checkpoint plans](../organizations/scorecards.mdx#checkpoint-plans)
 6. Link **[Projects](./projects.mdx)** that contribute to the initiative with **Actions → Manage Projects**
 7. **Approve** and then **Activate** the initiative from its **Actions** menu
-8. Record **[Measurements](#measurements)** over time to track KPI progress
+8. Record [measurements](../organizations/scorecards.mdx#measurements) over time to track KPI progress

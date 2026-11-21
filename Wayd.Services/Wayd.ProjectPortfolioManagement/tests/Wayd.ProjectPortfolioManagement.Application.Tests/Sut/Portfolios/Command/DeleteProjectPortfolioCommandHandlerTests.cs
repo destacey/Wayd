@@ -4,6 +4,7 @@ using Moq;
 using NodaTime;
 using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Kpis;
 using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Events;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
@@ -19,6 +20,7 @@ public sealed class DeleteProjectPortfolioCommandHandlerTests : IDisposable
     private readonly FakeProjectPortfolioManagementDbContext _dbContext = new();
     private readonly Mock<ICurrentUser> _currentUser = new();
     private readonly Mock<ILinkWriter> _linkWriter = new();
+    private readonly Mock<IKpiWriter> _kpiWriter = new();
 
     public DeleteProjectPortfolioCommandHandlerTests()
     {
@@ -26,7 +28,7 @@ public sealed class DeleteProjectPortfolioCommandHandlerTests : IDisposable
     }
 
     private DeleteProjectPortfolioCommandHandler CreateHandler() => new(
-        _dbContext, _currentUser.Object, Mock.Of<ILogger<DeleteProjectPortfolioCommandHandler>>(), _dateTimeProvider, _linkWriter.Object);
+        _dbContext, _currentUser.Object, Mock.Of<ILogger<DeleteProjectPortfolioCommandHandler>>(), _dateTimeProvider, _linkWriter.Object, _kpiWriter.Object);
 
     [Fact]
     public async Task Handle_ShouldRemoveThePortfoliosLinksInTheSameSave()
@@ -47,6 +49,7 @@ public sealed class DeleteProjectPortfolioCommandHandlerTests : IDisposable
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         _dbContext.Portfolios.Should().BeEmpty();
         _linkWriter.Verify(w => w.RemoveAll("ppm.portfolio", portfolio.Id, It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Once);
+        _kpiWriter.Verify(w => w.RemoveAll("ppm.portfolio", portfolio.Id, It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Once);
         removedBeforeSave.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(1);
     }
@@ -65,6 +68,7 @@ public sealed class DeleteProjectPortfolioCommandHandlerTests : IDisposable
         result.IsFailure.Should().BeTrue();
         _dbContext.Portfolios.Should().ContainSingle();
         _linkWriter.Verify(w => w.RemoveAll(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Never);
+        _kpiWriter.Verify(w => w.RemoveAll(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Never);
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 

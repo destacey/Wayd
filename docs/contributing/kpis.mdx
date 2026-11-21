@@ -26,7 +26,7 @@ The user-facing rules are in [Scorecards and KPIs](../user-guide/organizations/s
 | Endpoints | `KpisController` (`/api/kpis/{subjectType}/{subjectId}`), `KpiCategoriesController`, `KpiImportsController` |
 | Client | `src/store/features/common/kpis-api.ts`, `src/components/common/kpi/scorecard/` |
 
-The older `Models/KeyPerformanceIndicators` base that strategic initiative KPIs derive from is separate; those KPIs stay on it until they move onto this model.
+Strategic initiative KPIs moved onto this model as the `ppm.strategic-initiative` subject type. `Move-Strategic-Initiative-Kpis-To-Shared-Model` copied each with its checkpoints and measurements, keeping their ids, and wrote a `KpiBaselinedEvent` for each; `Drop-Strategic-Initiative-Kpi-Tables` ran the copy again for anything written since, then dropped the `Ppm.StrategicInitiativeKpi*` tables. The `StrategicInitiativeKpi*` events are `[Obsolete]` and stay only so the entries already in an initiative's Activity keep reading.
 
 ## The goal and its readings
 
@@ -42,7 +42,9 @@ Every KPI command and query goes through `KpiSubjectAccessResolver`, which asks 
 
 The team subject type, `TeamKpiSubjectType`, reads a team's KPIs with `Permissions.Teams.View`, and lets them be changed by members of the team or of any team of teams above it as the hierarchy stands today — not only the direct parent, unlike sprints and allocations.
 
-The PPM subject types (`ProjectKpiSubjectType`, `ProgramKpiSubjectType`, `PortfolioKpiSubjectType`) read with the record's `View` permission and let a record be changed by the rule every other change to it follows: its `Update` permission and delivery leadership, through the aggregate's own `CanManage*` predicate, with the PPM administrator standing in for the role. Each loads the ancestors' roles with `.Include` — without them the predicate silently finds no inherited leader — which only a real provider can check (`PpmKpiSubjectTypeTests` in the PPM integration tests). A closed record's KPIs stay changeable.
+The PPM subject types (`ProjectKpiSubjectType`, `ProgramKpiSubjectType`, `PortfolioKpiSubjectType`) read with the record's `View` permission and let a record be changed by the rule every other change to it follows: its `Update` permission and delivery leadership, through the aggregate's own `CanManage*` predicate, with the PPM administrator standing in for the role. Each loads the ancestors' roles with `.Include` — without them the predicate silently finds no inherited leader — which only a real provider can check (`PpmKpiSubjectTypeTests` in the PPM integration tests). A closed record's KPIs stay changeable. `StrategicInitiativeKpiSubjectType` needs no leadership: the initiative's `Update` permission alone changes its KPIs, as it does every other part of an initiative.
+
+A module deleting a record calls `IKpiWriter.RemoveAll` beside `ILinkWriter.RemoveAll`: a KPI has no foreign key to its subject, so it would otherwise outlive it.
 
 The import is gated on Administer KPIs rather than on each record's rule: its passes may run after the request has ended, when there is no caller to ask about membership.
 

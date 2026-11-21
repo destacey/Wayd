@@ -247,10 +247,6 @@ public sealed class KpiImportDefinition(
             .ToHashSet();
     }
 
-    /// <summary>
-    /// Where each record's next KPI goes: after the ones it already has. Keyed by record id alone, which is
-    /// unique across subject types in practice since every record id is a fresh GUID.
-    /// </summary>
     /// <summary>The names the records already use, as <see cref="NameKey"/> builds them.</summary>
     private async Task<HashSet<string>> ResolveTakenNames(IEnumerable<Guid> subjectIds, CancellationToken cancellationToken)
     {
@@ -270,6 +266,10 @@ public sealed class KpiImportDefinition(
     private static string NameKey(string subjectType, Guid subjectId, string name) =>
         $"{subjectType.ToUpperInvariant()}|{subjectId}|{name.Trim().ToUpperInvariant()}";
 
+    /// <summary>
+    /// Where each record's next KPI goes: after the ones it already has. Keyed by record id alone, which is
+    /// unique across subject types in practice since every record id is a fresh GUID.
+    /// </summary>
     private async Task<Dictionary<Guid, int>> ResolveNextOrders(IEnumerable<Guid> subjectIds, CancellationToken cancellationToken)
     {
         var ids = subjectIds.Distinct().ToList();

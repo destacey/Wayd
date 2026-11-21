@@ -16,43 +16,33 @@ public sealed record GetWorkdayOrgsByTypeCommand(Guid ConnectionId, string Organ
 
 public sealed class GetWorkdayOrgsByTypeCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
-    IWorkdayConnectionInitializer initializer,
-    ILogger<GetWorkdayOrgsByTypeCommandHandler> logger) : ICommandHandler<GetWorkdayOrgsByTypeCommand, IReadOnlyList<DiscoveredOrg>>
+    IWorkdayConnectionInitializer initializer) : ICommandHandler<GetWorkdayOrgsByTypeCommand, IReadOnlyList<DiscoveredOrg>>
 {
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
     private readonly IWorkdayConnectionInitializer _initializer = initializer;
-    private readonly ILogger<GetWorkdayOrgsByTypeCommandHandler> _logger = logger;
 
     public async Task<Result<IReadOnlyList<DiscoveredOrg>>> Handle(GetWorkdayOrgsByTypeCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var connection = await _appIntegrationDbContext.WorkdayConnections
-                .AsNoTracking()
-                .FirstOrDefaultAsync(c => c.Id == request.ConnectionId, cancellationToken);
-            if (connection is null)
-                return Result.Failure<IReadOnlyList<DiscoveredOrg>>($"Workday connection {request.ConnectionId} not found.");
+        var connection = await _appIntegrationDbContext.WorkdayConnections
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == request.ConnectionId, cancellationToken);
+        if (connection is null)
+            return Result.Failure<IReadOnlyList<DiscoveredOrg>>($"Workday connection {request.ConnectionId} not found.");
 
-            var context = new WorkdayRequestContext(
-                connection.Configuration.SoapEndpoint,
-                connection.Configuration.TenantAlias,
-                connection.Configuration.WsdlVersion,
-                new WorkdayCredentials(connection.Configuration.IsuUsername, connection.Configuration.IsuPassword),
-                connection.Configuration.WorkerKey,
-                connection.Configuration.IncludeInactive,
-                IncrementalUpdatedFrom: null,
-                UseUserIdAsEmailFallback: connection.Configuration.UseUserIdAsEmailFallback,
-                UsePreferredName: connection.Configuration.UsePreferredName,
-                NormalizeNameCasing: connection.Configuration.NormalizeNameCasing,
-                DepartmentOrganizationTypeId: connection.Configuration.DepartmentOrganizationTypeId,
-                OrgExclusions: null);
+        var context = new WorkdayRequestContext(
+            connection.Configuration.SoapEndpoint,
+            connection.Configuration.TenantAlias,
+            connection.Configuration.WsdlVersion,
+            new WorkdayCredentials(connection.Configuration.IsuUsername, connection.Configuration.IsuPassword),
+            connection.Configuration.WorkerKey,
+            connection.Configuration.IncludeInactive,
+            IncrementalUpdatedFrom: null,
+            UseUserIdAsEmailFallback: connection.Configuration.UseUserIdAsEmailFallback,
+            UsePreferredName: connection.Configuration.UsePreferredName,
+            NormalizeNameCasing: connection.Configuration.NormalizeNameCasing,
+            DepartmentOrganizationTypeId: connection.Configuration.DepartmentOrganizationTypeId,
+            OrgExclusions: null);
 
-            return await _initializer.GetOrganizationsByType(context, request.OrganizationTypeId, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", nameof(GetWorkdayOrgsByTypeCommandHandler));
-            return Result.Failure<IReadOnlyList<DiscoveredOrg>>($"Failed to load orgs: {ex.Message}");
-        }
+        return await _initializer.GetOrganizationsByType(context, request.OrganizationTypeId, cancellationToken);
     }
 }

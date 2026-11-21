@@ -19,6 +19,7 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Queries;
+using Wayd.Common.Domain;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Models;
 using Wayd.Integrations.Abstractions;
@@ -372,6 +373,29 @@ public class WorkSyncRunnerTests
         run.MovedOutWorkItemsRemoved.Should().BeNull();
         _mocker.GetMock<IDispatcher>()
             .Verify(s => s.Send(It.IsAny<ProcessDependenciesCommand>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Run_AWorkspaceThrows_FailsThatWorkspaceAndSyncsTheRest()
+    {
+        // Arrange
+        var connection = SeedActiveAzdoConnection();
+        SetupConnectionsQuery(connection);
+        StubHappyPathSource(workspaceCount: 2);
+        _source.SetupSequence(s => s.SyncIterations(It.IsAny<WorkspaceSyncTarget>(), It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Cannot deserialize the iteration payload."))
+            .ReturnsAsync(Result.Success());
+
+        // Act
+        var result = await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var run = _db.SyncRuns.Single();
+        run.WorkspacesFailed.Should().Be(1);
+        run.WorkspacesSucceeded.Should().Be(1);
+        run.DetailsJson.Should().Contain(ErrorMessages.UnexpectedInRun);
+        run.DetailsJson.Should().NotContain("deserialize");
     }
 
     [Fact]
@@ -874,7 +898,7 @@ public class WorkSyncRunnerTests
         result.IsSuccess.Should().BeTrue();
         var runs = _db.SyncRuns.ToList();
         runs.Should().HaveCount(2);
-        runs.Should().Contain(r => r.Status == SyncRunStatus.Failed && r.ErrorMessage == "boom");
+        runs.Should().Contain(r => r.Status == SyncRunStatus.Failed && r.ErrorMessage == ErrorMessages.UnexpectedInRun);
         runs.Should().Contain(r => r.Status == SyncRunStatus.Succeeded);
     }
 

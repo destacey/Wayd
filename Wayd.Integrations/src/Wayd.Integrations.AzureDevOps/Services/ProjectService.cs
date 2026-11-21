@@ -32,45 +32,30 @@ internal sealed class ProjectService(HttpClient httpClient, string organizationU
     /// otherwise, a failure result with an error message.</returns>
     public async Task<Result<List<ProjectDto>>> GetProjects(CancellationToken cancellationToken)
     {
-        try
+        List<ProjectDto> projects = [];
+
+        while (true)
         {
-            List<ProjectDto> projects = [];
-
-            while (true)
+            var batch = await _projectClient.GetProjects(top: _maxBatchSize, skip: projects.Count, cancellationToken).ConfigureAwait(false);
+            if (!batch.IsSuccessful)
             {
-                var batch = await _projectClient.GetProjects(top: _maxBatchSize, skip: projects.Count, cancellationToken).ConfigureAwait(false);
-                if (!batch.IsSuccessful)
-                {
-                    _logger.LogError("Error getting projects from Azure DevOps: {ErrorMessage}.", batch.GetErrorText());
-                    return Result.Failure<List<ProjectDto>>(batch.GetErrorText());
-                }
-
-                if (batch.Data is null)
-                    break;
-
-                projects.AddRange(batch.Data.Items);
-
-                if (batch.Data.Count < _maxBatchSize)
-                    break;
+                _logger.LogError("Error getting projects from Azure DevOps: {ErrorMessage}.", batch.GetErrorText());
+                return Result.Failure<List<ProjectDto>>(batch.GetErrorText());
             }
 
-            if (_logger.IsEnabled(LogLevel.Debug))
-                _logger.LogDebug("{ProjectCount} projects found ", projects.Count);
+            if (batch.Data is null)
+                break;
 
-            return projects;
+            projects.AddRange(batch.Data.Items);
+
+            if (batch.Data.Count < _maxBatchSize)
+                break;
         }
-        catch (OperationCanceledException)
-        {
-            // A genuine cancellation (caller's token fired) is not a sync failure — let it
-            // propagate so the caller's cancellation handling (e.g. marking a sync run
-            // cancelled rather than partially failed) actually runs.
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception thrown getting projects from Azure DevOps");
-            return Result.Failure<List<ProjectDto>>(ex.Message);
-        }
+
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("{ProjectCount} projects found ", projects.Count);
+
+        return projects;
     }
 
     /// <summary>
@@ -85,49 +70,37 @@ internal sealed class ProjectService(HttpClient httpClient, string organizationU
     /// otherwise, a failure result with an error message.</returns>
     public async Task<Result<ProjectDetailsDto>> GetProject(string projectIdOrName, CancellationToken cancellationToken)
     {
-        try
+        var projectResponse = await _projectClient.GetProject(projectIdOrName, cancellationToken).ConfigureAwait(false);
+        if (!projectResponse.IsSuccessful && projectResponse.StatusCode != HttpStatusCode.NotFound)
         {
-            var projectResponse = await _projectClient.GetProject(projectIdOrName, cancellationToken).ConfigureAwait(false);
-            if (!projectResponse.IsSuccessful && projectResponse.StatusCode != HttpStatusCode.NotFound)
-            {
-                var statusDescription = projectResponse.StatusCode is 0 ? "Connection Error" : projectResponse.StatusDescription;
-                var errorMessage = projectResponse.ErrorMessage is null ? statusDescription : $"{statusDescription} - {projectResponse.ErrorMessage}";
-                _logger.LogError("Error getting project {ProjectIdOrName} from Azure DevOps: {ErrorMessage}.", projectIdOrName, errorMessage);
-                return Result.Failure<ProjectDetailsDto>(errorMessage);
-            }
-            else if ((!projectResponse.IsSuccessful && projectResponse.StatusCode is HttpStatusCode.NotFound) || projectResponse.Data is null)
-            {
-                var errorMesssage = projectResponse.IsSuccessful ? "No project data returned" : projectResponse.StatusDescription;
-                _logger.LogError("Error getting project {ProjectIdOrName} from Azure DevOps: {ErrorMessage}.", projectIdOrName, errorMesssage);
-                return Result.Failure<ProjectDetailsDto>(errorMesssage);
-            }
+            var statusDescription = projectResponse.StatusCode is 0 ? "Connection Error" : projectResponse.StatusDescription;
+            var errorMessage = projectResponse.ErrorMessage is null ? statusDescription : $"{statusDescription} - {projectResponse.ErrorMessage}";
+            _logger.LogError("Error getting project {ProjectIdOrName} from Azure DevOps: {ErrorMessage}.", projectIdOrName, errorMessage);
+            return Result.Failure<ProjectDetailsDto>(errorMessage);
+        }
+        else if ((!projectResponse.IsSuccessful && projectResponse.StatusCode is HttpStatusCode.NotFound) || projectResponse.Data is null)
+        {
+            var errorMesssage = projectResponse.IsSuccessful ? "No project data returned" : projectResponse.StatusDescription;
+            _logger.LogError("Error getting project {ProjectIdOrName} from Azure DevOps: {ErrorMessage}.", projectIdOrName, errorMesssage);
+            return Result.Failure<ProjectDetailsDto>(errorMesssage);
+        }
 
-            var propertiesResponse = await _projectClient.GetProjectProperties(projectResponse.Data.Id, cancellationToken).ConfigureAwait(false);
-            if (!propertiesResponse.IsSuccessful && propertiesResponse.StatusCode != HttpStatusCode.NotFound)
-            {
-                var statusDescription = propertiesResponse.StatusCode is 0 ? "Connection Error" : propertiesResponse.StatusDescription;
-                var errorMessage = propertiesResponse.ErrorMessage is null ? statusDescription : $"{statusDescription} - {propertiesResponse.ErrorMessage}";
-                _logger.LogError("Error getting project properties {ProjectId} from Azure DevOps: {ErrorMessage}.", projectIdOrName, errorMessage);
-                return Result.Failure<ProjectDetailsDto>(errorMessage);
-            }
-            else if ((!propertiesResponse.IsSuccessful && propertiesResponse.StatusCode is HttpStatusCode.NotFound) || propertiesResponse.Data is null)
-            {
-                var errorMesssage = propertiesResponse.IsSuccessful ? "No project properties data returned" : propertiesResponse.StatusDescription;
-                _logger.LogError("Error getting project properties {ProjectId} from Azure DevOps: {ErrorMessage}.", projectIdOrName, errorMesssage);
-                return Result.Failure<ProjectDetailsDto>(errorMesssage);
-            }
+        var propertiesResponse = await _projectClient.GetProjectProperties(projectResponse.Data.Id, cancellationToken).ConfigureAwait(false);
+        if (!propertiesResponse.IsSuccessful && propertiesResponse.StatusCode != HttpStatusCode.NotFound)
+        {
+            var statusDescription = propertiesResponse.StatusCode is 0 ? "Connection Error" : propertiesResponse.StatusDescription;
+            var errorMessage = propertiesResponse.ErrorMessage is null ? statusDescription : $"{statusDescription} - {propertiesResponse.ErrorMessage}";
+            _logger.LogError("Error getting project properties {ProjectId} from Azure DevOps: {ErrorMessage}.", projectIdOrName, errorMessage);
+            return Result.Failure<ProjectDetailsDto>(errorMessage);
+        }
+        else if ((!propertiesResponse.IsSuccessful && propertiesResponse.StatusCode is HttpStatusCode.NotFound) || propertiesResponse.Data is null)
+        {
+            var errorMesssage = propertiesResponse.IsSuccessful ? "No project properties data returned" : propertiesResponse.StatusDescription;
+            _logger.LogError("Error getting project properties {ProjectId} from Azure DevOps: {ErrorMessage}.", projectIdOrName, errorMesssage);
+            return Result.Failure<ProjectDetailsDto>(errorMesssage);
+        }
 
-            return ProjectDetailsDto.Create(projectResponse.Data, [.. propertiesResponse.Data.Value]);
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception thrown getting project {ProjectId} from Azure DevOps", projectIdOrName);
-            return Result.Failure<ProjectDetailsDto>(ex.Message);
-        }
+        return ProjectDetailsDto.Create(projectResponse.Data, [.. propertiesResponse.Data.Value]);
     }
 
     /// <summary>
@@ -147,93 +120,77 @@ internal sealed class ProjectService(HttpClient httpClient, string organizationU
             return Result.Failure<List<IExternalTeam>>(message);
         }
 
-        Guid currentProjectId = Guid.Empty;
-
-        try
+        foreach (var id in projectIds)
         {
-            foreach (var id in projectIds)
+            // The teams endpoint caps results (default 100), so page like GetProjects does.
+            List<TeamDto> projectTeams = [];
+            while (true)
             {
-                currentProjectId = id;
-
-                // The teams endpoint caps results (default 100), so page like GetProjects does.
-                List<TeamDto> projectTeams = [];
-                while (true)
+                var response = await _projectClient.GetProjectTeams(id, top: _maxBatchSize, skip: projectTeams.Count, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessful)
                 {
-                    var response = await _projectClient.GetProjectTeams(id, top: _maxBatchSize, skip: projectTeams.Count, cancellationToken).ConfigureAwait(false);
-                    if (!response.IsSuccessful)
-                    {
-                        _logger.LogError("Error getting teams for project {ProjectId} from Azure DevOps: {ErrorMessage}.", id, response.GetErrorText());
-                        return Result.Failure<List<IExternalTeam>>($"Error getting teams for project {id} from Azure DevOps"); // each project should have at least one team
-                    }
-
-                    if (response.Data is null)
-                        break;
-
-                    projectTeams.AddRange(response.Data.Value);
-
-                    if (response.Data.Value.Count < _maxBatchSize)
-                        break;
-                }
-
-                if (projectTeams.Count == 0)
-                {
-                    if (_logger.IsEnabled(LogLevel.Debug))
-                        _logger.LogDebug("No teams found for project {ProjectId}.", id);
+                    _logger.LogError("Error getting teams for project {ProjectId} from Azure DevOps: {ErrorMessage}.", id, response.GetErrorText());
                     return Result.Failure<List<IExternalTeam>>($"Error getting teams for project {id} from Azure DevOps"); // each project should have at least one team
                 }
 
-                // Fetch team settings (backlog iteration → boardId) with bounded concurrency. The calls
-                // are independent I/O-bound lookups, so the parallelism costs no thread-pool capacity
-                // while awaiting; the small degree keeps the burst polite to both Azure DevOps
-                // throttling and the API host serving interactive traffic. Results land in a slot per
-                // team to keep the output order deterministic; a failed settings lookup skips just
-                // that team, matching the previous sequential behavior.
-                var teamSlots = new IExternalTeam?[projectTeams.Count];
-                var parallelOptions = new ParallelOptions
-                {
-                    MaxDegreeOfParallelism = _teamSettingsMaxConcurrency,
-                    CancellationToken = cancellationToken
-                };
+                if (response.Data is null)
+                    break;
 
-                await Parallel.ForEachAsync(Enumerable.Range(0, projectTeams.Count), parallelOptions, async (index, ct) =>
-                {
-                    var team = projectTeams[index];
-                    var teamSettingsResponse = await _projectClient.GetProjectTeamsSettings(id, team.Id, ct).ConfigureAwait(false);
-                    if (!teamSettingsResponse.IsSuccessful)
-                    {
-                        _logger.LogError("Error getting team settings for team {TeamId} in project {ProjectId} from Azure DevOps: {ErrorMessage}.", team.Id, id, teamSettingsResponse.GetErrorText());
-                        return;
-                    }
-                    if (teamSettingsResponse.Data is null)
-                    {
-                        _logger.LogWarning("No team settings found for team {TeamId} in project {ProjectId}.", team.Id, id);
-                        return;
-                    }
+                projectTeams.AddRange(response.Data.Value);
 
-                    teamSlots[index] = team.ToAzdoTeam(id, teamSettingsResponse.Data.BacklogIteration?.Id);
-                }).ConfigureAwait(false);
-
-                foreach (var team in teamSlots)
-                {
-                    if (team is not null)
-                        teams.Add(team);
-                }
-
-                if (_logger.IsEnabled(LogLevel.Debug))
-                    _logger.LogDebug("{TeamCount} teams found for project {ProjectId}.", projectTeams.Count, id);
+                if (response.Data.Value.Count < _maxBatchSize)
+                    break;
             }
 
-            return teams;
+            if (projectTeams.Count == 0)
+            {
+                if (_logger.IsEnabled(LogLevel.Debug))
+                    _logger.LogDebug("No teams found for project {ProjectId}.", id);
+                return Result.Failure<List<IExternalTeam>>($"Error getting teams for project {id} from Azure DevOps"); // each project should have at least one team
+            }
+
+            // Fetch team settings (backlog iteration → boardId) with bounded concurrency. The calls
+            // are independent I/O-bound lookups, so the parallelism costs no thread-pool capacity
+            // while awaiting; the small degree keeps the burst polite to both Azure DevOps
+            // throttling and the API host serving interactive traffic. Results land in a slot per
+            // team to keep the output order deterministic; a failed settings lookup skips just
+            // that team, matching the previous sequential behavior.
+            var teamSlots = new IExternalTeam?[projectTeams.Count];
+            var parallelOptions = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = _teamSettingsMaxConcurrency,
+                CancellationToken = cancellationToken
+            };
+
+            await Parallel.ForEachAsync(Enumerable.Range(0, projectTeams.Count), parallelOptions, async (index, ct) =>
+            {
+                var team = projectTeams[index];
+                var teamSettingsResponse = await _projectClient.GetProjectTeamsSettings(id, team.Id, ct).ConfigureAwait(false);
+                if (!teamSettingsResponse.IsSuccessful)
+                {
+                    _logger.LogError("Error getting team settings for team {TeamId} in project {ProjectId} from Azure DevOps: {ErrorMessage}.", team.Id, id, teamSettingsResponse.GetErrorText());
+                    return;
+                }
+                if (teamSettingsResponse.Data is null)
+                {
+                    _logger.LogWarning("No team settings found for team {TeamId} in project {ProjectId}.", team.Id, id);
+                    return;
+                }
+
+                teamSlots[index] = team.ToAzdoTeam(id, teamSettingsResponse.Data.BacklogIteration?.Id);
+            }).ConfigureAwait(false);
+
+            foreach (var team in teamSlots)
+            {
+                if (team is not null)
+                    teams.Add(team);
+            }
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+                _logger.LogDebug("{TeamCount} teams found for project {ProjectId}.", projectTeams.Count, id);
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception thrown getting teams for project {ProjectId} from Azure DevOps", currentProjectId);
-            return Result.Failure<List<IExternalTeam>>(ex.Message);
-        }
+
+        return teams;
     }
 
     /// <summary>
@@ -249,36 +206,24 @@ internal sealed class ProjectService(HttpClient httpClient, string organizationU
     /// paths if successful, or an error message if the operation fails.</returns>
     public async Task<Result<List<ClassificationNodeResponse>>> GetAreaPaths(string projectName, CancellationToken cancellationToken)
     {
-        try
+        var response = await _projectClient.GetAreaPaths(projectName, cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessful)
         {
-            var response = await _projectClient.GetAreaPaths(projectName, cancellationToken).ConfigureAwait(false);
-            if (!response.IsSuccessful)
-            {
-                _logger.LogError("Error getting areas for project {ProjectId} from Azure DevOps: {ErrorMessage}.", projectName, response.GetErrorText());
-                return Result.Failure<List<ClassificationNodeResponse>>(response.GetErrorText());
-            }
-            if (response.Data is null)
-            {
-                _logger.LogWarning("No areas found for project {ProjectId}.", projectName);
-                return Result.Failure<List<ClassificationNodeResponse>>($"No areas found for project {projectName}");
-            }
-
-            var areaPaths = response.Data.FlattenHierarchy(a => a.Children).ToList();
-
-            if (_logger.IsEnabled(LogLevel.Debug))
-                _logger.LogDebug("{AreaCount} areas found for project {ProjectId}.", areaPaths.Count, projectName);
-
-            return areaPaths;
+            _logger.LogError("Error getting areas for project {ProjectId} from Azure DevOps: {ErrorMessage}.", projectName, response.GetErrorText());
+            return Result.Failure<List<ClassificationNodeResponse>>(response.GetErrorText());
         }
-        catch (OperationCanceledException)
+        if (response.Data is null)
         {
-            throw;
+            _logger.LogWarning("No areas found for project {ProjectId}.", projectName);
+            return Result.Failure<List<ClassificationNodeResponse>>($"No areas found for project {projectName}");
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception thrown getting areas for project {ProjectId} from Azure DevOps", projectName);
-            return Result.Failure<List<ClassificationNodeResponse>>(ex.Message);
-        }
+
+        var areaPaths = response.Data.FlattenHierarchy(a => a.Children).ToList();
+
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("{AreaCount} areas found for project {ProjectId}.", areaPaths.Count, projectName);
+
+        return areaPaths;
     }
 
     /// <summary>
@@ -296,38 +241,26 @@ internal sealed class ProjectService(HttpClient httpClient, string organizationU
     /// message if the operation fails.</returns>
     public async Task<Result<List<IterationDto>>> GetIterations(string projectName, Dictionary<Guid, Guid?>? teamSettings, CancellationToken cancellationToken)
     {
-        try
+        var response = await _projectClient.GetIterationPaths(projectName, cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessful)
         {
-            var response = await _projectClient.GetIterationPaths(projectName, cancellationToken).ConfigureAwait(false);
-            if (!response.IsSuccessful)
-            {
-                _logger.LogError("Error getting iterations for project {ProjectId} from Azure DevOps: {ErrorMessage}.", projectName, response.GetErrorText());
-                return Result.Failure<List<IterationDto>>(response.GetErrorText());
-            }
-            if (response.Data is null)
-            {
-                _logger.LogWarning("No iterations found for project {ProjectId}.", projectName);
-                return Result.Failure<List<IterationDto>>($"No iterations found for project {projectName}");
-            }
-
-            Dictionary<Guid, Guid> iterationTeamMapping = ConvertTeamSettingsToIterationTeamMapping(teamSettings);
-
-            var iterations = FlattenAndSetTeamIds(response.Data, iterationTeamMapping).ToList();
-
-            if (_logger.IsEnabled(LogLevel.Debug))
-                _logger.LogDebug("{IterationCount} iterations found for project {ProjectId}.", iterations.Count, projectName);
-
-            return iterations;
+            _logger.LogError("Error getting iterations for project {ProjectId} from Azure DevOps: {ErrorMessage}.", projectName, response.GetErrorText());
+            return Result.Failure<List<IterationDto>>(response.GetErrorText());
         }
-        catch (OperationCanceledException)
+        if (response.Data is null)
         {
-            throw;
+            _logger.LogWarning("No iterations found for project {ProjectId}.", projectName);
+            return Result.Failure<List<IterationDto>>($"No iterations found for project {projectName}");
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception thrown getting iterations for project {ProjectId} from Azure DevOps", projectName);
-            return Result.Failure<List<IterationDto>>(ex.Message);
-        }
+
+        Dictionary<Guid, Guid> iterationTeamMapping = ConvertTeamSettingsToIterationTeamMapping(teamSettings);
+
+        var iterations = FlattenAndSetTeamIds(response.Data, iterationTeamMapping).ToList();
+
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("{IterationCount} iterations found for project {ProjectId}.", iterations.Count, projectName);
+
+        return iterations;
     }
 
     /// <summary>

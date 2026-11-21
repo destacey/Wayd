@@ -36,74 +36,66 @@ public sealed class UpdateAzureDevOpsConnectionTeamMappingsCommandHandler : ICom
 
     public async Task<Result> Handle(UpdateAzureDevOpsConnectionTeamMappingsCommand request, CancellationToken cancellationToken)
     {
-        try
+        var connection = await _appIntegrationDbContext.AzureDevOpsBoardsConnections
+            .FirstOrDefaultAsync(c => c.Id == request.ConnectionId, cancellationToken);
+        if (connection is null)
+            return Result.Failure("Azure DevOps connection not found.");
+
+
+        var teamConfig = connection.TeamConfiguration;
+        foreach (var team in request.TeamMappings)
         {
-            var connection = await _appIntegrationDbContext.AzureDevOpsBoardsConnections
-                .FirstOrDefaultAsync(c => c.Id == request.ConnectionId, cancellationToken);
-            if (connection is null)
-                return Result.Failure("Azure DevOps connection not found.");
-
-
-            var teamConfig = connection.TeamConfiguration;
-            foreach (var team in request.TeamMappings)
+            if (team.InternalTeamId.HasValue && !request.ValidTeamIds.Contains(team.InternalTeamId.Value))
             {
-                if (team.InternalTeamId.HasValue && !request.ValidTeamIds.Contains(team.InternalTeamId.Value))
-                {
-                    _logger.LogError("{AppRequestName}: Invalid internal team {TeamId} for connection {ConnectionId} workspace {WorkspaceId} and team {ExternalTeamId}.", AppRequestName, team.InternalTeamId, request.ConnectionId, team.WorkspaceId, team.ExternalTeamId);
-                    continue;
-                }
+                _logger.LogError("{AppRequestName}: Invalid internal team {TeamId} for connection {ConnectionId} workspace {WorkspaceId} and team {ExternalTeamId}.", AppRequestName, team.InternalTeamId, request.ConnectionId, team.WorkspaceId, team.ExternalTeamId);
+                continue;
+            }
 
-                var existingTeam = teamConfig.WorkspaceTeams.SingleOrDefault(w => w.WorkspaceId == team.WorkspaceId && w.TeamId == team.ExternalTeamId);
-                if (existingTeam is not null)
+            var existingTeam = teamConfig.WorkspaceTeams.SingleOrDefault(w => w.WorkspaceId == team.WorkspaceId && w.TeamId == team.ExternalTeamId);
+            if (existingTeam is not null)
+            {
+                if (existingTeam.InternalTeamId != team.InternalTeamId)
                 {
-                    if (existingTeam.InternalTeamId != team.InternalTeamId)
+                    if (team.InternalTeamId is null)
                     {
-                        if (team.InternalTeamId is null)
-                        {
-                            // TODO: this is a hack because EF/SQL is throwing an exception when we set the InternalTeamId to null.  This seems to happen
-                            // because the stored procedure paramater value is NULL.  It works when the paramater is bypassed.
-                            var resetTeamResult = teamConfig.ResetTeam(team.ExternalTeamId);
-                            if (resetTeamResult.IsFailure)
-                                return resetTeamResult;
-                        }
-                        else
-                        {
-                            existingTeam.MapInternalTeam(team.InternalTeamId);
-                        }
-                        _logger.LogDebug("{AppRequestName}: Team mapping removed for connection {ConnectionId} workspace {WorkspaceId}. External team {ExternalTeamId}.", AppRequestName, request.ConnectionId, team.WorkspaceId, team.ExternalTeamId);
+                        // TODO: this is a hack because EF/SQL is throwing an exception when we set the InternalTeamId to null.  This seems to happen
+                        // because the stored procedure paramater value is NULL.  It works when the paramater is bypassed.
+                        var resetTeamResult = teamConfig.ResetTeam(team.ExternalTeamId);
+                        if (resetTeamResult.IsFailure)
+                            return resetTeamResult;
                     }
                     else
                     {
-                        // reset the InternalTeamId if it is no longer valid.
-                        if (existingTeam.InternalTeamId.HasValue && !request.ValidTeamIds.Contains(existingTeam.InternalTeamId.Value))
-                        {
-                            _logger.LogError("{AppRequestName}: Invalid current internal team {TeamId} for connection {ConnectionId} workspace {WorkspaceId} and team {ExternalTeamId}.", AppRequestName, existingTeam.InternalTeamId, request.ConnectionId, team.WorkspaceId, team.ExternalTeamId);
-
-                            // TODO: this is a hack because EF/SQL is throwing an exception when we set the InternalTeamId to null.  This seems to happen
-                            // because the stored procedure paramater value is NULL.  It works when the paramater is bypassed.
-                            var resetTeamResult = teamConfig.ResetTeam(team.ExternalTeamId);
-                            if (resetTeamResult.IsFailure)
-                                return resetTeamResult;
-                        }
+                        existingTeam.MapInternalTeam(team.InternalTeamId);
                     }
+                    _logger.LogDebug("{AppRequestName}: Team mapping removed for connection {ConnectionId} workspace {WorkspaceId}. External team {ExternalTeamId}.", AppRequestName, request.ConnectionId, team.WorkspaceId, team.ExternalTeamId);
                 }
                 else
                 {
-                    _logger.LogWarning("{AppRequestName}: Team mapping not found for connection {ConnectionId} workspace {WorkspaceId} and team {ExternalTeamId}.", AppRequestName, request.ConnectionId, team.WorkspaceId, team.ExternalTeamId);
+                    // reset the InternalTeamId if it is no longer valid.
+                    if (existingTeam.InternalTeamId.HasValue && !request.ValidTeamIds.Contains(existingTeam.InternalTeamId.Value))
+                    {
+                        _logger.LogError("{AppRequestName}: Invalid current internal team {TeamId} for connection {ConnectionId} workspace {WorkspaceId} and team {ExternalTeamId}.", AppRequestName, existingTeam.InternalTeamId, request.ConnectionId, team.WorkspaceId, team.ExternalTeamId);
+
+                        // TODO: this is a hack because EF/SQL is throwing an exception when we set the InternalTeamId to null.  This seems to happen
+                        // because the stored procedure paramater value is NULL.  It works when the paramater is bypassed.
+                        var resetTeamResult = teamConfig.ResetTeam(team.ExternalTeamId);
+                        if (resetTeamResult.IsFailure)
+                            return resetTeamResult;
+                    }
                 }
             }
-
-            await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("{AppRequestName}: Connection {ConnectionId} team mappings updated.", AppRequestName, request.ConnectionId);
-
-            return Result.Success();
+            else
+            {
+                _logger.LogWarning("{AppRequestName}: Team mapping not found for connection {ConnectionId} workspace {WorkspaceId} and team {ExternalTeamId}.", AppRequestName, request.ConnectionId, team.WorkspaceId, team.ExternalTeamId);
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{AppRequestName}: Error updating connection {ConnectionId} team mappings.", AppRequestName, request.ConnectionId);
-            return Result.Failure(ex.Message);
-        }
+
+        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("{AppRequestName}: Connection {ConnectionId} team mappings updated.", AppRequestName, request.ConnectionId);
+
+        return Result.Success();
     }
 }
 

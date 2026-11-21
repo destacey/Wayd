@@ -5,6 +5,7 @@ using Wayd.AppIntegration.Domain.Interfaces;
 using Wayd.Common.Application.Employees.Commands;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Identity.Users;
+using Wayd.Common.Domain;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Integrations.Abstractions;
 
@@ -270,10 +271,10 @@ public sealed class PeopleSyncRunner(
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception while running people sync for connection {ConnectionId}.", connectionId);
-            details.Errors.Add(ex.Message);
-            run.MarkFailed(_clock.Now, ex.Message);
+            details.Errors.Add(ErrorMessages.UnexpectedInRun);
+            run.MarkFailed(_clock.Now, ErrorMessages.UnexpectedInRun);
             await SaveRun(run, details, CancellationToken.None);
-            return Result.Failure(ex.Message);
+            return Result.Failure(ErrorMessages.UnexpectedInRun);
         }
     }
 

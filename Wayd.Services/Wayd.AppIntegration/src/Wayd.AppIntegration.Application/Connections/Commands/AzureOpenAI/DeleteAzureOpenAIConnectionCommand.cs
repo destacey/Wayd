@@ -21,26 +21,18 @@ public sealed class DeleteAzureOpenAIConnectionCommandHandler : ICommandHandler<
 
     public async Task<Result> Handle(DeleteAzureOpenAIConnectionCommand request, CancellationToken cancellationToken)
     {
-        try
+        var connection = await _appIntegrationDbContext.AzureOpenAIConnections
+            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+        if (connection is null)
         {
-            var connection = await _appIntegrationDbContext.AzureOpenAIConnections
-                .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
-            if (connection is null)
-            {
-                _logger.LogError("Azure OpenAI Connection {ConnectionId} not found.", request.Id);
-                return Result.Failure($"Azure OpenAI Connection {request.Id} not found.");
-            }
-
-            connection.Delete(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            _appIntegrationDbContext.AzureOpenAIConnections.Remove(connection);
-            await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
+            _logger.LogError("Azure OpenAI Connection {ConnectionId} not found.", request.Id);
+            return Result.Failure($"Azure OpenAI Connection {request.Id} not found.");
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting Azure OpenAI Connection {ConnectionId}.", request.Id);
-            return Result.Failure($"Error deleting Azure OpenAI Connection {request.Id}. {ex.Message}");
-        }
+
+        connection.Delete(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        _appIntegrationDbContext.AzureOpenAIConnections.Remove(connection);
+        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
     }
 }

@@ -5,6 +5,7 @@ using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Logging;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Queries;
+using Wayd.Common.Domain;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Integrations.Abstractions;
 
@@ -188,7 +189,7 @@ public sealed class WorkSyncRunner(
                 cancellationToken.ThrowIfCancellationRequested();
                 using (_logger.BeginScope(new Dictionary<string, object> { ["WorkspaceId"] = target.InternalWorkspaceId }))
                 {
-                    var detail = await RunWorkspace(source, target, connectionId, descriptorResult.Value.SystemId!, syncType, syncId, cancellationToken);
+                    var detail = await TryRunWorkspace(source, target, connectionId, descriptorResult.Value.SystemId!, syncType, syncId, cancellationToken);
                     workspaceDetails.Add(detail);
 
                     if (detail.Succeeded)
@@ -256,9 +257,26 @@ public sealed class WorkSyncRunner(
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception while syncing connection {ConnectionId}.", connectionId);
-            run.MarkFailed(_clock.Now, ex.Message);
+            run.MarkFailed(_clock.Now, ErrorMessages.UnexpectedInRun);
             await SaveRun(run, workspaceDetails, CancellationToken.None);
-            return Result.Failure(ex.Message);
+            return Result.Failure(ErrorMessages.UnexpectedInRun);
+        }
+    }
+
+    /// <summary>
+    /// Syncs one workspace, recording an unexpected exception as that workspace's failure so the
+    /// connection's other workspaces still sync.
+    /// </summary>
+    private async Task<WorkspaceSyncDetail> TryRunWorkspace(IWorkItemSource source, WorkspaceSyncTarget target, Guid connectionId, string systemId, SyncType syncType, Guid syncId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await RunWorkspace(source, target, connectionId, systemId, syncType, syncId, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "Unhandled exception while syncing workspace {WorkspaceId}.", target.InternalWorkspaceId);
+            return WorkspaceSyncDetail.FromFailure(target, ErrorMessages.UnexpectedInRun);
         }
     }
 

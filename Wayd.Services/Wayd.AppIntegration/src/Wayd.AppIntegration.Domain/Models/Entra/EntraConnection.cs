@@ -51,48 +51,41 @@ public sealed class EntraConnection : Connection<EntraConnectionConfiguration>, 
         EventActor actor,
         Instant timestamp)
     {
-        try
-        {
-            Guard.Against.Null(Configuration, nameof(Configuration));
+        Guard.Against.Null(Configuration, nameof(Configuration));
 
-            var newName = Guard.Against.NullOrWhiteSpace(name, nameof(name)).Trim();
-            var newDescription = description?.NullIfWhiteSpacePlusTrim();
-            var newTenantId = Guard.Against.NullOrWhiteSpace(tenantId, nameof(tenantId)).Trim();
-            var newClientId = Guard.Against.NullOrWhiteSpace(clientId, nameof(clientId)).Trim();
-            var newClientSecret = clientSecret is null
-                ? Configuration.ClientSecret
-                : Guard.Against.NullOrWhiteSpace(clientSecret, nameof(clientSecret)).Trim();
-            var newGroupId = string.IsNullOrWhiteSpace(allUsersGroupObjectId) ? null : allUsersGroupObjectId.Trim();
+        var newName = Guard.Against.NullOrWhiteSpace(name, nameof(name)).Trim();
+        var newDescription = description?.NullIfWhiteSpacePlusTrim();
+        var newTenantId = Guard.Against.NullOrWhiteSpace(tenantId, nameof(tenantId)).Trim();
+        var newClientId = Guard.Against.NullOrWhiteSpace(clientId, nameof(clientId)).Trim();
+        var newClientSecret = clientSecret is null
+            ? Configuration.ClientSecret
+            : Guard.Against.NullOrWhiteSpace(clientSecret, nameof(clientSecret)).Trim();
+        var newGroupId = string.IsNullOrWhiteSpace(allUsersGroupObjectId) ? null : allUsersGroupObjectId.Trim();
 
-            var scopeResult = RequireCredentialsForNewScope([newTenantId, newClientId], clientSecret is null, "client secret");
-            if (scopeResult.IsFailure)
-                return scopeResult;
+        var scopeResult = RequireCredentialsForNewScope([newTenantId, newClientId], clientSecret is null, "client secret");
+        if (scopeResult.IsFailure)
+            return scopeResult;
 
-            if (!UpdateValuesChanged(newName, newDescription, newTenantId, newClientId, newClientSecret, newGroupId, includeDisabledUsers, matchBy, normalizeNameCasing, configurationIsValid))
-                return Result.Success();
-
-            var before = CaptureState();
-
-            Name = newName;
-            Description = newDescription;
-            IsValidConfiguration = configurationIsValid;
-
-            Configuration.TenantId = newTenantId;
-            Configuration.ClientId = newClientId;
-            Configuration.ClientSecret = newClientSecret;
-            Configuration.AllUsersGroupObjectId = newGroupId;
-            Configuration.IncludeDisabledUsers = includeDisabledUsers;
-            Configuration.MatchBy = matchBy;
-            Configuration.NormalizeNameCasing = normalizeNameCasing;
-
-            RaiseChangesSince(before, actor, timestamp);
-
+        if (!UpdateValuesChanged(newName, newDescription, newTenantId, newClientId, newClientSecret, newGroupId, includeDisabledUsers, matchBy, normalizeNameCasing, configurationIsValid))
             return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+
+        var before = CaptureState();
+
+        Name = newName;
+        Description = newDescription;
+        IsValidConfiguration = configurationIsValid;
+
+        Configuration.TenantId = newTenantId;
+        Configuration.ClientId = newClientId;
+        Configuration.ClientSecret = newClientSecret;
+        Configuration.AllUsersGroupObjectId = newGroupId;
+        Configuration.IncludeDisabledUsers = includeDisabledUsers;
+        Configuration.MatchBy = matchBy;
+        Configuration.NormalizeNameCasing = normalizeNameCasing;
+
+        RaiseChangesSince(before, actor, timestamp);
+
+        return Result.Success();
     }
 
     private bool UpdateValuesChanged(

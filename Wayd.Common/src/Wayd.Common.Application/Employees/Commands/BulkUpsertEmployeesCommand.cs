@@ -272,7 +272,7 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
                 _logger.LogError(ex, "Wayd Request: Exception for Request {Name} on {Employee}.",
                     requestName, Describe(externalEmployee));
 
-                errors.TryAdd(externalEmployee.EmployeeNumber, $"Unexpected error for {Describe(externalEmployee)}: {ex.Message}. Skipped.");
+                errors.TryAdd(externalEmployee.EmployeeNumber, $"Unexpected error for {Describe(externalEmployee)}. Skipped; the details are in the API log.");
             }
         }
 
@@ -296,20 +296,8 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
                 "Wayd Request: Exception for Request {Name} while updating the database. {Upserted} employees claimed, {Skipped} skipped.",
                 requestName, claimedEmployeeIds.Count, errors.Count);
 
-            return Result.Failure<BulkUpsertEmployeesResult>($"{requestName} failed while saving: {DescribeDatabaseError(ex)}");
+            return Result.Failure<BulkUpsertEmployeesResult>($"{requestName} failed while saving. The database's error is in the API log.");
         }
-    }
-
-    /// <summary>
-    /// A short, human-readable reason for a save failure. Surfaces in sync history, so it names the
-    /// constraint rather than repeating the payload — SQL Server's duplicate-key message already carries
-    /// the offending value, which is the one piece of row detail worth keeping.
-    /// </summary>
-    private static string DescribeDatabaseError(Exception ex)
-    {
-        // Unwrap DbUpdateException, whose own message is the generic "An error occurred while saving...".
-        var inner = ex.InnerException ?? ex;
-        return inner.Message;
     }
 
     /// <summary>

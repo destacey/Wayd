@@ -40,78 +40,50 @@ public sealed class AzureDevOpsBoardsConnectionConfiguration
 
     internal Result AddWorkspace(AzureDevOpsBoardsWorkspace workspace)
     {
-        try
-        {
-            Guard.Against.Null(workspace, nameof(workspace));
+        Guard.Against.Null(workspace, nameof(workspace));
 
-            if (Workspaces.Any(w => w.ExternalId == workspace.ExternalId))
-                return Result.Failure("Unable to add a duplicate workspace.");
+        if (Workspaces.Any(w => w.ExternalId == workspace.ExternalId))
+            return Result.Failure("Unable to add a duplicate workspace.");
 
-            Workspaces.Add(workspace);
+        Workspaces.Add(workspace);
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+        return Result.Success();
     }
 
     internal Result RemoveWorkspace(AzureDevOpsBoardsWorkspace workspace)
     {
-        try
-        {
-            Guard.Against.Null(workspace, nameof(workspace));
+        Guard.Against.Null(workspace, nameof(workspace));
 
-            if (!Workspaces.Any(w => w.ExternalId == workspace.ExternalId))
-                return Result.Failure("Unable to remove a workspace that does not exist.");
+        if (!Workspaces.Any(w => w.ExternalId == workspace.ExternalId))
+            return Result.Failure("Unable to remove a workspace that does not exist.");
 
-            Workspaces.Remove(workspace);
+        Workspaces.Remove(workspace);
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+        return Result.Success();
     }
 
     internal Result AddWorkProcess(AzureDevOpsBoardsWorkProcess process)
     {
-        try
-        {
-            Guard.Against.Null(process, nameof(process));
+        Guard.Against.Null(process, nameof(process));
 
-            if (WorkProcesses.Any(w => w.ExternalId == process.ExternalId))
-                return Result.Failure("Unable to add a duplicate process.");
+        if (WorkProcesses.Any(w => w.ExternalId == process.ExternalId))
+            return Result.Failure("Unable to add a duplicate process.");
 
-            WorkProcesses.Add(process);
+        WorkProcesses.Add(process);
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+        return Result.Success();
     }
 
     internal Result RemoveWorkProcess(AzureDevOpsBoardsWorkProcess process)
     {
-        try
-        {
-            Guard.Against.Null(process, nameof(process));
+        Guard.Against.Null(process, nameof(process));
 
-            if (!WorkProcesses.Any(w => w.ExternalId == process.ExternalId))
-                return Result.Failure("Unable to remove a process that does not exist.");
+        if (!WorkProcesses.Any(w => w.ExternalId == process.ExternalId))
+            return Result.Failure("Unable to remove a process that does not exist.");
 
-            WorkProcesses.Remove(process);
+        WorkProcesses.Remove(process);
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+        return Result.Success();
     }
 
     public int ConfigVersion { get; init; }

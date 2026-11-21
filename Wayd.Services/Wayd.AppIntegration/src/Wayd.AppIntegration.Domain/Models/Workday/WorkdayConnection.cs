@@ -52,68 +52,61 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
         EventActor actor,
         Instant timestamp)
     {
-        try
-        {
-            Guard.Against.Null(Configuration, nameof(Configuration));
+        Guard.Against.Null(Configuration, nameof(Configuration));
 
-            var newName = Guard.Against.NullOrWhiteSpace(name, nameof(name)).Trim();
-            var newDescription = description?.NullIfWhiteSpacePlusTrim();
-            var newWsdlUrl = Guard.Against.NullOrWhiteSpace(wsdlUrl, nameof(wsdlUrl)).Trim();
-            var newIsuUsername = Guard.Against.NullOrWhiteSpace(isuUsername, nameof(isuUsername)).Trim();
-            var passwordKept = isuPassword is null;
-            var newIsuPassword = passwordKept
-                ? Configuration.IsuPassword
-                : Guard.Against.NullOrWhiteSpace(isuPassword, nameof(isuPassword)).Trim();
-            var newDepartmentOrgTypeId = string.IsNullOrWhiteSpace(departmentOrganizationTypeId) ? null : departmentOrganizationTypeId.Trim();
-            var newOrgExclusions = orgExclusions?.ToList() ?? [];
+        var newName = Guard.Against.NullOrWhiteSpace(name, nameof(name)).Trim();
+        var newDescription = description?.NullIfWhiteSpacePlusTrim();
+        var newWsdlUrl = Guard.Against.NullOrWhiteSpace(wsdlUrl, nameof(wsdlUrl)).Trim();
+        var newIsuUsername = Guard.Against.NullOrWhiteSpace(isuUsername, nameof(isuUsername)).Trim();
+        var passwordKept = isuPassword is null;
+        var newIsuPassword = passwordKept
+            ? Configuration.IsuPassword
+            : Guard.Against.NullOrWhiteSpace(isuPassword, nameof(isuPassword)).Trim();
+        var newDepartmentOrgTypeId = string.IsNullOrWhiteSpace(departmentOrganizationTypeId) ? null : departmentOrganizationTypeId.Trim();
+        var newOrgExclusions = orgExclusions?.ToList() ?? [];
 
-            if (!UpdateValuesChanged(newName, newDescription, newWsdlUrl, newIsuUsername, newIsuPassword, workerKey, includeInactive, matchBy, useUserIdAsEmailFallback, usePreferredName, normalizeNameCasing, newDepartmentOrgTypeId, newOrgExclusions, configurationIsValid))
-                return Result.Success();
-
-            // Parse the URL *before* any mutation so a bad URL doesn't leave the entity
-            // half-updated. The command-layer validator already rejects unparseable URLs, so this
-            // is defensive — it documents the invariant (no configuration with an unparseable URL
-            // ever persists) and protects against any caller that bypasses the validator.
-            if (!WorkdayConnectionConfiguration.TryParse(newWsdlUrl, out var parts))
-                return Result.Failure(
-                    $"WsdlUrl '{newWsdlUrl}' is not a valid Workday Staffing endpoint URL. Expected form: https://{{host}}/ccx/service/{{tenant}}/Staffing/{{version}}.");
-
-            var scopeResult = RequireCredentialsForNewScope(
-                [EndpointAuthority(parts.SoapEndpoint), parts.TenantAlias, newIsuUsername], passwordKept, "ISU password");
-            if (scopeResult.IsFailure)
-                return scopeResult;
-
-            var before = CaptureState();
-
-            Name = newName;
-            Description = newDescription;
-            IsValidConfiguration = configurationIsValid;
-
-            Configuration.WsdlUrl = newWsdlUrl;
-            Configuration.IsuUsername = newIsuUsername;
-            Configuration.IsuPassword = newIsuPassword;
-            Configuration.WorkerKey = workerKey;
-            Configuration.IncludeInactive = includeInactive;
-            Configuration.MatchBy = matchBy;
-            Configuration.UseUserIdAsEmailFallback = useUserIdAsEmailFallback;
-            Configuration.UsePreferredName = usePreferredName;
-            Configuration.NormalizeNameCasing = normalizeNameCasing;
-            Configuration.DepartmentOrganizationTypeId = newDepartmentOrgTypeId;
-            Configuration.OrgExclusions = newOrgExclusions;
-
-            Configuration.ServiceHost = parts.ServiceHost;
-            Configuration.TenantAlias = parts.TenantAlias;
-            Configuration.WsdlVersion = parts.WsdlVersion;
-            Configuration.SoapEndpoint = parts.SoapEndpoint;
-
-            RaiseChangesSince(before, actor, timestamp);
-
+        if (!UpdateValuesChanged(newName, newDescription, newWsdlUrl, newIsuUsername, newIsuPassword, workerKey, includeInactive, matchBy, useUserIdAsEmailFallback, usePreferredName, normalizeNameCasing, newDepartmentOrgTypeId, newOrgExclusions, configurationIsValid))
             return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ex.ToString());
-        }
+
+        // Parse the URL *before* any mutation so a bad URL doesn't leave the entity
+        // half-updated. The command-layer validator already rejects unparseable URLs, so this
+        // is defensive — it documents the invariant (no configuration with an unparseable URL
+        // ever persists) and protects against any caller that bypasses the validator.
+        if (!WorkdayConnectionConfiguration.TryParse(newWsdlUrl, out var parts))
+            return Result.Failure(
+                $"WsdlUrl '{newWsdlUrl}' is not a valid Workday Staffing endpoint URL. Expected form: https://{{host}}/ccx/service/{{tenant}}/Staffing/{{version}}.");
+
+        var scopeResult = RequireCredentialsForNewScope(
+            [EndpointAuthority(parts.SoapEndpoint), parts.TenantAlias, newIsuUsername], passwordKept, "ISU password");
+        if (scopeResult.IsFailure)
+            return scopeResult;
+
+        var before = CaptureState();
+
+        Name = newName;
+        Description = newDescription;
+        IsValidConfiguration = configurationIsValid;
+
+        Configuration.WsdlUrl = newWsdlUrl;
+        Configuration.IsuUsername = newIsuUsername;
+        Configuration.IsuPassword = newIsuPassword;
+        Configuration.WorkerKey = workerKey;
+        Configuration.IncludeInactive = includeInactive;
+        Configuration.MatchBy = matchBy;
+        Configuration.UseUserIdAsEmailFallback = useUserIdAsEmailFallback;
+        Configuration.UsePreferredName = usePreferredName;
+        Configuration.NormalizeNameCasing = normalizeNameCasing;
+        Configuration.DepartmentOrganizationTypeId = newDepartmentOrgTypeId;
+        Configuration.OrgExclusions = newOrgExclusions;
+
+        Configuration.ServiceHost = parts.ServiceHost;
+        Configuration.TenantAlias = parts.TenantAlias;
+        Configuration.WsdlVersion = parts.WsdlVersion;
+        Configuration.SoapEndpoint = parts.SoapEndpoint;
+
+        RaiseChangesSince(before, actor, timestamp);
+
+        return Result.Success();
     }
 
     /// <summary>

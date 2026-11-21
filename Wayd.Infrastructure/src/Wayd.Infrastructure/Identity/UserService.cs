@@ -292,7 +292,8 @@ internal partial class UserService(
                     continue;
                 }
 
-                if (user.PendingMigrationTenantId is not null)
+                // An expired migration is no longer in progress: staging the user again is how it is renewed.
+                if (user.PendingMigrationTenantId is not null && StagedLinks.IsOpen(user.PendingMigrationStagedAt, now))
                 {
                     skipped.Add(new SkippedUser(userId, "A migration is already in progress."));
                     continue;
@@ -351,16 +352,17 @@ internal partial class UserService(
             return Result.Failure<IReadOnlyList<TenantMigrationCandidateDto>>("Source tenant is not configured on this provider.");
 
         // Users with an active Entra identity on the source tenant and no pending
-        // migration. Joining through UserIdentities scopes to "currently on this
+        // migration that is still open: an expired one is staged again from here. Joining through UserIdentities scopes to "currently on this
         // tenant" — a pre-provisioned user with zero active identities correctly
         // drops out (nothing to migrate from).
+        var openSince = _dateTimeProvider.Now - StagedLinks.Lifetime;
         var candidates = await _db.UserIdentities
             .AsNoTracking()
             .Where(ui => ui.IsActive
                 && ui.Provider == LoginProviders.MicrosoftEntraId
                 && ui.ProviderTenantId == sourceTenantId)
             .Join(
-                _db.Users.Where(u => u.PendingMigrationTenantId == null),
+                _db.Users.Where(u => u.PendingMigrationTenantId == null || !(u.PendingMigrationStagedAt >= openSince)),
                 ui => ui.UserId,
                 u => u.Id,
                 (ui, u) => new TenantMigrationCandidateDto

@@ -51,6 +51,12 @@ public class ApplicationUser : IdentityUser, IEntity
     public string? PendingMigrationProviderId { get; set; }
 
     /// <summary>
+    /// When the pending provider migration was staged, from which its lifetime is measured. Set whenever
+    /// <see cref="PendingMigrationProviderId"/> is set and cleared whenever it is cleared.
+    /// </summary>
+    public Instant? PendingProviderMigrationStagedAt { get; set; }
+
+    /// <summary>
     /// Whether the user's password is a temporary one an administrator set, which they must replace before doing
     /// anything else. Their access token is restricted to changing it (<c>PasswordChangeRequirement</c>).
     /// </summary>
@@ -170,10 +176,10 @@ public class ApplicationUser : IdentityUser, IEntity
     public void StageProviderMigration(string targetProvider, EventActor actor, Instant timestamp)
     {
         var previous = PendingMigrationProviderId;
-        if (previous == targetProvider)
-            return;
 
+        // Staging the same provider again is how an administrator renews one that expired, so it restarts the clock.
         PendingMigrationProviderId = targetProvider;
+        PendingProviderMigrationStagedAt = timestamp;
 
         AddDomainEvent(new ApplicationUserProviderMigrationStagedEvent(Id, targetProvider, previous, actor, timestamp));
     }
@@ -184,6 +190,7 @@ public class ApplicationUser : IdentityUser, IEntity
             return;
 
         PendingMigrationProviderId = null;
+        PendingProviderMigrationStagedAt = null;
 
         AddDomainEvent(new ApplicationUserProviderMigrationCanceledEvent(Id, target, actor, timestamp));
     }
@@ -194,6 +201,7 @@ public class ApplicationUser : IdentityUser, IEntity
 
         LoginProvider = provider;
         PendingMigrationProviderId = null;
+        PendingProviderMigrationStagedAt = null;
 
         // A temporary password belongs to the local account the user is leaving; the identity provider owns sign-in now.
         MustChangePassword = false;

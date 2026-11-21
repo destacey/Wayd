@@ -1812,6 +1812,7 @@ public class UserServiceTests
         CallerIsAUserAdministrator();
         var target = TargetIn([ApplicationRoles.Admin], loginProvider: LoginProviders.MicrosoftEntraId);
         target.PendingMigrationTenantId = "staged-tenant";
+        target.PendingMigrationStagedAt = _dateTimeProvider.Now;
         var sut = CreateSut();
 
         // Act
@@ -1829,6 +1830,7 @@ public class UserServiceTests
         CallerIsAUserAdministrator();
         var target = TargetIn([ApplicationRoles.Admin], loginProvider: LoginProviders.MicrosoftEntraId);
         target.PendingMigrationProviderId = "Acme-Okta";
+        target.PendingProviderMigrationStagedAt = _dateTimeProvider.Now;
         var sut = CreateSut();
 
         // Act
@@ -2744,6 +2746,7 @@ public class UserServiceTests
         ArrangeEntraProvider(tenantA, tenantB);
         var user = ArrangeUserForSignInTenant();
         user.PendingMigrationTenantId = tenantA;
+        user.PendingMigrationStagedAt = _dateTimeProvider.Now;
         var sut = CreateSut();
 
         // Act
@@ -2986,6 +2989,7 @@ public class UserServiceTests
         user.NormalizedEmail = "ALICE@EXAMPLE.COM";
         // Staged for a different tenant than the token's tid.
         user.PendingMigrationTenantId = stagedTenant;
+        user.PendingMigrationStagedAt = _dateTimeProvider.Now;
 
         _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
 
@@ -3041,6 +3045,7 @@ public class UserServiceTests
 
         var user = CreateUser(id: "user-with-pending", loginProvider: LoginProviders.MicrosoftEntraId);
         user.PendingMigrationTenantId = newTenantId;
+        user.PendingMigrationStagedAt = _dateTimeProvider.Now;
 
         _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
 
@@ -3071,6 +3076,7 @@ public class UserServiceTests
         user.NormalizedUserName = upn.ToUpperInvariant();
         user.NormalizedEmail = "ALICE@NEWTENANT.COM";
         user.PendingMigrationTenantId = newTenantId;
+        user.PendingMigrationStagedAt = _dateTimeProvider.Now;
 
         _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
         _mockUserManager.Setup(x => x.UpdateAsync(user))
@@ -3367,7 +3373,151 @@ public class UserServiceTests
 
     #endregion
 
-    #region The roles a sign-in grants
+    #region Staged link lifetime and the roles a sign-in grants
+
+    [Fact]
+    public async Task TryApplyPendingTenantMigration_ShouldNotRebind_WhenTheStagedLinkHasExpired()
+    {
+        // Arrange
+        const string tenantId = "tenant-new";
+        const string upn = "alice@example.com";
+        var user = CreateUser(id: "user-expired");
+        user.NormalizedUserName = upn.ToUpperInvariant();
+        user.PendingMigrationTenantId = tenantId;
+        user.PendingMigrationStagedAt = _dateTimeProvider.Now - StagedLinks.Lifetime - NodaTime.Duration.FromMinutes(1);
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.TryApplyPendingTenantMigration(tenantId, "oid-1", upn);
+
+        // Assert
+        result.Should().BeNull();
+        user.PendingMigrationTenantId.Should().Be(tenantId);
+        _mockUserIdentityStore.Verify(s => s.Add(It.IsAny<UserIdentity>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task TryApplyPendingProviderMigration_ShouldNotRebind_WhenTheStagedLinkHasExpired()
+    {
+        // Arrange
+        const string email = "alice@example.com";
+        var user = CreateUser(id: "user-expired");
+        user.NormalizedEmail = email.ToUpperInvariant();
+        user.PendingMigrationProviderId = "Acme-Okta";
+        user.PendingProviderMigrationStagedAt = _dateTimeProvider.Now - StagedLinks.Lifetime - NodaTime.Duration.FromMinutes(1);
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.TryApplyPendingProviderMigration("Acme-Okta", null, "okta-sub", email);
+
+        // Assert
+        result.Should().BeNull();
+        _mockUserIdentityStore.Verify(s => s.Add(It.IsAny<UserIdentity>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task TryApplyPendingProviderMigration_ShouldNotRebind_WhenStagedBeforeItsTimeWasRecorded()
+    {
+        // Arrange
+        const string email = "alice@example.com";
+        var user = CreateUser(id: "user-legacy");
+        user.NormalizedEmail = email.ToUpperInvariant();
+        user.PendingMigrationProviderId = "Acme-Okta";
+        user.PendingProviderMigrationStagedAt = null;
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.TryApplyPendingProviderMigration("Acme-Okta", null, "okta-sub", email);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("false")]
+    public async Task ResolveFromGenericOidcPrincipalAsync_ShouldNotApplyAStagedMigration_UnlessTheEmailIsVerified(string? emailVerified)
+    {
+        // Arrange
+        const string email = "alice@example.com";
+        var user = CreateUser(id: "user-staged", loginProvider: LoginProviders.Wayd);
+        user.NormalizedEmail = email.ToUpperInvariant();
+        user.PendingMigrationProviderId = "Acme-Okta";
+        user.PendingProviderMigrationStagedAt = _dateTimeProvider.Now;
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+        _mockUserIdentityStore.Setup(s => s.FindActive("Acme-Okta", null, "okta-sub", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserIdentity?)null);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ResolveFromGenericOidcPrincipalAsync(
+            "Acme-Okta", CreateGenericPrincipal("okta-sub", email, emailVerified), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeNull();
+        user.PendingMigrationProviderId.Should().Be("Acme-Okta");
+    }
+
+    [Fact]
+    public async Task ResolveFromGenericOidcPrincipalAsync_ShouldApplyAStagedMigration_WhenTheEmailIsVerified()
+    {
+        // Arrange
+        const string email = "alice@example.com";
+        var user = CreateUser(id: "user-staged", loginProvider: LoginProviders.MicrosoftEntraId);
+        user.NormalizedEmail = email.ToUpperInvariant();
+        user.PendingMigrationProviderId = "Acme-Okta";
+        user.PendingProviderMigrationStagedAt = _dateTimeProvider.Now;
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+        _mockUserIdentityStore.Setup(s => s.FindActive("Acme-Okta", null, "okta-sub", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserIdentity?)null);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ResolveFromGenericOidcPrincipalAsync(
+            "Acme-Okta", CreateGenericPrincipal("okta-sub", email, "true"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.Value.Id.Should().Be(user.Id);
+        user.LoginProvider.Should().Be("Acme-Okta");
+    }
+
+    [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldNotMatchAStagedTenantLink_OnTheEmailClaimAlone()
+    {
+        // Arrange
+        const string tenantId = "tenant-new";
+        const string email = "alice@example.com";
+        var staged = CreateUser(id: "user-staged");
+        staged.NormalizedEmail = email.ToUpperInvariant();
+        staged.PendingMigrationTenantId = tenantId;
+        staged.PendingMigrationStagedAt = _dateTimeProvider.Now;
+        ArrangeNewUserCreatePath(CreateEntraProviderWithPolicy(requireEmployeeRecord: false, defaultRoleId: "role-guid-default"));
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { staged }.AsQueryable().BuildMockDbSet().Object);
+        _mockUserManager.Setup(x => x.FindByEmailAsync(email)).ReturnsAsync(staged);
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(new List<Claim>
+        {
+            new(Microsoft.Identity.Web.ClaimConstants.ObjectId, "oid-email-only"),
+            new(Microsoft.Identity.Web.ClaimConstants.TenantId, tenantId),
+            new("email", email),
+            new("name", "Alice"),
+            new(ClaimTypes.GivenName, "Alice"),
+            new(ClaimTypes.Surname, "Example"),
+        }, "test"));
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.GetOrCreateFromPrincipalAsync(principal);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>();
+        staged.PendingMigrationTenantId.Should().Be(tenantId);
+        _mockUserIdentityStore.Verify(s => s.Add(It.IsAny<UserIdentity>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 
     [Fact]
     public async Task GetOrCreateFromPrincipalAsync_ShouldGrantNoRole_WhenAnExistingUserWithNoRolesSignsIn()
@@ -3437,6 +3587,15 @@ public class UserServiceTests
         await act.Should().ThrowAsync<InternalServerException>();
         _mockUserManager.Verify(x => x.CreateAsync(It.IsAny<ApplicationUser>()), Times.Once);
         _mockUserIdentityStore.Verify(s => s.Add(It.IsAny<UserIdentity>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    private static ClaimsPrincipal CreateGenericPrincipal(string subject, string email, string? emailVerified)
+    {
+        var claims = new List<Claim> { new("sub", subject), new("email", email) };
+        if (emailVerified is not null)
+            claims.Add(new Claim("email_verified", emailVerified));
+
+        return new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
     }
 
     #endregion
@@ -3530,6 +3689,7 @@ public class UserServiceTests
         staged.NormalizedEmail = upn.ToUpperInvariant();
         staged.PasswordHash = "AQAAAAIAAYagAAAAEPLACEHOLDERHASHVALUE==";
         staged.PendingMigrationTenantId = stagedTenant;
+        staged.PendingMigrationStagedAt = _dateTimeProvider.Now;
         var originalHash = staged.PasswordHash;
 
         ArrangeUnstagedSignIn(staged);
@@ -3667,6 +3827,7 @@ public class UserServiceTests
         user.NormalizedUserName = upn.ToUpperInvariant();
         user.NormalizedEmail = upn.ToUpperInvariant();
         user.PendingMigrationProviderId = LoginProviders.MicrosoftEntraId;
+        user.PendingProviderMigrationStagedAt = _dateTimeProvider.Now;
         user.PasswordHash = "AQAAAAIAAYagAAAAEPLACEHOLDERHASHVALUE==";
 
         _mockOidcProviderRegistry
@@ -3719,6 +3880,7 @@ public class UserServiceTests
         user.NormalizedUserName = upn.ToUpperInvariant();
         user.NormalizedEmail = upn.ToUpperInvariant();
         user.PendingMigrationProviderId = LoginProviders.MicrosoftEntraId;
+        user.PendingProviderMigrationStagedAt = _dateTimeProvider.Now;
         user.PasswordHash = "AQAAAAIAAYagAAAAEPLACEHOLDERHASHVALUE==";
         var originalHash = user.PasswordHash;
 
@@ -3756,6 +3918,7 @@ public class UserServiceTests
         var user = CreateUser(id: "user-migrating", loginProvider: LoginProviders.MicrosoftEntraId);
         user.NormalizedEmail = email.ToUpperInvariant();
         user.PendingMigrationProviderId = targetProvider;
+        user.PendingProviderMigrationStagedAt = _dateTimeProvider.Now;
         user.PasswordHash = "AQAAAAIAAYagAAAAEPLACEHOLDERHASHVALUE==";
 
         _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
@@ -3787,6 +3950,7 @@ public class UserServiceTests
         var user = CreateUser(id: "user-local-staged", loginProvider: LoginProviders.Wayd);
         user.NormalizedEmail = email.ToUpperInvariant();
         user.PendingMigrationProviderId = targetProvider;
+        user.PendingProviderMigrationStagedAt = _dateTimeProvider.Now;
         user.PasswordHash = "AQAAAAIAAYagAAAAEPLACEHOLDERHASHVALUE==";
 
         _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
@@ -3819,6 +3983,7 @@ public class UserServiceTests
         var user = CreateUser(id: "user-hash-stuck", loginProvider: LoginProviders.MicrosoftEntraId);
         user.NormalizedEmail = email.ToUpperInvariant();
         user.PendingMigrationProviderId = targetProvider;
+        user.PendingProviderMigrationStagedAt = _dateTimeProvider.Now;
         user.PasswordHash = "AQAAAAIAAYagAAAAEPLACEHOLDERHASHVALUE==";
 
         _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
@@ -3978,6 +4143,7 @@ public class UserServiceTests
         const string secondProvider = "Acme-Google";
         var user = CreateUser(loginProvider: LoginProviders.MicrosoftEntraId);
         user.PendingMigrationProviderId = firstProvider;
+        user.PendingProviderMigrationStagedAt = _dateTimeProvider.Now;
 
         _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
         _mockUserIdentityStore.Setup(s => s.ExistsActive(user.Id, LoginProviders.MicrosoftEntraId, It.IsAny<CancellationToken>()))
@@ -4077,6 +4243,7 @@ public class UserServiceTests
     {
         var user = CreateUser();
         user.PendingMigrationProviderId = "Acme-Okta";
+        user.PendingProviderMigrationStagedAt = _dateTimeProvider.Now;
 
         _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
         _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
@@ -4135,6 +4302,7 @@ public class UserServiceTests
         var user = CreateUser(id: "user-rebind", loginProvider: LoginProviders.MicrosoftEntraId);
         user.NormalizedEmail = email.ToUpperInvariant();
         user.PendingMigrationProviderId = targetProvider;
+        user.PendingProviderMigrationStagedAt = _dateTimeProvider.Now;
 
         _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
         _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
@@ -4209,6 +4377,7 @@ public class UserServiceTests
         var user = CreateUser(id: "user-rebind-fail", loginProvider: LoginProviders.MicrosoftEntraId);
         user.NormalizedEmail = email.ToUpperInvariant();
         user.PendingMigrationProviderId = targetProvider;
+        user.PendingProviderMigrationStagedAt = _dateTimeProvider.Now;
 
         _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
         _mockUserManager.Setup(x => x.UpdateAsync(user))
@@ -4287,6 +4456,7 @@ public class UserServiceTests
     {
         var user = CreateUser(loginProvider: LoginProviders.MicrosoftEntraId);
         user.PendingMigrationProviderId = "Acme-Okta";
+        user.PendingProviderMigrationStagedAt = _dateTimeProvider.Now;
 
         _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
         _mockUserManager.Setup(x => x.GeneratePasswordResetTokenAsync(user)).ReturnsAsync("reset-token");

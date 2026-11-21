@@ -51,16 +51,15 @@ internal partial class UserService
         }
 
         // The signed-in-token identifier we trust for matching a staged migration.
-        // Null means no migration rebind will be attempted. See ResolveEntraUpn for
-        // why this isn't a single claim lookup.
+        // Null means no migration rebind will be attempted. See ResolveEntraMigrationIdentifier
+        // for why this isn't a single claim lookup.
         //
         // An explicitly unverified address is suppressed here rather than at the point
         // of use: both staged-migration rebinds match on this value, and both run
         // *before* the email_verified deny in CreateOrUpdateFromPrincipalAsync, so
         // leaving it set would let an unverified token adopt a staged migration without
-        // ever reaching that deny. Absent email_verified is accepted, mirroring
-        // ResolveFromGenericOidcPrincipalAsync.
-        string? upn = IsEmailExplicitlyUnverified(principal) ? null : ResolveEntraUpn(principal);
+        // ever reaching that deny.
+        string? upn = IsEmailExplicitlyUnverified(principal) ? null : ResolveEntraMigrationIdentifier(principal);
 
         // Diagnostic for the tenant-migration failure: trace the resolved key inputs
         // and which identifier claims are present before identity resolution runs.
@@ -112,11 +111,27 @@ internal partial class UserService
     /// path throws "Username or Email not valid".
     /// </summary>
     private static string? ResolveEntraUpn(ClaimsPrincipal principal) =>
-        principal.FindFirstValue("upn")
-        ?? principal.FindFirstValue(ClaimTypes.Upn)
-        ?? principal.FindFirstValue("preferred_username")
+        ResolveEntraMigrationIdentifier(principal)
         ?? principal.FindFirstValue("email")
         ?? principal.FindFirstValue(ClaimTypes.Email);
+
+    /// <summary>
+    /// The identifier a staged Entra link is matched on: <c>upn</c>, then <c>preferred_username</c>, never
+    /// <c>email</c>. The tenant vouches for the sign-in names; <c>email</c> is a directory attribute a user or guest
+    /// inviter can often set to anything, so matching on it would let one account adopt another's staged link.
+    /// </summary>
+    private static string? ResolveEntraMigrationIdentifier(ClaimsPrincipal principal) =>
+        principal.FindFirstValue("upn")
+        ?? principal.FindFirstValue(ClaimTypes.Upn)
+        ?? principal.FindFirstValue("preferred_username");
+
+    /// <summary>
+    /// True only when the token carries <c>email_verified=true</c>: what a generic OIDC provider must say before its
+    /// address may match a staged link. A provider that omits the claim makes no promise about the address.
+    /// </summary>
+    private static bool IsEmailVerified(ClaimsPrincipal principal) =>
+        principal.FindFirstValue("email_verified") is { } claim
+        && claim.Equals("true", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// True only when the token carries <c>email_verified=false</c>. Some providers issue
@@ -275,9 +290,11 @@ internal partial class UserService
         // email — match by both UserName (UPN-shaped) and NormalizedEmail to cover
         // tokens whose UPN is the email and accounts whose Email isn't UPN-shaped.
         var normalized = upn.ToUpperInvariant();
+        var openSince = _dateTimeProvider.Now - StagedLinks.Lifetime;
         var candidate = await _userManager.Users
             .FirstOrDefaultAsync(u =>
                 u.PendingMigrationTenantId == tenantId &&
+                u.PendingMigrationStagedAt >= openSince &&
                 u.LoginProvider == LoginProviders.MicrosoftEntraId &&
                 (u.NormalizedUserName == normalized || u.NormalizedEmail == normalized));
 
@@ -371,11 +388,11 @@ internal partial class UserService
         var email = principal.FindFirstValue(ClaimTypes.Email)
             ?? principal.FindFirstValue("email");
 
-        // Reject an explicitly unverified email before it can match a staged migration.
-        if (IsEmailExplicitlyUnverified(principal))
+        // Only an address the provider says it verified may match a staged migration.
+        if (email is not null && !IsEmailVerified(principal))
         {
             _logger.LogWarning(
-                "Provider migration skipped for provider {Provider}: email_verified=false on token.",
+                "Provider migration skipped for provider {Provider}: the token does not carry email_verified=true.",
                 providerName);
             email = null; // treat as no email — rebind won't fire
         }
@@ -437,9 +454,11 @@ internal partial class UserService
         // stuck (see EnsureEntraIdentityRowAsync, which — deliberately — refuses to
         // link a local account, so this rebind is the only path that can do it).
         var normalized = email.ToUpperInvariant();
+        var openSince = _dateTimeProvider.Now - StagedLinks.Lifetime;
         var candidate = await _userManager.Users
             .FirstOrDefaultAsync(u =>
                 u.PendingMigrationProviderId == providerName &&
+                u.PendingProviderMigrationStagedAt >= openSince &&
                 (u.NormalizedUserName == normalized || u.NormalizedEmail == normalized));
 
         if (candidate is null)

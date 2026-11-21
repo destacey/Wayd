@@ -179,7 +179,7 @@ export const getStrategicInitiativesImportUrl = (params?: StrategicInitiativesIm
 }
 
 /**
- * An initiative's KPIs are not part of this file: import them through the KPI import, naming the initiative by the id this run returns for it.
+ * An initiative's KPIs are not part of this file: import them through the KPI import, naming the initiative by the id this run returns for it. That import needs `Permissions.Kpis.Administer` as well.
  * @summary Submit a csv file of strategic initiatives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
  */
 export const strategicInitiativesImport = async (strategicInitiativesImportBody: StrategicInitiativesImportBody,

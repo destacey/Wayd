@@ -6,10 +6,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Kpis;
 using Wayd.Common.Domain.Kpis;
 using Wayd.Common.Domain.Settings;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
+using Wayd.Infrastructure.Migrators.MSSQL.Migrations;
 using Wayd.Infrastructure.Persistence.Activities;
 using Wayd.Infrastructure.Persistence.Context;
 using Wayd.ProjectPortfolioManagement.Domain;
@@ -34,6 +36,9 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
     private const string Drop = "20261121144716_Drop-Strategic-Initiative-Kpi-Tables";
 
     private const string Chicago = "America/Chicago";
+    private const string Tokyo = "Asia/Tokyo";
+
+    private static readonly Instant Now = Instant.FromUtc(2026, 11, 20, 12, 0);
 
     private readonly SqlServerDbContextFixture _fixture = fixture;
 
@@ -53,6 +58,8 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
             var seed = await SeedInitiative(context, ct);
             var revenue = await AddOldKpi(context, seed.InitiativeId, "Revenue", "Annual \"run\" rate", 100, 250, "$", "M", "Increase", 1, ct);
             var churn = await AddOldKpi(context, seed.InitiativeId, "Churn", null, null, 2.5, null, "%", "Decrease", 2, ct);
+            // Escapes and the numbers SQL Server and .NET could spell differently.
+            var tricky = await AddOldKpi(context, seed.InitiativeId, "Net \\ promoter / é ✓", "Tab\there", 1E-05, 0.30000000000000004, "€", null, "Increase", 3, ct);
             await AddKpiAddedEntry(context, seed.InitiativeId, revenue, seed.EmployeeId, ct);
             // 03:30 UTC on 15 March is still 14 March in Chicago.
             await AddOldMeasurement(context, revenue, 120, "2026-03-15T03:30:00", seed.EmployeeId, "Q1 close", ct);
@@ -72,9 +79,9 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
                 .OrderBy(k => k.Order)
                 .ToListAsync(ct);
 
-            moved.Select(k => k.Id).Should().Equal(revenue, churn);
-            moved.Select(k => k.Order).Should().Equal(0, 1);
-            moved[0].Key.Should().BeLessThan(moved[1].Key, "new keys keep the order the KPIs were created in");
+            moved.Select(k => k.Id).Should().Equal(revenue, churn, tricky);
+            moved.Select(k => k.Order).Should().Equal(0, 1, 2);
+            moved.Select(k => k.Key).Should().BeInAscendingOrder("new keys keep the order the KPIs were created in");
 
             var first = moved[0];
             first.SubjectType.Should().Be(PpmKpiSubjects.StrategicInitiative.Key);
@@ -97,56 +104,84 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
 
             moved[1].Details.ExpressedAs.Should().Be(KpiExpressedAs.Value, "a KPI with no starting value has no progress to read");
             moved[1].Goal.Should().Be(new KpiGoal(KpiTargetDirection.Decrease, KpiBaseline.None, KpiTarget.Absolute(2.5), null));
+            moved[2].Details.Name.Should().Be("Net \\ promoter / é ✓");
+            moved[2].Goal.Baseline.Value.Should().Be(1E-05);
+            moved[2].Goal.Target.Value.Should().Be(0.30000000000000004);
 
-            var entry = await verify.ActivityLogs.AsNoTracking()
-                .Include(a => a.RelatedAggregates)
-                .SingleAsync(a => a.AggregateType == "Kpi" && a.AggregateId == revenue, ct);
-            var createdOn = Instant.FromDateTimeUtc(DateTime.SpecifyKind(await Scalar<DateTime>(context,
-                $"SELECT [SystemCreated] FROM [Ppm].[StrategicInitiativeKpis] WHERE [Id] = '{revenue}';", ct), DateTimeKind.Utc));
-            var expectedEvent = new KpiBaselinedEvent(first.Id, first.Key, first.SubjectType, first.SubjectId, first.Details, first.Goal,
-                first.Source, first.Order, createdOn, seed.EmployeeId, entry.Timestamp, first.Window);
-            var expected = ActivityLogEntryFactory.CreateActivityLogEntry(expectedEvent, first, 0, null);
-
-            entry.EventId.Should().Be(expectedEvent.EventId);
-            entry.Should().BeEquivalentTo(expected, options => options
-                .Including(e => e.EventType)
-                .Including(e => e.Category)
-                .Including(e => e.EventVersion)
-                .Including(e => e.DomainArea)
-                .Including(e => e.AggregateType)
-                .Including(e => e.AggregateId)
-                .Including(e => e.ActorKind)
-                .Including(e => e.UserId)
-                .Including(e => e.EmployeeId)
-                .Including(e => e.Ordinal)
-                .Including(e => e.CorrelationId)
-                .Including(e => e.Summary));
-            JsonNode.DeepEquals(JsonNode.Parse(entry.Payload), JsonNode.Parse(expected.Payload))
-                .Should().BeTrue($"the moved payload {entry.Payload} should match the serialized event {expected.Payload}");
-            entry.RelatedAggregates.Select(r => (r.AggregateType, r.AggregateId))
-                .Should().ContainSingle().Which.Should().Be(("StrategicInitiative", seed.InitiativeId));
+            await AssertBaseline(verify, context, first, seed.InitiativeId, seed.EmployeeId, ct);
+            await AssertBaseline(verify, context, moved[1], seed.InitiativeId, null, ct);
+            await AssertBaseline(verify, context, moved[2], seed.InitiativeId, null, ct);
         });
     }
 
-    [Fact]
-    public async Task Move_KpiTheSharedModelWouldRefuse_StopsAndMovesNothing()
+    public static TheoryData<string, string> Refusals => new()
+    {
+        { "at-risk", "not short of its planned value" },
+        { "same-day", "two of its checkpoints fall on one day" },
+        { "blank-label", "a checkpoint has a blank label" },
+        { "direction", "neither Increase nor Decrease" },
+    };
+
+    [Theory]
+    [MemberData(nameof(Refusals))]
+    public async Task Move_KpiTheSharedModelWouldRefuse_StopsAndMovesNothing(string problem, string message)
     {
         await InDatabase(async (context, migrator, connectionString, ct) =>
         {
             // Arrange
             await migrator.MigrateAsync(Previous, ct);
             var seed = await SeedInitiative(context, ct);
-            var kpi = await AddOldKpi(context, seed.InitiativeId, "NPS", null, 20, 40, null, null, "Increase", 1, ct);
-            // The old plan accepted an at-risk value above the planned value of a KPI that should increase.
-            await AddOldCheckpoint(context, kpi, 30, "2026-06-01T12:00:00", "Jun", 35, ct);
+            var kpi = await AddOldKpi(context, seed.InitiativeId, "NPS", null, 20, 40, null, null, problem == "direction" ? "Sideways" : "Increase", 1, ct);
+            switch (problem)
+            {
+                case "at-risk":
+                    // The old plan accepted an at-risk value above the planned value of a KPI that should increase.
+                    await AddOldCheckpoint(context, kpi, 30, "2026-06-01T12:00:00", "Jun", 35, ct);
+                    break;
+                case "same-day":
+                    await AddOldCheckpoint(context, kpi, 30, "2026-06-01T01:00:00", "Early", null, ct);
+                    await AddOldCheckpoint(context, kpi, 32, "2026-06-01T20:00:00", "Late", null, ct);
+                    break;
+                case "blank-label":
+                    await AddOldCheckpoint(context, kpi, 30, "2026-06-01T12:00:00", "   ", null, ct);
+                    break;
+            }
 
             // Act
             var act = () => migrator.MigrateAsync(Move, ct);
 
             // Assert
-            (await act.Should().ThrowAsync<SqlException>())
-                .Which.Message.Should().Contain("not short of its planned value");
+            (await act.Should().ThrowAsync<SqlException>()).Which.Message.Should().Contain(message);
             (await Scalar<int>(context, "SELECT COUNT(*) FROM [Kpis].[Kpis];", ct)).Should().Be(0);
+        });
+    }
+
+    [Fact]
+    public async Task Move_RunAgain_ChangesNothing_ReadingDaysEastOfUtc()
+    {
+        await InDatabase(async (context, migrator, connectionString, ct) =>
+        {
+            // Arrange
+            await migrator.MigrateAsync(Previous, ct);
+            await SetZone(context, Tokyo, ct);
+            var seed = await SeedInitiative(context, ct);
+            var kpi = await AddOldKpi(context, seed.InitiativeId, "Adoption", null, 10, 60, null, "%", "Increase", 1, ct);
+            // 20:00 UTC on 14 March is already 15 March in Tokyo.
+            await AddOldMeasurement(context, kpi, 12, "2026-03-14T20:00:00", seed.EmployeeId, null, ct);
+            await AddOldCheckpoint(context, kpi, 30, "2026-06-29T16:00:00", "Q2", null, ct);
+            await migrator.MigrateAsync(Move, ct);
+
+            // Act
+            await Execute(context, MoveStrategicInitiativeKpisToSharedModel.UpSql, ct);
+
+            // Assert
+            (await Rows(context, $"SELECT [MeasuredOn] FROM [Kpis].[Measurements] WHERE [KpiId] = '{kpi}';", ct))
+                .Select(r => (DateTime)r[0]).Should().Equal(new DateTime(2026, 3, 15));
+            (await Rows(context, $"SELECT [Date] FROM [Kpis].[Checkpoints] WHERE [KpiId] = '{kpi}';", ct))
+                .Select(r => (DateTime)r[0]).Should().Equal(new DateTime(2026, 6, 30));
+            (await Scalar<int>(context, "SELECT COUNT(*) FROM [Kpis].[Kpis];", ct)).Should().Be(1);
+            (await Scalar<int>(context, $"SELECT COUNT(*) FROM [App].[ActivityLogs] WHERE [EventType] = 'KpiBaselinedEvent' AND [AggregateId] = '{kpi}';", ct))
+                .Should().Be(1);
         });
     }
 
@@ -160,8 +195,17 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
             var seed = await SeedInitiative(context, ct);
             var removed = await AddOldKpi(context, seed.InitiativeId, "Uptime", null, null, 99.9, null, "%", "Increase", 1, ct);
             await migrator.MigrateAsync(Move, ct);
-            await Execute(context, $"DELETE FROM [Kpis].[Kpis] WHERE [Id] = '{removed}';", ct);
+            await using (var remove = _fixture.CreateContext(connectionString))
+            {
+                var kpi = await remove.Kpis.SingleAsync(k => k.Id == removed, ct);
+                kpi.Remove(EventActor.System, Now);
+                remove.Kpis.Remove(kpi);
+                await remove.SaveChangesAsync(ct);
+            }
             var late = await AddOldKpi(context, seed.InitiativeId, "Adoption", null, 10, 60, null, "%", "Increase", 2, ct);
+            // No zone was saved, so the day is read in UTC.
+            await AddOldMeasurement(context, late, 12, "2026-03-15T03:30:00", seed.EmployeeId, "First read", ct);
+            await AddOldCheckpoint(context, late, 30, "2026-06-30T04:00:00", "Q2", null, ct);
 
             // Act
             await migrator.MigrateAsync(Drop, ct);
@@ -169,6 +213,10 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
             // Assert
             (await Rows(context, $"SELECT [Id] FROM [Kpis].[Kpis] WHERE [SubjectId] = '{seed.InitiativeId}';", ct))
                 .Select(r => (Guid)r[0]).Should().Equal(late);
+            (await Rows(context, $"SELECT [Value], [MeasuredOn], [Note] FROM [Kpis].[Measurements] WHERE [KpiId] = '{late}';", ct))
+                .Select(r => ((double)r[0], (DateTime)r[1], (string)r[2])).Should().Equal((12d, new DateTime(2026, 3, 15), "First read"));
+            (await Rows(context, $"SELECT [Date], [Label] FROM [Kpis].[Checkpoints] WHERE [KpiId] = '{late}';", ct))
+                .Select(r => ((DateTime)r[0], (string)r[1])).Should().Equal((new DateTime(2026, 6, 30), "Q2"));
             (await Scalar<int>(context, $"SELECT COUNT(*) FROM [App].[ActivityLogs] WHERE [EventType] = 'KpiBaselinedEvent' AND [AggregateId] = '{late}';", ct))
                 .Should().Be(1);
             (await Scalar<int>(context, "SELECT COUNT(*) FROM sys.tables WHERE [name] LIKE 'StrategicInitiativeKpi%';", ct)).Should().Be(0);
@@ -176,7 +224,7 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
     }
 
     [Fact]
-    public async Task Down_PutsEveryInitiativeKpiBackInTheOldTables_AndAMoveReadsTheSameDaysAgain()
+    public async Task Down_PutsEveryInitiativeKpiBack_AndUpMovesThemAgain_KeepingOneCreationEntryEach()
     {
         await InDatabase(async (context, migrator, connectionString, ct) =>
         {
@@ -190,6 +238,7 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
             await AddOldMeasurement(context, revenue, 130, "2026-04-10T15:00:00", seed.EmployeeId, null, ct);
             await AddOldCheckpoint(context, revenue, 150, "2026-06-30T04:00:00", "Q2", 140, ct);
             await migrator.MigrateAsync(cancellationToken: ct);
+            var tickets = await AddSharedKpi(connectionString, seed, ct);
 
             // Act
             await migrator.MigrateAsync(Previous, ct);
@@ -204,6 +253,7 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
                 {
                     new object?[] { revenue, "Revenue", "Run rate", 100d, 250d, 130d, "$", "M", "Increase", 1 },
                     new object?[] { churn, "Churn", null, null, 2.5d, null, null, "%", "Decrease", 2 },
+                    new object?[] { tickets, "Open tickets", null, 1200d, 400d, 800d, null, null, "Decrease", 3 },
                 }, options => options.WithStrictOrdering());
 
             (await Rows(context, $"SELECT [ActualValue], [MeasurementDate], [MeasuredById], [Note] FROM [Ppm].[StrategicInitiativeKpiMeasurements] WHERE [KpiId] = '{revenue}' ORDER BY [MeasurementDate];", ct))
@@ -220,14 +270,29 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
             (await Scalar<int>(context, "SELECT COUNT(*) FROM [Kpis].[Kpis];", ct)).Should().Be(0);
             (await Scalar<int>(context, "SELECT COUNT(*) FROM [App].[ActivityLogs] WHERE [EventType] = 'KpiBaselinedEvent';", ct)).Should().Be(0);
 
-            await migrator.MigrateAsync(Move, ct);
+            await migrator.MigrateAsync(cancellationToken: ct);
+            (await Rows(context, $"SELECT [Id] FROM [Kpis].[Kpis] WHERE [SubjectId] = '{seed.InitiativeId}' ORDER BY [Order];", ct))
+                .Select(r => (Guid)r[0]).Should().Equal(revenue, churn, tickets);
             (await Scalar<DateTime>(context, $"SELECT [Date] FROM [Kpis].[Checkpoints] WHERE [KpiId] = '{revenue}';", ct))
                 .Should().Be(new DateTime(2026, 6, 29));
+            (await Rows(context, $"SELECT [EventType] FROM [App].[ActivityLogs] WHERE [AggregateType] = 'Kpi' AND [AggregateId] = '{tickets}' AND [Category] IN ('Created', 'Baseline');", ct))
+                .Select(r => (string)r[0]).Should().Equal(nameof(KpiAddedEvent));
+            (await Scalar<int>(context, $"SELECT COUNT(*) FROM [App].[ActivityLogs] WHERE [EventType] = 'KpiBaselinedEvent' AND [AggregateId] = '{revenue}';", ct))
+                .Should().Be(1);
         });
     }
 
-    [Fact]
-    public async Task Down_KpiTheOldModelCannotHold_StopsTheRollbackAndKeepsTheSharedKpis()
+    public static TheoryData<string, string> RollbackRefusals => new()
+    {
+        { "relative", "change from the baseline" },
+        { "no-recorder", "records no one who took it" },
+        { "long-name", "longer than the old model holds" },
+        { "same-moment", "fall at one moment" },
+    };
+
+    [Theory]
+    [MemberData(nameof(RollbackRefusals))]
+    public async Task Down_KpiTheOldModelCannotHold_StopsTheRollbackAndKeepsTheSharedKpis(string problem, string message)
     {
         await InDatabase(async (context, migrator, connectionString, ct) =>
         {
@@ -235,16 +300,27 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
             await migrator.MigrateAsync(Previous, ct);
             var seed = await SeedInitiative(context, ct);
             var kpi = await AddOldKpi(context, seed.InitiativeId, "Cost", null, 500, 300, "$", "k", "Decrease", 1, ct);
+            await AddOldMeasurement(context, kpi, 450, "2026-02-01T12:00:00", seed.EmployeeId, null, ct);
             await migrator.MigrateAsync(cancellationToken: ct);
-            // A relative target, which only the shared model can hold.
-            await Execute(context, $"UPDATE [Kpis].[Kpis] SET [TargetKind] = 'RelativeChange', [TargetValue] = 20 WHERE [Id] = '{kpi}';", ct);
+            // What only the shared model can hold, written as a change through it could leave it.
+            await Execute(context, problem switch
+            {
+                "relative" => $"UPDATE [Kpis].[Kpis] SET [TargetKind] = 'RelativeChange', [TargetValue] = 20 WHERE [Id] = '{kpi}';",
+                "no-recorder" => $"UPDATE [Kpis].[Measurements] SET [MeasuredById] = NULL WHERE [KpiId] = '{kpi}';",
+                "long-name" => $"UPDATE [Kpis].[Kpis] SET [Name] = N'{new string('x', 70)}' WHERE [Id] = '{kpi}';",
+                _ => $"""
+                    INSERT INTO [Kpis].[Measurements] ([Id], [KpiId], [Value], [PeriodStart], [PeriodEnd], [MeasuredAt], [MeasuredOn], [MeasuredById], [Source], [SystemCreated], [SystemLastModified])
+                    VALUES (NEWID(), '{kpi}', 440, '2026-01-01', '2026-01-31', NULL, '2026-03-01', '{seed.EmployeeId}', 'Manual', SYSUTCDATETIME(), SYSUTCDATETIME()),
+                           (NEWID(), '{kpi}', 430, '2026-02-01', '2026-02-28', NULL, '2026-03-01', '{seed.EmployeeId}', 'Manual', SYSUTCDATETIME(), SYSUTCDATETIME());
+                    """,
+            }, ct);
 
             // Act
             var act = () => migrator.MigrateAsync(Previous, ct);
 
             // Assert
             (await act.Should().ThrowAsync<SqlException>())
-                .Which.Message.Should().Contain("cannot be rolled back").And.Contain("change from the baseline");
+                .Which.Message.Should().Contain("cannot be rolled back").And.Contain(message);
             (await Scalar<int>(context, $"SELECT COUNT(*) FROM [Kpis].[Kpis] WHERE [Id] = '{kpi}';", ct)).Should().Be(1);
         });
     }
@@ -269,6 +345,55 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
         {
             await context.Database.EnsureDeletedAsync(ct);
         }
+    }
+
+    /// <summary>Asserts the KPI's baseline entry is the one the factory builds for the same event, filed under the initiative too.</summary>
+    private static async Task AssertBaseline(WaydDbContext verify, WaydDbContext context, Kpi kpi, Guid initiativeId, Guid? createdById, CancellationToken ct)
+    {
+        var entry = await verify.ActivityLogs.AsNoTracking()
+            .Include(a => a.RelatedAggregates)
+            .SingleAsync(a => a.AggregateType == "Kpi" && a.AggregateId == kpi.Id, ct);
+        var createdOn = Instant.FromDateTimeUtc(DateTime.SpecifyKind(await Scalar<DateTime>(context,
+            $"SELECT [SystemCreated] FROM [Ppm].[StrategicInitiativeKpis] WHERE [Id] = '{kpi.Id}';", ct), DateTimeKind.Utc));
+        var expectedEvent = new KpiBaselinedEvent(kpi.Id, kpi.Key, kpi.SubjectType, kpi.SubjectId, kpi.Details, kpi.Goal,
+            kpi.Source, kpi.Order, createdOn, createdById, entry.Timestamp, kpi.Window);
+        var expected = ActivityLogEntryFactory.CreateActivityLogEntry(expectedEvent, kpi, 0, null);
+
+        entry.EventId.Should().Be(expectedEvent.EventId);
+        entry.Should().BeEquivalentTo(expected, options => options
+            .Including(e => e.EventType)
+            .Including(e => e.Category)
+            .Including(e => e.EventVersion)
+            .Including(e => e.DomainArea)
+            .Including(e => e.AggregateType)
+            .Including(e => e.AggregateId)
+            .Including(e => e.ActorKind)
+            .Including(e => e.UserId)
+            .Including(e => e.EmployeeId)
+            .Including(e => e.Ordinal)
+            .Including(e => e.CorrelationId)
+            .Including(e => e.Summary));
+        JsonNode.DeepEquals(JsonNode.Parse(entry.Payload), JsonNode.Parse(expected.Payload))
+            .Should().BeTrue($"the moved payload {entry.Payload} should match the serialized event {expected.Payload}");
+        entry.RelatedAggregates.Select(r => (r.AggregateType, r.AggregateId))
+            .Should().ContainSingle().Which.Should().Be(("StrategicInitiative", initiativeId));
+    }
+
+    /// <summary>A KPI added through the shared model after the move, with one point-in-time measurement.</summary>
+    private async Task<Guid> AddSharedKpi(string connectionString, Seeded seed, CancellationToken ct)
+    {
+        var goal = new KpiGoal(KpiTargetDirection.Decrease, new KpiBaseline(1200, null), KpiTarget.Absolute(400), null);
+        var definition = new KpiDefinition("Open tickets", null, null, null, null, KpiExpressedAs.Value, goal, KpiMeasurementWindow.PointInTime);
+        var kpi = Kpi.Create(PpmKpiSubjects.StrategicInitiative.Key, seed.InitiativeId, definition, 2, EventActor.System, Now).Value;
+        var at = Instant.FromUtc(2026, 5, 1, 12, 0);
+        kpi.AddMeasurement(
+            new KpiMeasurementInput(800, KpiMeasurementTime.AtMoment(at), null, null, new LocalDate(2026, 5, 1), seed.EmployeeId, KpiMeasurementSource.Manual, null, null),
+            DateTimeZoneProviders.Tzdb[Chicago], EventActor.System, Now).IsSuccess.Should().BeTrue();
+
+        await using var add = _fixture.CreateContext(connectionString);
+        add.Kpis.Add(kpi);
+        await add.SaveChangesAsync(ct);
+        return kpi.Id;
     }
 
     private static Task SetZone(WaydDbContext context, string zone, CancellationToken ct) =>

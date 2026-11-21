@@ -16,8 +16,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
         //
         // Down recreates the tables and copies every strategic initiative KPI back into them, so the older code finds
         // them again and the move's own Down then removes the shared copies. The old model holds less: a KPI's
-        // category, window, at-risk threshold, reading, rolling average and closed status, and a measurement's period
-        // and sample size, are not kept. A checkpoint's day becomes midnight of that day in the system time zone, which
+        // category, window, at-risk threshold, reading and rolling average, and a measurement's period and sample size,
+        // are not kept, and a closed KPI comes back open, since the old model cannot close one. A checkpoint's day becomes midnight of that day in the system time zone, which
         // the move reads back as the same day. What the old model cannot hold at all — a relative target, a value too
         // long for its columns, a measurement nobody is recorded as taking, two measurements at one moment — stops the
         // rollback with the KPIs named, rather than dropping them.

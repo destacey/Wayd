@@ -22,8 +22,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
         // screens stored a picked date as midnight in the browser's zone, so a checkpoint entered from a browser east or
         // west of the system zone can land on the neighbouring day.
         //
-        // A KPI is copied once: one already in the shared table, or with a baseline entry, is skipped. The baseline
-        // outlives a moved KPI someone has since removed, so a second run never brings that KPI back.
+        // A KPI already in the shared table is skipped, and so is one removed from it since: its removal entry outlives
+        // it, so a second run never brings it back. A rollback deletes the shared copies without that entry, so a later
+        // run copies them again. A KPI that already has a creation entry in the shared model, one created there and then
+        // copied back by a rollback, is not given a baseline beside it.
         //
         // The old KPI checked less than the shared one. A KPI the shared model would refuse — a starting value already
         // at its target, a checkpoint at-risk value on the wrong side of its planned value, two checkpoints on one
@@ -104,7 +106,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             WHERE NOT EXISTS (SELECT 1 FROM [Kpis].[Kpis] x WHERE x.[Id] = k.[Id])
               AND NOT EXISTS (SELECT 1 FROM [App].[ActivityLogs] a
                               WHERE a.[AggregateType] = 'Kpi' AND a.[AggregateId] = k.[Id]
-                                AND a.[EventType] = 'KpiBaselinedEvent');
+                                AND a.[EventType] = 'KpiRemovedEvent');
 
             IF NOT EXISTS (SELECT 1 FROM #Source)
             BEGIN
@@ -137,6 +139,12 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             INNER JOIN [Ppm].[StrategicInitiativeKpiCheckpoints] c ON c.[KpiId] = k.[Id]
             WHERE (k.[TargetDirection] = 'Increase' AND c.[AtRiskValue] >= c.[TargetValue])
                OR (k.[TargetDirection] = 'Decrease' AND c.[AtRiskValue] <= c.[TargetValue]);
+
+            INSERT INTO #Problem
+            SELECT DISTINCT c.[KpiId], N'a checkpoint has a blank label'
+            FROM [Ppm].[StrategicInitiativeKpiCheckpoints] c
+            INNER JOIN #Source s ON s.[Id] = c.[KpiId]
+            WHERE LTRIM(RTRIM(c.[DateLabel])) = '';
 
             INSERT INTO #Problem
             SELECT DISTINCT c.[KpiId], N'two of its checkpoints fall on one day'
@@ -314,7 +322,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     + N',"eventVersion":"1.1"}',
                 N'Kpi Baselined'
             FROM #Baseline b
-            WHERE NOT EXISTS (SELECT 1 FROM [App].[ActivityLogs] a WHERE a.[EventId] = b.[EventId]);
+            WHERE NOT EXISTS (SELECT 1 FROM [App].[ActivityLogs] a WHERE a.[EventId] = b.[EventId])
+              AND NOT EXISTS (SELECT 1 FROM [App].[ActivityLogs] a
+                              WHERE a.[AggregateType] = 'Kpi' AND a.[AggregateId] = b.[Id]
+                                AND a.[EventType] = 'KpiAddedEvent');
 
             INSERT INTO [App].[ActivityLogRelatedAggregates] ([ActivityLogId], [AggregateType], [AggregateId])
             SELECT a.[Id], '{{SubjectActivityType}}', b.[InitiativeId]

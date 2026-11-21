@@ -44,6 +44,45 @@ An AAD group that will be set as the Azure AD administrator on the SQL Server. M
 
 The Terraform Cloud workspace needs Azure credentials to provision resources. Create a service principal with `Contributor` role on the subscription (or tighter — scope it to the resource group after first apply). Collect: client ID, client secret, subscription ID, tenant ID.
 
+### Azure credential for the deploy job
+
+The workflow's **Deploy** job runs EF Core migrations from a GitHub-hosted runner. Those runners can run on AWS as well as Azure, so the `Allow Azure Services` firewall rule does not let them in. The job signs in to Azure and adds a firewall rule for its own public IP (`gh-run-<run id>-<attempt>`). It removes the rule when the job ends, whether the job passed, failed or was cancelled.
+
+The sign-in uses OIDC (workload identity federation), so GitHub stores no client secret. Set it up once per environment, after the first `terraform apply` has created the SQL server:
+
+```bash
+# App registration + service principal for the deploy job
+APP_ID=$(az ad app create --display-name "wayd-dev-github-deploy" --query appId -o tsv)
+az ad sp create --id "$APP_ID"
+
+# Trust the workflow's tokens for pushes to main
+az ad app federated-credential create --id "$APP_ID" --parameters '{
+  "name": "github-main",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:<owner>/<repo>:ref:refs/heads/main",
+  "audiences": ["api://AzureADTokenExchange"]
+}'
+
+# Least privilege: manage the SQL server (firewall rules included), nothing else
+SQL_ID=$(az sql server show -g rg-wayd-dev -n sql-wayd-dev --query id -o tsv)
+az role assignment create --assignee "$APP_ID" --role "SQL Server Contributor" --scope "$SQL_ID"
+```
+
+Then add these **repository secrets** in GitHub (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+|---|---|
+| `AZURE_CLIENT_ID` | `$APP_ID` from above |
+| `AZURE_TENANT_ID` | Your Entra tenant ID |
+| `AZURE_SUBSCRIPTION_ID` | The subscription holding the SQL server |
+
+Notes:
+
+- In Git Bash on Windows, prefix the last two commands with `MSYS_NO_PATHCONV=1`, or MSYS rewrites the `/subscriptions/...` resource ID into a Windows path. Assigning the role needs Owner or User Access Administrator on the subscription.
+- The token's subject must match a federated credential exactly. A `workflow_dispatch` run from a branch other than `main` gets `repo:<owner>/<repo>:ref:refs/heads/<branch>`, so add a credential for that branch to run the deploy from there.
+- No secret expires, so nothing needs rotating. To revoke access, delete the federated credential or the role assignment. To recreate the identity, run the commands again and update `AZURE_CLIENT_ID`.
+- A run whose runner dies before the cleanup step can leave a `gh-run-*` rule behind. Look for them with `az sql server firewall-rule list -g rg-wayd-dev -s sql-wayd-dev -o table` and delete any whose run has finished.
+
 ### Container images
 
 Docker images for the API and client must be published to a registry accessible by the Container App. The default config points at `ghcr.io/destacey/wayd-api` and `ghcr.io/destacey/wayd-client` — override `docker_image_registry`, `api_image_name`, and `client_image_name` to point at your own images.
@@ -130,7 +169,7 @@ The GitHub Actions workflow ([.github/workflows/docker.yml](../../.github/workfl
 
 1. Build + push container images to GHCR (tagged with the commit SHA)
 2. `terraform apply` against the TFC workspace, passing `docker_tag=sha-<commit>`
-3. Run EF Core migrations against the deployed SQL database
+3. Open the SQL firewall to the runner's IP, run EF Core migrations against the deployed SQL database, then close it again (see [Azure credential for the deploy job](#azure-credential-for-the-deploy-job))
 
 Triggering:
 
@@ -146,7 +185,8 @@ For a brand-new environment:
 3. Create the AAD SQL admin group and collect its object ID
 4. Configure the Terraform service principal on the TFC workspace
 5. Trigger the workflow via `workflow_dispatch` against your branch to verify auth
-6. Merge to `main` to run the first automatic apply
+6. Merge to `main` to run the first automatic apply. Its **Deploy** job fails until the deploy credential exists.
+7. Create the [deploy job's Azure credential](#azure-credential-for-the-deploy-job) and re-run the Deploy job
 
 ### Local development against TF
 

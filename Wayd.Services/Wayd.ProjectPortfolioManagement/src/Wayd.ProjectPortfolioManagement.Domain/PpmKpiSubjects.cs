@@ -21,8 +21,11 @@ public static class PpmKpiSubjects
     /// <summary>A portfolio, whose activity is filed under its aggregate's name, <c>ProjectPortfolio</c>.</summary>
     public static readonly KpiSubjectTypeDescriptor Portfolio = new("ppm.portfolio", "Portfolio", "ProjectPortfolio");
 
+    /// <summary>A strategic initiative.</summary>
+    public static readonly KpiSubjectTypeDescriptor StrategicInitiative = new("ppm.strategic-initiative", "Strategic Initiative", "StrategicInitiative");
+
     /// <summary>Every PPM subject type, for registration.</summary>
-    public static readonly KpiSubjectTypeDescriptor[] All = [Project, Program, Portfolio];
+    public static readonly KpiSubjectTypeDescriptor[] All = [Project, Program, Portfolio, StrategicInitiative];
 
     /// <summary>Registers the PPM subject types with <see cref="KpiSubjectTypes"/>. Idempotent.</summary>
     public static void Register() => KpiSubjectTypes.Register(All);

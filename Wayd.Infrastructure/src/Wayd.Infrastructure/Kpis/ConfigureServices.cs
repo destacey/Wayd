@@ -5,6 +5,7 @@ using Wayd.Organization.Domain;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios;
 using Wayd.ProjectPortfolioManagement.Application.Programs;
 using Wayd.ProjectPortfolioManagement.Application.Projects;
+using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives;
 using Wayd.ProjectPortfolioManagement.Domain;
 
 namespace Wayd.Infrastructure.Kpis;
@@ -30,6 +31,7 @@ internal static class ConfigureServices
         services.AddScoped<IKpiSubjectType, ProjectKpiSubjectType>();
         services.AddScoped<IKpiSubjectType, ProgramKpiSubjectType>();
         services.AddScoped<IKpiSubjectType, PortfolioKpiSubjectType>();
+        services.AddScoped<IKpiSubjectType, StrategicInitiativeKpiSubjectType>();
 
         services.AddScoped<KpiSubjectAccessResolver>();
         services.AddScoped<KpiCommandScope>();

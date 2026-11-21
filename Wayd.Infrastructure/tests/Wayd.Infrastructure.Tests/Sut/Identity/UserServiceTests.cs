@@ -3578,6 +3578,34 @@ public class UserServiceTests
         _mockUserManager.Setup(x => x.Users).Returns(Array.Empty<ApplicationUser>().AsQueryable().BuildMockDbSet().Object);
         _mockUserManager.Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), ApplicationRoles.Admin))
             .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "boom" }));
+
+        // The rollback is the transaction's; what this can show is that the account and its role were written inside
+        // it, and that the failure left it by throwing.
+        var inTransaction = false;
+        var createdInTransaction = false;
+        var transactionFailed = false;
+        _mockUserIdentityStore
+            .Setup(s => s.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task>, CancellationToken>(async (action, ct) =>
+            {
+                inTransaction = true;
+                try
+                {
+                    await action(ct);
+                }
+                catch
+                {
+                    transactionFailed = true;
+                    throw;
+                }
+                finally
+                {
+                    inTransaction = false;
+                }
+            });
+        _mockUserManager.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>()))
+            .Callback(() => createdInTransaction = inTransaction)
+            .ReturnsAsync(IdentityResult.Success);
         var sut = CreateSut();
 
         // Act
@@ -3585,8 +3613,30 @@ public class UserServiceTests
 
         // Assert
         await act.Should().ThrowAsync<InternalServerException>();
+        createdInTransaction.Should().BeTrue();
+        transactionFailed.Should().BeTrue();
         _mockUserManager.Verify(x => x.CreateAsync(It.IsAny<ApplicationUser>()), Times.Once);
         _mockUserIdentityStore.Verify(s => s.Add(It.IsAny<UserIdentity>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task TryApplyPendingTenantMigration_ShouldNotRebind_WhenStagedBeforeItsTimeWasRecorded()
+    {
+        // Arrange
+        const string tenantId = "tenant-new";
+        const string upn = "alice@example.com";
+        var user = CreateUser(id: "user-legacy");
+        user.NormalizedUserName = upn.ToUpperInvariant();
+        user.PendingMigrationTenantId = tenantId;
+        user.PendingMigrationStagedAt = null;
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.TryApplyPendingTenantMigration(tenantId, "oid-1", upn);
+
+        // Assert
+        result.Should().BeNull();
     }
 
     private static ClaimsPrincipal CreateGenericPrincipal(string subject, string email, string? emailVerified)

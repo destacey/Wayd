@@ -379,5 +379,25 @@ public class RoleServiceTests
         RaisedEvents(fullAccess).Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task UpdatePermissions_RefusesAPrivilegedPermission_WhenTheRoleIsAProvidersDefaultRole()
+    {
+        // Arrange
+        var role = new ApplicationRole("Contributor") { Id = "role-default" };
+        _mockRoleManager.Setup(x => x.FindByIdAsync(role.Id)).ReturnsAsync(role);
+        _mockDefaultRoleChecker.Setup(x => x.CountProvidersUsingRole(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        var privileged = ApplicationPermission.NameFor(ApplicationAction.Manage, ApplicationResource.PrivilegedUsers);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdatePermissions(
+            new UpdateRolePermissionsCommand(role.Id, ["Permissions.Users.View", privileged]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("default role");
+        RaisedEvents(role).Should().BeEmpty();
+    }
+
     #endregion
 }

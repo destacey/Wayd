@@ -175,17 +175,33 @@ public sealed class ApplicationUserTests
     }
 
     [Fact]
-    public void StageProviderMigration_ShouldRaiseNothing_WhenTheSameTargetIsAlreadyStaged()
+    public void StageProviderMigration_ShouldRestartTheClock_WhenTheSameTargetIsStagedAgain()
     {
         // Arrange
         var user = CreateUser();
         user.PendingMigrationProviderId = "Acme-Okta";
+        user.PendingProviderMigrationStagedAt = Now - Duration.FromDays(20);
 
         // Act
         user.StageProviderMigration("Acme-Okta", Actor, Now);
 
         // Assert
-        RaisedEvents(user).Should().BeEmpty();
+        user.PendingProviderMigrationStagedAt.Should().Be(Now);
+        RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserProviderMigrationStagedEvent>();
+    }
+
+    [Fact]
+    public void StageProviderMigration_ShouldRecordWhenItWasStaged()
+    {
+        // Arrange
+        var user = CreateUser();
+
+        // Act
+        user.StageProviderMigration("Acme-Okta", Actor, Now);
+
+        // Assert
+        user.PendingMigrationProviderId.Should().Be("Acme-Okta");
+        user.PendingProviderMigrationStagedAt.Should().Be(Now);
     }
 
     [Fact]
@@ -201,6 +217,7 @@ public sealed class ApplicationUserTests
         // Assert
         user.LoginProvider.Should().Be("Acme-Okta");
         user.PendingMigrationProviderId.Should().BeNull();
+        user.PendingProviderMigrationStagedAt.Should().BeNull();
         var completed = RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserProviderMigrationCompletedEvent>().Subject;
         completed.FromProvider.Should().Be(LoginProviders.MicrosoftEntraId);
         completed.ToProvider.Should().Be("Acme-Okta");

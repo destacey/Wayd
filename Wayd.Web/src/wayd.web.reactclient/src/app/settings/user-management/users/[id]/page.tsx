@@ -22,7 +22,7 @@ import {
   ActivityLogTimeline,
   useActivityLog,
 } from '@/src/components/common/activities'
-import { App, Space, Tag } from 'antd'
+import { App, Space } from 'antd'
 import type { ItemType } from 'antd/es/menu/interface'
 import { notFound, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
@@ -36,7 +36,7 @@ import {
   useUserAccountActions,
 } from '../_components'
 import UserDetailsLoading from './loading'
-import { UserOverview } from './_components'
+import { StagedLinkTag, UserOverview } from './_components'
 
 enum UserSections {
   Overview = 'overview',
@@ -91,6 +91,9 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
   const oidcProviders = authProviders?.oidc ?? []
   const { modal } = App.useApp()
   const messageApi = useMessage()
+  // Whether a staged link has expired is judged against when the page opened;
+  // a link that lapses while it is open reads as pending until it reloads.
+  const [now] = useState(() => Date.now())
 
   const isLocalUser = user?.loginProvider === 'Wayd'
   const isEntraUser = user?.loginProvider === 'MicrosoftEntraId'
@@ -268,15 +271,34 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
   // A staged migration is a state of the account, so it reads in the identity
   // bar beside the active tag rather than as a banner one section owns — it
   // stays visible whichever section is open, and disappears when the rebind
-  // completes on the user's next sign-in.
+  // completes on the user's next sign-in. A link staged more than 14 days ago
+  // reads as expired: the sign-in no longer completes it.
   const tags = (
     <Space size={4} wrap>
       <InactiveTag isActive={user.isActive} />
-      {hasPendingMigration && (
-        <Tag color="processing">Tenant migration pending</Tag>
-      )}
+      {hasPendingMigration &&
+        (awaitsFirstEntraSignIn ? (
+          <StagedLinkTag
+            label="First sign-in"
+            expiresAt={user.pendingMigrationTenantExpiresAt}
+            now={now}
+            renewal="Use Set Sign-in Tenant to give them another 14 days."
+          />
+        ) : (
+          <StagedLinkTag
+            label="Tenant migration"
+            expiresAt={user.pendingMigrationTenantExpiresAt}
+            now={now}
+            renewal="Stage them again with Migrate Users to New Tenant on the provider's page."
+          />
+        ))}
       {hasPendingProviderMigration && (
-        <Tag color="processing">Provider migration pending</Tag>
+        <StagedLinkTag
+          label="Provider migration"
+          expiresAt={user.pendingMigrationProviderExpiresAt}
+          now={now}
+          renewal="Use Replace Pending Provider Migration with the same provider to give them another 14 days."
+        />
       )}
     </Space>
   )

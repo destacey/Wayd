@@ -31,7 +31,7 @@ internal sealed class OidcTokenValidator : IOidcTokenValidator
         _logger = logger;
     }
 
-    public async Task<ClaimsPrincipal> Validate(string providerName, string subjectToken, CancellationToken cancellationToken)
+    public async Task<ValidatedOidcToken> Validate(string providerName, string subjectToken, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(providerName) || string.IsNullOrWhiteSpace(subjectToken))
         {
@@ -94,7 +94,7 @@ internal sealed class OidcTokenValidator : IOidcTokenValidator
             EnforceEntraTenantAllowlist(provider, principal);
         }
 
-        return principal;
+        return new ValidatedOidcToken(principal, provider);
     }
 
     private static TokenValidationParameters BuildValidationParameters(
@@ -159,9 +159,21 @@ internal sealed class OidcTokenValidator : IOidcTokenValidator
         // to extracting the tenant from `iss` when tid is absent. Personal
         // accounts as guests and some v2.0 edge cases omit tid. The issuer is
         // signed, so deriving the tenant from it is just as trustworthy as tid.
-        var tid =
-            principal.FindFirstValue("tid")
-            ?? ExtractTenantFromIssuer(principal.FindFirstValue("iss"));
+        var claimedTid = principal.FindFirstValue("tid");
+        var issuerTid = ExtractTenantFromIssuer(principal.FindFirstValue("iss"));
+
+        // Entra issues every token from its tenant's own issuer, so the two always agree. The issuer is not
+        // validated against a fixed value (see BuildValidationParameters), which makes this the check that a
+        // token naming an allowed tenant was issued by that tenant.
+        if (!string.IsNullOrWhiteSpace(claimedTid) && !string.Equals(claimedTid, issuerTid, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning(
+                "Entra token rejected for provider '{Provider}': tid {Tid} does not match the issuer's tenant {IssuerTid}.",
+                provider.Name, claimedTid, issuerTid ?? "<missing>");
+            throw new UnauthorizedException("Invalid token.");
+        }
+
+        var tid = claimedTid ?? issuerTid;
 
         if (string.IsNullOrWhiteSpace(tid) ||
             !allowed.Contains(tid, StringComparer.OrdinalIgnoreCase))

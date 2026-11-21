@@ -9,6 +9,7 @@ using NodaTime;
 using Wayd.Common.Application.Identity;
 using Wayd.Common.Application.Identity.OidcProviders;
 using Wayd.Common.Application.Identity.Tokens;
+using Wayd.Common.Domain.Identity;
 using Wayd.Infrastructure.Auth.Oidc;
 using Wayd.Infrastructure.Auth.Permissions;
 
@@ -232,30 +233,50 @@ internal class TokenService(
         // The validator owns provider lookup, enabled-checks, and signature
         // validation. Unknown or disabled providers throw UnauthorizedException
         // there — no special-case for Entra config here anymore.
-        var principal = await _oidcTokenValidator.Validate(command.Provider, command.SubjectToken, cancellationToken);
+        var (principal, provider) = await _oidcTokenValidator.Validate(command.Provider, command.SubjectToken, cancellationToken);
 
         string userId;
-        if (string.Equals(command.Provider, LoginProviders.MicrosoftEntraId, StringComparison.Ordinal))
+        if (provider.ProviderType == OidcProviderType.MicrosoftEntraId)
         {
+            // The Entra path writes and resolves identity rows under the fixed provider name, so an Entra provider
+            // stored under any other name would sign its users in as that one.
+            if (!string.Equals(provider.Name, LoginProviders.MicrosoftEntraId, StringComparison.Ordinal))
+            {
+                _logger.LogError(
+                    "Token exchange rejected: Microsoft Entra ID provider is stored as '{Provider}', not '{Expected}'.",
+                    provider.Name, LoginProviders.MicrosoftEntraId);
+                throw new UnauthorizedException("Invalid token.");
+            }
+
             // Entra path: handles UserIdentity lookup, null-tid upgrade, new-user
             // creation, first-user-is-admin, and pending tenant migration.
             (userId, _) = await _userService.GetOrCreateFromPrincipalAsync(principal);
         }
         else
         {
+            // A generic provider under a reserved name would resolve and complete links meant for the Entra provider or
+            // for local accounts, with no tenant check. The create rules refuse one; a row written before they did, or
+            // by hand, is refused here.
+            if (string.Equals(provider.Name?.Trim(), LoginProviders.MicrosoftEntraId, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(provider.Name?.Trim(), LoginProviders.Wayd, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogError("Token exchange rejected: generic OIDC provider is stored under the reserved name '{Provider}'.", provider.Name);
+                throw new UnauthorizedException("Invalid token.");
+            }
+
             // GenericOidc path: resolves existing identities and applies pending
             // cross-provider migrations. Full new-user provisioning is a follow-up
             // (tracked separately) — unknown users are rejected explicitly here
             // rather than silently mis-provisioned.
             var resolved = await _userService.ResolveFromGenericOidcPrincipalAsync(
-                command.Provider, principal, cancellationToken);
+                provider.Name, principal, cancellationToken);
 
             if (resolved is null)
             {
                 _logger.LogWarning(
                     "Token exchange rejected: provider {Provider} token validated but no matching user found. " +
                     "New-user provisioning for non-Entra providers is not yet implemented.",
-                    command.Provider);
+                    provider.Name);
                 throw new UnauthorizedException("No account found for this identity. Contact an administrator.");
             }
 
@@ -271,10 +292,8 @@ internal class TokenService(
             throw new UnauthorizedException("Your account has been deactivated. Please contact an administrator.");
         }
 
-        // Identity check is keyed by the actual provider from the request — same
-        // value the validator just confirmed and the same value already written
-        // into UserIdentity.Provider for this user.
-        await EnsureActiveIdentityAsync(user, command.Provider, user.UserName ?? user.Id, cancellationToken);
+        // The stored provider's name: the one written into UserIdentity.Provider at link time.
+        await EnsureActiveIdentityAsync(user, provider.Name, user.UserName ?? user.Id, cancellationToken);
 
         return await GenerateTokensAndUpdateUser(user, cancellationToken);
     }

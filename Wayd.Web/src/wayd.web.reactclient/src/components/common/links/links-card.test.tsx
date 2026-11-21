@@ -73,6 +73,21 @@ describe('LinksCard', () => {
     expect(links[0]).toHaveAttribute('href', 'https://example.com/a')
   })
 
+  it.each(['javascript:alert(1)', '//evil.example/x', 'mailto:a@example.com'])(
+    'shows a link to %p as text, not as a link',
+    (url) => {
+      // Arrange
+      answer(false, [{ ...link('a', 'Legacy'), url }])
+
+      // Act
+      render(<LinksCard {...owner} />)
+
+      // Assert
+      expect(screen.getByText('Legacy')).toBeInTheDocument()
+      expect(screen.queryByRole('link')).toBeNull()
+    },
+  )
+
   it('offers nothing to change when the server says the viewer cannot manage the links', () => {
     answer(false)
 

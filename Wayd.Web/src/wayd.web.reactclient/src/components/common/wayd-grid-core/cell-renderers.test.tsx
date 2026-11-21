@@ -226,6 +226,26 @@ describe('renderWorkItemLink', () => {
     expect(external).toHaveAttribute('target', '_blank')
   })
 
+  it.each(['javascript:alert(1)//WEB-42', '//evil.example/WEB-42'])(
+    'leaves out the external-system link to %p',
+    (externalViewWorkItemUrl) => {
+      // Arrange / Act
+      render(
+        <>
+          {renderWorkItemLink({
+            key: 'WEB-42',
+            workspaceKey: 'WEB',
+            externalViewWorkItemUrl,
+          })}
+        </>,
+      )
+
+      // Assert
+      expect(screen.getByRole('link', { name: 'WEB-42' })).toBeInTheDocument()
+      expect(screen.queryByTitle('Open in external system')).toBeNull()
+    },
+  )
+
   it('renders nothing for a missing work item', () => {
     // Arrange / Act
     const { container } = render(<>{renderWorkItemLink(null)}</>)

@@ -6144,7 +6144,7 @@ export interface ImportIntakeRequestRequest {
      */
   originExternalId?: string | null;
   /**
-     * A link to the request in that system.
+     * A link to the request in that system, a full web address starting with `http://` or `https://`.
      * @nullable
      */
   originUrl?: string | null;
@@ -14413,7 +14413,7 @@ export interface SetEstimationScaleActiveStatusRequest {
  */
 export interface SetExternalUrlTemplatesRequest {
   /**
-     * The URL prefix a work item's external id is appended to; null, empty or whitespace clears it.
+     * The URL prefix a work item's external id is appended to, an absolute http or https address; null, empty or whitespace clears it.
      * @maxLength 256
      * @nullable
      */

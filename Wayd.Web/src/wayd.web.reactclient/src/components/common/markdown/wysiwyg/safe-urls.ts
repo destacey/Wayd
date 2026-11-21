@@ -22,6 +22,26 @@ export const isSafeLinkHref = (href: string | null | undefined): boolean => {
 }
 
 /**
+ * `href`, trimmed, when it is an absolute `http` or `https` address, otherwise `undefined`: for
+ * rendering a URL the server stored, such as a record's link or a work item's external view. The
+ * server accepts nothing else, so a value that fails this was saved before it checked addresses and
+ * shows as plain text. Stricter than {@link isSafeLinkHref}, which also allows the relative paths
+ * and `mailto:` links a document may hold.
+ */
+export const safeLinkHref = (
+  href: string | null | undefined,
+): string | undefined => {
+  const trimmed = href?.trim()
+  if (!trimmed) return undefined
+  try {
+    const { protocol } = new URL(trimmed)
+    return protocol === 'http:' || protocol === 'https:' ? trimmed : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
  * A bare host (`wayd.dev/x`), which a browser would otherwise read as a relative path. The last
  * label must be letters, so `v1.2` is not a host.
  */

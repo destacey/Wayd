@@ -4,6 +4,7 @@ import { NOT_RECORDED_CHANNEL_LABEL } from '../../../_components/channel'
 import { LabeledContent } from '@/src/components/common/content'
 import { RecordFactsGroup } from '@/src/components/common/record'
 import { IntakeRequestDetailsDto } from '@/src/services/api/wayd.schemas'
+import { safeLinkHref } from '@/src/components/common/markdown/wysiwyg/safe-urls'
 import { Typography } from 'antd'
 import NextLink from 'next/link'
 import { FC } from 'react'
@@ -26,6 +27,7 @@ export interface IntakeRequestFactsProps {
  */
 const IntakeRequestFacts: FC<IntakeRequestFactsProps> = ({ request }) => {
   const { summary, substance } = request
+  const originHref = safeLinkHref(substance?.origin?.url)
   const deliveryState = shownDeliveryState(
     summary.status.category,
     request.deliveryState,
@@ -86,12 +88,8 @@ const IntakeRequestFacts: FC<IntakeRequestFactsProps> = ({ request }) => {
             {substance.origin.sourceSystem}
           </LabeledContent>
           <LabeledContent label="External Id">
-            {substance.origin.url ? (
-              <Link
-                href={substance.origin.url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+            {originHref ? (
+              <Link href={originHref} target="_blank" rel="noopener noreferrer">
                 {substance.origin.externalId}
               </Link>
             ) : (

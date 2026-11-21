@@ -1,9 +1,39 @@
 import {
   isSafeImageSrc,
   isSafeLinkHref,
+  safeLinkHref,
   toLinkHref,
   toMarkdownDestination,
 } from './safe-urls'
+
+describe('safeLinkHref', () => {
+  it.each([
+    ['https://wayd.dev/a', 'https://wayd.dev/a'],
+    ['http://wayd.dev', 'http://wayd.dev'],
+    ['  https://wayd.dev/a  ', 'https://wayd.dev/a'],
+  ])('returns %p as %p', (href, expected) => {
+    // Arrange / Act / Assert
+    expect(safeLinkHref(href)).toBe(expected)
+  })
+
+  it.each([
+    'javascript:alert(1)',
+    'java\nscript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'mailto:someone@example.com',
+    '//evil.example/x',
+    '/ppm/projects/12',
+    'relative/page',
+    'wayd.dev/a',
+    '',
+    '   ',
+    null,
+    undefined,
+  ])('returns undefined for %p', (href) => {
+    // Arrange / Act / Assert
+    expect(safeLinkHref(href)).toBeUndefined()
+  })
+})
 
 describe('isSafeLinkHref', () => {
   it.each([

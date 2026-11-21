@@ -115,7 +115,7 @@ in [Settings → System → Imports → Limits and rules](../settings/imports.md
 | `NeedByCommittedOn` | For a commitment | The date the commitment was made. Empty for any other basis. |
 | `OriginSourceSystem` | With an external id | The system the request was raised in, such as a service desk. |
 | `OriginExternalId` | With a source system | The request's id there. A source system and external id identify at most one request, in the file and in Wayd. |
-| `OriginUrl` | No | A link to the request in that system. |
+| `OriginUrl` | No | A link to the request in that system: a full web address starting with `http://` or `https://`. Any other address rejects the row. |
 | `Status` | No | A status of the desk's workflow, by name or meaning. Blank leaves the request submitted. |
 | `StatusChangedAt` | No | When it moved into `Status`, with its offset. Needs `SubmittedAt` and a `Status` the request moves to, and is not before `SubmittedAt`. Blank for `SubmittedAt`. |
 | `StatusReason` | For some statuses | Why, as the requester reads it. Required for finishing and for every closing status but Withdrawn. Only with a `Status` the request moves to. Max 1024 characters. |

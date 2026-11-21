@@ -219,7 +219,7 @@ public sealed class ProductDependencyPersistenceTests(SqlServerDbContextFixture 
         // Assert
         _ = Mappings.Value;
         await using var context = _fixture.CreateContext();
-        var activity = await new ActivityLogReader(context).Read(identity.Id, "Product", cancellationToken: ct);
+        var activity = await new ActivityLogReader(context, context).Read(identity.Id, "Product", cancellationToken: ct);
 
         activity.Items.Should().ContainSingle(a => a.EventType == nameof(ProductDependencyAddedEvent))
             .Which.Should().BeEquivalentTo(new { IsRelated = true, AggregateId = web.Id });

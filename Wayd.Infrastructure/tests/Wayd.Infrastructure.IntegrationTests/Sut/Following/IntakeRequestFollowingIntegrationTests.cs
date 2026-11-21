@@ -291,7 +291,7 @@ public sealed class IntakeRequestFollowingIntegrationTests(SqlServerDbContextFix
     {
         await using var context = _fixture.CreateContext();
         var principal = Principal(employeeId, permissions);
-        var result = await new GetFollowedRecordQueryHandler(context, context, new ActivityLogReader(context), ReadRules(context, principal), principal)
+        var result = await new GetFollowedRecordQueryHandler(context, context, new ActivityLogReader(context, context), ReadRules(context, principal), principal)
             .Handle(new GetFollowedRecordQuery(OwnerType, requestId), ct);
 
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);

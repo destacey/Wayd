@@ -8,7 +8,9 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Activities;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events.ProductManagement;
+using Wayd.Common.Domain.Kpis;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
 using Wayd.Infrastructure.Persistence.Context;
@@ -72,7 +74,7 @@ public sealed class ActivityLogRelatedAggregateTests(SqlServerDbContextFixture f
 
         _ = Mappings.Value;
         await using var context = _fixture.CreateContext();
-        var reader = new ActivityLogReader(context);
+        var reader = new ActivityLogReader(context, context);
 
         // Act
         var onFromParent = await reader.Read(fromParent.Id, "Product", cancellationToken: ct);
@@ -107,7 +109,7 @@ public sealed class ActivityLogRelatedAggregateTests(SqlServerDbContextFixture f
 
         _ = Mappings.Value;
         await using var readContext = _fixture.CreateContext();
-        var reader = new ActivityLogReader(readContext);
+        var reader = new ActivityLogReader(readContext, readContext);
 
         // Act
         var asProgram = await reader.Read(sharedId, "Program", cancellationToken: ct);
@@ -135,7 +137,7 @@ public sealed class ActivityLogRelatedAggregateTests(SqlServerDbContextFixture f
 
         _ = Mappings.Value;
         await using var readContext = _fixture.CreateContext();
-        var reader = new ActivityLogReader(readContext);
+        var reader = new ActivityLogReader(readContext, readContext);
 
         // Act
         var page = await reader.Read(recordId, "project", cancellationToken: ct);
@@ -168,7 +170,7 @@ public sealed class ActivityLogRelatedAggregateTests(SqlServerDbContextFixture f
 
         _ = Mappings.Value;
         await using var readContext = _fixture.CreateContext();
-        var reader = new ActivityLogReader(readContext);
+        var reader = new ActivityLogReader(readContext, readContext);
 
         // Act
         var paged = new List<ActivityLogDto>();
@@ -183,6 +185,41 @@ public sealed class ActivityLogRelatedAggregateTests(SqlServerDbContextFixture f
         paged.Select(i => i.Id).Should().Equal(written.OrderByDescending(e => e.Ordinal).Select(e => e.Id));
         paged.Select(i => i.IsRelated).Should().Equal(true, false, true, false);
     }
+
+    [Fact]
+    public async Task Read_NamesTheKpiARelatedKpiEntryWasRaisedOn()
+    {
+        // Arrange — a KPI on a record, whose events the record's Activity lists as related
+        var ct = TestContext.Current.CancellationToken;
+        KpiSubjectTypes.Register(KpiGadget);
+        var subjectId = Guid.CreateVersion7();
+        var goal = new KpiGoal(KpiTargetDirection.Increase, KpiBaseline.None, KpiTarget.Absolute(5), null);
+        Kpi kpi;
+
+        await using (var context = _fixture.CreateContext())
+        {
+            kpi = Kpi.Create(KpiGadget.Key, subjectId,
+                new KpiDefinition("Throughput", null, null, null, "items", KpiExpressedAs.Value, goal, null, null),
+                0, EventActor.System, CreatedAt).Value;
+            context.Kpis.Add(kpi);
+            await context.SaveChangesAsync(ct);
+        }
+
+        _ = Mappings.Value;
+        await using var readContext = _fixture.CreateContext();
+        var reader = new ActivityLogReader(readContext, readContext);
+
+        // Act
+        var page = await reader.Read(subjectId, KpiGadget.ActivityAggregateType, cancellationToken: ct);
+
+        // Assert
+        var entry = page.Items.Should().ContainSingle().Subject;
+        entry.IsRelated.Should().BeTrue();
+        entry.RaisedOn.Should().BeEquivalentTo(new { kpi.Id, kpi.Key, Name = "Throughput" });
+    }
+
+    private static readonly KpiSubjectTypeDescriptor KpiGadget =
+        new("test.activity-log.gadget", "Gadget", "ActivityLogGadget");
 
     /// <summary>
     /// Creates two parents and a child under the first, then moves the child to the second in its own save.

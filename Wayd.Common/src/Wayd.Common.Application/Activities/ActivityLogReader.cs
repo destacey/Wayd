@@ -1,13 +1,18 @@
 using Mapster;
 using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Persistence;
 
 namespace Wayd.Common.Application.Activities;
 
 /// <inheritdoc cref="IActivityLogReader"/>
-public sealed class ActivityLogReader(IActivityLogDbContext dbContext) : IActivityLogReader
+public sealed class ActivityLogReader(IActivityLogDbContext dbContext, IKpisDbContext kpisDbContext) : IActivityLogReader
 {
+    /// <summary>The aggregate type every KPI event is filed under.</summary>
+    private const string KpiAggregateType = "Kpi";
+
     private readonly IActivityLogDbContext _dbContext = dbContext;
+    private readonly IKpisDbContext _kpisDbContext = kpisDbContext;
 
     public Task<PagedResponse<ActivityLogDto>> Read(
         Guid aggregateId,
@@ -87,6 +92,39 @@ public sealed class ActivityLogReader(IActivityLogDbContext dbContext) : IActivi
             })
             .ToList();
 
-        return new PagedResponse<ActivityLogDto>(dtos, totalCount, paging.Page, paging.PageSize);
+        return new PagedResponse<ActivityLogDto>(await NameKpis(dtos, cancellationToken), totalCount, paging.Page, paging.PageSize);
+    }
+
+    /// <summary>
+    /// Names the KPI each related KPI entry was raised on.
+    /// </summary>
+    /// <remarks>
+    /// Done here rather than by each module reading its record's log: KPIs are a Common model that any module's
+    /// record carries, so every record's Activity lists them, and no module knows what a KPI is. A KPI since removed
+    /// is left unnamed.
+    /// </remarks>
+    private async Task<List<ActivityLogDto>> NameKpis(List<ActivityLogDto> dtos, CancellationToken cancellationToken)
+    {
+        static bool RaisedOnAKpi(ActivityLogDto d) =>
+            d.IsRelated && d.RaisedOn is null && string.Equals(d.AggregateType, KpiAggregateType, StringComparison.OrdinalIgnoreCase);
+
+        var kpiIds = dtos
+            .Where(RaisedOnAKpi)
+            .Select(d => d.AggregateId)
+            .Distinct()
+            .ToList();
+
+        if (kpiIds.Count == 0)
+            return dtos;
+
+        var kpis = await _kpisDbContext.Kpis
+            .Where(k => kpiIds.Contains(k.Id))
+            .Select(k => new { k.Id, k.Key, k.Name })
+            .ToDictionaryAsync(k => k.Id, cancellationToken);
+
+        return [.. dtos.Select(d =>
+            RaisedOnAKpi(d) && kpis.TryGetValue(d.AggregateId, out var kpi)
+                ? d with { RaisedOn = NavigationDto.Create(kpi.Id, kpi.Key, kpi.Name) }
+                : d)];
     }
 }

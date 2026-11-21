@@ -86,7 +86,6 @@ public sealed record GeneratedDataset(
             CsvFile.Write(Path.Combine(directory, "project-tasks.csv"), ppm.ProjectTasks);
             CsvFile.Write(Path.Combine(directory, "project-stages.csv"), ppm.ProjectStages);
             CsvFile.Write(Path.Combine(directory, "strategic-initiatives.csv"), ppm.StrategicInitiatives);
-            CsvFile.Write(Path.Combine(directory, "strategic-initiative-kpis.csv"), ppm.StrategicInitiativeKpis);
             CsvFile.Write(Path.Combine(directory, "ppm-finalizations.csv"), ppm.Finalizations);
         }
 

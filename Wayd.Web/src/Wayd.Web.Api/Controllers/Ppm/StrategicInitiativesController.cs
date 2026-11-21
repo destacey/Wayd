@@ -92,14 +92,13 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     }
 
     /// <summary>
-    /// Imports strategic initiatives and, optionally, their KPIs. Both files are taken in one call because
-    /// KPIs cannot be added to an initiative once it is closed, so they have to land before each
-    /// initiative is driven to its final status.
+    /// Imports strategic initiatives. Their KPIs are imported through the KPI import, against the ids this
+    /// returns.
     /// </summary>
     [HttpPost("import")]
     [MustHavePermission(ApplicationAction.Import, ApplicationResource.StrategicInitiatives)]
     [EndpointSummary("Submit a csv file of strategic initiatives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.")]
-    [EndpointDescription("Optionally accepts a second csv of KPIs, whose rows name the ImportId of the initiative they belong to.")]
+    [EndpointDescription("An initiative's KPIs are not part of this file: import them through the KPI import, naming the initiative by the id this run returns for it.")]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -107,7 +106,7 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
     [CsvImport(StrategicInitiativeImportDefinition.ImportKey)]
     public async Task<ActionResult> Import(
         [FromForm, CsvRows(typeof(ImportStrategicInitiativeRequest))] IFormFile file,
-        [FromForm, CsvRows(typeof(ImportStrategicInitiativeKpiRequest), Label = "KPIs")] IFormFile? kpiFile, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+        [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
     {
         try
         {
@@ -128,57 +127,8 @@ public class StrategicInitiativesController(ILogger<StrategicInitiativesControll
                 }
             }
 
-            var kpisByInitiative = new Dictionary<string, List<ImportStrategicInitiativeKpiDto>>(StringComparer.OrdinalIgnoreCase);
-            if (kpiFile is not null)
-            {
-                var importedKpis = _csvService.ReadCsv<ImportStrategicInitiativeKpiRequest>(kpiFile.OpenReadStream());
-
-                var kpiValidator = new ImportStrategicInitiativeKpiRequestValidator();
-                foreach (var kpi in importedKpis)
-                {
-                    var validationResults = await kpiValidator.ValidateAsync(kpi, cancellationToken);
-                    if (!validationResults.IsValid)
-                    {
-                        foreach (var error in validationResults.Errors)
-                        {
-                            error.ErrorMessage = $"{error.ErrorMessage} (Strategic Initiative: {kpi.StrategicInitiativeImportId}, KPI: {kpi.Name})";
-                            ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
-                        }
-                        return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
-                    }
-
-                    var parent = kpi.StrategicInitiativeImportId.Trim();
-                    if (!kpisByInitiative.TryGetValue(parent, out var forInitiative))
-                        kpisByInitiative[parent] = forInitiative = [];
-
-                    forInitiative.Add(kpi.ToImportStrategicInitiativeKpiDto());
-                }
-            }
-
-            // The same key the run reports row outcomes against, so a KPI row and its initiative row agree
-            // on what the parent is called whether or not the file supplied an ImportId.
-            List<SubmittedImportRow<ImportStrategicInitiativeDto>> rows = [];
-            HashSet<string> claimedParents = new(StringComparer.OrdinalIgnoreCase);
-            for (var i = 0; i < importedInitiatives.Count; i++)
-            {
-                var initiative = importedInitiatives[i];
-                var key = SubmittedImportRow.KeyFor(initiative.ImportId, i + 1);
-
-                claimedParents.Add(key);
-                rows.Add(new SubmittedImportRow<ImportStrategicInitiativeDto>(
-                    initiative.ImportId,
-                    initiative.ToImportStrategicInitiativeDto(
-                        kpisByInitiative.TryGetValue(key, out var kpis) ? kpis : [])));
-            }
-
-            var orphans = kpisByInitiative.Keys.Where(k => !claimedParents.Contains(k)).ToList();
-            if (orphans.Count > 0)
-            {
-                ModelState.AddModelError(
-                    nameof(ImportStrategicInitiativeKpiRequest.StrategicInitiativeImportId),
-                    $"The following KPI rows name a strategic initiative that is not in the file: {string.Join(", ", orphans.Select(o => $"'{o}'"))}.");
-                return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
-            }
+            List<SubmittedImportRow<ImportStrategicInitiativeDto>> rows = [.. importedInitiatives
+                .Select(i => new SubmittedImportRow<ImportStrategicInitiativeDto>(i.ImportId, i.ToImportStrategicInitiativeDto()))];
 
             var result = await _dispatcher.Send(new ImportStrategicInitiativesCommand(rows, submissionGroupId, validateOnly), cancellationToken);
 

@@ -1563,7 +1563,7 @@ export const importTemplates = {
   'ppm.strategic-initiatives': {
     module: 'ppm',
     description:
-      'Optionally accepts a second csv of KPIs, whose rows name the ImportId of the initiative they belong to.',
+      "An initiative's KPIs are not part of this file: import them through the KPI import, naming the initiative by the id this run returns for it.",
     files: [
       {
         field: 'file',
@@ -1645,66 +1645,6 @@ export const importTemplates = {
             required: false,
             description:
               'Links to add to the strategic initiative, separated by semicolons, each written Name|URL — for example `Charter|https://example.com/charter; Team wiki|https://example.com/wiki`. A name cannot contain | or ;, and a ; inside a URL is written %3B. Each URL must be a full http or https address. A malformed entry rejects the row.',
-          },
-        ],
-      },
-      {
-        field: 'kpiFile',
-        label: 'KPIs',
-        required: false,
-        columns: [
-          {
-            name: 'StrategicInitiativeImportId',
-            type: 'text',
-            required: true,
-            description:
-              'The `ImportId` of the initiative row this KPI belongs to. Where that row left the column blank its position stands in, so `1` reaches the first initiative — but a file carrying KPIs should supply `ImportId`, since inserting a row silently re-parents every KPI below it.',
-          },
-          {
-            name: 'Name',
-            type: 'text',
-            required: true,
-            maxLength: 64,
-          },
-          {
-            name: 'Description',
-            type: 'text',
-            required: false,
-            maxLength: 512,
-          },
-          {
-            name: 'TargetValue',
-            type: 'number',
-            required: true,
-            description: 'The value that defines success.',
-          },
-          {
-            name: 'StartingValue',
-            type: 'number',
-            required: false,
-            description: 'The baseline value.',
-          },
-          {
-            name: 'Prefix',
-            type: 'text',
-            required: false,
-            description: 'A symbol shown before the value, such as "$".',
-            maxLength: 8,
-          },
-          {
-            name: 'Suffix',
-            type: 'text',
-            required: false,
-            description: 'A symbol shown after the value, such as "%".',
-            maxLength: 8,
-          },
-          {
-            name: 'TargetDirection',
-            type: 'text',
-            required: true,
-            description:
-              'Whether success means increasing or decreasing the value. Defaults to Increase.',
-            values: ['Increase', 'Decrease'],
           },
         ],
       },

@@ -179,16 +179,13 @@ export const getStrategicInitiativesImportUrl = (params?: StrategicInitiativesIm
 }
 
 /**
- * Optionally accepts a second csv of KPIs, whose rows name the ImportId of the initiative they belong to.
+ * An initiative's KPIs are not part of this file: import them through the KPI import, naming the initiative by the id this run returns for it.
  * @summary Submit a csv file of strategic initiatives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
  */
 export const strategicInitiativesImport = async (strategicInitiativesImportBody: StrategicInitiativesImportBody,
     params?: StrategicInitiativesImportParams, options?: Parameters<typeof apiFetch>[1]): Promise<ImportProcessDto> => {
     const formData = new FormData();
 formData.append(`file`, strategicInitiativesImportBody.file);
-if(strategicInitiativesImportBody.kpiFile !== undefined && strategicInitiativesImportBody.kpiFile !== null) {
- formData.append(`kpiFile`, strategicInitiativesImportBody.kpiFile);
- }
 
   return apiFetch<ImportProcessDto>(getStrategicInitiativesImportUrl(params),
   {

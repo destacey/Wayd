@@ -1,6 +1,6 @@
 ---
 title: Bulk Import
-description: Loading employees, teams, the team hierarchy, team staffing, and KPIs on teams, projects, programs and portfolios with their history and checkpoint plans into Wayd from CSV via the import API.
+description: Loading employees, teams, the team hierarchy, team staffing, and KPIs on teams, projects, programs, portfolios and strategic initiatives with their history and checkpoint plans into Wayd from CSV via the import API.
 sidebar_position: 2
 audience: [user, agent]
 ---
@@ -261,7 +261,7 @@ staffing an inactive person or team). Create any needed roles first, and omit fo
 
 `POST /api/kpis/import`
 
-Loads [KPIs](./scorecards.mdx) onto existing teams, teams of teams, projects, programs and portfolios, each with its history and, optionally,
+Loads [KPIs](./scorecards.mdx) onto existing teams, teams of teams, projects, programs, portfolios and strategic initiatives, each with its history and, optionally,
 its checkpoint plan. Takes `file`, one row per KPI; `measurementsFile`, one row per measurement naming its KPI's
 row; and, optionally, `checkpointsFile`, one row per checkpoint naming its KPI's row. Send the measurements file
 with its header even when it has no rows. Needs the `kpis` feature flag.
@@ -271,8 +271,8 @@ KPI file:
 | Column | Required | Notes |
 |---|---|---|
 | `ImportId` | Yes (column) | Your key for the row, unique within the file. The measurements file names it. A blank cell is known by its position. |
-| `SubjectType` | Yes | `organization.team` for a team or a team of teams, `ppm.project`, `ppm.program` or `ppm.portfolio`. |
-| `SubjectId` | Yes | The team or team of teams, **by id**. |
+| `SubjectType` | Yes | `organization.team` for a team or a team of teams, `ppm.project`, `ppm.program`, `ppm.portfolio` or `ppm.strategic-initiative`. |
+| `SubjectId` | Yes | The record the KPI goes on, **by id**. A KPI on a PPM record needs the [PPM import](../ppm/bulk-import.mdx) that created it to have run first. |
 | `Name` | Yes | Max 128 chars. Unique on its team, ignoring case: a name the team already has, or one the file gives the same team twice, rejects the row. |
 | `Description` | No | Max 1024 chars. |
 | `CategoryId` | No | An active [KPI category](../settings/index.mdx#kpi-categories), by id. |

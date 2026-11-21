@@ -684,22 +684,6 @@ public class PpmGeneratorTests
     }
 
     [Fact]
-    public void Generate_EveryKpiReferencesAnExistingInitiative()
-    {
-        // Arrange
-        var ppm = Generate();
-        var initiativeNames = ppm.StrategicInitiatives.Select(i => i.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        // Act
-        var dangling = ppm.StrategicInitiativeKpis
-            .Where(k => !initiativeNames.Contains(k.StrategicInitiativeName))
-            .ToList();
-
-        // Assert
-        dangling.Should().BeEmpty();
-    }
-
-    [Fact]
     public void Generate_EveryFinalizedProgramExistsAndBelongsToItsPortfolio()
     {
         // Arrange

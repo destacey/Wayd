@@ -117,7 +117,6 @@ const IMPORTED_RECORD_TAGS: Record<ImportKey, ImportedRecordTag[]> = {
   'ppm.finalizations': [QueryTags.Portfolio, QueryTags.Program],
   'ppm.strategic-initiatives': [
     QueryTags.StrategicInitiative,
-    QueryTags.Kpi,
     QueryTags.PortfolioStrategicInitiatives,
   ],
   'strategic.themes': [QueryTags.StrategicTheme],
@@ -229,9 +228,9 @@ const SUBMITTERS: Record<
       { file: required(file) },
       { validateOnly: validateOnly },
     ),
-  'ppm.strategic-initiatives': ({ file, kpiFile }, validateOnly) =>
+  'ppm.strategic-initiatives': ({ file }, validateOnly) =>
     strategicInitiativesImport(
-      { file: required(file), kpiFile: kpiFile },
+      { file: required(file) },
       { validateOnly: validateOnly },
     ),
   'strategic.themes': ({ file }, validateOnly) =>

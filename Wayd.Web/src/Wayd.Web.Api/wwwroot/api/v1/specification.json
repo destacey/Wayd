@@ -28228,7 +28228,7 @@
           "StrategicInitiatives"
         ],
         "summary": "Submit a csv file of strategic initiatives to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
-        "description": "Optionally accepts a second csv of KPIs, whose rows name the ImportId of the initiative they belong to.",
+        "description": "An initiative's KPIs are not part of this file: import them through the KPI import, naming the initiative by the id this run returns for it.",
         "operationId": "StrategicInitiatives_Import",
         "parameters": [
           {
@@ -28261,13 +28261,6 @@
                 "properties": {
                   "file": {
                     "type": "string",
-                    "format": "binary"
-                  },
-                  "kpiFile": {
-                    "type": [
-                      "null",
-                      "string"
-                    ],
                     "format": "binary"
                   }
                 }
@@ -28331,12 +28324,6 @@
               "label": null,
               "schema": "ImportStrategicInitiativeRequest",
               "required": true
-            },
-            {
-              "field": "kpiFile",
-              "label": "KPIs",
-              "schema": "ImportStrategicInitiativeKpiRequest",
-              "required": false
             }
           ]
         }
@@ -69118,82 +69105,6 @@
           "Cancelled"
         ],
         "type": "string"
-      },
-      "ImportStrategicInitiativeKpiRequest": {
-        "required": [
-          "strategicInitiativeImportId",
-          "name",
-          "targetValue",
-          "targetDirection"
-        ],
-        "type": "object",
-        "properties": {
-          "strategicInitiativeImportId": {
-            "minLength": 1,
-            "type": "string",
-            "description": "The `ImportId` of the initiative row this KPI belongs to. Where that row left the column\nblank its position stands in, so `1` reaches the first initiative — but a file carrying KPIs\nshould supply `ImportId`, since inserting a row silently re-parents every KPI below it.",
-            "x-csv-column": "StrategicInitiativeImportId"
-          },
-          "name": {
-            "maxLength": 64,
-            "minLength": 1,
-            "type": "string",
-            "x-csv-column": "Name"
-          },
-          "description": {
-            "maxLength": 512,
-            "type": [
-              "null",
-              "string"
-            ],
-            "x-csv-column": "Description"
-          },
-          "targetValue": {
-            "type": "number",
-            "description": "The value that defines success.",
-            "format": "double",
-            "x-csv-column": "TargetValue"
-          },
-          "startingValue": {
-            "type": [
-              "null",
-              "number"
-            ],
-            "description": "The baseline value.",
-            "format": "double",
-            "x-csv-column": "StartingValue"
-          },
-          "prefix": {
-            "maxLength": 8,
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "A symbol shown before the value, such as \"$\".",
-            "x-csv-column": "Prefix"
-          },
-          "suffix": {
-            "maxLength": 8,
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "A symbol shown after the value, such as \"%\".",
-            "x-csv-column": "Suffix"
-          },
-          "targetDirection": {
-            "minLength": 1,
-            "type": "string",
-            "description": "Whether success means increasing or decreasing the value. Defaults to Increase.",
-            "x-csv-column": "TargetDirection",
-            "x-csv-values": [
-              "Increase",
-              "Decrease"
-            ]
-          }
-        },
-        "additionalProperties": false,
-        "description": "A single CSV row for the strategic initiative KPI import, attached to its initiative by that row's\n`ImportId`. KPIs are a separate file because an initiative has many of them, which a single\ninitiative row cannot carry."
       },
       "ImportStrategicInitiativeRequest": {
         "required": [

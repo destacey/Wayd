@@ -7501,55 +7501,6 @@ export interface ImportRiskRequest {
 }
 
 /**
- * A single CSV row for the strategic initiative KPI import, attached to its initiative by that row's
- * `ImportId`. KPIs are a separate file because an initiative has many of them, which a single
- * initiative row cannot carry.
- */
-export interface ImportStrategicInitiativeKpiRequest {
-  /**
-     * The `ImportId` of the initiative row this KPI belongs to. Where that row left the column
-     * blank its position stands in, so `1` reaches the first initiative — but a file carrying KPIs
-     * should supply `ImportId`, since inserting a row silently re-parents every KPI below it.
-     * @minLength 1
-     */
-  strategicInitiativeImportId: string;
-  /**
-     * @minLength 1
-     * @maxLength 64
-     */
-  name: string;
-  /**
-     * @maxLength 512
-     * @nullable
-     */
-  description?: string | null;
-  /** The value that defines success. */
-  targetValue: number;
-  /**
-     * The baseline value.
-     * @nullable
-     */
-  startingValue?: number | null;
-  /**
-     * A symbol shown before the value, such as "$".
-     * @maxLength 8
-     * @nullable
-     */
-  prefix?: string | null;
-  /**
-     * A symbol shown after the value, such as "%".
-     * @maxLength 8
-     * @nullable
-     */
-  suffix?: string | null;
-  /**
-     * Whether success means increasing or decreasing the value. Defaults to Increase.
-     * @minLength 1
-     */
-  targetDirection: string;
-}
-
-/**
  * A single CSV row for the strategic initiative import. The owning portfolio is referenced by id and the
  * delivering projects by a semicolon-separated list of their keys; role columns hold semicolon-separated
  * employee numbers. `Status` is the status the initiative should end up in (case-insensitive),
@@ -20848,8 +20799,6 @@ export type StrategicInitiativesImportParams = {
 
 export type StrategicInitiativesImportBody = {
   file: Blob | File;
-  /** @nullable */
-  kpiFile?: Blob | File | null;
 };
 
 export type EstimationScalesGetScalesParams = {

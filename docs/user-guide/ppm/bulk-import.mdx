@@ -48,8 +48,8 @@ A few rules apply to every import:
   to submit a file on its own. An empty GUID is rejected rather than treated as a group.
 - **`ImportId` is yours, and its cells may be blank.** Any value you like — a row number, a key from
   whatever system the file came out of — provided it is unique within the one file, compared
-  case-insensitively. Row outcomes are reported against it, rows reference each other by it (a KPI names
-  its initiative's `ImportId`, a task its parent's), and leaving it blank uses the row's position instead.
+  case-insensitively. Row outcomes are reported against it, rows reference each other by it (a task names
+  its parent's `ImportId`), and leaving it blank uses the row's position instead.
   It is never written onto the records the import creates.
 - **Group by group.** A rejected row — a reference that does not exist, a record that already exists, or a
   transition the domain refuses — keeps out its own group and nothing else, and the run names the row and
@@ -57,7 +57,7 @@ A few rules apply to every import:
 - **A malformed file is refused whole.** The checks in the column tables below — a required cell left
   blank, a value too long, a status or type that is not one of those listed, a date a row's status does not
   allow — and the checks across the file — a name or key repeated within the file, a parent cycle among
-  tasks, a KPI naming an initiative the file does not contain — are made before anything is queued. A file
+  tasks — are made before anything is queued. A file
   failing any of them returns `422` naming the problem, and no run is created; a cell that cannot be read
   at all (text in a date or id column) returns `400`. Fix the file and post it again.
 - **Every column must be present, even the optional ones.** *Required* in the tables below means the cell
@@ -98,7 +98,7 @@ Reference data (expenditure categories, project lifecycles — created in Settin
   → Project deliverables
   → Project tasks
   → Project stage statuses
-  → Strategic initiatives (with KPIs)
+  → Strategic initiatives
   → Finalize (close historical programs and portfolios)
 ```
 
@@ -123,7 +123,7 @@ Each import requires the **Import** permission for the relevant resource:
 | Portfolios · Finalize | Import Portfolios |
 | Programs | Import Programs |
 | Projects · Tasks · Stages · Deliverables | Import Projects |
-| Strategic initiatives (+ KPIs) | Import Strategic Initiatives |
+| Strategic initiatives | Import Strategic Initiatives |
 
 ## Limits
 
@@ -140,7 +140,7 @@ its group was rejected says so and names that row, so the fix is always to one r
 | Tasks | one **project** | that project's whole breakdown |
 | Stages | one **project** | that project's other stage changes |
 | Deliverables | one **project** | that project's other new deliverables |
-| Strategic initiatives | one initiative, with its KPIs | that initiative and its KPIs |
+| Strategic initiatives | one initiative | that initiative |
 | Finalize | one program or portfolio | that one record |
 
 Tasks and stages group by the project rather than by the row, because rows within a project are not
@@ -339,12 +339,10 @@ outstanding, so its row is refused.
 
 `POST /api/ppm/strategic-initiatives/import`
 
-Loads [strategic initiatives](./strategic-initiatives.mdx), optionally with their **KPIs** in the same call.
-The initiatives CSV is the `file` field; the KPIs CSV, if provided, is a second `kpiFile` field — sent
-together so the KPIs are attached before each initiative is driven to its final status (a closed initiative
-accepts neither new projects nor new KPIs).
-
-**Initiatives** (`file`):
+Loads [strategic initiatives](./strategic-initiatives.mdx) from the `file` field, each with its linked
+projects, driven to the status the row names. Their **KPIs** go through the
+[KPI import](../organizations/bulk-import.mdx#kpi-import), naming each initiative by the id this import
+returns for it: a closed initiative accepts KPIs as an open one does.
 
 | Column | Required | Notes |
 |---|---|---|
@@ -357,21 +355,6 @@ accepts neither new projects nor new KPIs).
 | `ProjectKeys` | No | Semicolon-separated project **keys** the initiative delivers through. |
 | `Sponsors` · `Owners` | No | Semicolon-separated employee numbers. |
 | `Links` | No | Links to add to the initiative: `Name\|URL` entries separated by semicolons. See [Links](#links-column). |
-
-**KPIs** (`kpiFile`):
-
-| Column | Required | Notes |
-|---|---|---|
-| `StrategicInitiativeImportId` | Yes | The `ImportId` of the initiative row this KPI belongs to (must be in the same import). Where that row left the column blank its position stands in, so `1` reaches the first initiative — but a file carrying KPIs should supply `ImportId`, since inserting a row silently re-parents every KPI below it. |
-| `Name` | Yes | Unique within its initiative. Max 64 chars. |
-| `Description` | No | Max 512 chars. |
-| `TargetValue` | Yes | The target value that defines success. |
-| `StartingValue` | No | The baseline value. Below `TargetValue` for `Increase`, above it for `Decrease`. |
-| `Prefix` | No | Symbol shown before the value (e.g. `$`). Max 8 chars. |
-| `Suffix` | No | Symbol shown after the value (e.g. `%`). Max 8 chars. |
-| `TargetDirection` | Yes | `Increase` or `Decrease`. |
-
-The KPIs file has no `ImportId` column of its own.
 
 ## Finalize import
 

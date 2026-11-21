@@ -189,19 +189,6 @@ public sealed class StrategicInitiativeCsvRow
     public string? Links { get; init; }
 }
 
-/// <summary>One row of the strategic initiative KPIs CSV, attached to its initiative row by that row's ImportId.</summary>
-public sealed class StrategicInitiativeKpiCsvRow
-{
-    public required string StrategicInitiativeImportId { get; init; }
-    public required string Name { get; init; }
-    public string? Description { get; init; }
-    public double TargetValue { get; init; }
-    public double? StartingValue { get; init; }
-    public string? Prefix { get; init; }
-    public string? Suffix { get; init; }
-    public required string TargetDirection { get; init; }
-}
-
 /// <summary>
 /// One row of the finalize CSV: closes one program or portfolio once its contents are imported. Id is read
 /// per Type — a program id on a program row, a portfolio id on a portfolio row.

@@ -170,36 +170,6 @@ public sealed class StrategicInitiativeImportDefinitionTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateInitiatives_CreatesTheKpisCarriedOnTheRow()
-    {
-        // Arrange & Act
-        var result = await Run(
-            Row("Expand to EU", StrategicInitiativeStatus.Active) with { Kpis = [Kpi("Revenue", 5_000_000)] });
-
-        // Assert
-        result.Value.Rows.Single().Failed.Should().BeFalse();
-
-        var kpi = _portfolio.StrategicInitiatives.Single().Kpis.Single();
-        kpi.Name.Should().Be("Revenue");
-        kpi.TargetValue.Should().Be(5_000_000);
-    }
-
-    [Fact]
-    public async Task CreateInitiatives_CreatesTheKpisBeforeClosingTheInitiative()
-    {
-        // Arrange & Act — a closed initiative refuses new KPIs, which is why they travel on the row
-        var result = await Run(
-            Row("Expand to EU", StrategicInitiativeStatus.Completed) with { Kpis = [Kpi("Revenue", 5_000_000)] });
-
-        // Assert
-        result.Value.Rows.Single().Failed.Should().BeFalse();
-
-        var initiative = _portfolio.StrategicInitiatives.Single();
-        initiative.Status.Should().Be(StrategicInitiativeStatus.Completed);
-        initiative.Kpis.Should().ContainSingle(k => k.Name == "Revenue");
-    }
-
-    [Fact]
     public async Task CreateInitiatives_AssignsRolesResolvedByEmployeeNumber()
     {
         // Arrange
@@ -321,10 +291,7 @@ public sealed class StrategicInitiativeImportDefinitionTests : IDisposable
     }
 
     private ImportStrategicInitiativeDto Row(string name, StrategicInitiativeStatus status) =>
-        new(name, $"{name} initiative", status, _portfolio.Id, _start, _end, [], [], [], []);
-
-    private static ImportStrategicInitiativeKpiDto Kpi(string name, double targetValue) =>
-        new(name, null, targetValue, 0, null, null, KpiTargetDirection.Increase);
+        new(name, $"{name} initiative", status, _portfolio.Id, _start, _end, [], [], []);
 
     [Fact]
     public async Task CreateInitiatives_AddsTheRowsLinks_ToTheStrategicinitiativeItCreated()

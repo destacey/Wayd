@@ -16,17 +16,15 @@ using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 namespace Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Imports;
 
 /// <summary>
-/// Imports strategic initiatives with the KPIs carried on each row.
+/// Imports strategic initiatives. Their KPIs go through the KPI import.
 /// </summary>
 /// <remarks>
-/// Per group, keyed on the initiative the row creates. One row is a long sequence — create, attach projects,
-/// add every KPI, then walk the status — and a rejection anywhere in it has already staged the rest, so the
-/// group is what makes the runner discard a half-built initiative rather than commit it beside the rows that
-/// succeeded. An initiative missing the KPIs it is measured by is the case that matters.
+/// Per group, keyed on the initiative the row creates. One row is a sequence — create, attach projects, then
+/// walk the status — and a rejection anywhere in it has already staged the rest, so the group is what makes the
+/// runner discard a half-built initiative rather than commit it beside the rows that succeeded.
 /// <para>
 /// One pass, because a row depends on nothing else in the file: its portfolio, projects and people all
-/// have to exist already, and its KPIs travel with it. That independence is also why the group is the
-/// initiative and not its portfolio.
+/// have to exist already. That independence is also why the group is the initiative and not its portfolio.
 /// </para>
 /// </remarks>
 public sealed class StrategicInitiativeImportDefinition(
@@ -155,8 +153,7 @@ public sealed class StrategicInitiativeImportDefinition(
 
             var initiative = created.Value;
 
-            // Projects and KPIs are both refused once the initiative is closed, so they precede the
-            // status walk.
+            // Projects are refused once the initiative is closed, so they precede the status walk.
             if (data.ProjectKeys.Count > 0)
             {
                 var managed = initiative.ManageProjects(data.ProjectKeys.Select(k => projectIdsByKey[Normalize(k)]), actor, timestamp);
@@ -165,13 +162,6 @@ public sealed class StrategicInitiativeImportDefinition(
                     row.Failed($"Could not attach projects to strategic initiative '{name}': {managed.Error}");
                     continue;
                 }
-            }
-
-            var kpis = AddKpis(initiative, data.Kpis, actor, timestamp);
-            if (kpis.IsFailure)
-            {
-                row.Failed(kpis.Error);
-                continue;
             }
 
             var transition = ApplyStatus(initiative, data.Status, actor, timestamp);
@@ -222,27 +212,6 @@ public sealed class StrategicInitiativeImportDefinition(
             return Result.Failure("Strategic initiatives cannot be imported on hold: the domain has no transition to that status.");
 
         return initiative.Complete(actor, timestamp);
-    }
-
-    private static Result AddKpis(StrategicInitiative initiative, IReadOnlyList<ImportStrategicInitiativeKpiDto> kpis, EventActor actor, Instant timestamp)
-    {
-        foreach (var kpi in kpis)
-        {
-            var parameters = new StrategicInitiativeKpiUpsertParameters(
-                Normalize(kpi.Name),
-                kpi.Description?.Trim(),
-                kpi.StartingValue,
-                kpi.TargetValue,
-                kpi.Prefix?.Trim(),
-                kpi.Suffix?.Trim(),
-                kpi.TargetDirection);
-
-            var result = initiative.CreateKpi(parameters, actor, timestamp);
-            if (result.IsFailure)
-                return Result.Failure($"Could not create KPI '{kpi.Name}' for strategic initiative '{initiative.Name}': {result.Error}");
-        }
-
-        return Result.Success();
     }
 
     private async Task<Dictionary<Guid, ProjectPortfolio>> ResolvePortfolios(

@@ -18,12 +18,12 @@ it doubles as an integration smoke test.
 
 :::info[Scope]
 Generates the organization (people + team hierarchy), the PPM dataset (portfolios, programs, projects,
-tasks, strategic themes, and strategic initiatives with KPIs), the Product Management dataset
+tasks, strategic themes, and strategic initiatives), the Product Management dataset
 (products and the dependencies between them, versions, release packages, releases, deployment environments
 and deployments), and the
 Planning dataset (planning intervals with their teams, objectives and risks), the Request Desk dataset
 (intake desks with their members, tag categories, intake requests, and what they became), and KPIs on every
-team and ART, and on every live portfolio, program and project, with a monthly history. Use the `org-only` recipe for the organization on its own, or
+team and ART, and on every live portfolio, program, project and strategic initiative, with a monthly history. Use the `org-only` recipe for the organization on its own, or
 `--skip-ppm` / `--skip-product-management` / `--skip-planning` / `--skip-demand-management` / `--skip-kpis` to
 leave out one area.
 Work items, sprints and objective health checks are not generated. Database **reset** is a separate,
@@ -65,8 +65,8 @@ The API base URL is shown in the Aspire dashboard when you run the stack
 
 `generate` writes one file per import, named for it: `employees.csv`, `teams.csv`, `team-memberships.csv`
 and `members.csv` for the organization; `strategic-themes.csv`, `portfolios.csv`, `programs.csv`,
-`projects.csv`, `project-tasks.csv`, `project-stages.csv`, `project-deliverables.csv`, `strategic-initiatives.csv`,
-`strategic-initiative-kpis.csv` and `ppm-finalizations.csv` for PPM; `deployment-environments.csv`,
+`projects.csv`, `project-tasks.csv`, `project-stages.csv`, `project-deliverables.csv`, `strategic-initiatives.csv`
+and `ppm-finalizations.csv` for PPM; `deployment-environments.csv`,
 `products.csv`, `product-dependencies.csv`, `versions.csv`, `release-packages.csv`,
 `release-package-components.csv`, `releases.csv`, `release-contents.csv`, `deployments.csv` and
 `incidents.csv` for Product Management; `planning-intervals.csv`,
@@ -403,7 +403,7 @@ anything you can compose in the page, you can also say on a command line.
 | `--risks-per-team` | `1.5` | Average risks (0..5) a team raises per planning interval |
 | `--skip-demand-management` | off | Skip the Request Desk: its desks, tag categories and intake requests |
 | `--requests-per-month` | `12` | Average intake requests (0..200) the company submits per month across the history |
-| `--skip-kpis` | off | Skip KPIs: their categories, and every team's, ART's, portfolio's, program's and project's KPIs and history |
+| `--skip-kpis` | off | Skip KPIs: their categories, and every team's, ART's, portfolio's, program's, project's and initiative's KPIs and history |
 | `--kpis-per-team` | `3` | KPIs (0..8) each delivery team carries; its ART carries half as many, at least one |
 | `--random-seed`, `-r` | random | Fixed RNG seed for reproducible output (every area) |
 | `--as-of` | today (UTC) | The date the run treats as today, which the whole timeline is anchored on. Pin it *with* `--random-seed` for byte-identical output |
@@ -548,8 +548,8 @@ delivery teams:
   linked task's subtasks already count toward its deliverable's progress. Links draw from their own random
   stream too, so the tasks and deliverables a seed produces are unchanged by them.
 - **Strategic themes** — a handful of active themes, tagged onto programs and projects.
-- **Strategic initiatives + KPIs** — one per portfolio, linking a few of its projects, each with a couple
-  of KPIs.
+- **Strategic initiatives** — one per portfolio, linking a few of its projects. Their KPIs come with the KPI
+  dataset (see [The KPI dataset](#the-kpi-dataset)).
 
 **The four-year timeline.** At the defaults, work spans two years of history (`--history-years`) and a
 two-year runway (`--runway-years`) from today, and each
@@ -818,17 +818,20 @@ and **People** categories (create-or-get by name, like the expenditure categorie
   plan by 15% of the whole move. Plans draw from a stream of their own (`kpis.checkpoints`), so the KPIs and
   their history are the same with or without them.
 
-With PPM generated, every active portfolio, and every active or completed program and project, carries two KPIs too,
-under two more categories, **Delivery** and **Benefits**:
+With PPM generated, every active portfolio, and every active or completed program, project and strategic initiative,
+carries two KPIs too, under two more categories, **Delivery** and **Benefits**:
 
 - **Which KPIs** — a project draws from budget variance, schedule slippage, user adoption, cost savings and
   stakeholder satisfaction; a program from milestones on time, budget variance and benefits realized; a
-  portfolio from strategic alignment, projects on schedule and benefits realized.
+  portfolio from strategic alignment, projects on schedule and benefits realized; an initiative from customer
+  satisfaction, time to market, adoption rate, operating cost and incident rate.
 - **History** — monthly, as for teams, but only over the months the record was live: from the month after
   it was activated to the month it closed, or the last whole month. A record live for fewer than six months
-  carries none. Proposed, approved and canceled records carry none.
-- **Their own stream** — PPM KPIs draw from `kpis.ppm`, so the teams' KPIs are the same with or without
-  PPM. There is no knob for how many: two per record.
+  carries none. Proposed, approved and canceled records carry none. An initiative records no activation date,
+  so its history runs from the month after it starts.
+- **Their own stream** — PPM KPIs draw from `kpis.ppm`, and initiatives' from `kpis.initiatives`, so the
+  teams' KPIs are the same with or without PPM, and the other PPM records' with or without initiatives. There
+  is no knob for how many: two per record.
 
 A team whose baseline leaves no room to improve within a KPI's range — a defect count already at zero — skips
 that KPI rather than carrying a goal it has already met. KPIs draw from a random stream of their own (`kpis`),
@@ -871,7 +874,7 @@ employees → portfolios → programs (+ strategic themes)
   → projects (+ expenditure categories and lifecycle, the settings bootstrap)
       → project deliverables (after the employees who own them)
           → project tasks (linked to the deliverables they serve) → project stage statuses
-      → strategic initiatives (+ KPIs)
+      → strategic initiatives
   → finalize (close historical programs/portfolios, after everything above)
 
 product-management feature flag → deployment environments
@@ -888,7 +891,7 @@ demand-management feature flag → tag categories (+ the seeded channels, read b
                                          → intake request outcomes (after the projects and deliverables too)
 
 kpis feature flag → KPI categories
-                  teams + portfolios + programs + projects + categories → KPIs (+ monthly measurements)
+                  teams + portfolios + programs + projects + initiatives + categories → KPIs (+ monthly measurements)
 
 application roles → user accounts (after employees)
 ```

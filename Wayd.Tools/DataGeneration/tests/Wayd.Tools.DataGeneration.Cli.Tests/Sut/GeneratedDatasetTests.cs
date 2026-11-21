@@ -52,7 +52,7 @@ public class GeneratedDatasetTests : IDisposable
             "employees.csv", "teams.csv", "team-memberships.csv", "members.csv",
             "strategic-themes.csv", "portfolios.csv", "programs.csv", "projects.csv",
             "project-tasks.csv", "project-stages.csv", "strategic-initiatives.csv",
-            "strategic-initiative-kpis.csv", "ppm-finalizations.csv",
+            "ppm-finalizations.csv",
             "deployment-environments.csv", "products.csv", "versions.csv", "release-packages.csv",
             "release-package-components.csv", "releases.csv", "release-contents.csv", "deployments.csv",
             "product-dependencies.csv", "incidents.csv",

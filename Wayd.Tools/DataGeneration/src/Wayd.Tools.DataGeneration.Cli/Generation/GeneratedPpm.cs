@@ -17,7 +17,6 @@ public sealed record GeneratedPpm(
     IReadOnlyList<ProjectStageModel> ProjectStages,
     IReadOnlyList<ProjectDeliverableModel> ProjectDeliverables,
     IReadOnlyList<StrategicInitiativeModel> StrategicInitiatives,
-    IReadOnlyList<StrategicInitiativeKpiModel> StrategicInitiativeKpis,
     IReadOnlyList<PpmFinalizationModel> Finalizations,
     IReadOnlyList<PpmVocabulary.ExpenditureCategoryDefinition> ExpenditureCategories,
     PpmVocabulary.ProjectLifecycleDefinition Lifecycle);

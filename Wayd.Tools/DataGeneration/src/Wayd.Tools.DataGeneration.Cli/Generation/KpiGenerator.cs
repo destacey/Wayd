@@ -29,6 +29,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 /// <see cref="KpisPerPpmRecord"/> KPIs too, measured monthly from the month after it was activated to the month it
 /// closed, or the last whole month; a record live too briefly carries none. They draw from a random stream of their
 /// own, so the teams' KPIs are the same with or without PPM, and they add the delivery and benefits categories.
+/// Every active or completed strategic initiative is measured the same way from its start, from a stream of its own
+/// again, so the portfolios', programs' and projects' KPIs are the same with or without it.
 /// </para>
 /// </summary>
 public sealed class KpiGenerator
@@ -64,6 +66,7 @@ public sealed class KpiGenerator
     private readonly Faker _faker;
     private readonly Faker _planFaker;
     private readonly Faker _ppmFaker;
+    private readonly Faker _initiativeFaker;
 
     private readonly List<KpiModel> _kpis = [];
     private readonly List<KpiMeasurementModel> _measurements = [];
@@ -81,6 +84,7 @@ public sealed class KpiGenerator
         _faker = new Faker { Random = new Randomizer(context.SeedFor(AreaName)) };
         _planFaker = new Faker { Random = new Randomizer(context.SeedFor($"{AreaName}.checkpoints")) };
         _ppmFaker = new Faker { Random = new Randomizer(context.SeedFor($"{AreaName}.ppm")) };
+        _initiativeFaker = new Faker { Random = new Randomizer(context.SeedFor($"{AreaName}.initiatives")) };
     }
 
     public GeneratedKpis Generate()
@@ -112,8 +116,8 @@ public sealed class KpiGenerator
     }
 
     /// <summary>
-    /// The KPIs of every portfolio, program and project that went live, over the months it was live. A canceled
-    /// record, and one never activated, carries none.
+    /// The KPIs of every portfolio, program, project and strategic initiative that went live, over the months it was
+    /// live. A canceled record, and one never activated, carries none.
     /// </summary>
     private void MeasurePpm(GeneratedPpm ppm, List<(DateOnly Start, DateOnly End)> months)
     {
@@ -136,6 +140,14 @@ public sealed class KpiGenerator
             if (project.ActivatedOn is { } activated && project.Status is "Active" or "Completed")
                 Measure(KpiSubject.Project, project.Key, ProjectKpis, KpisPerPpmRecord,
                     Live(months, activated, project.Status == "Completed" ? project.ClosedOn ?? project.End : null), _ppmFaker);
+        }
+
+        // An initiative records no activation date, so it is measured from its start.
+        foreach (var initiative in ppm.StrategicInitiatives)
+        {
+            if (initiative.Status is "Active" or "Completed")
+                Measure(KpiSubject.StrategicInitiative, initiative.Name, InitiativeKpis, KpisPerPpmRecord,
+                    Live(months, initiative.Start, initiative.Status == "Completed" ? initiative.End : null), _initiativeFaker);
         }
     }
 

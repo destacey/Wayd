@@ -26,6 +26,9 @@ public static class KpiArea
     /// <summary>The subject type a portfolio's KPIs are stored under.</summary>
     public const string PortfolioSubjectType = "ppm.portfolio";
 
+    /// <summary>The subject type a strategic initiative's KPIs are stored under.</summary>
+    public const string StrategicInitiativeSubjectType = "ppm.strategic-initiative";
+
     /// <summary>The subject type a KPI's record is stored under, and the area that published the record's id.</summary>
     public static (string SubjectType, string Area) For(KpiSubject subject) => subject switch
     {
@@ -33,6 +36,7 @@ public static class KpiArea
         KpiSubject.Project => (ProjectSubjectType, PpmArea.Projects),
         KpiSubject.Program => (ProgramSubjectType, PpmArea.Programs),
         KpiSubject.Portfolio => (PortfolioSubjectType, PpmArea.Portfolios),
+        KpiSubject.StrategicInitiative => (StrategicInitiativeSubjectType, PpmArea.Initiatives),
         _ => throw new ArgumentOutOfRangeException(nameof(subject), subject, null),
     };
 }
@@ -87,7 +91,8 @@ public sealed class KpiCategoriesArea() : KpiSeedArea(KpiArea.Categories, KpiAre
 /// splits one from them. A point-in-time moment is written with its offset, which the import requires.
 /// </summary>
 public sealed class KpisArea() : KpiSeedArea(
-    KpiArea.Kpis, KpiArea.Categories, OrganizationArea.Teams, PpmArea.Portfolios, PpmArea.Programs, PpmArea.Projects)
+    KpiArea.Kpis, KpiArea.Categories, OrganizationArea.Teams, PpmArea.Portfolios, PpmArea.Programs, PpmArea.Projects,
+    PpmArea.Initiatives)
 {
     public override string BatchedImport => "kpis.kpis";
 

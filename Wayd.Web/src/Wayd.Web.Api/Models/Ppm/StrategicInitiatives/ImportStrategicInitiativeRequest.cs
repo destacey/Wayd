@@ -54,8 +54,7 @@ public sealed class ImportStrategicInitiativeRequest
     /// </summary>
     public string? Links { get; set; }
 
-    public ImportStrategicInitiativeDto ToImportStrategicInitiativeDto(
-        IReadOnlyList<ImportStrategicInitiativeKpiDto> kpis)
+    public ImportStrategicInitiativeDto ToImportStrategicInitiativeDto()
     {
         var status = Enum.Parse<StrategicInitiativeStatus>(Status.Trim(), ignoreCase: true);
 
@@ -69,7 +68,6 @@ public sealed class ImportStrategicInitiativeRequest
             CsvList.Split(ProjectKeys),
             CsvList.Split(Sponsors),
             CsvList.Split(Owners),
-            kpis,
             Links);
     }
 }
@@ -103,81 +101,5 @@ public sealed class ImportStrategicInitiativeRequestValidator : CustomValidator<
             .NotEmpty()
             .GreaterThanOrEqualTo(i => i.Start)
                 .WithMessage("End date must be on or after the start date.");
-    }
-}
-
-/// <summary>
-/// A single CSV row for the strategic initiative KPI import, attached to its initiative by that row's
-/// <c>ImportId</c>. KPIs are a separate file because an initiative has many of them, which a single
-/// initiative row cannot carry.
-/// </summary>
-public sealed class ImportStrategicInitiativeKpiRequest
-{
-    /// <summary>
-    /// The <c>ImportId</c> of the initiative row this KPI belongs to. Where that row left the column
-    /// blank its position stands in, so <c>1</c> reaches the first initiative — but a file carrying KPIs
-    /// should supply <c>ImportId</c>, since inserting a row silently re-parents every KPI below it.
-    /// </summary>
-    public string StrategicInitiativeImportId { get; set; } = default!;
-
-    public string Name { get; set; } = default!;
-    public string? Description { get; set; }
-    /// <summary>The value that defines success.</summary>
-    public double TargetValue { get; set; }
-
-    /// <summary>The baseline value.</summary>
-    public double? StartingValue { get; set; }
-
-    /// <summary>A symbol shown before the value, such as "$".</summary>
-    public string? Prefix { get; set; }
-
-    /// <summary>A symbol shown after the value, such as "%".</summary>
-    public string? Suffix { get; set; }
-
-    /// <summary>Whether success means increasing or decreasing the value. Defaults to Increase.</summary>
-    [CsvValues(typeof(KpiTargetDirection))]
-    public string TargetDirection { get; set; } = nameof(KpiTargetDirection.Increase);
-
-    public ImportStrategicInitiativeKpiDto ToImportStrategicInitiativeKpiDto()
-    {
-        var direction = Enum.Parse<KpiTargetDirection>(TargetDirection.Trim(), ignoreCase: true);
-
-        return new ImportStrategicInitiativeKpiDto(
-            Name,
-            Description,
-            TargetValue,
-            StartingValue,
-            Prefix,
-            Suffix,
-            direction);
-    }
-}
-
-public sealed class ImportStrategicInitiativeKpiRequestValidator : CustomValidator<ImportStrategicInitiativeKpiRequest>
-{
-    public ImportStrategicInitiativeKpiRequestValidator()
-    {
-        RuleLevelCascadeMode = CascadeMode.Stop;
-
-        RuleFor(k => k.StrategicInitiativeImportId)
-            .NotEmpty();
-
-        RuleFor(k => k.Name)
-            .NotEmpty()
-            .MaximumLength(64);
-
-        RuleFor(k => k.Description)
-            .MaximumLength(512);
-
-        RuleFor(k => k.Prefix)
-            .MaximumLength(8);
-
-        RuleFor(k => k.Suffix)
-            .MaximumLength(8);
-
-        RuleFor(k => k.TargetDirection)
-            .NotEmpty()
-            .Must(d => Enum.TryParse<KpiTargetDirection>(d.Trim(), ignoreCase: true, out _))
-                .WithMessage("TargetDirection must be either 'Increase' or 'Decrease'.");
     }
 }

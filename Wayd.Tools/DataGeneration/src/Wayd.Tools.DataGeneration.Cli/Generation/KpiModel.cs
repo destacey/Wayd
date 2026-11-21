@@ -32,10 +32,13 @@ public enum KpiSubject
 
     /// <summary>A portfolio, named by its name.</summary>
     Portfolio,
+
+    /// <summary>A strategic initiative, named by its name.</summary>
+    StrategicInitiative,
 }
 
 /// <summary>
-/// One KPI on a team, an ART, a project, a program or a portfolio, as the import takes it. <see cref="Subject"/> and
+/// One KPI on a team, an ART, a project, a program, a portfolio or a strategic initiative, as the import takes it. <see cref="Subject"/> and
 /// <see cref="SubjectHandle"/> name the record by the handle its own generator gave it; the category is named and
 /// resolved to its id when seeded.
 /// </summary>

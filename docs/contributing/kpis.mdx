@@ -26,7 +26,7 @@ The user-facing rules are in [Scorecards and KPIs](../user-guide/organizations/s
 | Endpoints | `KpisController` (`/api/kpis/{subjectType}/{subjectId}`), `KpiCategoriesController`, `KpiImportsController` |
 | Client | `src/store/features/common/kpis-api.ts`, `src/components/common/kpi/scorecard/` |
 
-Strategic initiative KPIs moved onto this model as the `ppm.strategic-initiative` subject type. `Move-Strategic-Initiative-Kpis-To-Shared-Model` copied each with its checkpoints and measurements, keeping their ids, and wrote a `KpiBaselinedEvent` for each; the older `Models/KeyPerformanceIndicators` base and its `Ppm.StrategicInitiativeKpi*` tables remain until the initiative import stops writing them, and their `StrategicInitiativeKpi*` events stay readable in the initiative's Activity.
+Strategic initiative KPIs moved onto this model as the `ppm.strategic-initiative` subject type. `Move-Strategic-Initiative-Kpis-To-Shared-Model` copied each with its checkpoints and measurements, keeping their ids, and wrote a `KpiBaselinedEvent` for each; nothing writes the older `Models/KeyPerformanceIndicators` base or its `Ppm.StrategicInitiativeKpi*` tables any more, and they remain only until they are dropped, and their `StrategicInitiativeKpi*` events stay readable in the initiative's Activity.
 
 ## The goal and its readings
 

@@ -105,7 +105,5 @@ public sealed class Link : BaseEntity
     }
 
     /// <summary>Whether the text is an absolute <c>http</c> or <c>https</c> address, the only kind a link may open.</summary>
-    public static bool IsWebAddress(string? url) =>
-        Uri.TryCreate(url?.Trim(), UriKind.Absolute, out var uri)
-        && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+    public static bool IsWebAddress(string? url) => WebAddress.IsHttp(url);
 }

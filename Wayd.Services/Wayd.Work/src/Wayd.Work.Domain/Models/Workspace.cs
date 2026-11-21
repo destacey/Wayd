@@ -1,5 +1,6 @@
 ﻿using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
+using Wayd.Common.Domain;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Extensions;
 using Wayd.Common.Models;
@@ -31,9 +32,17 @@ public sealed class Workspace : BaseSoftDeletableEntity, IActivatable<WorkspaceA
 
         if (OwnershipInfo.Ownership is Ownership.Managed)
         {
+            if (!string.IsNullOrWhiteSpace(externalViewWorkItemUrlTemplate) && !WebAddress.IsHttp(externalViewWorkItemUrlTemplate))
+                throw new ArgumentException(InvalidUrlTemplate, nameof(externalViewWorkItemUrlTemplate));
+
             ExternalViewWorkItemUrlTemplate = externalViewWorkItemUrlTemplate;
         }
     }
+
+    /// <summary>
+    /// The template is served joined to a work item's external id as a link, so it must itself be a web address.
+    /// </summary>
+    private const string InvalidUrlTemplate = "The external view work item URL template must be a full web address starting with http:// or https://.";
 
     /// <summary>A unique key to identify the workspace.</summary>
     /// <value>The key.</value>
@@ -238,7 +247,8 @@ public sealed class Workspace : BaseSoftDeletableEntity, IActivatable<WorkspaceA
         if (string.Equals(ExternalViewWorkItemUrlTemplate, newExternalWorkItemUrlTemplate, StringComparison.Ordinal))
             return Result.Success();
 
-        // TODO: validate the template
+        if (newExternalWorkItemUrlTemplate is not null && !WebAddress.IsHttp(newExternalWorkItemUrlTemplate))
+            return Result.Failure(InvalidUrlTemplate);
 
         ExternalViewWorkItemUrlTemplate = newExternalWorkItemUrlTemplate;
 

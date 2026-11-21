@@ -1,4 +1,5 @@
 using CSharpFunctionalExtensions;
+using Wayd.Common.Domain;
 
 namespace Wayd.DemandManagement.Domain.Models;
 
@@ -34,12 +35,16 @@ public sealed record IntakeRequestOrigin
     public string? Url { get; private init; }
 
     /// <summary>
-    /// Builds an origin, refusing one missing its source system or external id.
+    /// Builds an origin, refusing one missing its source system or external id, or whose link is not an
+    /// absolute <c>http</c> or <c>https</c> address.
     /// </summary>
     public static Result<IntakeRequestOrigin> Create(string? sourceSystem, string? externalId, string? url)
     {
         if (string.IsNullOrWhiteSpace(sourceSystem) || string.IsNullOrWhiteSpace(externalId))
             return Result.Failure<IntakeRequestOrigin>("An origin needs both its source system and its external id.");
+
+        if (!string.IsNullOrWhiteSpace(url) && !WebAddress.IsHttp(url))
+            return Result.Failure<IntakeRequestOrigin>("An origin's URL must be a full web address starting with http:// or https://.");
 
         return new IntakeRequestOrigin(
             sourceSystem.Trim(),

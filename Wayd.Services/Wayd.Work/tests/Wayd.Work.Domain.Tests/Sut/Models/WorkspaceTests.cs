@@ -1,5 +1,9 @@
 ﻿using FluentAssertions;
+using Wayd.Common.Domain.Enums.AppIntegrations;
+using Wayd.Common.Domain.Models;
+using Wayd.Common.Models;
 using Wayd.Tests.Shared;
+using Wayd.Work.Domain.Models;
 using Wayd.Work.Domain.Tests.Data;
 
 namespace Wayd.Work.Domain.Tests.Sut.Models;
@@ -101,6 +105,65 @@ public class WorkspaceTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         workspace.ExternalViewWorkItemUrlTemplate.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("javascript:alert(1)//")]
+    [InlineData("dev.example/acme/_workitems/edit/")]
+    public void SetExternalViewWorkItemUrlTemplate_WhenNotAWebAddress_ReturnsFailure(string template)
+    {
+        // Arrange
+        var workspace = new WorkspaceFaker()
+            .AsExternal(externalViewWorkItemUrlTemplate: "https://dev.example/acme/_workitems/edit/")
+            .Generate();
+
+        // Act
+        var result = workspace.SetExternalViewWorkItemUrlTemplate(template, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        workspace.ExternalViewWorkItemUrlTemplate.Should().Be("https://dev.example/acme/_workitems/edit/");
+    }
+
+    [Fact]
+    public void SetExternalViewWorkItemUrlTemplate_WhenAStoredTemplateIsUnchanged_Succeeds()
+    {
+        // Arrange — a template saved before templates were checked can still be saved again as it is
+        var workspace = new WorkspaceFaker()
+            .AsExternal(externalViewWorkItemUrlTemplate: "dev.example/acme/_workitems/edit/")
+            .Generate();
+
+        // Act
+        var result = workspace.SetExternalViewWorkItemUrlTemplate("dev.example/acme/_workitems/edit/", _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void CreateExternal_TrimsTheTemplate()
+    {
+        // Arrange
+        var ownership = OwnershipInfo.CreateExternalOwned(Connector.AzureDevOps, "system-1", Guid.NewGuid().ToString());
+
+        // Act
+        var workspace = Workspace.CreateExternal(new WorkspaceKey("WEB"), "Web", null, ownership, Guid.NewGuid(), "  https://dev.example/acme/_workitems/edit/  ", _dateTimeProvider.Now);
+
+        // Assert
+        workspace.ExternalViewWorkItemUrlTemplate.Should().Be("https://dev.example/acme/_workitems/edit/");
+    }
+
+    [Fact]
+    public void CreateExternal_WithATemplateThatIsNotAWebAddress_Throws()
+    {
+        // Arrange
+        var ownership = OwnershipInfo.CreateExternalOwned(Connector.AzureDevOps, "system-1", Guid.NewGuid().ToString());
+
+        // Act
+        var act = () => Workspace.CreateExternal(new WorkspaceKey("WEB"), "Web", null, ownership, Guid.NewGuid(), "javascript:alert(1)//", _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>().WithParameterName("externalViewWorkItemUrlTemplate");
     }
 
     [Fact]

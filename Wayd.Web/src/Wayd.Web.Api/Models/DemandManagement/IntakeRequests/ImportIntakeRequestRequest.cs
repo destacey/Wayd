@@ -67,7 +67,7 @@ public sealed class ImportIntakeRequestRequest
     /// <summary>The request's id in that system. With the source system, identifies at most one request.</summary>
     public string? OriginExternalId { get; set; }
 
-    /// <summary>A link to the request in that system.</summary>
+    /// <summary>A link to the request in that system, a full web address starting with <c>http://</c> or <c>https://</c>.</summary>
     public string? OriginUrl { get; set; }
 
     /// <summary>
@@ -191,6 +191,9 @@ public sealed class ImportIntakeRequestRequestValidator : CustomValidator<Import
                 .WithMessage("An origin needs both its OriginSourceSystem and its OriginExternalId.")
             .Must(r => string.IsNullOrWhiteSpace(r.OriginUrl) || !string.IsNullOrWhiteSpace(r.OriginExternalId))
                 .WithMessage("An OriginUrl needs an OriginSourceSystem and an OriginExternalId.");
+
+        RuleFor(r => r.OriginUrl)
+            .IsWebAddress();
 
         RuleFor(r => r.TagIds)
             .Must(CsvList.AreAllIds)

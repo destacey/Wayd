@@ -38,7 +38,8 @@ public sealed class CreateExternalWorkspaceCommandHandlerValidator : CustomValid
             .MustAsync(BeUniqueWorkspaceName).WithMessage("The workspace name already exists.");
 
         RuleFor(c => c.ExternalViewWorkItemUrlTemplate)
-            .MaximumLength(256);
+            .MaximumLength(256)
+            .IsWebAddress();
     }
 
     public async Task<bool> BeUniqueWorkspaceKey(WorkspaceKey workspaceKey, CancellationToken cancellationToken)

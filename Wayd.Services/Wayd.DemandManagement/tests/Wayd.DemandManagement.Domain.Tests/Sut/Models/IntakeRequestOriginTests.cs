@@ -29,6 +29,19 @@ public sealed class IntakeRequestOriginTests
     }
 
     [Theory]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("portal.acme.example/req/1042")]
+    public void Create_WithAUrlThatIsNotAWebAddress_Fails(string url)
+    {
+        // Act
+        var result = IntakeRequestOrigin.Create("ServicePortal", "REQ-1042", url);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("An origin's URL must be a full web address starting with http:// or https://.");
+    }
+
+    [Theory]
     [InlineData(null, "REQ-1042")]
     [InlineData("ServicePortal", " ")]
     public void Create_MissingSourceOrExternalId_Fails(string? sourceSystem, string? externalId)

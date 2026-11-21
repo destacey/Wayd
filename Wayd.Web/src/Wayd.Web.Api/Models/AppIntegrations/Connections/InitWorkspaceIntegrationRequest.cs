@@ -54,6 +54,7 @@ public sealed class InitWorkspaceIntegrationRequestValidator : CustomValidator<I
             .MaximumLength(64);
 
         RuleFor(c => c.ExternalViewWorkItemUrlTemplate)
-            .MaximumLength(256);
+            .MaximumLength(256)
+            .IsWebAddress();
     }
 }

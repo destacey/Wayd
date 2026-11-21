@@ -38,6 +38,23 @@ public sealed class ImportIntakeRequestsCommandValidatorTests
     }
 
     [Fact]
+    public void Validate_RefusesAnOriginUrlThatIsNotAWebAddress()
+    {
+        // Arrange
+        var command = new ImportIntakeRequestsCommand(
+        [
+            Row("r1", new ImportIntakeRequestOriginDto("ServiceNow", "RITM1", "javascript:alert(1)")),
+        ]);
+
+        // Act
+        var result = _validator.Validate(command);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.ErrorMessage.Contains("must be a full web address"));
+    }
+
+    [Fact]
     public void Validate_AcceptsRowsWithDistinctOriginsOrNone()
     {
         // Arrange

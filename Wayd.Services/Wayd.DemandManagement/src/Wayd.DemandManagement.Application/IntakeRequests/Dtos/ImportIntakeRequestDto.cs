@@ -124,7 +124,7 @@ public sealed class ImportIntakeRequestDtoValidator : CustomValidator<ImportInta
         {
             RuleFor(r => r.Origin!.SourceSystem).NotEmpty().MaximumLength(128);
             RuleFor(r => r.Origin!.ExternalId).NotEmpty().MaximumLength(256);
-            RuleFor(r => r.Origin!.Url).MaximumLength(2048);
+            RuleFor(r => r.Origin!.Url).MaximumLength(2048).IsWebAddress();
         });
     }
 }

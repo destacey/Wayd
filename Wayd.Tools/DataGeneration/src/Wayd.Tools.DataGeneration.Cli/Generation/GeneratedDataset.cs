@@ -53,7 +53,7 @@ public sealed record GeneratedDataset(
         }
 
         var kpis = resolved.GenerateKpis
-            ? new KpiGenerator(org.Structure, resolved.Kpis, resolved.Context).Generate()
+            ? new KpiGenerator(org.Structure, resolved.Kpis, resolved.Context, ppm).Generate()
             : null;
 
         return new GeneratedDataset(org, ppm, productManagement, planning, demandManagement, kpis);

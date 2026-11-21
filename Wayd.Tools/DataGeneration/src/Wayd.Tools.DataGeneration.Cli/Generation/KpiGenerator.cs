@@ -24,6 +24,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 /// at-risk threshold. The plan draws from a random stream of its own, so the rest of the data is the same with or
 /// without it.
 /// </para>
+/// <para>
+/// When PPM was generated, every active or completed portfolio, program and project carries
+/// <see cref="KpisPerPpmRecord"/> KPIs too, measured monthly from the month after it was activated to the month it
+/// closed, or the last whole month; a record live too briefly carries none. They draw from a random stream of their
+/// own, so the teams' KPIs are the same with or without PPM, and they add the delivery and benefits categories.
+/// </para>
 /// </summary>
 public sealed class KpiGenerator
 {
@@ -48,25 +54,33 @@ public sealed class KpiGenerator
     /// <summary>How far short of each planned value its at-risk value sits, as a share of the whole planned move.</summary>
     private const double AtRiskMargin = 0.15;
 
+    /// <summary>How many KPIs each portfolio, program and project carries.</summary>
+    public const int KpisPerPpmRecord = 2;
+
     private readonly OrgStructure _org;
+    private readonly GeneratedPpm? _ppm;
     private readonly KpiOptions _options;
     private readonly GenerationContext _context;
     private readonly Faker _faker;
     private readonly Faker _planFaker;
+    private readonly Faker _ppmFaker;
 
     private readonly List<KpiModel> _kpis = [];
     private readonly List<KpiMeasurementModel> _measurements = [];
     private readonly List<KpiCheckpointModel> _checkpoints = [];
 
-    public KpiGenerator(OrgStructure org, KpiOptions options, GenerationContext context)
+    /// <param name="ppm">The generated PPM records, whose KPIs are generated too; null when PPM was not generated.</param>
+    public KpiGenerator(OrgStructure org, KpiOptions options, GenerationContext context, GeneratedPpm? ppm = null)
     {
         _org = org;
+        _ppm = ppm;
         _options = options;
         _context = context;
 
         // Derived from the area name, so adding another generator does not shift this one's data.
         _faker = new Faker { Random = new Randomizer(context.SeedFor(AreaName)) };
         _planFaker = new Faker { Random = new Randomizer(context.SeedFor($"{AreaName}.checkpoints")) };
+        _ppmFaker = new Faker { Random = new Randomizer(context.SeedFor($"{AreaName}.ppm")) };
     }
 
     public GeneratedKpis Generate()
@@ -80,15 +94,54 @@ public sealed class KpiGenerator
             foreach (var art in valueStream.Arts)
             {
                 if (art.TeamCode is { } artCode)
-                    Measure(artCode, ArtKpis, Math.Max(1, _options.KpisPerTeam / 2), months);
+                    Measure(KpiSubject.Team, artCode, ArtKpis, Math.Max(1, _options.KpisPerTeam / 2), months, _faker);
 
                 foreach (var team in art.Teams)
-                    Measure(team.TeamCode, TeamKpis, _options.KpisPerTeam, months);
+                    Measure(KpiSubject.Team, team.TeamCode, TeamKpis, _options.KpisPerTeam, months, _faker);
             }
         }
 
-        return new GeneratedKpis(Categories, _kpis, _measurements, _checkpoints);
+        if (_ppm is { } ppm)
+            MeasurePpm(ppm, months);
+
+        IReadOnlyList<string> categories = _kpis.Any(k => k.Subject != KpiSubject.Team)
+            ? [.. Categories, .. PpmCategories]
+            : Categories;
+
+        return new GeneratedKpis(categories, _kpis, _measurements, _checkpoints);
     }
+
+    /// <summary>
+    /// The KPIs of every portfolio, program and project that went live, over the months it was live. A canceled
+    /// record, and one never activated, carries none.
+    /// </summary>
+    private void MeasurePpm(GeneratedPpm ppm, List<(DateOnly Start, DateOnly End)> months)
+    {
+        foreach (var portfolio in ppm.Portfolios)
+        {
+            // A portfolio records no close date, so only an active one is measured to the last month.
+            if (portfolio.ActivatedOn is { } activated && portfolio.Status == "Active")
+                Measure(KpiSubject.Portfolio, portfolio.Name, PortfolioKpis, KpisPerPpmRecord, Live(months, activated, null), _ppmFaker);
+        }
+
+        foreach (var program in ppm.Programs)
+        {
+            if (program.ActivatedOn is { } activated && program.Status is "Active" or "Completed")
+                Measure(KpiSubject.Program, program.Name, ProgramKpis, KpisPerPpmRecord,
+                    Live(months, activated, program.Status == "Completed" ? program.End : null), _ppmFaker);
+        }
+
+        foreach (var project in ppm.Projects)
+        {
+            if (project.ActivatedOn is { } activated && project.Status is "Active" or "Completed")
+                Measure(KpiSubject.Project, project.Key, ProjectKpis, KpisPerPpmRecord,
+                    Live(months, activated, project.Status == "Completed" ? project.ClosedOn ?? project.End : null), _ppmFaker);
+        }
+    }
+
+    /// <summary>The whole months after the one <paramref name="from"/> falls in, through the one <paramref name="until"/> falls in.</summary>
+    private static List<(DateOnly Start, DateOnly End)> Live(List<(DateOnly Start, DateOnly End)> months, DateOnly from, DateOnly? until) =>
+        [.. months.Where(m => m.Start > from && (until is not { } end || m.Start <= end))];
 
     /// <summary>
     /// Every whole calendar month from the later of the history window's start and the team structure's
@@ -110,23 +163,27 @@ public sealed class KpiGenerator
         return months;
     }
 
-    private void Measure(string teamCode, IReadOnlyList<KpiDefinition> catalogue, int count, List<(DateOnly Start, DateOnly End)> months)
+    private void Measure(KpiSubject subject, string subjectHandle, IReadOnlyList<KpiDefinition> catalogue, int count, List<(DateOnly Start, DateOnly End)> months, Faker faker)
     {
-        foreach (var definition in _faker.Random.Shuffle(catalogue).Take(Math.Min(count, catalogue.Count)))
-            Add(teamCode, definition, months);
+        if (months.Count < MinimumMonths)
+            return;
+
+        foreach (var definition in faker.Random.Shuffle(catalogue).Take(Math.Min(count, catalogue.Count)))
+            Add(subject, subjectHandle, definition, months, faker);
     }
 
-    private void Add(string teamCode, KpiDefinition d, List<(DateOnly Start, DateOnly End)> months)
+    private void Add(KpiSubject subject, string subjectHandle, KpiDefinition d, List<(DateOnly Start, DateOnly End)> months, Faker faker)
     {
-        var handle = $"{teamCode}:{d.Name}";
+        // A team's handle is its code alone; a PPM record's names its kind too, since a program and a team can share a name.
+        var handle = subject == KpiSubject.Team ? $"{subjectHandle}:{d.Name}" : $"{subject}:{subjectHandle}:{d.Name}";
         var unit = Math.Pow(10, -d.Decimals);
 
         // Where this team started, and how noisy it is month to month.
-        var start = Clamp(d.Baseline + _faker.Random.Double(-1, 1) * d.Spread, d);
+        var start = Clamp(d.Baseline + faker.Random.Double(-1, 1) * d.Spread, d);
         var noise = d.Spread * 0.25;
 
         var baselineValues = Enumerable.Range(0, BaselineMonths)
-            .Select(_ => Round(Clamp(start + _faker.Random.Double(-1, 1) * noise, d), d))
+            .Select(_ => Round(Clamp(start + faker.Random.Double(-1, 1) * noise, d), d))
             .ToList();
 
         // A relative target from zero resolves to zero, so the baseline is kept off it.
@@ -137,16 +194,18 @@ public sealed class KpiGenerator
             return;
 
         // How far toward the target this team gets by the last month: most part of the way, a few past it.
-        var reach = _faker.Random.Double(0.2, 1.3);
+        var reach = faker.Random.Double(0.2, 1.3);
 
-        var isClosed = _faker.Random.Bool((float)ClosedFraction);
+        // Only a KPI with months to spare can stop partway; a record live for just the minimum keeps every month.
+        var isClosed = faker.Random.Bool((float)ClosedFraction) && months.Count - 2 > MinimumMonths;
         var measured = isClosed
-            ? _faker.Random.Int(MinimumMonths, Math.Max(MinimumMonths, months.Count - 2))
+            ? faker.Random.Int(MinimumMonths, Math.Max(MinimumMonths, months.Count - 2))
             : months.Count;
 
         _kpis.Add(new KpiModel(
             handle,
-            teamCode,
+            subject,
+            subjectHandle,
             d.Name,
             d.Description,
             d.Category,
@@ -177,18 +236,18 @@ public sealed class KpiGenerator
             var value = i < BaselineMonths
                 ? baselineValues[i]
                 : Round(Clamp(baseline + (resolved - baseline) * reach * (i - BaselineMonths + 1) / steps
-                    + _faker.Random.Double(-1, 1) * noise, d), d);
+                    + faker.Random.Double(-1, 1) * noise, d), d);
 
             int? sampleSize = d.SampleSize is { } typical
-                ? Math.Max(1, (int)Math.Round(typical * _faker.Random.Double(0.7, 1.3)))
+                ? Math.Max(1, (int)Math.Round(typical * faker.Random.Double(0.7, 1.3)))
                 : null;
 
-            Record(handle, d, months[i], i, value, sampleSize, noise);
+            Record(handle, d, months[i], i, value, sampleSize, noise, faker);
         }
     }
 
     /// <summary>Records one month's value the way the KPI's window takes it.</summary>
-    private void Record(string handle, KpiDefinition d, (DateOnly Start, DateOnly End) month, int index, double value, int? sampleSize, double noise)
+    private void Record(string handle, KpiDefinition d, (DateOnly Start, DateOnly End) month, int index, double value, int? sampleSize, double noise, Faker faker)
     {
         switch (d.Window)
         {
@@ -203,7 +262,7 @@ public sealed class KpiGenerator
                 break;
 
             case PointInTime:
-                var mid = Round(Clamp(value + _faker.Random.Double(-1, 1) * noise, d), d);
+                var mid = Round(Clamp(value + faker.Random.Double(-1, 1) * noise, d), d);
                 _measurements.Add(new KpiMeasurementModel(handle, null, null, null, Reading(month.Start), value, sampleSize));
                 _measurements.Add(new KpiMeasurementModel(handle, null, null, null, Reading(month.Start.AddDays(14)), mid, sampleSize));
                 break;

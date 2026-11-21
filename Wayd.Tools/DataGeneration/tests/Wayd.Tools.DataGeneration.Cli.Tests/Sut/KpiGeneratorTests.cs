@@ -13,15 +13,16 @@ public class KpiGeneratorTests
 
     private static GenerationContext Context(int seed = 1234) => new() { AsOf = _asOf, Seed = seed };
 
-    private static (GeneratedOrg Org, GeneratedKpis Data) Generate(KpiOptions? options = null, int seed = 1234)
+    private static (GeneratedOrg Org, GeneratedPpm? Ppm, GeneratedKpis Data) Generate(KpiOptions? options = null, int seed = 1234, bool withPpm = true)
     {
         var context = Context(seed);
         var org = new OrgGenerator(new OrgOptions { ValueStreams = 3, Teams = 18 }, context).Generate();
+        var ppm = withPpm ? new PpmGenerator(org.Structure, new PpmOptions(), context).Generate() : null;
 
-        return (org, new KpiGenerator(org.Structure, options ?? new KpiOptions(), context).Generate());
+        return (org, ppm, new KpiGenerator(org.Structure, options ?? new KpiOptions(), context, ppm).Generate());
     }
 
-    private static readonly (GeneratedOrg Org, GeneratedKpis Data) _default = Generate();
+    private static readonly (GeneratedOrg Org, GeneratedPpm? Ppm, GeneratedKpis Data) _default = Generate();
 
     private static GeneratedKpis Data => _default.Data;
 
@@ -39,7 +40,7 @@ public class KpiGeneratorTests
         var arts = structure.ValueStreams.SelectMany(v => v.Arts).Select(a => a.TeamCode).OfType<string>().ToList();
 
         // Act
-        var byTeam = Data.Kpis.GroupBy(k => k.TeamCode).ToDictionary(g => g.Key, g => g.Count());
+        var byTeam = Data.Kpis.Where(k => k.Subject == KpiSubject.Team).GroupBy(k => k.SubjectHandle).ToDictionary(g => g.Key, g => g.Count());
 
         // Assert
         teams.Should().NotBeEmpty();
@@ -57,7 +58,7 @@ public class KpiGeneratorTests
 
         // Assert
         handles.Should().OnlyHaveUniqueItems();
-        Data.Kpis.GroupBy(k => k.TeamCode).Should().AllSatisfy(g => g.Select(k => k.Name).Should().OnlyHaveUniqueItems());
+        Data.Kpis.GroupBy(k => (k.Subject, k.SubjectHandle)).Should().AllSatisfy(g => g.Select(k => k.Name).Should().OnlyHaveUniqueItems());
     }
 
     [Fact]
@@ -87,7 +88,7 @@ public class KpiGeneratorTests
                 k.AtRiskValue.Should().BeGreaterThan(0).And.BeLessThan(100);
             }
 
-            k.Category.Should().BeOneOf(KpiVocabulary.Categories);
+            k.Category.Should().BeOneOf(Data.Categories);
             k.ExpressedAs.Should().BeOneOf("Value", "ChangeFromBaseline", "ProgressToTarget");
         });
     }
@@ -296,10 +297,78 @@ public class KpiGeneratorTests
     public void Generate_MoreKpisPerTeam_GivesEveryTeamMore()
     {
         // Arrange & Act
-        var few = Generate(new KpiOptions { KpisPerTeam = 1 }).Data.Kpis.Count;
-        var many = Generate(new KpiOptions { KpisPerTeam = 5 }).Data.Kpis.Count;
+        var few = Generate(new KpiOptions { KpisPerTeam = 1 }).Data.Kpis.Count(k => k.Subject == KpiSubject.Team);
+        var many = Generate(new KpiOptions { KpisPerTeam = 5 }).Data.Kpis.Count(k => k.Subject == KpiSubject.Team);
 
         // Assert
         many.Should().BeGreaterThan(few * 3);
+    }
+
+    [Fact]
+    public void Generate_LeavesTheTeamsKpisUnchanged_WhetherOrNotPpmWasGenerated()
+    {
+        // Arrange & Act
+        var without = Generate(withPpm: false).Data;
+
+        // Assert
+        Data.Kpis.Where(k => k.Subject == KpiSubject.Team).Should().Equal(without.Kpis);
+        var teamHandles = without.Kpis.Select(k => k.Handle).ToHashSet();
+        Data.Measurements.Where(m => teamHandles.Contains(m.KpiHandle)).Should().Equal(without.Measurements);
+        Data.Checkpoints.Where(c => teamHandles.Contains(c.KpiHandle)).Should().Equal(without.Checkpoints);
+        without.Categories.Should().Equal(KpiVocabulary.Categories);
+    }
+
+    [Fact]
+    public void Generate_GivesEveryLiveProjectProgramAndPortfolioItsKpis_AndNothingElse()
+    {
+        // Arrange
+        var ppm = _default.Ppm!;
+        bool Live(string status) => status is "Active" or "Completed";
+        var expected = ppm.Portfolios.Where(p => p.ActivatedOn is not null && p.Status == "Active").Select(p => (KpiSubject.Portfolio, p.Name))
+            .Concat(ppm.Programs.Where(p => p.ActivatedOn is not null && Live(p.Status)).Select(p => (KpiSubject.Program, p.Name)))
+            .Concat(ppm.Projects.Where(p => p.ActivatedOn is not null && Live(p.Status)).Select(p => (KpiSubject.Project, p.Key)))
+            .ToHashSet();
+
+        // Act
+        var bySubject = Data.Kpis
+            .Where(k => k.Subject != KpiSubject.Team)
+            .GroupBy(k => (k.Subject, k.SubjectHandle))
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        // Assert
+        bySubject.Should().NotBeEmpty();
+        bySubject.Keys.Should().Contain(k => k.Item1 == KpiSubject.Project);
+        bySubject.Keys.Should().Contain(k => k.Item1 == KpiSubject.Program);
+        bySubject.Keys.Should().Contain(k => k.Item1 == KpiSubject.Portfolio);
+        bySubject.Keys.Should().BeSubsetOf(expected);
+        bySubject.Values.Should().AllSatisfy(kpis =>
+        {
+            kpis.Should().HaveCount(KpiGenerator.KpisPerPpmRecord);
+            kpis.Select(k => k.Name).Should().OnlyHaveUniqueItems();
+        });
+        Data.Categories.Should().Equal([.. KpiVocabulary.Categories, .. KpiVocabulary.PpmCategories]);
+    }
+
+    [Fact]
+    public void Generate_MeasuresAProjectOnlyWhileItWasLive()
+    {
+        // Arrange
+        var projects = _default.Ppm!.Projects.ToDictionary(p => p.Key);
+        var kpis = Data.Kpis.Where(k => k.Subject == KpiSubject.Project).ToDictionary(k => k.Handle);
+
+        // Act
+        var measured = Data.Measurements
+            .Where(m => kpis.ContainsKey(m.KpiHandle))
+            .Select(m => (Project: projects[kpis[m.KpiHandle].SubjectHandle], Measurement: m))
+            .ToList();
+
+        // Assert
+        measured.Should().NotBeEmpty();
+        measured.Should().AllSatisfy(x =>
+        {
+            x.Measurement.LastDay.Should().BeAfter(x.Project.ActivatedOn!.Value);
+            if (x.Project.Status == "Completed" && (x.Project.ClosedOn ?? x.Project.End) is { } closed)
+                x.Measurement.LastDay.Should().BeOnOrBefore(new DateOnly(closed.Year, closed.Month, 1).AddMonths(1).AddDays(-1));
+        });
     }
 }

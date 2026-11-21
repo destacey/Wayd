@@ -35,12 +35,14 @@ public sealed class EntraConnection : Connection<EntraConnectionConfiguration>, 
 
     public bool CanSync => IsActive && IsValidConfiguration && HasActiveIntegrationObjects;
 
+    /// <summary>Applies an administrator's edit, refusing one that sends the kept secret to another tenant or app.</summary>
+    /// <param name="clientSecret">The new client secret, or null to keep the stored one.</param>
     public Result Update(
         string name,
         string? description,
         string tenantId,
         string clientId,
-        string clientSecret,
+        string? clientSecret,
         string? allUsersGroupObjectId,
         bool includeDisabledUsers,
         Wayd.Common.Domain.Enums.AppIntegrations.EmployeeMatchProperty matchBy,
@@ -57,8 +59,14 @@ public sealed class EntraConnection : Connection<EntraConnectionConfiguration>, 
             var newDescription = description?.NullIfWhiteSpacePlusTrim();
             var newTenantId = Guard.Against.NullOrWhiteSpace(tenantId, nameof(tenantId)).Trim();
             var newClientId = Guard.Against.NullOrWhiteSpace(clientId, nameof(clientId)).Trim();
-            var newClientSecret = Guard.Against.NullOrWhiteSpace(clientSecret, nameof(clientSecret)).Trim();
+            var newClientSecret = clientSecret is null
+                ? Configuration.ClientSecret
+                : Guard.Against.NullOrWhiteSpace(clientSecret, nameof(clientSecret)).Trim();
             var newGroupId = string.IsNullOrWhiteSpace(allUsersGroupObjectId) ? null : allUsersGroupObjectId.Trim();
+
+            var scopeResult = RequireCredentialsForNewScope([newTenantId, newClientId], clientSecret is null, "client secret");
+            if (scopeResult.IsFailure)
+                return scopeResult;
 
             if (!UpdateValuesChanged(newName, newDescription, newTenantId, newClientId, newClientSecret, newGroupId, includeDisabledUsers, matchBy, normalizeNameCasing, configurationIsValid))
                 return Result.Success();
@@ -139,4 +147,6 @@ public sealed class EntraConnection : Connection<EntraConnectionConfiguration>, 
 
     protected override IReadOnlyList<(string Name, string Value)> Credentials() =>
         [(nameof(Configuration.ClientSecret), Configuration.ClientSecret)];
+
+    protected override IReadOnlyList<string?> CredentialScope() => [Configuration.TenantId, Configuration.ClientId];
 }

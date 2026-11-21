@@ -27,6 +27,10 @@ public sealed class TestOidcProviderDiscoveryCommandHandler(
 {
     private static readonly TimeSpan DiscoveryTimeout = TimeSpan.FromSeconds(10);
 
+    /// <summary>What the caller is told when discovery fails for any reason but a timeout.</summary>
+    internal const string DiscoveryFailedMessage =
+        "The discovery document could not be retrieved. Check that the Authority is an HTTPS URL this server may reach, serving /.well-known/openid-configuration; the API's log has the details.";
+
     private readonly IWaydDbContext _dbContext = dbContext;
     private readonly IOidcConfigurationManagerFactory _configManagerFactory = configManagerFactory;
     private readonly ILogger<TestOidcProviderDiscoveryCommandHandler> _logger = logger;
@@ -74,6 +78,8 @@ public sealed class TestOidcProviderDiscoveryCommandHandler(
         }
         catch (Exception ex)
         {
+            // The exception can quote what the authority answered, which an administrator could point at any
+            // address the API reaches, so it goes to the log and the caller gets a fixed message.
             _logger.LogWarning(ex,
                 "Test discovery failed for provider {ProviderId} ({Name}).",
                 provider.Id, provider.Name);
@@ -82,7 +88,7 @@ public sealed class TestOidcProviderDiscoveryCommandHandler(
                 Success: false,
                 Issuer: null,
                 JwksKeyCount: 0,
-                Error: ex.Message));
+                Error: DiscoveryFailedMessage));
         }
     }
 }

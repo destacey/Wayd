@@ -43,7 +43,9 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
     public override bool HasActiveIntegrationObjects => IsValidConfiguration
         && Configuration.Workspaces.Any(w => w.IntegrationIsActive);
 
-    public Result Update(string name, string? description, string organization, string personalAccessToken, bool configurationIsValid, EventActor actor, Instant timestamp)
+    /// <summary>Applies an administrator's edit, refusing one that sends the kept token to another organization.</summary>
+    /// <param name="personalAccessToken">The new token, or null to keep the stored one.</param>
+    public Result Update(string name, string? description, string organization, string? personalAccessToken, bool configurationIsValid, EventActor actor, Instant timestamp)
     {
         try
         {
@@ -52,7 +54,13 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
             var newName = Guard.Against.NullOrWhiteSpace(name, nameof(name)).Trim();
             var newDescription = description?.NullIfWhiteSpacePlusTrim();
             var newOrganization = Guard.Against.NullOrWhiteSpace(organization, nameof(organization)).Trim();
-            var newPersonalAccessToken = Guard.Against.NullOrWhiteSpace(personalAccessToken, nameof(personalAccessToken)).Trim();
+            var newPersonalAccessToken = personalAccessToken is null
+                ? Configuration.PersonalAccessToken
+                : Guard.Against.NullOrWhiteSpace(personalAccessToken, nameof(personalAccessToken)).Trim();
+
+            var scopeResult = CheckCredentialsFor(newOrganization, personalAccessToken);
+            if (scopeResult.IsFailure)
+                return scopeResult;
 
             if (!UpdateValuesChanged(newName, newDescription, newOrganization, newPersonalAccessToken, configurationIsValid))
                 return Result.Success();
@@ -447,6 +455,16 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
 
     protected override IReadOnlyList<(string Name, string Value)> Credentials() =>
         [(nameof(Configuration.PersonalAccessToken), Configuration.PersonalAccessToken)];
+
+    protected override IReadOnlyList<string?> CredentialScope() => [Configuration.Organization];
+
+    /// <summary>
+    /// Whether an edit to <paramref name="organization"/> may use the token it would leave in place. Checked
+    /// before the edit's connection test as well as by <see cref="Update"/>, since the test sends the token.
+    /// </summary>
+    /// <param name="personalAccessToken">The edit's new token, or null when it keeps the stored one.</param>
+    public Result CheckCredentialsFor(string organization, string? personalAccessToken) =>
+        RequireCredentialsForNewScope([organization.Trim()], personalAccessToken is null, "personal access token");
 
     private bool UpdateValuesChanged(string name, string? description, string organization, string personalAccessToken, bool configurationIsValid)
     {

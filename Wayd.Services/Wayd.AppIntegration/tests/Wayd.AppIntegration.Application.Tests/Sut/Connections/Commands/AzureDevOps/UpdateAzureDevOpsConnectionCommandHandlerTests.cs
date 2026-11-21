@@ -112,6 +112,25 @@ public class UpdateAzureDevOpsConnectionCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_RefusesAndNeverTestsTheConnection_WhenTheOrganizationChangesWithoutANewToken()
+    {
+        // Arrange
+        var connection = CreateConnection();
+        var command = new UpdateAzureDevOpsConnectionCommand(connection.Id, "AzDO", null, "other-org", null);
+
+        // Act
+        var result = await _sut.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        _mocker.GetMock<IAzureDevOpsService>().Verify(
+            s => s.GetSystemId(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()), Times.Never,
+            "the connection test would send the stored token to an organization it was not entered for");
+        connection.Configuration.Organization.Should().Be("acme-org");
+        _db.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Handle_Fails_WhenConnectionDoesNotExist()
     {
         // Arrange

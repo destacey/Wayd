@@ -58,6 +58,31 @@ public abstract class Connection : BaseSoftDeletableEntity, IActivatable<Connect
     protected abstract IReadOnlyList<(string Name, string Value)> Credentials();
 
     /// <summary>
+    /// The values the connection's credentials were entered for: where they are sent and the account they belong
+    /// to. Compared case-insensitively, so a case-only edit is not a new destination.
+    /// </summary>
+    protected abstract IReadOnlyList<string?> CredentialScope();
+
+    /// <summary>
+    /// Refuses an edit that keeps the stored credentials while changing what they were entered for, so a secret
+    /// is only ever sent to the endpoint and account it was entered for. Runs before anything is assigned.
+    /// </summary>
+    /// <param name="newScope">The edit's values for <see cref="CredentialScope"/>, in the same order.</param>
+    /// <param name="credentialsKept">True when the edit supplies no new credentials.</param>
+    /// <param name="credentialName">The credential as an administrator knows it, for the message.</param>
+    protected Result RequireCredentialsForNewScope(IReadOnlyList<string?> newScope, bool credentialsKept, string credentialName)
+    {
+        if (!credentialsKept || CredentialScope().SequenceEqual(newScope, StringComparer.OrdinalIgnoreCase))
+            return Result.Success();
+
+        return Result.Failure(CredentialsRequiredMessage(credentialName));
+    }
+
+    /// <summary>Why an edit that moves a kept credential to a new destination was refused.</summary>
+    public static string CredentialsRequiredMessage(string credentialName) =>
+        $"Enter the {credentialName} again: a stored credential is only sent to the endpoint and account it was entered for.";
+
+    /// <summary>
     /// The process for activating a connector.
     /// </summary>
     /// <returns>Result that indicates success or a list of errors</returns>

@@ -64,6 +64,7 @@ export const AzureDevOpsConfigurationSection: React.FC<ConfigSectionProps> = ({
         name="personalAccessToken"
         maxLength={128}
         mode={mode}
+        requiredAgainWhen="the organization"
         extra="Testing the configuration requires a token — the stored one is never sent back to the browser."
       />
 

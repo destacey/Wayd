@@ -103,16 +103,33 @@ public class UpdateEntraConnectionCommandHandlerTests
             "a rotated secret must save even when it happens to match the stored one's prefix and length");
     }
 
+    [Fact]
+    public async Task Handle_Refuses_WhenTheTenantChangesWithoutANewSecret()
+    {
+        // Arrange
+        var connection = CreateConnection();
+        var command = CreateCommand(connection.Id, clientSecret: null, tenantId: "another-tenant");
+
+        // Act
+        var result = await _sut.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        connection.Configuration.TenantId.Should().Be(TenantId);
+        _db.SaveChangesCallCount.Should().Be(0);
+    }
+
     private static UpdateEntraConnectionCommand CreateCommand(
         Guid id,
         string? clientSecret,
         string name = "Entra",
-        string? description = "Original description")
+        string? description = "Original description",
+        string tenantId = TenantId)
         => new(
             id,
             name,
             description,
-            TenantId,
+            tenantId,
             ClientId,
             clientSecret,
             AllUsersGroupObjectId: null,

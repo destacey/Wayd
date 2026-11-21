@@ -35,7 +35,7 @@ audience: [developer, agent, admin]
    - Disable **Require New Password at Next Sign In**.
 2. **Create or pick an Integration System Security Group (ISSG)** for the ISU and grant it the data domains listed in [Required permissions](#required-permissions) below.
 3. **Activate the security policy changes** via **Activate Pending Security Policy Changes**.
-4. Find the **WSDL URL** for the Staffing service in Workday's **View API Clients** screen. The URL looks like `https://wd3-impl-services1.workday.com/ccx/service/{tenant}/Staffing/v46.1?wsdl` (with or without the `?wsdl` suffix; Wayd handles both). Wayd rejects any URL whose path is not `/ccx/service/{tenant}/Staffing/v{major}.{minor}` — another service name, such as `Human_Resources`, fails validation.
+4. Find the **WSDL URL** for the Staffing service in Workday's **View API Clients** screen. The URL looks like `https://wd3-impl-services1.workday.com/ccx/service/{tenant}/Staffing/v46.1?wsdl` (with or without the `?wsdl` suffix; Wayd handles both). Wayd rejects any URL whose path is not `/ccx/service/{tenant}/Staffing/v{major}.{minor}` — another service name, such as `Human_Resources`, fails validation — and any URL that is not `https` or carries credentials. The API connects only to a host that resolves to public addresses and follows no redirect.
 5. In Wayd, open **Settings → System → Connections** and click **Create Connection**. Pick **Workday**.
 6. Fill in:
    - **WSDL URL** — paste the URL from step 4.
@@ -85,7 +85,7 @@ Some tenants (especially implementer sandboxes, OR customers who deliberately sc
 |---|---|---|
 | WSDL URL | — | Required. Parsed once at save time; `ServiceHost` / `TenantAlias` / `WsdlVersion` / `SoapEndpoint` are derived from it. |
 | ISU Username | — | Required. Conventionally `{user}@{tenant}`. |
-| ISU Password | — | Required. Encrypted at rest; on edit, leave blank to keep the stored password. |
+| ISU Password | — | Required. Encrypted at rest; on edit, leave blank to keep the stored password. An edit that changes the WSDL URL's host (or port), the tenant or the ISU username must enter the password again. |
 | Worker Key | Employee ID | Drives `Employee.EmployeeNumber` and how `Management_Chain_Data` manager refs are projected. With Employee ID, a worker with no `Employee_ID` uses its `Contingent_Worker_ID`, then its WID. |
 | Match Employees By | Email | The *preferred* key for the `BulkUpsertEmployeesCommand` matcher. When it finds nothing, the matcher falls back to the other candidate key (see below). |
 | Include Inactive Workers | Off | When on, terminated workers are also returned. |
@@ -134,6 +134,10 @@ Field paths live in `WorkerFieldPaths.cs` and support multi-candidate XPaths, so
 - **"Excluded N workers" but the breakdown shows rules that didn't fire** — only rules that actually matched at least one worker appear in the breakdown. Rules listed in the connection config but absent from the run detail simply found no workers to drop.
 - **First sync was huge; second is tiny** — that's incremental working. The first run is always Full (no prior watermark); subsequent Differential runs only pull workers changed since the last successful run.
 - **Org-type catalog seems incomplete** — Workday returns orgs in no particular type order, and the discovery loop walks up to 50 pages of 999. If your tenant has more than ~50,000 orgs total, less-common types may not appear; expand the page cap in `WorkdayConnectionInitializer.OrgCatalogPageCap`.
+- **"Unable to reach Workday"** — the host could not be connected to, including when it resolves to a private, loopback or link-local address, which the API refuses. The API's log names the cause.
+- **"The connection's WSDL URL is not HTTPS"** — the connection was saved with an `http://` URL, before Wayd required HTTPS. Nothing is sent, since the request carries the ISU password. Edit the connection and enter the `https://` URL; the same host keeps the stored password.
+- **Every call fails behind an outbound proxy** — the API connects to Workday directly and ignores `HTTPS_PROXY` and any system proxy, so a deployment whose only route out is a proxy cannot reach it.
+- **A sync fails with a page or size limit** — Workday reported more than 10,000 pages of workers (2,000,000, counting inactive workers and those your exclusion rules drop), returned more workers on a page than the 200 requested, or sent a response larger than 256 MB. Nothing is synced from that run.
 - **Authentication fails immediately on save** — verify the ISU password and that the user is not locked out. The probe distinguishes `IsAuthFailure` (401/403, or a fault containing "authentication" or "invalid user") from other SOAP errors and surfaces it as the connection's `LastInitAuthError`.
 - **Run reports "Ambiguous match … Skipped" for some workers** — that worker's `EmployeeNumber` matches one Wayd employee while their email matches a *different* one, so the sync cannot tell which row the record belongs to. It skips the record rather than guessing, leaving both existing rows untouched; every other worker in the run still syncs. Resolve it at the source: the usual cause is one person occupying two Wayd rows (a rehire, or an employee number reissued to someone else). Merge or correct the duplicate, then re-run. The error names both employee IDs so you can find them.
 - **Run reports "… exceeds the maximum length of N characters … Skipped"** — a Workday field is longer than the Wayd column allows (most often `EmployeeType`, from a verbose `Worker_Type_Reference` descriptor, capped at 128). That single worker is skipped and the rest of the run proceeds. Shorten the value in Workday, or raise the column limit if the longer value is legitimate.

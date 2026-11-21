@@ -60497,7 +60497,7 @@
                 "maxLength": 256,
                 "minLength": 1,
                 "type": "string",
-                "description": "Azure OpenAI resource URL."
+                "description": "The Azure OpenAI resource URL: absolute HTTPS, with no credentials in it."
               },
               "apiKey": {
                 "maxLength": 256,
@@ -93112,7 +93112,7 @@
                   "null",
                   "string"
                 ],
-                "description": "The personal access token that enables access to Azure DevOps data."
+                "description": "The personal access token that enables access to Azure DevOps data. Leave blank to keep the stored\nvalue, unless the update changes the organization, which needs it entered again."
               }
             },
             "additionalProperties": false
@@ -93135,7 +93135,7 @@
                 "maxLength": 256,
                 "minLength": 1,
                 "type": "string",
-                "description": "Azure OpenAI resource URL."
+                "description": "The Azure OpenAI resource URL: absolute HTTPS, with no credentials in it."
               },
               "apiKey": {
                 "maxLength": 256,
@@ -93143,7 +93143,7 @@
                   "null",
                   "string"
                 ],
-                "description": "The API key for Azure OpenAI resource."
+                "description": "The API key for Azure OpenAI resource. Leave blank to keep the stored value, unless the update changes\nthe Base URL's host or port, which needs it entered again."
               },
               "deploymentName": {
                 "maxLength": 128,
@@ -93418,7 +93418,7 @@
                   "null",
                   "string"
                 ],
-                "description": "The client secret for the Entra app registration."
+                "description": "The client secret for the Entra app registration. Leave blank to keep the stored value, unless the\nupdate changes the tenant or client ID, which needs it entered again."
               },
               "allUsersGroupObjectId": {
                 "maxLength": 64,
@@ -96278,7 +96278,8 @@
                 "type": [
                   "null",
                   "string"
-                ]
+                ],
+                "description": "The client secret for the Entra app registration. Leave blank to keep the stored value, unless the\nupdate changes the tenant or client ID, which needs it entered again."
               }
             },
             "additionalProperties": false
@@ -96427,7 +96428,7 @@
                   "null",
                   "string"
                 ],
-                "description": "The Integration System User password."
+                "description": "The Integration System User password. Leave blank to keep the stored value, unless the update changes\nthe WSDL URL's host or tenant, or the ISU username, which needs it entered again."
               },
               "workerKey": {
                 "oneOf": [

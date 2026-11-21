@@ -10,10 +10,11 @@ public sealed record UpdateAzureDevOpsConnectionRequest : UpdateConnectionReques
     public required string Organization { get; set; }
 
     /// <summary>
-    /// The personal access token that enables access to Azure DevOps data.
+    /// The personal access token that enables access to Azure DevOps data. Leave blank to keep the stored
+    /// value, unless the update changes the organization, which needs it entered again.
     /// </summary>
     /// <remarks>
-    /// Leave blank to keep the stored value. There is no way to clear it: the connection
+    /// A stored credential is only sent where it was entered for. There is no way to clear it: the connection
     /// cannot function without a credential, so removal means deleting the connection.
     /// </remarks>
     public string? PersonalAccessToken { get; set; }

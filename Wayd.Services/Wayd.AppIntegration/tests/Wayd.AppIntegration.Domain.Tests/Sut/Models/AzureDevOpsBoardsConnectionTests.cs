@@ -272,4 +272,50 @@ public class AzureDevOpsBoardsConnectionTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("Unable to find work process");
     }
+
+    [Fact]
+    public void Update_RefusesToKeepTheToken_WhenTheOrganizationChanges()
+    {
+        // Arrange
+        var connection = AzureDevOpsBoardsConnection.Create("Boards", null, "system-id",
+            new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT"), true, null, Actor, _dateTimeProvider.Now);
+
+        // Act
+        var result = connection.Update("Boards", null, "OtherOrg", null, true, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(Connection.CredentialsRequiredMessage("personal access token"));
+        connection.Configuration.Organization.Should().Be("TestOrg");
+    }
+
+    [Fact]
+    public void Update_KeepsTheToken_WhenTheOrganizationIsUnchanged()
+    {
+        // Arrange
+        var connection = AzureDevOpsBoardsConnection.Create("Boards", null, "system-id",
+            new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT"), true, null, Actor, _dateTimeProvider.Now);
+
+        // Act
+        var result = connection.Update("Renamed", null, "TestOrg", null, true, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        connection.Name.Should().Be("Renamed");
+        connection.Configuration.PersonalAccessToken.Should().Be("TestPAT");
+    }
+
+    [Fact]
+    public void CheckCredentialsFor_AllowsANewOrganization_WhenANewTokenIsSupplied()
+    {
+        // Arrange
+        var connection = AzureDevOpsBoardsConnection.Create("Boards", null, "system-id",
+            new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT"), true, null, Actor, _dateTimeProvider.Now);
+
+        // Act
+        var result = connection.CheckCredentialsFor("OtherOrg", "NewPAT");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
 }

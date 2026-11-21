@@ -19,8 +19,14 @@ namespace Wayd.Infrastructure.Auth.Oidc;
 /// but a one-instance-per-URL-variant policy would silently double the cache
 /// footprint and JWKS fetch rate.
 /// </remarks>
-internal sealed class OidcConfigurationManagerFactory : IOidcConfigurationManagerFactory
+/// <param name="httpClient">
+/// The client every discovery document and key set is fetched with. Its handler decides which networks an
+/// authority may reach and follows no redirects; see <see cref="ConfigureServices.AddOidcProviderRegistry"/>.
+/// </param>
+internal sealed class OidcConfigurationManagerFactory(HttpClient httpClient) : IOidcConfigurationManagerFactory
 {
+    private readonly HttpClient _httpClient = httpClient;
+
     // Ordinal (case-sensitive) on purpose: scheme and host are lowercased during
     // normalization, but URL paths are case-sensitive per RFC 3986. Using an
     // OrdinalIgnoreCase comparer here would silently route /tenants/abc and
@@ -45,7 +51,7 @@ internal sealed class OidcConfigurationManagerFactory : IOidcConfigurationManage
                 // RequireHttps mirrors the entity-level Authority invariant.
                 // Defense-in-depth: even if a malformed row somehow reached the
                 // factory, the retriever refuses non-HTTPS.
-                new HttpDocumentRetriever { RequireHttps = true }));
+                new HttpDocumentRetriever(_httpClient) { RequireHttps = true }));
     }
 
     private static string NormalizeAuthority(string authority)

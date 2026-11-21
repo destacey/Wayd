@@ -73,7 +73,7 @@ public sealed class UpdateEntraConnectionCommandHandler(
             if (connection is null)
                 return Result.Failure<Guid>("Entra connection not found.");
 
-            var clientSecret = ConnectionSecret.Resolve(request.ClientSecret, connection.Configuration!.ClientSecret);
+            var clientSecret = ConnectionSecret.Replacement(request.ClientSecret, connection.Configuration!.ClientSecret);
 
             // TODO: Validate credentials with Graph and reflect in IsValidConfiguration.
             var configurationIsValid = true;

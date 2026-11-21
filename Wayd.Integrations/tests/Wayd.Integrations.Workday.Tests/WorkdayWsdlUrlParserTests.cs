@@ -36,6 +36,8 @@ public class WorkdayWsdlUrlParserTests
     [InlineData(null)]
     [InlineData("not-a-url")]
     [InlineData("ftp://wd3-impl-services1.workday.com/ccx/service/acme_corp1/Staffing/v46.1")]
+    [InlineData("http://wd3-impl-services1.workday.com/ccx/service/acme_corp1/Staffing/v46.1")]           // the password would travel unencrypted
+    [InlineData("https://user:pass@wd3-impl-services1.workday.com/ccx/service/acme_corp1/Staffing/v46.1")] // credentials in the URL
     [InlineData("https://wd3-impl-services1.workday.com/some/other/path")]
     [InlineData("https://wd3-impl-services1.workday.com/ccx/service/acme_corp1/Human_Resources/v46.1")] // wrong service
     [InlineData("https://wd3-impl-services1.workday.com/ccx/service/acme_corp1/Staffing/")]            // no version

@@ -184,5 +184,7 @@ public class GetConnectionQueryHandlerTests
         protected override ConnectionSetting[] DescribeSettings() => [];
 
         protected override IReadOnlyList<(string Name, string Value)> Credentials() => [];
+
+        protected override IReadOnlyList<string?> CredentialScope() => [];
     }
 }

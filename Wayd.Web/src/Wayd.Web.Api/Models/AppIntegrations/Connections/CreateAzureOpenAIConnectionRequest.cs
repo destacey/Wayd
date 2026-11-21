@@ -5,7 +5,7 @@ namespace Wayd.Web.Api.Models.AppIntegrations.Connections;
 public sealed record CreateAzureOpenAIConnectionRequest : CreateConnectionRequest
 {
     /// <summary>
-    /// Azure OpenAI resource URL.
+    /// The Azure OpenAI resource URL: absolute HTTPS, with no credentials in it.
     /// </summary>
     public required string BaseUrl { get; set; }
 

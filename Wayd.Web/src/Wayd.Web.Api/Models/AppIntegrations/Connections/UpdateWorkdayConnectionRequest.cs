@@ -11,9 +11,12 @@ public sealed record UpdateWorkdayConnectionRequest : UpdateConnectionRequest
     /// <summary>The Integration System User username.</summary>
     public required string IsuUsername { get; set; }
 
-    /// <summary>The Integration System User password.</summary>
+    /// <summary>
+    /// The Integration System User password. Leave blank to keep the stored value, unless the update changes
+    /// the WSDL URL's host or tenant, or the ISU username, which needs it entered again.
+    /// </summary>
     /// <remarks>
-    /// Leave blank to keep the stored value. There is no way to clear it: the connection
+    /// A stored credential is only sent where it was entered for. There is no way to clear it: the connection
     /// cannot function without a credential, so removal means deleting the connection.
     /// </remarks>
     public string? IsuPassword { get; set; }

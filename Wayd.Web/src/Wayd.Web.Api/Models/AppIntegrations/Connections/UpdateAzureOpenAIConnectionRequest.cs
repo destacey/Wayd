@@ -5,15 +5,16 @@ namespace Wayd.Web.Api.Models.AppIntegrations.Connections;
 public sealed record UpdateAzureOpenAIConnectionRequest : UpdateConnectionRequest
 {
     /// <summary>
-    /// Azure OpenAI resource URL.
+    /// The Azure OpenAI resource URL: absolute HTTPS, with no credentials in it.
     /// </summary>
     public required string BaseUrl { get; set; }
 
     /// <summary>
-    /// The API key for Azure OpenAI resource.
+    /// The API key for Azure OpenAI resource. Leave blank to keep the stored value, unless the update changes
+    /// the Base URL's host or port, which needs it entered again.
     /// </summary>
     /// <remarks>
-    /// Leave blank to keep the stored value. There is no way to clear it: the connection
+    /// A stored credential is only sent where it was entered for. There is no way to clear it: the connection
     /// cannot function without a credential, so removal means deleting the connection.
     /// </remarks>
     public string? ApiKey { get; set; }

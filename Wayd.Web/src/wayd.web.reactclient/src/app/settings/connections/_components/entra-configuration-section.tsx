@@ -27,6 +27,7 @@ export const EntraConfigurationSection: React.FC<ConfigSectionProps> = ({
         name="clientSecret"
         maxLength={512}
         mode={mode}
+        requiredAgainWhen="the tenant or client ID"
       />
 
       <Item

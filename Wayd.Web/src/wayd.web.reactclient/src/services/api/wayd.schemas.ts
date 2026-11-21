@@ -1896,7 +1896,7 @@ export const CreateAzureOpenAIConnectionRequestType = {
 
 export type CreateAzureOpenAIConnectionRequest = Omit<CreateConnectionRequest & {
   /**
-     * Azure OpenAI resource URL.
+     * The Azure OpenAI resource URL: absolute HTTPS, with no credentials in it.
      * @minLength 1
      * @maxLength 256
      */
@@ -17722,7 +17722,8 @@ export type UpdateAzureDevOpsConnectionRequest = Omit<UpdateConnectionRequest & 
      */
   organization: string;
   /**
-     * The personal access token that enables access to Azure DevOps data.
+     * The personal access token that enables access to Azure DevOps data. Leave blank to keep the stored
+     * value, unless the update changes the organization, which needs it entered again.
      * @maxLength 128
      * @nullable
      */
@@ -17740,13 +17741,14 @@ export const UpdateAzureOpenAIConnectionRequestType = {
 
 export type UpdateAzureOpenAIConnectionRequest = Omit<UpdateConnectionRequest & ({
   /**
-     * Azure OpenAI resource URL.
+     * The Azure OpenAI resource URL: absolute HTTPS, with no credentials in it.
      * @minLength 1
      * @maxLength 256
      */
   baseUrl: string;
   /**
-     * The API key for Azure OpenAI resource.
+     * The API key for Azure OpenAI resource. Leave blank to keep the stored value, unless the update changes
+     * the Base URL's host or port, which needs it entered again.
      * @maxLength 256
      * @nullable
      */
@@ -17904,7 +17906,8 @@ export type UpdateEntraConnectionRequest = Omit<UpdateConnectionRequest & ({
      */
   clientId: string;
   /**
-     * The client secret for the Entra app registration.
+     * The client secret for the Entra app registration. Leave blank to keep the stored value, unless the
+     * update changes the tenant or client ID, which needs it entered again.
      * @maxLength 512
      * @nullable
      */
@@ -19588,6 +19591,8 @@ export type UpdateTeamsConnectionRequest = Omit<UpdateConnectionRequest & ({
      */
   clientId: string;
   /**
+     * The client secret for the Entra app registration. Leave blank to keep the stored value, unless the
+     * update changes the tenant or client ID, which needs it entered again.
      * @maxLength 512
      * @nullable
      */
@@ -19676,7 +19681,8 @@ export type UpdateWorkdayConnectionRequest = Omit<UpdateConnectionRequest & ({
      */
   isuUsername: string;
   /**
-     * The Integration System User password.
+     * The Integration System User password. Leave blank to keep the stored value, unless the update changes
+     * the WSDL URL's host or tenant, or the ISU username, which needs it entered again.
      * @maxLength 512
      * @nullable
      */

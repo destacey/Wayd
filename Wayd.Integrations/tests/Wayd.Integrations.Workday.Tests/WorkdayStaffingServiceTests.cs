@@ -1,4 +1,7 @@
-﻿using FluentAssertions;
+﻿using System.Net;
+using System.Text;
+using System.Xml.Linq;
+using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -524,5 +527,230 @@ public class WorkdayStaffingServiceTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Employees.Should().HaveCount(2);
         result.Value.ExclusionCounts.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetEmployees_errorWithoutSoapFault_doesNotEchoTheBody()
+    {
+        // Arrange
+        var (service, handler) = BuildService();
+        handler.EnqueueXml("<html><body>internal-admin-console secret=hunter2</body></html>", HttpStatusCode.InternalServerError);
+
+        // Act
+        var result = await service.GetEmployees(BuildContext(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().NotContain("hunter2").And.Contain("500");
+    }
+
+    [Fact]
+    public async Task GetEmployees_reportedPagesAboveTheCap_stopsAfterTheFirstPage()
+    {
+        // Arrange
+        var (service, handler) = BuildService();
+        var page = File.ReadAllText("Fixtures/get-workers-healthy-page1.xml")
+            .Replace("<wd:Total_Pages>1</wd:Total_Pages>", $"<wd:Total_Pages>{WorkdayStaffingService.MaxSyncPages + 1}</wd:Total_Pages>");
+        handler.EnqueueXml(page);
+
+        // Act
+        var result = await service.GetEmployees(BuildContext(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("page limit");
+        handler.Captured.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task GetWorkers_reportsTheResponseSize()
+    {
+        // Arrange
+        var handler = new FakeHttpMessageHandler();
+        var body = File.ReadAllText("Fixtures/get-workers-healthy-page1.xml");
+        handler.EnqueueXml(body);
+        var client = new WorkdayStaffingClient(new HttpClient(handler), new FixedTimeProvider(_testNow), NullLogger<WorkdayStaffingClient>.Instance);
+
+        // Act
+        var response = await client.GetWorkers(BuildContext(), 1, WorkdayStaffingService.SyncPageSize, TestContext.Current.CancellationToken);
+
+        // Assert
+        response.ResponseBytes.Should().Be(Encoding.UTF8.GetByteCount(body));
+    }
+
+    [Fact]
+    public async Task GetEmployees_pageWithMoreWorkersThanRequested_stopsTheSync()
+    {
+        // Arrange
+        var (service, handler) = BuildService();
+        var page = XDocument.Parse(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
+        var worker = page.Descendants().First(e => e.Name.LocalName == "Worker");
+        for (var i = 0; i < WorkdayStaffingService.SyncPageSize; i++)
+            worker.AddAfterSelf(new XElement(worker));
+        handler.EnqueueXml(page.ToString());
+
+        // Act
+        var result = await service.GetEmployees(BuildContext(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("more than the 200 requested");
+    }
+
+    [Fact]
+    public async Task GetEmployees_declaredBodyAboveTheCap_failsWithoutReadingIt()
+    {
+        // Arrange
+        var (service, handler) = BuildService();
+        var content = new StringContent("<x/>");
+        content.Headers.ContentLength = WorkdayStaffingClient.MaxResponseBytes + 1L;
+        handler.Responses.Enqueue(new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
+
+        // Act
+        var result = await service.GetEmployees(BuildContext(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("MB limit").And.Contain("It declared 256 MB");
+    }
+
+    [Fact]
+    public async Task GetEmployees_undeclaredBodyAboveTheCap_stopsReadingAtTheCap()
+    {
+        // Arrange
+        var (service, handler) = BuildService();
+        handler.Responses.Enqueue(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(new EndlessStream()) });
+
+        // Act
+        var result = await service.GetEmployees(BuildContext(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("MB limit");
+    }
+
+    [Fact]
+    public async Task GetEmployees_bodyCutOffPartWay_reportsItWasCutOff()
+    {
+        // Arrange
+        var (service, handler) = BuildService();
+        handler.Responses.Enqueue(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(new FailingStream()) });
+
+        // Act
+        var result = await service.GetEmployees(BuildContext(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("cut off").And.NotContain("MB limit");
+    }
+
+    [Fact]
+    public async Task GetEmployees_httpEndpoint_sendsNothing()
+    {
+        // Arrange
+        var (service, handler) = BuildService();
+        var context = BuildContext() with
+        {
+            SoapEndpoint = "http://wd3-impl-services1.workday.com/ccx/service/acme_corp1/Staffing/v46.1",
+        };
+
+        // Act
+        var result = await service.GetEmployees(context, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain(WorkdayStaffingClient.NotHttpsMessage);
+        handler.Captured.Should().BeEmpty("the envelope carries the ISU password");
+    }
+
+    [Fact]
+    public async Task GetEmployees_bodyTheRetryCheckGaveUpOn_reportsTheRecordedReason()
+    {
+        // Arrange
+        var fake = new FakeHttpMessageHandler();
+        fake.Responses.Enqueue(new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new ConsumedContent() });
+        var client = new WorkdayStaffingClient(
+            new HttpClient(new GivingUpRetryCheck("Workday's error response did not arrive in full within 30 seconds.") { InnerHandler = fake }),
+            new FixedTimeProvider(_testNow),
+            NullLogger<WorkdayStaffingClient>.Instance);
+        var service = new WorkdayStaffingService(client, NullLogger<WorkdayStaffingService>.Instance);
+
+        // Act
+        var result = await service.GetEmployees(BuildContext(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("within 30 seconds");
+    }
+
+    /// <summary>Records why it gave up on the body, as the resilience pipeline's retry check does.</summary>
+    private sealed class GivingUpRetryCheck(string reason) : DelegatingHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var response = await base.SendAsync(request, cancellationToken);
+            response.RequestMessage = request;
+            request.Options.Set(WorkdayStaffingClient.UnreadBodyReason, reason);
+            return response;
+        }
+    }
+
+    /// <summary>
+    /// A network response body that something has already started reading: like the handler's own content, it
+    /// refuses to be read again.
+    /// </summary>
+    private sealed class ConsumedContent : HttpContent
+    {
+        protected override Task SerializeToStreamAsync(Stream stream, System.Net.TransportContext? context) =>
+            throw new InvalidOperationException("The stream was already consumed. It cannot be read again.");
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = 0;
+            return false;
+        }
+    }
+
+    /// <summary>A body whose connection drops after the first read.</summary>
+    private sealed class FailingStream : Stream
+    {
+        private bool _readOnce;
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            if (_readOnce)
+                throw new IOException("The connection was reset.");
+            _readOnce = true;
+            buffer[offset] = (byte)'<';
+            return 1;
+        }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    /// <summary>A body with no declared length that never ends.</summary>
+    private sealed class EndlessStream : Stream
+    {
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            Array.Fill(buffer, (byte)'a', offset, count);
+            return count;
+        }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 }

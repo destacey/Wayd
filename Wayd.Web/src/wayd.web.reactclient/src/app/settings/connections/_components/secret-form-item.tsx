@@ -9,6 +9,11 @@ export interface SecretFormItemProps {
   mode: 'create' | 'edit'
   /** Extra guidance appended after the edit-mode "leave blank" note. */
   extra?: string
+  /**
+   * On edit, the fields whose change needs the secret entered again, because the API only sends a stored
+   * secret where it was entered for — e.g. "the organization".
+   */
+  requiredAgainWhen?: string
 }
 
 /**
@@ -22,9 +27,12 @@ export const SecretFormItem: React.FC<SecretFormItemProps> = ({
   maxLength,
   mode,
   extra,
+  requiredAgainWhen,
 }) => {
   const isEdit = mode === 'edit'
-  const keepNote = 'Leave blank to keep the current value.'
+  const keepNote = requiredAgainWhen
+    ? `Leave blank to keep the current value, unless you change ${requiredAgainWhen}.`
+    : 'Leave blank to keep the current value.'
 
   return (
     <Item

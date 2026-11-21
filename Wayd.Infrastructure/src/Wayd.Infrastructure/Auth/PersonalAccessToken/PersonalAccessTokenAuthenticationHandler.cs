@@ -155,7 +155,7 @@ public class PersonalAccessTokenAuthenticationHandler : AuthenticationHandler<Au
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception during personal access token authentication");
-            return AuthenticateResult.Fail($"Authentication failed: {ex.Message}");
+            return AuthenticateResult.Fail("Authentication failed.");
         }
     }
 }

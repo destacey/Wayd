@@ -341,9 +341,9 @@ internal partial class UserService
 
                 // Throw so ExecuteInTransaction rolls back — the deactivate + insert
                 // above must not commit if we couldn't clear the flag.
-                var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
-                throw new InternalServerException(
-                    $"Failed to clear pending migration flag for user {candidate.Id}: {errors}");
+                _logger.LogError("Failed to clear the pending migration flag for user {UserId}: {Errors}",
+                    candidate.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+                throw new InternalServerException("Sign-in could not complete the tenant migration. Contact an administrator.");
             }
 
             // Every session open now came through the old tenant: the one this sign-in opens is issued after the rebind commits.
@@ -477,9 +477,9 @@ internal partial class UserService
             if (!updateResult.Succeeded)
             {
                 candidate.ClearDomainEvents();
-                var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
-                throw new InternalServerException(
-                    $"Failed to apply pending provider migration for user {candidate.Id}: {errors}");
+                _logger.LogError("Failed to apply the pending provider migration for user {UserId}: {Errors}",
+                    candidate.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+                throw new InternalServerException("Sign-in could not complete the provider migration. Contact an administrator.");
             }
 
             // Every session open now came through the old provider: the one this sign-in opens is issued after the rebind commits.

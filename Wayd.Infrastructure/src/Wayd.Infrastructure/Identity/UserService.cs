@@ -317,9 +317,9 @@ internal partial class UserService(
                     user.ClearDomainEvents();
 
                     // Throw to roll the whole batch back — a partial stage is worse than none.
-                    var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
-                    throw new InternalServerException(
-                        $"Failed to stage tenant migration for user {userId}: {errors}");
+                    _logger.LogError("Failed to stage tenant migration for user {UserId}: {Errors}",
+                        userId, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+                    throw new InternalServerException("Failed to stage the tenant migration. Nothing was staged.");
                 }
 
                 staged.Add(userId);
@@ -523,9 +523,9 @@ internal partial class UserService(
             var passwordResult = await _userManager.ResetPasswordAsync(user, token, command.NewPassword);
             if (!passwordResult.Succeeded)
             {
+                // Identity's descriptions here are its password rules, written to be shown to whoever chose the password.
                 var errors = string.Join(", ", passwordResult.Errors.Select(e => e.Description));
-                throw new InternalServerException(
-                    $"Failed to set password for user {user.Id} during local conversion: {errors}");
+                throw new InternalServerException($"Failed to set the password: {errors}");
             }
 
             user.ConvertToLocalAccount(CurrentActor(), _dateTimeProvider.Now);
@@ -533,9 +533,9 @@ internal partial class UserService(
             if (!updateResult.Succeeded)
             {
                 user.ClearDomainEvents();
-                var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
-                throw new InternalServerException(
-                    $"Failed to update user {user.Id} during local conversion: {errors}");
+                _logger.LogError("Failed to update user {UserId} during local conversion: {Errors}",
+                    user.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+                throw new InternalServerException("Failed to convert the user to a local account.");
             }
 
             await _refreshTokenStore.RevokeAll(user.Id, UserRefreshTokenRevokeReasons.SignInChanged, ct);

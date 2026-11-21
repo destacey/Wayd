@@ -19498,12 +19498,12 @@ export interface UserDetailsDto {
   pendingMigrationTenantStagedAt?: string & { readonly __brand: 'Instant' } | null;
   /**
      * When the staged tenant link stops being honoured and must be staged again. Null when none is staged, or when it
-     * was staged before its time was recorded.
+     * was staged before its time was recorded, which counts as expired.
      * @nullable
      */
   pendingMigrationTenantExpiresAt?: string & { readonly __brand: 'Instant' } | null;
   /**
-     * The identity provider the user's next sign-in through it is staged to move them to.
+     * The name of the identity provider the user is staged to move to; their next sign-in through it completes the move.
      * @nullable
      */
   pendingMigrationProviderId?: string | null;

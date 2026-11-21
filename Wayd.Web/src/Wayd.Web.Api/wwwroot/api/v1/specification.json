@@ -95327,7 +95327,7 @@
               "null",
               "string"
             ],
-            "description": "When the staged tenant link stops being honoured and must be staged again. Null when none is staged, or when it\nwas staged before its time was recorded.",
+            "description": "When the staged tenant link stops being honoured and must be staged again. Null when none is staged, or when it\nwas staged before its time was recorded, which counts as expired.",
             "format": "date-time"
           },
           "pendingMigrationProviderId": {
@@ -95335,7 +95335,7 @@
               "null",
               "string"
             ],
-            "description": "The identity provider the user's next sign-in through it is staged to move them to."
+            "description": "The name of the identity provider the user is staged to move to; their next sign-in through it completes the move."
           },
           "pendingMigrationProviderStagedAt": {
             "type": [

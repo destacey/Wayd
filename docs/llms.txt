@@ -11,7 +11,7 @@ Wayd supports:
 - **Organizations** — Teams and teams of teams with operating models, memberships, hierarchy, and (behind a feature flag) allocations, time away and team capacity
 - **Planning** — Planning intervals (PIs), objectives, risks, roadmaps, planning poker, and story maps
 - **Work Management** — Workspaces, work items, sprints, work processes, workflows, and work types, synchronized from Azure DevOps; sprint metrics, reports, and delivery forecasting
-- **Project Portfolio Management** — Portfolios, programs, projects with lifecycles/stages/tasks, portfolio ranking, priority scoring, strategic initiatives with KPIs
+- **Project Portfolio Management** — Portfolios, programs, projects with lifecycles/stages/tasks, portfolio ranking, priority scoring, strategic initiatives with a KPI scorecard
 - **Demand Management** — Intake requests, intake desks and channels: asks for delivery capacity before they become projects or work items (in development)
 - **Strategic Management** — Visions, strategies, and strategic themes for organizational alignment
 - **Product Management** — Product catalog, product dependencies, versions, releases, release packages, deployments, and delivery metrics
@@ -45,7 +45,7 @@ Wayd supports:
 - [Portfolios & Programs](docs/user-guide/ppm/portfolios-programs.mdx): Portfolio lifecycle, programs, roles, scoring-model assignment, project ranking
 - [Projects](docs/user-guide/ppm/projects.mdx): Project lifecycle, status reverts, priority scoring, health checks, stages, tasks, dependencies, plan
 - [Scoring Models](docs/user-guide/settings/scoring-models.mdx): Formula-driven criteria, rating scales, outputs, and PPM scoring usage
-- [Strategic Initiatives](docs/user-guide/ppm/strategic-initiatives.mdx): Initiatives, KPIs, checkpoints, measurements
+- [Strategic Initiatives](docs/user-guide/ppm/strategic-initiatives.mdx): Initiatives, linked projects, and their scorecard of KPIs
 - [Projects Dashboard](docs/user-guide/ppm/my-projects.mdx): Triage projects by person, portfolio, or program — health, overdue tasks, stages, and end dates
 - [PPM Bulk Import](docs/user-guide/ppm/bulk-import.mdx): Loading portfolios, programs, projects, tasks, stages, strategic themes, and initiatives from CSV
 - [Demand Management](docs/user-guide/demand-management/index.mdx): Intake requests, desks, channels, need-by basis, read tiers and desk visibility

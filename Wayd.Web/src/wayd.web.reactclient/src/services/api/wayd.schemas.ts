@@ -6288,7 +6288,7 @@ export interface ImportKpiRequest {
   importId?: string | null;
   /**
      * The kind of record the KPI goes on: `organization.team` for a team or a team of teams, `ppm.project`,
-     * `ppm.program` or `ppm.portfolio`.
+     * `ppm.program`, `ppm.portfolio` or `ppm.strategic-initiative`.
      * @minLength 1
      * @maxLength 64
      */

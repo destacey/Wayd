@@ -3348,8 +3348,7 @@
               "periodStart": "2026-06-30",
               "periodEnd": "2026-06-30",
               "measuredAt": "2026-06-30T22:00:00Z",
-              "value": 820,
-              "note": "Chatbot launch slipped to July."
+              "value": 820
             },
             "reading": {
               "value": 820,
@@ -3365,7 +3364,9 @@
               "atRiskValue": 680
             },
             "measurement": null,
-            "reading": null
+            "reading": {
+              "trend": "NoData"
+            }
           },
           {
             "checkpoint": {
@@ -3375,74 +3376,181 @@
               "atRiskValue": 480
             },
             "measurement": null,
-            "reading": null
+            "reading": {
+              "trend": "NoData"
+            }
           }
         ]
       },
       {
         "tool": "Kpis_GetKpi",
         "result": {
-          "id": "6e1b8d4a-3c72-4f95-b0a6-2d9c7e5f1b38",
-          "key": 2,
-          "name": "Open support tickets",
-          "description": "Tickets open at month end, all channels.",
-          "source": "Manual",
-          "expressedAs": "ProgressToTarget",
-          "window": {
-            "kind": "PointInTime"
+          "kpi": {
+            "id": "6e1b8d4a-3c72-4f95-b0a6-2d9c7e5f1b38",
+            "key": 2,
+            "name": "Open support tickets",
+            "description": "Tickets open at month end, all channels.",
+            "source": "Manual",
+            "expressedAs": "ProgressToTarget",
+            "window": {
+              "kind": "PointInTime"
+            },
+            "status": "Active",
+            "order": 0,
+            "goal": {
+              "direction": "Decrease",
+              "baselineValue": 1200,
+              "targetKind": "Absolute",
+              "targetValue": 400,
+              "resolvedTargetValue": 400
+            },
+            "reading": {
+              "value": 820,
+              "changeFromBaseline": -380,
+              "changeFromBaselinePercent": -31.67,
+              "progressToTarget": 0.475,
+              "health": "AtRisk",
+              "trend": "Improving",
+              "latestValue": 820,
+              "checkpoint": {
+                "date": "2026-06-30",
+                "label": "Q2",
+                "plannedValue": 800,
+                "atRiskValue": 880
+              }
+            },
+            "checkpoints": [
+              {
+                "date": "2026-03-31",
+                "label": "Q1",
+                "plannedValue": 1000,
+                "atRiskValue": 1080
+              },
+              {
+                "date": "2026-06-30",
+                "label": "Q2",
+                "plannedValue": 800,
+                "atRiskValue": 880
+              },
+              {
+                "date": "2026-09-30",
+                "label": "Q3",
+                "plannedValue": 600,
+                "atRiskValue": 680
+              },
+              {
+                "date": "2026-12-31",
+                "label": "Q4",
+                "plannedValue": 400,
+                "atRiskValue": 480
+              }
+            ],
+            "recentValues": [
+              {
+                "measuredAt": "2026-03-31T22:00:00Z",
+                "value": 980
+              },
+              {
+                "measuredAt": "2026-06-30T22:00:00Z",
+                "value": 820
+              }
+            ]
           },
-          "status": "Active",
-          "order": 0,
-          "goal": {
-            "direction": "Decrease",
-            "baselineValue": 1200,
-            "targetKind": "Absolute",
-            "targetValue": 400,
-            "resolvedTargetValue": 400
-          },
-          "checkpoints": [
-            {
-              "date": "2026-03-31",
-              "label": "Q1",
-              "plannedValue": 1000,
-              "atRiskValue": 1080
-            },
-            {
-              "date": "2026-06-30",
-              "label": "Q2",
-              "plannedValue": 800,
-              "atRiskValue": 880
-            },
-            {
-              "date": "2026-09-30",
-              "label": "Q3",
-              "plannedValue": 600,
-              "atRiskValue": 680
-            },
-            {
-              "date": "2026-12-31",
-              "label": "Q4",
-              "plannedValue": 400,
-              "atRiskValue": 480
-            }
-          ],
+          "subjectName": "Customer Experience Uplift",
+          "canManage": true,
           "measurements": [
             {
+              "id": "b1d5f9c3-7a26-4e4a-9f8b-2c6e0d4a8f73",
+              "value": 820,
               "periodStart": "2026-06-30",
               "periodEnd": "2026-06-30",
               "measuredAt": "2026-06-30T22:00:00Z",
-              "value": 820,
-              "note": "Chatbot launch slipped to July.",
-              "id": "b1d5f9c3-7a26-4e4a-9f8b-2c6e0d4a8f73",
-              "source": "Manual"
+              "measuredOn": "2026-06-30",
+              "measuredBy": {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              },
+              "source": "Manual",
+              "note": "Chatbot launch slipped to July."
             },
             {
+              "id": "a0c4e8b2-6f15-4d39-8e7a-1b5d9c3f7e62",
+              "value": 980,
               "periodStart": "2026-03-31",
               "periodEnd": "2026-03-31",
               "measuredAt": "2026-03-31T22:00:00Z",
-              "value": 980,
-              "id": "a0c4e8b2-6f15-4d39-8e7a-1b5d9c3f7e62",
+              "measuredOn": "2026-03-31",
+              "measuredBy": {
+                "id": "91d3f6a8-2b47-4c5e-9f10-6a8b2d4c7e39",
+                "key": 1005,
+                "name": "Elena Vasquez"
+              },
               "source": "Manual"
+            }
+          ],
+          "checkpointReadings": [
+            {
+              "checkpoint": {
+                "date": "2026-03-31",
+                "label": "Q1",
+                "plannedValue": 1000,
+                "atRiskValue": 1080
+              },
+              "measurement": {
+                "periodStart": "2026-03-31",
+                "periodEnd": "2026-03-31",
+                "measuredAt": "2026-03-31T22:00:00Z",
+                "value": 980
+              },
+              "reading": {
+                "value": 980,
+                "health": "Healthy",
+                "trend": "Improving"
+              }
+            },
+            {
+              "checkpoint": {
+                "date": "2026-06-30",
+                "label": "Q2",
+                "plannedValue": 800,
+                "atRiskValue": 880
+              },
+              "measurement": {
+                "periodStart": "2026-06-30",
+                "periodEnd": "2026-06-30",
+                "measuredAt": "2026-06-30T22:00:00Z",
+                "value": 820
+              },
+              "reading": {
+                "value": 820,
+                "health": "AtRisk",
+                "trend": "Improving"
+              }
+            },
+            {
+              "checkpoint": {
+                "date": "2026-09-30",
+                "label": "Q3",
+                "plannedValue": 600,
+                "atRiskValue": 680
+              },
+              "measurement": null,
+              "reading": {
+                "trend": "NoData"
+              }
+            },
+            {
+              "checkpoint": {
+                "date": "2026-12-31",
+                "label": "Q4",
+                "plannedValue": 400,
+                "atRiskValue": 480
+              },
+              "measurement": null,
+              "reading": {
+                "trend": "NoData"
+              }
             }
           ]
         }

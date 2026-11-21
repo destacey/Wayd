@@ -28,13 +28,13 @@ namespace Wayd.Web.Api.Controllers;
 public class KpisController(IDispatcher dispatcher) : ControllerBase
 {
     private const string SubjectDocs =
-        "`subjectType` names the kind of record — `organization.team` for a team or a team of teams, `ppm.project`, `ppm.program` or `ppm.portfolio` — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it.";
+        "`subjectType` names the kind of record — `organization.team` for a team or a team of teams, `ppm.project`, `ppm.program`, `ppm.portfolio` or `ppm.strategic-initiative` — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it.";
 
     private const string WindowDocs =
         "The KPI's `window` says what span each value covers: `PerPeriod` (each measurement gives its own `periodStart` and `periodEnd`, and periods do not overlap), `Cumulative` (from a fixed `anchorDate` to the measurement's `asOf` day), `Rolling` (`rollingCount` `rollingUnit`s ending on the `asOf` day) or `PointInTime` (the state at the exact moment `measuredAt`, several a day allowed).";
 
     private const string ManageDocs =
-        "Needs, on a team, membership of the team or of a team of teams above it; on a project, program or portfolio, its Update permission and Owner or Manager on the record or an ancestor (or `Permissions.ProjectPortfolioManagement.Administer` in place of the role); or `Permissions.Kpis.Administer` on any record. Returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.";
+        "Needs, on a team, membership of the team or of a team of teams above it; on a project, program or portfolio, its Update permission and Owner or Manager on the record or an ancestor (or `Permissions.ProjectPortfolioManagement.Administer` in place of the role); on a strategic initiative, its Update permission alone; or `Permissions.Kpis.Administer` on any record. Returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.";
 
     private readonly IDispatcher _dispatcher = dispatcher;
 

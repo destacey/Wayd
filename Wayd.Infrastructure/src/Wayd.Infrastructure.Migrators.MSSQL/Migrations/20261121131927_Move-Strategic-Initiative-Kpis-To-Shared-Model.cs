@@ -18,7 +18,12 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
         // Measurements were moments, so each KPI takes the point-in-time window and every measurement keeps its moment
         // as MeasuredAt. A checkpoint's moment becomes a calendar day. Both read the day in the system time zone,
         // GeneralSettings.TimeZone, as Kpi.AddMeasurement does. That is an IANA id and SQL Server's AT TIME ZONE takes
-        // Windows names only, so the conversion table is built from the runtime's IANA-to-Windows mapping.
+        // Windows names only, so the conversion table is built from the runtime's IANA-to-Windows mapping. The old
+        // screens stored a picked date as midnight in the browser's zone, so a checkpoint entered from a browser east or
+        // west of the system zone can land on the neighbouring day.
+        //
+        // A KPI is copied once: one already in the shared table, or with a baseline entry, is skipped. The baseline
+        // outlives a moved KPI someone has since removed, so a second run never brings that KPI back.
         //
         // The old KPI checked less than the shared one. A KPI the shared model would refuse — a starting value already
         // at its target, a checkpoint at-risk value on the wrong side of its planned value, two checkpoints on one
@@ -96,7 +101,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             SELECT k.[Id], k.[StrategicInitiativeId], k.[Key],
                 ROW_NUMBER() OVER (PARTITION BY k.[StrategicInitiativeId] ORDER BY k.[Order], k.[Key]) - 1
             FROM [Ppm].[StrategicInitiativeKpis] k
-            WHERE NOT EXISTS (SELECT 1 FROM [Kpis].[Kpis] x WHERE x.[Id] = k.[Id]);
+            WHERE NOT EXISTS (SELECT 1 FROM [Kpis].[Kpis] x WHERE x.[Id] = k.[Id])
+              AND NOT EXISTS (SELECT 1 FROM [App].[ActivityLogs] a
+                              WHERE a.[AggregateType] = 'Kpi' AND a.[AggregateId] = k.[Id]
+                                AND a.[EventType] = 'KpiBaselinedEvent');
 
             IF NOT EXISTS (SELECT 1 FROM #Source)
             BEGIN
@@ -104,27 +112,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 RETURN;
             END;
 
-            -- The system time zone, as GeneralSettings reads it: UTC when it was never saved.
-            DECLARE @Zone nvarchar(128) = COALESCE(
-                (SELECT JSON_VALUE(s.[Value], '$.timeZone') FROM [App].[SystemSettings] s
-                 WHERE s.[Scope] = 'System' AND s.[Key] = 'general'),
-                N'UTC');
-
-            CREATE TABLE #Zones ([Iana] nvarchar(128) NOT NULL PRIMARY KEY, [Windows] nvarchar(128) NOT NULL);
-            {{ZoneInserts()}}
-
-            DECLARE @Windows nvarchar(128) =
-                (SELECT z.[Windows] FROM #Zones z
-                 INNER JOIN sys.time_zone_info t ON t.[name] = z.[Windows]
-                 WHERE z.[Iana] = @Zone);
-
-            IF @Windows IS NULL
-            BEGIN
-                DECLARE @ZoneMessage nvarchar(400) = CONCAT(
-                    'Move-Strategic-Initiative-Kpis-To-Shared-Model cannot read days in the system time zone ''', @Zone,
-                    ''': SQL Server has no matching time zone.');
-                THROW 51000, @ZoneMessage, 1;
-            END;
+            {{SystemZoneSql("Move-Strategic-Initiative-Kpis-To-Shared-Model")}}
 
             -- What the shared model refuses, found before anything is written.
             CREATE TABLE #Problem ([KpiId] uniqueidentifier NOT NULL, [Problem] nvarchar(200) NOT NULL);
@@ -341,6 +329,39 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             """;
 
         /// <summary>
+        /// Declares <c>@Windows</c>, the system time zone's Windows name, for <see cref="LocalDay"/>, leaving <c>#Zones</c>
+        /// to drop. Throws, naming <paramref name="migration"/>, when SQL Server has no zone to match it.
+        /// </summary>
+        internal static string SystemZoneSql(string migration) => $$"""
+            -- The system time zone, as GeneralSettings reads it: UTC when it was never saved.
+            DECLARE @Zone nvarchar(128) = COALESCE(
+                (SELECT JSON_VALUE(s.[Value], '$.timeZone') FROM [App].[SystemSettings] s
+                 WHERE s.[Scope] = 'System' AND s.[Key] = 'general'),
+                N'UTC');
+
+            -- Collated as the database is, so the match against the catalog view holds whatever tempdb's collation.
+            CREATE TABLE #Zones
+            (
+                [Iana] nvarchar(128) COLLATE DATABASE_DEFAULT NOT NULL PRIMARY KEY,
+                [Windows] nvarchar(128) COLLATE DATABASE_DEFAULT NOT NULL
+            );
+            {{ZoneInserts()}}
+
+            DECLARE @Windows nvarchar(128) =
+                (SELECT z.[Windows] FROM #Zones z
+                 INNER JOIN sys.time_zone_info t ON t.[name] = z.[Windows]
+                 WHERE z.[Iana] = @Zone);
+
+            IF @Windows IS NULL
+            BEGIN
+                DECLARE @ZoneMessage nvarchar(400) = CONCAT(
+                    '{{migration}} cannot read days in the system time zone ''', @Zone,
+                    ''': SQL Server has no matching time zone.');
+                THROW 51000, @ZoneMessage, 1;
+            END;
+            """;
+
+        /// <summary>
         /// Inserts every IANA zone the runtime can name a Windows zone for. Only the system zone's row is read; the
         /// rest are there because which one that is is not known until the SQL runs.
         /// </summary>
@@ -364,21 +385,21 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
         }
 
         /// <summary>The calendar day an instant column falls on in the system time zone.</summary>
-        private static string LocalDay(string column) =>
+        internal static string LocalDay(string column) =>
             $"CAST((CAST({column} AS datetime2) AT TIME ZONE 'UTC') AT TIME ZONE @Windows AS date)";
 
-        private static string Str(string column) =>
+        internal static string Str(string column) =>
             $"CASE WHEN {column} IS NULL THEN N'null' ELSE N'\"' + STRING_ESCAPE({column}, 'json') + N'\"' END";
 
-        private static string Guid(string column) =>
+        internal static string Guid(string column) =>
             $"CASE WHEN {column} IS NULL THEN N'null' ELSE N'\"' + LOWER(CONVERT(nvarchar(36), {column})) + N'\"' END";
 
         /// <summary>A double as the serializer writes it: the shortest form that reads back as the same value.</summary>
-        private static string Num(string column) =>
+        internal static string Num(string column) =>
             $"CASE WHEN {column} IS NULL THEN N'null' ELSE FORMAT({column}, 'R', 'en-US') END";
 
         /// <summary>NodaTime's ExtendedIso pattern: trailing zeros trimmed from the fraction, which disappears with them.</summary>
-        private static string Iso(string expression)
+        internal static string Iso(string expression)
         {
             var raw = $"CONVERT(varchar(27), {expression}, 126)";
             var fraction = $"SUBSTRING({raw}, CHARINDEX('.', {raw}) + 1, 7)";

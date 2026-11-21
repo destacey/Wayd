@@ -9,11 +9,18 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
     public partial class DropStrategicInitiativeKpiTables : Migration
     {
         // Runs Move-Strategic-Initiative-Kpis-To-Shared-Model's copy again before dropping the tables it copied from,
-        // so a KPI, checkpoint or measurement written to them after that migration ran — by a server still on the
-        // older code, or by the initiative import before it stopped writing them — moves rather than being lost. The
-        // copy skips every KPI already moved, so on a database with nothing new it does nothing, and it stops the
-        // migration, as it did then, on a KPI the shared model would refuse. Down restores the empty tables only:
-        // their rows live on in the shared KPI tables.
+        // so a KPI added to them after that migration ran — by a server still on the older code — moves rather than
+        // being lost. It copies whole KPIs only: a measurement or checkpoint added then to a KPI already moved is not
+        // carried across. A KPI already moved, or removed since it moved, is skipped, so on a database with nothing
+        // new the copy does nothing; it stops the migration, as it did then, on a KPI the shared model would refuse.
+        //
+        // Down recreates the tables and copies every strategic initiative KPI back into them, so the older code finds
+        // them again and the move's own Down then removes the shared copies. The old model holds less: a KPI's
+        // category, window, at-risk threshold, reading, rolling average and closed status, and a measurement's period
+        // and sample size, are not kept. A checkpoint's day becomes midnight of that day in the system time zone, which
+        // the move reads back as the same day. What the old model cannot hold at all — a relative target, a value too
+        // long for its columns, a measurement nobody is recorded as taking, two measurements at one moment — stops the
+        // rollback with the KPIs named, rather than dropping them.
 
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -164,6 +171,130 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 schema: "Ppm",
                 table: "StrategicInitiativeKpis",
                 column: "StrategicInitiativeId");
+
+            migrationBuilder.Sql(DownSql);
         }
+
+        internal static string DownSql => $$"""
+            SET NOCOUNT ON;
+
+            IF NOT EXISTS (SELECT 1 FROM [Kpis].[Kpis] WHERE [SubjectType] = '{{SubjectType}}')
+                RETURN;
+
+            {{MoveStrategicInitiativeKpisToSharedModel.SystemZoneSql("Drop-Strategic-Initiative-Kpi-Tables")}}
+
+            CREATE TABLE #Source
+            (
+                [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+                [Order] int NOT NULL
+            );
+
+            INSERT INTO #Source
+            SELECT k.[Id], ROW_NUMBER() OVER (PARTITION BY k.[SubjectId] ORDER BY k.[Order], k.[Key])
+            FROM [Kpis].[Kpis] k
+            WHERE k.[SubjectType] = '{{SubjectType}}';
+
+            -- What the old model cannot hold, found before anything is written.
+            CREATE TABLE #Problem ([KpiId] uniqueidentifier NOT NULL, [Problem] nvarchar(200) NOT NULL);
+
+            INSERT INTO #Problem
+            SELECT k.[Id], N'its target is a change from the baseline'
+            FROM [Kpis].[Kpis] k INNER JOIN #Source s ON s.[Id] = k.[Id]
+            WHERE k.[TargetKind] <> 'Absolute';
+
+            INSERT INTO #Problem
+            SELECT k.[Id], N'its name, description, prefix or suffix is longer than the old model holds'
+            FROM [Kpis].[Kpis] k INNER JOIN #Source s ON s.[Id] = k.[Id]
+            WHERE LEN(k.[Name]) > 64 OR LEN(k.[Description]) > 512 OR LEN(k.[Prefix]) > 8 OR LEN(k.[Suffix]) > 8;
+
+            INSERT INTO #Problem
+            SELECT DISTINCT c.[KpiId], N'a checkpoint label is longer than the old model holds'
+            FROM [Kpis].[Checkpoints] c INNER JOIN #Source s ON s.[Id] = c.[KpiId]
+            WHERE LEN(c.[Label]) > 16;
+
+            INSERT INTO #Problem
+            SELECT DISTINCT m.[KpiId], N'a measurement records no one who took it'
+            FROM [Kpis].[Measurements] m INNER JOIN #Source s ON s.[Id] = m.[KpiId]
+            WHERE m.[MeasuredById] IS NULL;
+
+            INSERT INTO #Problem
+            SELECT DISTINCT m.[KpiId], N'two of its measurements fall at one moment'
+            FROM [Kpis].[Measurements] m INNER JOIN #Source s ON s.[Id] = m.[KpiId]
+            GROUP BY m.[KpiId], {{Moment("m")}}
+            HAVING COUNT(*) > 1;
+
+            IF EXISTS (SELECT 1 FROM #Problem)
+            BEGIN
+                DECLARE @Problems nvarchar(2000) = (
+                    SELECT STRING_AGG(CAST(CONCAT('KPI ', k.[Key], ': ', p.[Problem]) AS nvarchar(max)), '; ')
+                    FROM (SELECT TOP (20) * FROM #Problem ORDER BY [KpiId], [Problem]) p
+                    INNER JOIN [Kpis].[Kpis] k ON k.[Id] = p.[KpiId]);
+                DECLARE @ProblemMessage nvarchar(2048) = CONCAT(
+                    'Drop-Strategic-Initiative-Kpi-Tables cannot be rolled back: ', (SELECT COUNT(*) FROM #Problem),
+                    ' strategic initiative KPI problem(s) the old model cannot hold: ', @Problems);
+                THROW 51000, @ProblemMessage, 1;
+            END;
+
+            -- Ordered by the shared key so the old keys keep the order the KPIs were created in.
+            INSERT INTO [Ppm].[StrategicInitiativeKpis]
+            (
+                [Id], [StrategicInitiativeId], [Name], [Description], [StartingValue], [TargetValue], [ActualValue],
+                [Prefix], [Suffix], [TargetDirection], [Order],
+                [SystemCreated], [SystemCreatedBy], [SystemLastModified], [SystemLastModifiedBy]
+            )
+            SELECT
+                k.[Id], k.[SubjectId], k.[Name], k.[Description], k.[BaselineValue], k.[TargetValue], latest.[Value],
+                k.[Prefix], k.[Suffix], k.[Direction], s.[Order],
+                k.[SystemCreated], k.[SystemCreatedBy], k.[SystemLastModified], k.[SystemLastModifiedBy]
+            FROM [Kpis].[Kpis] k
+            INNER JOIN #Source s ON s.[Id] = k.[Id]
+            OUTER APPLY
+            (
+                SELECT TOP (1) m.[Value]
+                FROM [Kpis].[Measurements] m
+                WHERE m.[KpiId] = k.[Id]
+                ORDER BY {{Moment("m")}} DESC
+            ) latest
+            ORDER BY k.[Key];
+
+            INSERT INTO [Ppm].[StrategicInitiativeKpiMeasurements]
+            (
+                [Id], [KpiId], [ActualValue], [MeasurementDate], [MeasuredById], [Note],
+                [SystemCreated], [SystemCreatedBy], [SystemLastModified], [SystemLastModifiedBy]
+            )
+            SELECT
+                m.[Id], m.[KpiId], m.[Value], {{Moment("m")}}, m.[MeasuredById], m.[Note],
+                m.[SystemCreated], m.[SystemCreatedBy], m.[SystemLastModified], m.[SystemLastModifiedBy]
+            FROM [Kpis].[Measurements] m
+            INNER JOIN #Source s ON s.[Id] = m.[KpiId];
+
+            INSERT INTO [Ppm].[StrategicInitiativeKpiCheckpoints]
+            (
+                [Id], [KpiId], [TargetValue], [AtRiskValue], [CheckpointDate], [DateLabel],
+                [SystemCreated], [SystemCreatedBy], [SystemLastModified], [SystemLastModifiedBy]
+            )
+            SELECT
+                c.[Id], c.[KpiId], c.[PlannedValue], c.[AtRiskValue], {{Midnight("c.[Date]")}}, c.[Label],
+                c.[SystemCreated], c.[SystemCreatedBy], c.[SystemLastModified], c.[SystemLastModifiedBy]
+            FROM [Kpis].[Checkpoints] c
+            INNER JOIN #Source s ON s.[Id] = c.[KpiId];
+
+            DROP TABLE #Problem;
+            DROP TABLE #Source;
+            DROP TABLE #Zones;
+            """;
+
+        // The subject type PpmKpiSubjects.StrategicInitiative declares, frozen here.
+        private const string SubjectType = "ppm.strategic-initiative";
+
+        /// <summary>The UTC instant midnight of a date column falls at in the system time zone.</summary>
+        private static string Midnight(string column) =>
+            $"CAST((CAST({column} AS datetime2) AT TIME ZONE @Windows) AT TIME ZONE 'UTC' AS datetime2)";
+
+        /// <summary>
+        /// A measurement's moment: the one it describes when point in time, else midnight of the day it was taken.
+        /// </summary>
+        private static string Moment(string alias) =>
+            $"COALESCE({alias}.[MeasuredAt], {Midnight($"{alias}.[MeasuredOn]")})";
     }
 }

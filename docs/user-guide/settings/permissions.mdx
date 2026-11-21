@@ -245,6 +245,8 @@ Reading a team's KPIs needs only `Permissions.Teams.View`.
 
 A project's, program's or portfolio's KPIs follow the [delivery leadership](#delivery-leadership-in-ppm) rule, as every other change to the record does: its `Update` permission (`Projects`, `Programs` or `ProjectPortfolios`) and Owner or Manager on the record or an ancestor, with `Permissions.ProjectPortfolioManagement.Administer` standing in for the role. Reading them needs the record's `View` permission. They stay changeable after the record is completed or canceled.
 
+A strategic initiative's KPIs need only `Permissions.StrategicInitiatives.Update`, with no role on the initiative, as every other change to an initiative does. Reading them needs `Permissions.StrategicInitiatives.View`. They too stay changeable after the initiative is completed or canceled.
+
 `Permissions.Kpis.Administer` waives the membership, and for a PPM record the `Update` permission and leadership too, for every record's KPIs and manages the organization's KPI categories. The seeded **Admin** role includes it. A read-only token changes nothing, whatever the person holds.
 
 ## Links: the record they are on

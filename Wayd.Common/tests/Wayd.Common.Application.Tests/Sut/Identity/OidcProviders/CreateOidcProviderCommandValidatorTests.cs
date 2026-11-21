@@ -1,4 +1,5 @@
 ﻿using FluentValidation.TestHelper;
+using Wayd.Common.Application.Identity;
 using Wayd.Common.Application.Identity.OidcProviders.Commands;
 using Wayd.Common.Application.Identity.Roles;
 using Wayd.Common.Application.Tests.Infrastructure;
@@ -32,7 +33,7 @@ public class CreateOidcProviderCommandValidatorTests
     }
 
     private static CreateOidcProviderCommand ValidEntraCommand() => new(
-        Name: "Acme-Entra",
+        Name: LoginProviders.MicrosoftEntraId,
         DisplayName: "Acme Entra",
         ProviderType: OidcProviderType.MicrosoftEntraId,
         Authority: "https://login.microsoftonline.com/common/v2.0",
@@ -215,5 +216,33 @@ public class CreateOidcProviderCommandValidatorTests
         var command = ValidEntraCommand() with { ClockSkewSeconds = clockSkew };
         var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);
         result.ShouldHaveValidationErrorFor(x => x.ClockSkewSeconds);
+    }
+
+    [Fact]
+    public async Task Validate_RefusesAnEntraProviderUnderAnyOtherName()
+    {
+        // Arrange
+        var command = ValidEntraCommand() with { Name = "Acme-Entra" };
+
+        // Act
+        var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.Name);
+    }
+
+    [Theory]
+    [InlineData("MicrosoftEntraId")]
+    [InlineData("microsoftentraid")]
+    public async Task Validate_RefusesTheEntraNameForAGenericProvider(string name)
+    {
+        // Arrange
+        var command = ValidGenericCommand() with { Name = name };
+
+        // Act
+        var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.Name);
     }
 }

@@ -31,7 +31,7 @@ internal sealed class OidcTokenValidator : IOidcTokenValidator
         _logger = logger;
     }
 
-    public async Task<ClaimsPrincipal> Validate(string providerName, string subjectToken, CancellationToken cancellationToken)
+    public async Task<ValidatedOidcToken> Validate(string providerName, string subjectToken, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(providerName) || string.IsNullOrWhiteSpace(subjectToken))
         {
@@ -94,7 +94,7 @@ internal sealed class OidcTokenValidator : IOidcTokenValidator
             EnforceEntraTenantAllowlist(provider, principal);
         }
 
-        return principal;
+        return new ValidatedOidcToken(principal, provider);
     }
 
     private static TokenValidationParameters BuildValidationParameters(

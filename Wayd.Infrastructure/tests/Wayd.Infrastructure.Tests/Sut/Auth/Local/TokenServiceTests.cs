@@ -1006,6 +1006,12 @@ public class TokenServiceTests
         return new ClaimsPrincipal(identity);
     }
 
+    private static ValidatedOidcToken EntraToken(ClaimsPrincipal principal) =>
+        new(principal, new OidcProviderFaker().AsMicrosoftEntraId("tenant-1").WithName(LoginProviders.MicrosoftEntraId).Generate());
+
+    private static ValidatedOidcToken GenericToken(ClaimsPrincipal principal, string name) =>
+        new(principal, new OidcProviderFaker().AsGenericOidc().WithName(name).Generate());
+
     private static ApplicationUser CreateEntraUser(string id = "entra-user-1") =>
         new()
         {
@@ -1026,7 +1032,7 @@ public class TokenServiceTests
 
         _mockOidcTokenValidator
             .Setup(v => v.Validate(LoginProviders.MicrosoftEntraId, "entra-id-token", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(principal);
+            .ReturnsAsync(EntraToken(principal));
         _mockUserService
             .Setup(s => s.GetOrCreateFromPrincipalAsync(principal))
             .ReturnsAsync((user.Id, (string?)null));
@@ -1055,7 +1061,7 @@ public class TokenServiceTests
 
         _mockOidcTokenValidator
             .Setup(v => v.Validate(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(principal);
+            .ReturnsAsync(EntraToken(principal));
         _mockUserService
             .Setup(s => s.GetOrCreateFromPrincipalAsync(principal))
             .ReturnsAsync((user.Id, (string?)null));
@@ -1085,7 +1091,7 @@ public class TokenServiceTests
 
         _mockOidcTokenValidator
             .Setup(v => v.Validate(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(principal);
+            .ReturnsAsync(EntraToken(principal));
         _mockUserService
             .Setup(s => s.GetOrCreateFromPrincipalAsync(principal))
             .ReturnsAsync((user.Id, (string?)null));
@@ -1132,7 +1138,7 @@ public class TokenServiceTests
         var principal = CreateEntraPrincipal(); // claim shape doesn't matter for this path
         _mockOidcTokenValidator
             .Setup(v => v.Validate("Acme-Google", It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(principal);
+            .ReturnsAsync(GenericToken(principal, "Acme-Google"));
         _mockUserService
             .Setup(s => s.ResolveFromGenericOidcPrincipalAsync("Acme-Google", principal, It.IsAny<CancellationToken>()))
             .ReturnsAsync(((string Id, string? EmployeeId)?)null);
@@ -1170,7 +1176,7 @@ public class TokenServiceTests
 
         _mockOidcTokenValidator
             .Setup(v => v.Validate(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(principal);
+            .ReturnsAsync(EntraToken(principal));
         _mockUserService
             .Setup(s => s.GetOrCreateFromPrincipalAsync(principal))
             .ReturnsAsync((user.Id, (string?)null));
@@ -1191,7 +1197,7 @@ public class TokenServiceTests
 
         _mockOidcTokenValidator
             .Setup(v => v.Validate(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(principal);
+            .ReturnsAsync(EntraToken(principal));
         _mockUserService
             .Setup(s => s.GetOrCreateFromPrincipalAsync(principal))
             .ReturnsAsync((user.Id, (string?)null));
@@ -1203,6 +1209,77 @@ public class TokenServiceTests
             TestContext.Current.CancellationToken);
 
         await act.Should().ThrowAsync<UnauthorizedException>().WithMessage("Invalid credentials.");
+    }
+
+    [Fact]
+    public async Task ExchangeTokenAsync_TakesTheEntraPath_WhenTheRequestSpellsTheEntraProviderInAnotherCase()
+    {
+        // Arrange
+        var user = CreateEntraUser();
+        var principal = CreateEntraPrincipal();
+        _mockOidcTokenValidator
+            .Setup(v => v.Validate("microsoftentraid", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EntraToken(principal));
+        _mockUserService
+            .Setup(s => s.GetOrCreateFromPrincipalAsync(principal))
+            .ReturnsAsync((user.Id, (string?)null));
+        _mockUserManager.Setup(x => x.FindByIdAsync(user.Id)).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+        SeedActiveEntraIdentity(user.Id);
+
+        // Act
+        var result = await _sut.ExchangeTokenAsync(
+            new ExchangeTokenCommand("microsoftentraid", "token"),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Token.Should().NotBeNullOrWhiteSpace();
+        _mockUserService.Verify(s => s.ResolveFromGenericOidcPrincipalAsync(
+            It.IsAny<string>(), It.IsAny<ClaimsPrincipal>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExchangeTokenAsync_ResolvesUnderTheStoredName_WhenTheRequestSpellsAGenericProviderInAnotherCase()
+    {
+        // Arrange
+        var principal = CreateEntraPrincipal();
+        _mockOidcTokenValidator
+            .Setup(v => v.Validate("acme-google", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GenericToken(principal, "Acme-Google"));
+        _mockUserService
+            .Setup(s => s.ResolveFromGenericOidcPrincipalAsync(It.IsAny<string>(), principal, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(((string Id, string? EmployeeId)?)null);
+
+        // Act
+        var act = () => _sut.ExchangeTokenAsync(
+            new ExchangeTokenCommand("acme-google", "token"),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>();
+        _mockUserService.Verify(s => s.ResolveFromGenericOidcPrincipalAsync("Acme-Google", principal, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExchangeTokenAsync_ThrowsUnauthorized_WhenAnEntraProviderIsStoredUnderAnotherName()
+    {
+        // Arrange
+        var principal = CreateEntraPrincipal();
+        var provider = new OidcProviderFaker().AsMicrosoftEntraId("tenant-1").WithName("Contoso").Generate();
+        _mockOidcTokenValidator
+            .Setup(v => v.Validate("Contoso", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ValidatedOidcToken(principal, provider));
+
+        // Act
+        var act = () => _sut.ExchangeTokenAsync(
+            new ExchangeTokenCommand("Contoso", "token"),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>().WithMessage("Invalid token.");
+        _mockUserService.Verify(s => s.GetOrCreateFromPrincipalAsync(It.IsAny<ClaimsPrincipal>()), Times.Never);
+        _mockUserService.Verify(s => s.ResolveFromGenericOidcPrincipalAsync(
+            It.IsAny<string>(), It.IsAny<ClaimsPrincipal>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     #endregion

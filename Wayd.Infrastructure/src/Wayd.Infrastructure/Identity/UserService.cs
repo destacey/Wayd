@@ -439,7 +439,8 @@ internal partial class UserService(
             return Result.Failure("User has no active identity to migrate.");
 
         // Last-write-wins semantics match the tenant migration pattern.
-        user.StageProviderMigration(command.TargetProviderId, CurrentActor(), _dateTimeProvider.Now);
+        // The stored name, not the request's spelling: the lookup ignores case, and the sign-in matches it exactly.
+        user.StageProviderMigration(targetProvider.Name, CurrentActor(), _dateTimeProvider.Now);
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
             return Failed(user, result, "stage the provider migration");

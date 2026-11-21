@@ -170,7 +170,7 @@ Single sign-on providers are configured in **Settings → Access → Identity Pr
 - **Upgrades are secure by default.** Existing providers have auto-registration turned **off** after upgrading to this version; re-enable it deliberately per provider.
 - **A role in use can't be deleted.** If a role is set as a provider's default, attempting to delete it is blocked with a clear message until you repoint the provider to a different role.
 
-**Test**, in the provider list and in the **Discovery** card on the provider's page, fetches the provider's OIDC discovery document from its authority and reports whether it was reached. A disabled provider is not offered at sign-in and its sign-ins are refused; its page says it is disabled.
+**Test**, in the provider list and in the **Discovery** card on the provider's page, fetches the provider's OIDC discovery document from its authority and reports whether it was reached. A failure is reported with a fixed message; why it failed is in the API's log. The API fetches discovery documents and signing keys only from public addresses, so an authority on the deployment's own network fails both the test and sign-in unless the host's operator allows it with `Oidc:AllowPrivateNetworkAuthorities` (see [Identity providers](../../contributing/configuration.mdx#identity-providers-db-managed)). A disabled provider is not offered at sign-in and its sign-ins are refused; its page says it is disabled.
 
 A provider's detail page carries an **Activity** section: the provider added, its login label edited, its configuration (issuer, client, audience, scopes, allowed tenants or clock skew) changed, its registration policy changed, enabled, disabled or deleted — each entry with the values before and after. A provider stores no secret, so none is ever recorded.
 
@@ -486,7 +486,7 @@ A **Connector** is a configurable integration type that lets a specific external
 
 **Common actions on a connection:**
 
-- **Edit** — Update name, description, settings or credentials. A secret field starts empty, marked **Unchanged**: leave it empty to keep the stored value, or type a new one to replace it. A stored secret is never shown again.
+- **Edit** — Update name, description, settings or credentials. A secret field starts empty, marked **Unchanged**: leave it empty to keep the stored value, or type a new one to replace it. A stored secret is never shown again. **A secret is only sent where it was entered for**, so an edit that changes where it goes must supply it again, and is refused otherwise: the organization for Azure DevOps, the tenant or client ID for Entra and Teams, the host, tenant or ISU username for Workday, and the base URL's host for Azure OpenAI.
 - **Activate / Deactivate** — Toggle whether the connection participates in sync runs. A new connection starts active. Inactive connections are excluded from every scheduled and manual sync — the API rejects sync attempts on an inactive connection.
 - **Delete** — Removes the connection. Past sync history rows are preserved by design.
 
@@ -573,7 +573,7 @@ The Entra app registration needs the `User.Read.All` Microsoft Graph application
 The Workday connector synchronizes workers (employees and contingent workers) from a Workday tenant into Wayd's `Employee` records through Workday's Staffing web service. **Capability:** People. See [Workday](../../reference/integrations/workday.mdx).
 
 **Configuration:**
-- **WSDL URL** — The tenant's Staffing web service address
+- **WSDL URL** — The tenant's Staffing web service address. It must be `https`, and the API connects to it only when its host is on the public internet
 - **ISU Username** and **ISU Password** — The integration system user Wayd signs in as (the password is encrypted at rest)
 - **Worker Key** — Which Workday identifier becomes the employee number (default Employee ID)
 - **Match Employees By** — **Email** (default) or **Employee Number**
@@ -584,11 +584,15 @@ The Workday connector synchronizes workers (employees and contingent workers) fr
 - **Department Source** — The Workday organization type an employee's department is read from (default supervisory organization)
 - **Worker exclusions** — Set when editing the connection: workers in the chosen organizations are left out of the sync
 
-Saving or editing the connection, and **Test Connection** on its page, probe the tenant with the given credentials and report what they can read. Workday supports differential sync, which fetches only workers changed since the last run.
+Saving or editing the connection, and **Test Connection** on its page, probe the tenant with the given credentials and report what they can read. When Workday answers with an error, the result shows the reason from Workday's fault, or only the HTTP status when there is none; the rest of the response goes to the API's log. Workday supports differential sync, which fetches only workers changed since the last run.
+
+A sync stops with an error, rather than syncing part of the tenant, when Workday reports more than 10,000 pages of workers or more than 200 workers on a page (so at most 2,000,000, counting inactive and excluded workers), or a response is larger than 256 MB.
+
+A connection saved with an `http://` WSDL URL, before HTTPS was required, sends nothing until it is edited to use the `https://` URL; on the same host, the stored password is kept.
 
 ### AI Providers
 
-The **Azure OpenAI** connector stores the details of an Azure OpenAI deployment. It doesn't sync data into Wayd, and no Wayd feature uses it yet. **Capability:** AI Provider. See [Azure OpenAI](../../reference/integrations/azure-openai.mdx).
+The **Azure OpenAI** connector stores the details of an Azure OpenAI deployment: its **Base URL**, which must be an absolute `https` URL, deployment name and API key. It doesn't sync data into Wayd, and no Wayd feature uses it yet. **Capability:** AI Provider. See [Azure OpenAI](../../reference/integrations/azure-openai.mdx).
 
 ## Background Jobs
 

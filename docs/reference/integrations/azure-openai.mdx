@@ -51,8 +51,8 @@ If you'd rather not store an API key, the standard alternatives are Azure AD aut
 
 | Option | Default | Notes |
 |---|---|---|
-| Base URL | — | Required, at most 256 characters. Resource endpoint (e.g. `https://contoso-aoai.openai.azure.com/`). An edit does not change it: `AzureOpenAIConnection.Update` takes no base URL, so the value set at creation is kept. |
-| API Key | — | Required, at most 256 characters on create and 128 on edit. Encrypted at rest; on edit, leave blank to keep the stored key. |
+| Base URL | — | Required, at most 256 characters. Resource endpoint (e.g. `https://contoso-aoai.openai.azure.com/`); must be an absolute `https` URL with no credentials in it. |
+| API Key | — | Required, at most 256 characters on create and 128 on edit. Encrypted at rest; on edit, leave blank to keep the stored key — unless the edit changes the base URL's host (or port), which needs the key entered again. |
 | Deployment Name | — | Required, at most 128 characters. Identifies which model deployment to call. |
 | Default Temperature | 0.1 | Not settable from the UI; shown on the detail page. |
 | Default Max Output Tokens | 400 | Not settable from the UI; shown on the detail page. |

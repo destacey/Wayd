@@ -85,7 +85,22 @@ Each row in the `Identity.OidcProviders` table is one configured provider — it
 
 The database is the single source of truth for identity providers — there is no config-file or environment-variable equivalent. Providers are created and edited entirely through the admin UI.
 
-**Managing providers.** Admins with the `Permissions.OidcProviders.{View|Create|Update|Delete}` permissions manage providers from **Settings → Access → Identity Providers**. The **Test** action in the list and **Test discovery** on a provider's page (both need `Permissions.OidcProviders.Update`) fetch the provider's `.well-known/openid-configuration` document so typos in `Authority` are caught at configuration time, not at the user's next login.
+**Managing providers.** Admins with the `Permissions.OidcProviders.{View|Create|Update|Delete}` permissions manage providers from **Settings → Access → Identity Providers**. The **Test** action in the list and **Test discovery** on a provider's page (both need `Permissions.OidcProviders.Update`) fetch the provider's `.well-known/openid-configuration` document so typos in `Authority` are caught at configuration time, not at the user's next login. A failed test returns a fixed message; the exception is logged.
+
+**Private-network authorities.** An administrator types the `Authority`, so the API fetches discovery documents and signing keys only from hosts that resolve to public addresses, and follows no redirect (`Wayd.Infrastructure/Networking/PublicNetwork.cs`). An identity provider on the deployment's own network — a Keycloak on `10.x`, say — needs the operator to allow it:
+
+| Setting | Default | Effect |
+| --- | --- | --- |
+| `Oidc:AllowPrivateNetworkAuthorities` (`Oidc__AllowPrivateNetworkAuthorities`) | `false` | When `true`, an authority may resolve to a private or loopback address. Cloud instance metadata addresses stay refused — link-local (`169.254.0.0/16`, `fe80::/10`), AWS's `fd00:ec2::254` and Alibaba Cloud's `100.100.100.200`, including through an IPv6 address that embeds one (NAT64, IPv4-translated, 6to4, IPv4-compatible) — as do unspecified, multicast and Teredo addresses. Read at startup. |
+
+It is a host setting rather than a provider field because it decides what the API's network may be reached by, which an administrator of the app should not be able to widen.
+
+**Upgrading.** Before this check, discovery followed redirects and reached any address. After upgrading:
+
+- An identity provider on a private address stops signing anyone in until the setting above is on, so set it before upgrading or keep a local administrator account to sign in with.
+- An `Authority` whose discovery URL answers with a redirect fails; enter the URL it redirects to.
+
+**No outbound proxy.** Discovery and key fetches, like Workday's calls, connect directly and ignore `HTTPS_PROXY` and any system proxy: through a proxy, the address check would see only the proxy's address. A deployment whose only route to the internet is a proxy cannot reach its identity provider or Workday.
 
 | Provider field | Purpose |
 | --- | --- |

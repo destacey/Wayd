@@ -70,39 +70,26 @@ public sealed class UpdateAzureOpenAIConnectionCommandHandler(IAppIntegrationDbC
 
     public async Task<Result<Guid>> Handle(UpdateAzureOpenAIConnectionCommand request, CancellationToken cancellationToken)
     {
-        try
+        var connection = await _appIntegrationDbContext.AzureOpenAIConnections
+            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+        if (connection is null)
+            return Result.Failure<Guid>("Azure OpenAI connection not found.");
+
+        var apiKey = ConnectionSecret.Replacement(request.ApiKey, connection.Configuration!.ApiKey);
+
+        // TODO: Check the connection validity via some service making a "Test message" chat call using the connection creds
+        var configurationIsValid = true;
+
+        var updateResult = connection.Update(request.Name, request.Description, request.BaseUrl, apiKey, request.DeploymentName, configurationIsValid, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        if (updateResult.IsFailure)
         {
-            var connection = await _appIntegrationDbContext.AzureOpenAIConnections
-                .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
-            if (connection is null)
-                return Result.Failure<Guid>("Azure OpenAI connection not found.");
-
-            var apiKey = ConnectionSecret.Replacement(request.ApiKey, connection.Configuration!.ApiKey);
-
-            // TODO: Check the connection validity via some service making a "Test message" chat call using the connection creds
-            var configurationIsValid = true;
-
-            var updateResult = connection.Update(request.Name, request.Description, request.BaseUrl, apiKey, request.DeploymentName, configurationIsValid, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            if (updateResult.IsFailure)
-            {
-                // Reset the entity
-                await _appIntegrationDbContext.Entry(connection).ReloadAsync(cancellationToken);
-                connection.ClearDomainEvents();
-
-                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", AppRequestName, updateResult.Error);
-                return Result.Failure<Guid>(updateResult.Error);
-            }
-
-            await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success(connection.Id);
+            _logger.LogInformation("Wayd Request: Failure for Request {Name}.  Error message: {Error}", AppRequestName, updateResult.Error);
+            return Result.Failure<Guid>(updateResult.Error);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
 
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName}");
-        }
+        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(connection.Id);
     }
 }
 

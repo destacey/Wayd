@@ -66,48 +66,38 @@ public sealed class UpdateEntraConnectionCommandHandler(
 
     public async Task<Result<Guid>> Handle(UpdateEntraConnectionCommand request, CancellationToken cancellationToken)
     {
-        try
+        var connection = await _appIntegrationDbContext.EntraConnections
+            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+        if (connection is null)
+            return Result.Failure<Guid>("Entra connection not found.");
+
+        var clientSecret = ConnectionSecret.Replacement(request.ClientSecret, connection.Configuration!.ClientSecret);
+
+        // TODO: Validate credentials with Graph and reflect in IsValidConfiguration.
+        var configurationIsValid = true;
+
+        var updateResult = connection.Update(
+            request.Name,
+            request.Description,
+            request.TenantId,
+            request.ClientId,
+            clientSecret,
+            request.AllUsersGroupObjectId,
+            request.IncludeDisabledUsers,
+            request.MatchBy,
+            request.NormalizeNameCasing,
+            configurationIsValid,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            _dateTimeProvider.Now);
+
+        if (updateResult.IsFailure)
         {
-            var connection = await _appIntegrationDbContext.EntraConnections
-                .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
-            if (connection is null)
-                return Result.Failure<Guid>("Entra connection not found.");
-
-            var clientSecret = ConnectionSecret.Replacement(request.ClientSecret, connection.Configuration!.ClientSecret);
-
-            // TODO: Validate credentials with Graph and reflect in IsValidConfiguration.
-            var configurationIsValid = true;
-
-            var updateResult = connection.Update(
-                request.Name,
-                request.Description,
-                request.TenantId,
-                request.ClientId,
-                clientSecret,
-                request.AllUsersGroupObjectId,
-                request.IncludeDisabledUsers,
-                request.MatchBy,
-                request.NormalizeNameCasing,
-                configurationIsValid,
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                _dateTimeProvider.Now);
-
-            if (updateResult.IsFailure)
-            {
-                await _appIntegrationDbContext.Entry(connection).ReloadAsync(cancellationToken);
-                connection.ClearDomainEvents();
-                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", AppRequestName, updateResult.Error);
-                return Result.Failure<Guid>(updateResult.Error);
-            }
-
-            await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success(connection.Id);
+            _logger.LogInformation("Wayd Request: Failure for Request {Name}.  Error message: {Error}", AppRequestName, updateResult.Error);
+            return Result.Failure<Guid>(updateResult.Error);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName}");
-        }
+
+        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(connection.Id);
     }
 }

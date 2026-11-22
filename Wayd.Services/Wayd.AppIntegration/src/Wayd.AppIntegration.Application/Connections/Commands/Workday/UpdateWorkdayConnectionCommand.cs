@@ -61,63 +61,53 @@ public sealed class UpdateWorkdayConnectionCommandHandler(
 
     public async Task<Result<Guid>> Handle(UpdateWorkdayConnectionCommand request, CancellationToken cancellationToken)
     {
-        try
+        var connection = await _appIntegrationDbContext.WorkdayConnections
+            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+        if (connection is null)
+            return Result.Failure<Guid>("Workday connection not found.");
+
+        var isuPassword = ConnectionSecret.Replacement(request.IsuPassword, connection.Configuration!.IsuPassword);
+
+        // Map the API-level input list to the domain WorkdayOrgExclusion. Fully qualified
+        // because Common.Application also exports a WorkdayOrgExclusion record (the runtime
+        // shape passed to the SOAP service) — same name, parallel types across layers.
+        var exclusions = request.OrgExclusions?
+            .Select(e => new Wayd.AppIntegration.Domain.Models.Workday.WorkdayOrgExclusion(e.OrganizationTypeId, e.OrganizationReference, e.DisplayName))
+            .ToList();
+
+        // Apply the change set with a placeholder configurationIsValid; the init probe right
+        // after this overwrites that value with the real outcome.
+        var updateResult = connection.Update(
+            request.Name,
+            request.Description,
+            request.WsdlUrl,
+            request.IsuUsername,
+            isuPassword,
+            request.WorkerKey,
+            request.IncludeInactive,
+            request.MatchBy,
+            request.UseUserIdAsEmailFallback,
+            request.UsePreferredName,
+            request.NormalizeNameCasing,
+            request.DepartmentOrganizationTypeId,
+            exclusions,
+            configurationIsValid: false,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            _dateTimeProvider.Now);
+
+        if (updateResult.IsFailure)
         {
-            var connection = await _appIntegrationDbContext.WorkdayConnections
-                .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
-            if (connection is null)
-                return Result.Failure<Guid>("Workday connection not found.");
-
-            var isuPassword = ConnectionSecret.Replacement(request.IsuPassword, connection.Configuration!.IsuPassword);
-
-            // Map the API-level input list to the domain WorkdayOrgExclusion. Fully qualified
-            // because Common.Application also exports a WorkdayOrgExclusion record (the runtime
-            // shape passed to the SOAP service) — same name, parallel types across layers.
-            var exclusions = request.OrgExclusions?
-                .Select(e => new Wayd.AppIntegration.Domain.Models.Workday.WorkdayOrgExclusion(e.OrganizationTypeId, e.OrganizationReference, e.DisplayName))
-                .ToList();
-
-            // Apply the change set with a placeholder configurationIsValid; the init probe right
-            // after this overwrites that value with the real outcome.
-            var updateResult = connection.Update(
-                request.Name,
-                request.Description,
-                request.WsdlUrl,
-                request.IsuUsername,
-                isuPassword,
-                request.WorkerKey,
-                request.IncludeInactive,
-                request.MatchBy,
-                request.UseUserIdAsEmailFallback,
-                request.UsePreferredName,
-                request.NormalizeNameCasing,
-                request.DepartmentOrganizationTypeId,
-                exclusions,
-                configurationIsValid: false,
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                _dateTimeProvider.Now);
-
-            if (updateResult.IsFailure)
-            {
-                await _appIntegrationDbContext.Entry(connection).ReloadAsync(cancellationToken);
-                connection.ClearDomainEvents();
-                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", AppRequestName, updateResult.Error);
-                return Result.Failure<Guid>(updateResult.Error);
-            }
-
-            // Persist the change-set first so a slow/failing probe doesn't roll back the typed config.
-            await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
-
-            await RunInitProbe(connection, cancellationToken);
-            await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success(connection.Id);
+            _logger.LogInformation("Wayd Request: Failure for Request {Name}.  Error message: {Error}", AppRequestName, updateResult.Error);
+            return Result.Failure<Guid>(updateResult.Error);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName}");
-        }
+
+        // Persist the change-set first so a slow/failing probe doesn't roll back the typed config.
+        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+
+        await RunInitProbe(connection, cancellationToken);
+        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(connection.Id);
     }
 
     private async Task RunInitProbe(WorkdayConnection connection, CancellationToken cancellationToken)

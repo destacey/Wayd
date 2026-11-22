@@ -57,39 +57,27 @@ public sealed class CreateAzureOpenAIConnectionCommandValidator : CustomValidato
     }
 }
 
-public sealed class CreateAzureOpenAIConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<CreateAzureOpenAIConnectionCommandHandler> logger) : ICommandHandler<CreateAzureOpenAIConnectionCommand, Guid>
+public sealed class CreateAzureOpenAIConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider) : ICommandHandler<CreateAzureOpenAIConnectionCommand, Guid>
 {
-    private const string AppRequestName = nameof(CreateAzureOpenAIConnectionCommandHandler);
-
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ILogger<CreateAzureOpenAIConnectionCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(CreateAzureOpenAIConnectionCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            Instant timestamp = _dateTimeProvider.Now;
-            var config = new AzureOpenAIConnectionConfiguration(request.ApiKey, request.DeploymentName, request.BaseUrl);
+        Instant timestamp = _dateTimeProvider.Now;
+        var config = new AzureOpenAIConnectionConfiguration(request.ApiKey, request.DeploymentName, request.BaseUrl);
 
-            // TODO: call some thing to Test the connection to then pass in the isValidConfiguration flag
-            var isConfigurationValid = true;
+        // TODO: call some thing to Test the connection to then pass in the isValidConfiguration flag
+        var isConfigurationValid = true;
 
-            var connection = AzureOpenAIConnection.Create(request.Name, request.Description, config, isConfigurationValid, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), timestamp);
+        var connection = AzureOpenAIConnection.Create(request.Name, request.Description, config, isConfigurationValid, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), timestamp);
 
-            await _appIntegrationDbContext.AzureOpenAIConnections.AddAsync(connection, cancellationToken);
+        await _appIntegrationDbContext.AzureOpenAIConnections.AddAsync(connection, cancellationToken);
 
-            await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
 
-            return Result.Success(connection.Id);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
-
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName}");
-        }
+        return Result.Success(connection.Id);
     }
 }
 

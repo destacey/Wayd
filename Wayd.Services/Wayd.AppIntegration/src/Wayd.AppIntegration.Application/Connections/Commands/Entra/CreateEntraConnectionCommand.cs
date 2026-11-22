@@ -49,47 +49,35 @@ public sealed class CreateEntraConnectionCommandValidator : CustomValidator<Crea
 public sealed class CreateEntraConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
     ICurrentUser currentUser,
-    IDateTimeProvider dateTimeProvider,
-    ILogger<CreateEntraConnectionCommandHandler> logger)
+    IDateTimeProvider dateTimeProvider)
     : ICommandHandler<CreateEntraConnectionCommand, Guid>
 {
-    private const string AppRequestName = nameof(CreateEntraConnectionCommandHandler);
-
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ILogger<CreateEntraConnectionCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(CreateEntraConnectionCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            Instant timestamp = _dateTimeProvider.Now;
+        Instant timestamp = _dateTimeProvider.Now;
 
-            var config = new EntraConnectionConfiguration(
-                request.TenantId,
-                request.ClientId,
-                request.ClientSecret,
-                request.AllUsersGroupObjectId,
-                request.IncludeDisabledUsers,
-                request.MatchBy,
-                request.NormalizeNameCasing);
+        var config = new EntraConnectionConfiguration(
+            request.TenantId,
+            request.ClientId,
+            request.ClientSecret,
+            request.AllUsersGroupObjectId,
+            request.IncludeDisabledUsers,
+            request.MatchBy,
+            request.NormalizeNameCasing);
 
-            // TODO: Test the connection here and set IsValidConfiguration based on the outcome.
-            var isConfigurationValid = true;
+        // TODO: Test the connection here and set IsValidConfiguration based on the outcome.
+        var isConfigurationValid = true;
 
-            var connection = EntraConnection.Create(request.Name, request.Description, config, isConfigurationValid, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), timestamp);
+        var connection = EntraConnection.Create(request.Name, request.Description, config, isConfigurationValid, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), timestamp);
 
-            await _appIntegrationDbContext.EntraConnections.AddAsync(connection, cancellationToken);
+        await _appIntegrationDbContext.EntraConnections.AddAsync(connection, cancellationToken);
 
-            await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
 
-            return Result.Success(connection.Id);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName}");
-        }
+        return Result.Success(connection.Id);
     }
 }

@@ -24,14 +24,18 @@ public sealed class AzureOpenAIConnectionTests
     {
         // Arrange
         var connection = Create();
+        var eventsBefore = connection.DomainEvents.Count;
 
         // Act
-        var result = connection.Update("AI", null, "https://attacker.example.com", null, "gpt-4o", true, Actor, _dateTimeProvider.Now);
+        var result = connection.Update("Renamed", null, "https://attacker.example.com", null, "gpt-5", true, Actor, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(Connection.CredentialsRequiredMessage("API key"));
+        connection.Name.Should().Be("AI");
         connection.Configuration.BaseUrl.Should().Be(OriginalUrl);
+        connection.Configuration.DeploymentName.Should().Be("gpt-4o");
+        connection.DomainEvents.Should().HaveCount(eventsBefore);
     }
 
     [Fact]
@@ -73,13 +77,17 @@ public sealed class AzureOpenAIConnectionTests
     {
         // Arrange
         var connection = Create();
+        var eventsBefore = connection.DomainEvents.Count;
 
         // Act
-        var result = connection.Update("AI", null, baseUrl, "new-key", "gpt-4o", true, Actor, _dateTimeProvider.Now);
+        var result = connection.Update("Renamed", null, baseUrl, "new-key", "gpt-4o", true, Actor, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
+        connection.Name.Should().Be("AI");
         connection.Configuration.BaseUrl.Should().Be(OriginalUrl);
+        connection.Configuration.ApiKey.Should().Be(OriginalKey);
+        connection.DomainEvents.Should().HaveCount(eventsBefore);
     }
 
     [Theory]

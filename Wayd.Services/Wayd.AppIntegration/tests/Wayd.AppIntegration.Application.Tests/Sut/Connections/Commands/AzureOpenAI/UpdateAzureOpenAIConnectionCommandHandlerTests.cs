@@ -106,6 +106,28 @@ public class UpdateAzureOpenAIConnectionCommandHandlerTests
             "a rotated key must save even when it happens to match the stored one's prefix and length");
     }
 
+    [Fact]
+    public async Task Handle_Refuses_WhenTheHostChangesWithoutANewKey()
+    {
+        // Arrange
+        var connection = CreateConnection();
+        var eventsBefore = connection.DomainEvents.Count;
+        var command = new UpdateAzureOpenAIConnectionCommand(
+            connection.Id, "Renamed", "https://ai.elsewhere.example", "A new description", DeploymentName, null);
+
+        // Act
+        var result = await _sut.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        connection.Name.Should().Be("Azure OpenAI");
+        connection.Description.Should().Be("Original description");
+        connection.Configuration.BaseUrl.Should().Be(BaseUrl);
+        connection.Configuration.ApiKey.Should().Be(StoredApiKey);
+        connection.DomainEvents.Should().HaveCount(eventsBefore);
+        _db.SaveChangesCallCount.Should().Be(0);
+    }
+
     private AzureOpenAIConnection CreateConnection()
     {
         var connection = AzureOpenAIConnection.Create(

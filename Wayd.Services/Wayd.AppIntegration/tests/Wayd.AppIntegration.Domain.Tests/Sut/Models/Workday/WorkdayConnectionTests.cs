@@ -31,16 +31,20 @@ public sealed class WorkdayConnectionTests
     {
         // Arrange
         var connection = Create();
+        var eventsBefore = connection.DomainEvents.Count;
 
         // Act
-        var result = Update(connection, wsdlUrl, username, isuPassword: null);
+        var result = Update(connection, wsdlUrl, username, isuPassword: null, name: "Renamed");
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(Connection.CredentialsRequiredMessage("ISU password"));
+        connection.Name.Should().Be("People");
+        connection.IsValidConfiguration.Should().BeTrue();
         connection.Configuration.WsdlUrl.Should().Be(OriginalUrl);
         connection.Configuration.IsuUsername.Should().Be(OriginalUsername);
-        connection.DomainEvents.Should().NotContain(e => e is ConnectionConfigurationChangedEvent);
+        connection.Configuration.IsuPassword.Should().Be(OriginalPassword);
+        connection.DomainEvents.Should().HaveCount(eventsBefore);
     }
 
     [Fact]
@@ -85,9 +89,9 @@ public sealed class WorkdayConnectionTests
             Actor,
             _dateTimeProvider.Now);
 
-    private CSharpFunctionalExtensions.Result Update(WorkdayConnection connection, string wsdlUrl, string username, string? isuPassword) =>
+    private CSharpFunctionalExtensions.Result Update(WorkdayConnection connection, string wsdlUrl, string username, string? isuPassword, string name = "People") =>
         connection.Update(
-            "People",
+            name,
             null,
             wsdlUrl,
             username,

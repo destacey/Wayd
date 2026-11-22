@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.Organization;
@@ -136,8 +135,7 @@ public sealed class SetSprintTeamDaysOffCommandHandlerTests(SqlServerDbContextFi
             currentUser.Object,
             currentPrincipal.Object,
             Mock.Of<IDateTimeProvider>(p => p.Now == SqlServerDbContextFixture.FixedNow),
-            new Wayd.Tests.Shared.TestingSystemCalendar(Mock.Of<IDateTimeProvider>(p => p.Now == SqlServerDbContextFixture.FixedNow)),
-            NullLogger<SetSprintTeamDaysOffCommandHandler>.Instance);
+            new Wayd.Tests.Shared.TestingSystemCalendar(Mock.Of<IDateTimeProvider>(p => p.Now == SqlServerDbContextFixture.FixedNow)));
     }
 
     private async Task<Guid> SeedSprint(CancellationToken cancellationToken)

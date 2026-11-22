@@ -31,8 +31,6 @@ public sealed class CompleteSprintCommandHandler(
     ILogger<CompleteSprintCommandHandler> logger)
     : ICommandHandler<CompleteSprintCommand>
 {
-    private const string AppRequestName = nameof(CompleteSprintCommand);
-
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
@@ -45,19 +43,11 @@ public sealed class CompleteSprintCommandHandler(
 
     public async Task<Result> Handle(CompleteSprintCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            return await SprintLifecycleChange.Apply(
-                _workDbContext, _dispatcher, _schedulingSettings, _generalSettings, _currentUser, _currentPrincipal, _dateTimeProvider, _systemCalendar, _logger,
-                request.Id,
-                "complete",
-                (sprint, timeline, actor, now) => [() => sprint.Complete(timeline, request.CompletedAt ?? now, actor, now)],
-                cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
-        }
+        return await SprintLifecycleChange.Apply(
+            _workDbContext, _dispatcher, _schedulingSettings, _generalSettings, _currentUser, _currentPrincipal, _dateTimeProvider, _systemCalendar, _logger,
+            request.Id,
+            "complete",
+            (sprint, timeline, actor, now) => [() => sprint.Complete(timeline, request.CompletedAt ?? now, actor, now)],
+            cancellationToken);
     }
 }

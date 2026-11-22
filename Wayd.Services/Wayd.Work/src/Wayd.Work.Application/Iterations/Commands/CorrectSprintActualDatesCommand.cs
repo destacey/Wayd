@@ -46,8 +46,6 @@ public sealed class CorrectSprintActualDatesCommandHandler(
     ILogger<CorrectSprintActualDatesCommandHandler> logger)
     : ICommandHandler<CorrectSprintActualDatesCommand>
 {
-    private const string AppRequestName = nameof(CorrectSprintActualDatesCommand);
-
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
@@ -63,20 +61,12 @@ public sealed class CorrectSprintActualDatesCommandHandler(
         if (request.Sprints.Count == 0)
             return Result.Failure("At least one sprint must be corrected.");
 
-        try
-        {
-            return await SprintLifecycleChange.Apply(
-                _workDbContext, _dispatcher, _schedulingSettings, _generalSettings, _currentUser, _currentPrincipal, _dateTimeProvider, _systemCalendar, _logger,
-                request.Sprints[0].SprintId,
-                "correct the actual dates of",
-                (_, timeline, actor, now) => Steps(request, timeline, actor, now),
-                cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
-        }
+        return await SprintLifecycleChange.Apply(
+            _workDbContext, _dispatcher, _schedulingSettings, _generalSettings, _currentUser, _currentPrincipal, _dateTimeProvider, _systemCalendar, _logger,
+            request.Sprints[0].SprintId,
+            "correct the actual dates of",
+            (_, timeline, actor, now) => Steps(request, timeline, actor, now),
+            cancellationToken);
     }
 
     private static IReadOnlyList<Func<Result>> Steps(CorrectSprintActualDatesCommand request, TeamSprintTimeline timeline, EventActor actor, Instant now)

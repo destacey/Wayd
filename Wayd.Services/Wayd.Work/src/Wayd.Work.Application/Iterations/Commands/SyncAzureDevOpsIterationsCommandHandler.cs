@@ -18,8 +18,6 @@ namespace Wayd.Work.Application.Iterations.Commands;
 public sealed class SyncAzureDevOpsIterationsCommandHandler(IWorkDbContext workDbContext, ILogger<SyncAzureDevOpsIterationsCommandHandler> logger, IDateTimeProvider dateTimeProvider, ILinkWriter linkWriter)
  : ICommandHandler<SyncAzureDevOpsIterationsCommand>
 {
-    private const string AppRequestName = nameof(SyncAzureDevOpsIterationsCommand);
-
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly ILogger<SyncAzureDevOpsIterationsCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -35,42 +33,33 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IWorkDbContext workD
 
         var syncLog = new IterationSyncLog(request.Iterations.Count);
 
-        try
-        {
-            // Group incoming iterations by ProjectId and process each project separately (chunked)
-            var groups = request.Iterations.GroupBy(i => i.Metadata.ProjectId);
+        // Group incoming iterations by ProjectId and process each project separately (chunked)
+        var groups = request.Iterations.GroupBy(i => i.Metadata.ProjectId);
 
-            foreach (var group in groups)
+        foreach (var group in groups)
+        {
+            var azdoProjectId = group.Key;
+
+            if (_logger.IsEnabled(LogLevel.Debug))
             {
-                var azdoProjectId = group.Key;
-
-                if (_logger.IsEnabled(LogLevel.Debug))
-                {
-                    _logger.LogDebug("Processing {IterationCount} iterations for SystemId {SystemId} and Azdo Project {AzdoProjectId}", group.Count(), request.SystemId, azdoProjectId);
-                }
-
-                var projectIterations = await _workDbContext.Iterations
-                .Include(i => i.ExternalMetadata)
-                .Where(i => i.OwnershipInfo.SystemId == request.SystemId
-                && i.ExternalMetadata.Any(em => em.Name == "ProjectId" && em.Value == azdoProjectId.ToString()))
-                .ToListAsync(cancellationToken);
-
-                // Delete iterations that are no longer present for this project. Don't stop processing if there is a delete error.
-                var externalIdsToKeep = group.Select(i => i.Id.ToString()).ToHashSet(StringComparer.Ordinal);
-                await DeleteMissingIterations(projectIterations, externalIdsToKeep, syncLog, cancellationToken);
-
-                var processResult = await ProcessIterations(request.SystemId, group, azdoProjectId, projectIterations, request.TeamMappings, syncLog, cancellationToken);
-                if (processResult.IsFailure)
-                {
-                    return PublishSyncLog(processResult, request.SystemId, azdoProjectId, syncLog);
-                }
+                _logger.LogDebug("Processing {IterationCount} iterations for SystemId {SystemId} and Azdo Project {AzdoProjectId}", group.Count(), request.SystemId, azdoProjectId);
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command for SystemId {SystemId}.", AppRequestName, request.SystemId);
 
-            return PublishSyncLog(Result.Failure($"Error handling {AppRequestName} command."), request.SystemId, null, syncLog);
+            var projectIterations = await _workDbContext.Iterations
+            .Include(i => i.ExternalMetadata)
+            .Where(i => i.OwnershipInfo.SystemId == request.SystemId
+            && i.ExternalMetadata.Any(em => em.Name == "ProjectId" && em.Value == azdoProjectId.ToString()))
+            .ToListAsync(cancellationToken);
+
+            // Delete iterations that are no longer present for this project.
+            var externalIdsToKeep = group.Select(i => i.Id.ToString()).ToHashSet(StringComparer.Ordinal);
+            await DeleteMissingIterations(projectIterations, externalIdsToKeep, syncLog, cancellationToken);
+
+            var processResult = await ProcessIterations(request.SystemId, group, azdoProjectId, projectIterations, request.TeamMappings, syncLog, cancellationToken);
+            if (processResult.IsFailure)
+            {
+                return PublishSyncLog(processResult, request.SystemId, azdoProjectId, syncLog);
+            }
         }
 
         // All groups processed successfully
@@ -121,28 +110,20 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IWorkDbContext workD
 
         _workDbContext.Iterations.RemoveRange(iterationsToDelete);
 
-        try
-        {
-            // One transaction, so a delete that fails leaves the history still pointing at the
-            // iterations it kept.
-            await using var unitOfWork = await _workDbContext.BeginUnitOfWork(cancellationToken);
+        // One transaction, so a delete that fails leaves the history still pointing at the
+        // iterations it kept.
+        await using var unitOfWork = await _workDbContext.BeginUnitOfWork(cancellationToken);
 
-            // The database cannot clear these itself (see WorkItemStateHistoryConfig). The history
-            // keeps the source's iteration id, so a period still says which iteration it was in.
-            var deletedIds = iterationsToDelete.Select(i => i.Id).ToArray();
-            await _workDbContext.WorkItemStateHistory
-                .Where(h => h.IterationId != null && deletedIds.Contains(h.IterationId.Value))
-                .ExecuteUpdateAsync(s => s.SetProperty(h => h.IterationId, (Guid?)null), cancellationToken);
+        // The database cannot clear these itself (see WorkItemStateHistoryConfig). The history
+        // keeps the source's iteration id, so a period still says which iteration it was in.
+        var deletedIds = iterationsToDelete.Select(i => i.Id).ToArray();
+        await _workDbContext.WorkItemStateHistory
+            .Where(h => h.IterationId != null && deletedIds.Contains(h.IterationId.Value))
+            .ExecuteUpdateAsync(s => s.SetProperty(h => h.IterationId, (Guid?)null), cancellationToken);
 
-            await _workDbContext.SaveChangesAsync(cancellationToken);
-            await unitOfWork.CommitAsync(cancellationToken);
-            syncLog.IterationDeleted(iterationsToDelete.Count);
-        }
-        catch (Exception ex)
-        {
-            // Log and continue: delete failures should not stop processing of other project groups
-            _logger.LogError(ex, "Failed to delete {Count} iterations during sync. Continuing processing.", iterationsToDelete.Count);
-        }
+        await _workDbContext.SaveChangesAsync(cancellationToken);
+        await unitOfWork.CommitAsync(cancellationToken);
+        syncLog.IterationDeleted(iterationsToDelete.Count);
     }
 
     /// <summary>
@@ -246,15 +227,7 @@ public sealed class SyncAzureDevOpsIterationsCommandHandler(IWorkDbContext workD
         await CompleteCollidingOpenSprints(movedOpenSprints, cancellationToken);
 
         // Persist changes for this project group (creates/updates)
-        try
-        {
-            await _workDbContext.SaveChangesAsync(cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to save iteration changes for SystemId {SystemId} and Azdo Project {AzdoProjectId}.", systemId, azdoProjectId);
-            return Result.Failure($"Failed to save iteration changes for SystemId {systemId} and Azdo Project {azdoProjectId}.");
-        }
+        await _workDbContext.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
     }

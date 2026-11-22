@@ -245,13 +245,9 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
                     }
                     catch (Exception ex)
                     {
-                        if (workItem is not null && workItem.Id != Guid.Empty)
-                        {
-                            // Reset the entity
-                            await _workDbContext.Entry(workItem).ReloadAsync(cancellationToken);
-                            workItem.ClearDomainEvents();
-                        }
-
+                        // One item's failure must not stop the rest of the workspace; it counts as an error. Nothing
+                        // needs undoing: WorkItem.Update refuses before it changes anything, and a new item is only
+                        // added once it is built.
                         _logger.LogError(ex, "Exception thrown while syncing external work item {ExternalId} in workspace {WorkspaceId} ({WorkspaceName}).", externalWorkItem.Id, workspace.Id, workspace.Name);
 
                         syncLog.ItemError();
@@ -284,12 +280,6 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
 
             await MapMissingParents(workspace, missingParents, cancellationToken);
             await SyncParentProjectIds(workspace, workTypes, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            // No reset needed: the workspace is untracked and never mutated here.
-            _logger.LogError(ex, "An error occurred while syncing workspace {WorkspaceId} work items.", workspace.Id);
-            return Result.Failure($"An error occurred while syncing workspace {workspace.Id} work items.");
         }
         finally
         {
@@ -381,23 +371,16 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
                 continue;
             }
 
-            try
+            var result = workItem.ChangeExternalWorkspace(targetWorkspace, workType, status);
+            if (result.IsFailure)
             {
-                var result = workItem.ChangeExternalWorkspace(targetWorkspace, workType, status);
-                if (result.IsFailure)
-                {
-                    _logger.LogError("Failed to change workspace for external work item {WorkItemId}: {Error}",
-                        workItem.Id, result.Error);
-                    continue;
-                }
+                _logger.LogError("Failed to change workspace for external work item {WorkItemId}: {Error}",
+                    workItem.Id, result.Error);
+                continue;
+            }
 
-                _logger.LogInformation("External work item {WorkItemId} (External ID: {ExternalId}) moved to workspace {WorkspaceId}.",
-                    workItem.Id, workItem.ExternalId, targetWorkspace.Id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Exception while changing workspace for work item {ExternalId}.", workItem.ExternalId);
-            }
+            _logger.LogInformation("External work item {WorkItemId} (External ID: {ExternalId}) moved to workspace {WorkspaceId}.",
+                workItem.Id, workItem.ExternalId, targetWorkspace.Id);
         }
 
         await _workDbContext.SaveChangesAsync(cancellationToken);

@@ -37,35 +37,22 @@ public sealed class CreateWorkTypeCommandHandler : ICommandHandler<CreateWorkTyp
 {
     private readonly IWorkDbContext _workDbContext;
     private readonly Instant _timestamp;
-    private readonly ILogger<CreateWorkTypeCommandHandler> _logger;
 
-    public CreateWorkTypeCommandHandler(IWorkDbContext workDbContext, IDateTimeProvider dateTimeProvider, ILogger<CreateWorkTypeCommandHandler> logger)
+    public CreateWorkTypeCommandHandler(IWorkDbContext workDbContext, IDateTimeProvider dateTimeProvider)
     {
         _workDbContext = workDbContext;
         _timestamp = dateTimeProvider.Now;
-        _logger = logger;
     }
 
     public async Task<Result<int>> Handle(CreateWorkTypeCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var workType = WorkType.Create(request.Name, request.Description, request.LevelId, _timestamp);
+        var workType = WorkType.Create(request.Name, request.Description, request.LevelId, _timestamp);
 
-            await _workDbContext.WorkTypes.AddAsync(workType, cancellationToken);
+        await _workDbContext.WorkTypes.AddAsync(workType, cancellationToken);
 
-            await _workDbContext.SaveChangesAsync(cancellationToken);
+        await _workDbContext.SaveChangesAsync(cancellationToken);
 
-            return Result.Success(workType.Id);
-        }
-        catch (Exception ex)
-        {
-            var requestName = request.GetType().Name;
-
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-
-            return Result.Failure<int>($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success(workType.Id);
     }
 }
 

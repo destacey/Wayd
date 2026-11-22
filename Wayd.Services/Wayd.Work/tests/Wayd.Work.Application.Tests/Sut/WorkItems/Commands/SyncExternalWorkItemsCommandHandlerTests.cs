@@ -198,7 +198,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_HandlesException_AndReturnsFailure()
+    public async Task Handle_WhenTheWorkspaceQueryThrows_Propagates()
     {
         // Arrange
         var workspaceId = Guid.NewGuid();
@@ -240,29 +240,6 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
                 It.IsAny<Exception>(),
                 It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
             Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_LogsError_WhenExceptionOccurs()
-    {
-        // Arrange
-        var workspaceId = Guid.NewGuid();
-        var externalWorkItem = _externalWorkItemFaker.Generate();
-        var command = CreateCommand(workspaceId, [externalWorkItem]);
-
-        // Use Mock<IWorkDbContext> for exception testing
-        var mockWorkDbContext = new Mock<IWorkDbContext>();
-        mockWorkDbContext.Setup(x => x.Workspaces)
-            .Throws(new InvalidOperationException("Database error"));
-
-        var handlerWithMock = new SyncExternalWorkItemsCommandHandler(mockWorkDbContext.Object, _statusWorkflowDbContext.Object, _statusResolver.Object, _dateTimeProvider, _mockLogger.Object);
-
-        // Act
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await handlerWithMock.Handle(command, TestContext.Current.CancellationToken));
-
-        // Assert
-        exception.Message.Should().Be("Database error");
     }
 
     [Fact]
@@ -376,6 +353,48 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
         existingWorkItem.StoryPoints.Should().BeNull();
         existingWorkItem.Effort.Should().Be(8);
         existingWorkItem.Size.Should().Be(5);
+    }
+
+    [Fact]
+    public async Task Handle_WhenAnItemsUpdateIsRefused_LeavesItAndSyncsTheRest()
+    {
+        // Arrange — the source reports item 101 finished before it was created, which the update refuses
+        var workspaceId = Guid.NewGuid();
+        var workProcessId = Guid.NewGuid();
+        var workProcess = CreateWorkProcessWithSchemes("User Story", "New");
+        var workspace = _workspaceFaker.AsExternal().WithId(workspaceId).WithWorkProcessId(workProcessId).Generate();
+        var refused = new WorkItemFaker().WithWorkspace(workspace).WithType(workProcess.WorkType).WithExternalId(101).Generate();
+        var synced = new WorkItemFaker().WithWorkspace(workspace).WithType(workProcess.WorkType).WithExternalId(102).Generate();
+        var refusedTitle = refused.Title;
+
+        var badItem = new ExternalWorkItemFaker(_clock.GetCurrentInstant(), _clock.GetCurrentInstant())
+            .WithId(101).WithWorkType("User Story").WithWorkStatus("New").WithTitle("Renamed")
+            .WithActivatedTimestamp(null).WithDoneTimestamp(refused.Created - Duration.FromDays(1))
+            .Generate();
+        var goodItem = _externalWorkItemFaker
+            .WithId(102).WithWorkType("User Story").WithWorkStatus("New").WithEffort(8)
+            .Generate();
+
+        _fakeWorkDbContext.AddWorkspace(workspace);
+        _fakeWorkDbContext.AddWorkProcess(_workProcessFaker.WithId(workProcessId).AsExternal(workProcess.ExternalId).Generate());
+        _fakeWorkDbContext.AddWorkItems([refused, synced]);
+
+        // Act
+        var result = await _handler.Handle(CreateCommand(workspaceId, [badItem, goodItem]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        refused.Title.Should().Be(refusedTitle);
+        synced.Effort.Should().Be(8);
+        _fakeWorkDbContext.SaveChangesCallCount.Should().Be(1);
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v!.ToString()!.Contains("external work item 101")),
+                It.IsAny<InvalidOperationException>(),
+                It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+            Times.Once);
     }
 
     [Fact]

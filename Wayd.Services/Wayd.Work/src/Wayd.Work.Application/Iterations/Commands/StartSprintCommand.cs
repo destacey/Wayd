@@ -34,8 +34,6 @@ public sealed class StartSprintCommandHandler(
     ILogger<StartSprintCommandHandler> logger)
     : ICommandHandler<StartSprintCommand>
 {
-    private const string AppRequestName = nameof(StartSprintCommand);
-
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
@@ -48,20 +46,12 @@ public sealed class StartSprintCommandHandler(
 
     public async Task<Result> Handle(StartSprintCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            return await SprintLifecycleChange.Apply(
-                _workDbContext, _dispatcher, _schedulingSettings, _generalSettings, _currentUser, _currentPrincipal, _dateTimeProvider, _systemCalendar, _logger,
-                request.Id,
-                "start",
-                (sprint, timeline, actor, now) => Steps(request, sprint, timeline, actor, now),
-                cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
-        }
+        return await SprintLifecycleChange.Apply(
+            _workDbContext, _dispatcher, _schedulingSettings, _generalSettings, _currentUser, _currentPrincipal, _dateTimeProvider, _systemCalendar, _logger,
+            request.Id,
+            "start",
+            (sprint, timeline, actor, now) => Steps(request, sprint, timeline, actor, now),
+            cancellationToken);
     }
 
     private static IReadOnlyList<Func<Result>> Steps(StartSprintCommand request, Iteration sprint, TeamSprintTimeline timeline, EventActor actor, Instant now)

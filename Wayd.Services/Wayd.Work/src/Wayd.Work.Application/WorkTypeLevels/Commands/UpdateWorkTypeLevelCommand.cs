@@ -66,31 +66,22 @@ public sealed class UpdateWorkTypeLevelCommandHandler : ICommandHandler<UpdateWo
 
     public async Task<Result> Handle(UpdateWorkTypeLevelCommand request, CancellationToken cancellationToken)
     {
-        try
+        var hierarchy = await _workDbContext.WorkTypeHierarchies
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (hierarchy is null)
+            return Result.Failure("The system work type hierarchy does not exist.");
+
+        var updateResult = hierarchy.UpdateWorkTypeLevel(request.Id, request.Name, request.Description, _timestamp);
+
+        if (updateResult.IsFailure)
         {
-            var hierarchy = await _workDbContext.WorkTypeHierarchies
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (hierarchy is null)
-                return Result.Failure("The system work type hierarchy does not exist.");
-
-            var updateResult = hierarchy.UpdateWorkTypeLevel(request.Id, request.Name, request.Description, _timestamp);
-
-            if (updateResult.IsFailure)
-            {
-                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", AppRequestName, updateResult.Error);
-                return Result.Failure(updateResult.Error);
-            }
-
-            await _workDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
+            _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", AppRequestName, updateResult.Error);
+            return Result.Failure(updateResult.Error);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
 
-            return Result.Failure($"Wayd Request: Exception for Request {AppRequestName}");
-        }
+        await _workDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
     }
 }

@@ -35,10 +35,6 @@ public sealed class UpdateExternalWorkspaceCommandHandler(IWorkDbContext workDbC
         var workspaceResult = workspace.Update(workspace.Name, request.ExternalWorkspace.Description, _dateTimeProvider.Now);
         if (workspaceResult.IsFailure)
         {
-            // Reset the entity
-            await _workDbContext.Entry(workspace).ReloadAsync(cancellationToken);
-            workspace.ClearDomainEvents();
-
             _logger.LogError("{AppRequestName}: failed to update workspace {WorkspaceId}. Error: {Error}", AppRequestName, workspace.Id, workspaceResult.Error);
             return Result.Failure(workspaceResult.Error);
         }

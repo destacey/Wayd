@@ -15,45 +15,37 @@ public sealed class DeletePlanningIntervalObjectiveCommandHandler(IPlanningDbCon
 
     public async Task<Result> Handle(DeletePlanningIntervalObjectiveCommand request, CancellationToken cancellationToken)
     {
-        try
+        var planningInterval = await _planningDbContext.PlanningIntervals
+            .Include(pi => pi.Objectives.Where(o => o.Id == request.PlanningIntervalObjectiveId))
+            .FirstOrDefaultAsync(p => p.Id == request.PlanningIntervalId, cancellationToken);
+        if (planningInterval is null)
         {
-            var planningInterval = await _planningDbContext.PlanningIntervals
-                .Include(pi => pi.Objectives.Where(o => o.Id == request.PlanningIntervalObjectiveId))
-                .FirstOrDefaultAsync(p => p.Id == request.PlanningIntervalId, cancellationToken);
-            if (planningInterval is null)
-            {
-                _logger.LogError("Planning Interval {PlanningIntervalId} not found.", request.PlanningIntervalId);
-                return Result.Failure($"Planning Interval {request.PlanningIntervalId} not found.");
-            }
-
-            var piObjective = planningInterval.Objectives.FirstOrDefault(o => o.Id == request.PlanningIntervalObjectiveId);
-            if (piObjective is null)
-            {
-                _logger.LogError("Planning Interval Objective {PlanningIntervalObjectiveId} not found.", request.PlanningIntervalObjectiveId);
-                return Result.Failure($"Planning Interval Objective {request.PlanningIntervalObjectiveId} not found.");
-            }
-
-            var actor = EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId());
-            var deleteResult = planningInterval.DeleteObjective(request.PlanningIntervalObjectiveId, actor, _dateTimeProvider.Now);
-            if (deleteResult.IsFailure)
-            {
-                _logger.LogError("Unable to delete Planning Interval Objective {PlanningIntervalObjectiveId} from Planning Interval {PlanningIntervalId}.  Error: {Error}", request.PlanningIntervalObjectiveId, request.PlanningIntervalId, deleteResult.Error);
-                return Result.Failure($"Unable to remove Planning Interval Objective {request.PlanningIntervalObjectiveId} from Planning Interval {request.PlanningIntervalId}. Error: {deleteResult.Error}");
-            }
-
-            // TODO: this is a hack to ensure the PI objective is soft deleted.  We should be able to just remove it from the collection and save changes.
-            _planningDbContext.Entry(piObjective).State = EntityState.Deleted;
-
-            // A link has no foreign key to its record, and a deleted objective is reachable from nowhere to remove them later.
-            await _linkWriter.RemoveAll(PlanningLinkOwners.PlanningIntervalObjective.Key, piObjective.Id, actor, cancellationToken);
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
+            _logger.LogError("Planning Interval {PlanningIntervalId} not found.", request.PlanningIntervalId);
+            return Result.Failure($"Planning Interval {request.PlanningIntervalId} not found.");
         }
-        catch (Exception ex)
+
+        var piObjective = planningInterval.Objectives.FirstOrDefault(o => o.Id == request.PlanningIntervalObjectiveId);
+        if (piObjective is null)
         {
-            _logger.LogError(ex, "Error deleting Planning Interval Objective {PlanningIntervalObjectiveId} from Planning Interval {PlanningIntervalId}.", request.PlanningIntervalObjectiveId, request.PlanningIntervalId);
-            return Result.Failure($"Error deleting Planning Interval Objective {request.PlanningIntervalObjectiveId} from Planning Interval {request.PlanningIntervalId}.");
+            _logger.LogError("Planning Interval Objective {PlanningIntervalObjectiveId} not found.", request.PlanningIntervalObjectiveId);
+            return Result.Failure($"Planning Interval Objective {request.PlanningIntervalObjectiveId} not found.");
         }
+
+        var actor = EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId());
+        var deleteResult = planningInterval.DeleteObjective(request.PlanningIntervalObjectiveId, actor, _dateTimeProvider.Now);
+        if (deleteResult.IsFailure)
+        {
+            _logger.LogError("Unable to delete Planning Interval Objective {PlanningIntervalObjectiveId} from Planning Interval {PlanningIntervalId}.  Error: {Error}", request.PlanningIntervalObjectiveId, request.PlanningIntervalId, deleteResult.Error);
+            return Result.Failure($"Unable to remove Planning Interval Objective {request.PlanningIntervalObjectiveId} from Planning Interval {request.PlanningIntervalId}. Error: {deleteResult.Error}");
+        }
+
+        // TODO: this is a hack to ensure the PI objective is soft deleted.  We should be able to just remove it from the collection and save changes.
+        _planningDbContext.Entry(piObjective).State = EntityState.Deleted;
+
+        // A link has no foreign key to its record, and a deleted objective is reachable from nowhere to remove them later.
+        await _linkWriter.RemoveAll(PlanningLinkOwners.PlanningIntervalObjective.Key, piObjective.Id, actor, cancellationToken);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
     }
 }

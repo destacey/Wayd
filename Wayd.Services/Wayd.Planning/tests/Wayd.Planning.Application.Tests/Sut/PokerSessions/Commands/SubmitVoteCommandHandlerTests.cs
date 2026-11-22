@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using Wayd.Common.Application.Interfaces;
+﻿using Wayd.Common.Application.Interfaces;
 using Wayd.Planning.Application.PokerSessions.Commands;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
 using Wayd.Planning.Application.Tests.Infrastructure;
@@ -17,7 +16,6 @@ public class SubmitVoteCommandHandlerTests : IDisposable
     private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly SubmitVoteCommandHandler _handler;
-    private readonly Mock<ILogger<SubmitVoteCommandHandler>> _mockLogger;
     private readonly Mock<IPokerSessionNotifier> _mockNotifier;
     private readonly Mock<ICurrentUser> _mockCurrentUser;
     private readonly Mock<IDateTimeProvider> _mockDateTimeProvider;
@@ -28,7 +26,6 @@ public class SubmitVoteCommandHandlerTests : IDisposable
     public SubmitVoteCommandHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _mockLogger = new Mock<ILogger<SubmitVoteCommandHandler>>();
         _mockNotifier = new Mock<IPokerSessionNotifier>();
         _mockCurrentUser = new Mock<ICurrentUser>();
         _mockCurrentUser.Setup(u => u.GetUserId()).Returns(_currentUserId);
@@ -38,7 +35,7 @@ public class SubmitVoteCommandHandlerTests : IDisposable
         _mockDateTimeProvider = new Mock<IDateTimeProvider>();
         _mockDateTimeProvider.Setup(d => d.Now).Returns(Instant.FromUtc(2026, 1, 15, 10, 0));
 
-        _handler = new SubmitVoteCommandHandler(_dbContext, _access, _mockDateTimeProvider.Object, _mockCurrentUser.Object, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new SubmitVoteCommandHandler(_dbContext, _access, _mockDateTimeProvider.Object, _mockCurrentUser.Object, _mockNotifier.Object);
         _sessionFaker = new PokerSessionFaker();
     }
 

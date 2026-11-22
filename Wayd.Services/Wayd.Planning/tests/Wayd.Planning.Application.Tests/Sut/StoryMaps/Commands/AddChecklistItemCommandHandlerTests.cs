@@ -1,5 +1,4 @@
 using Wayd.Planning.Domain.Tests.Data;
-using Microsoft.Extensions.Logging;
 using Wayd.Planning.Application.StoryMaps.Commands;
 using Wayd.Planning.Application.StoryMaps.Dtos;
 using Wayd.Planning.Application.StoryMaps.Interfaces;
@@ -14,16 +13,14 @@ public class AddChecklistItemCommandHandlerTests : IDisposable
     private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly AddChecklistItemCommandHandler _handler;
-    private readonly Mock<ILogger<AddChecklistItemCommandHandler>> _mockLogger;
     private readonly Mock<IStoryMapNotifier> _mockNotifier;
 
     public AddChecklistItemCommandHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _mockLogger = new Mock<ILogger<AddChecklistItemCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new AddChecklistItemCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new AddChecklistItemCommandHandler(_dbContext, _access, _mockNotifier.Object);
     }
 
     [Fact]

@@ -12,40 +12,30 @@ public sealed class ArchiveStoryMapCommandValidator : CustomValidator<ArchiveSto
     }
 }
 
-public sealed class ArchiveStoryMapCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<ArchiveStoryMapCommandHandler> logger) : ICommandHandler<ArchiveStoryMapCommand>
+public sealed class ArchiveStoryMapCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier) : ICommandHandler<ArchiveStoryMapCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
-    private readonly ILogger<ArchiveStoryMapCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ArchiveStoryMapCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var map = await _planningDbContext.StoryMaps
-                .IncludeAccess()
-                .FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken);
+        var map = await _planningDbContext.StoryMaps
+            .IncludeAccess()
+            .FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken);
 
-            if (map is null)
-                return Result.Failure("Story map not found.");
+        if (map is null)
+            return Result.Failure("Story map not found.");
 
-            var actor = await _access.ResolveActor(map, cancellationToken);
+        var actor = await _access.ResolveActor(map, cancellationToken);
 
-            var result = map.Archive(actor);
-            if (result.IsFailure)
-                return result;
+        var result = map.Archive(actor);
+        if (result.IsFailure)
+            return result;
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-            await _notifier.NotifyMapArchived(map.Id);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _notifier.NotifyMapArchived(map.Id);
 
-            return Result.Success();
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success();
     }
 }

@@ -1,5 +1,4 @@
 using Wayd.Planning.Domain.Tests.Data;
-using Microsoft.Extensions.Logging;
 using Wayd.Planning.Application.StoryMaps.Commands;
 using Wayd.Planning.Application.StoryMaps.Dtos;
 using Wayd.Planning.Application.StoryMaps.Interfaces;
@@ -14,16 +13,14 @@ public class AddTaskCommandHandlerTests : IDisposable
     private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly AddTaskCommandHandler _handler;
-    private readonly Mock<ILogger<AddTaskCommandHandler>> _mockLogger;
     private readonly Mock<IStoryMapNotifier> _mockNotifier;
 
     public AddTaskCommandHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _mockLogger = new Mock<ILogger<AddTaskCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new AddTaskCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new AddTaskCommandHandler(_dbContext, _access, _mockNotifier.Object);
     }
 
     private static StoryMap CreateMap() =>

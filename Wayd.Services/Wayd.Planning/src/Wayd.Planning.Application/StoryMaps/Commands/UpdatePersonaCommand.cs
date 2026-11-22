@@ -27,43 +27,33 @@ public sealed class UpdatePersonaCommandValidator : CustomValidator<UpdatePerson
     }
 }
 
-public sealed class UpdatePersonaCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<UpdatePersonaCommandHandler> logger) : ICommandHandler<UpdatePersonaCommand>
+public sealed class UpdatePersonaCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier) : ICommandHandler<UpdatePersonaCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
-    private readonly ILogger<UpdatePersonaCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdatePersonaCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var map = await _planningDbContext.StoryMaps
-                .IncludeAccess()
-                .Include(m => m.Personas)
-                .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
+        var map = await _planningDbContext.StoryMaps
+            .IncludeAccess()
+            .Include(m => m.Personas)
+            .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
-            if (map is null)
-                return Result.Failure("Story map not found.");
+        if (map is null)
+            return Result.Failure("Story map not found.");
 
-            var actor = await _access.ResolveActor(map, cancellationToken);
+        var actor = await _access.ResolveActor(map, cancellationToken);
 
-            var result = map.UpdatePersona(request.PersonaId, request.Name, request.Description, request.Color, actor);
-            if (result.IsFailure)
-                return result;
+        var result = map.UpdatePersona(request.PersonaId, request.Name, request.Description, request.Color, actor);
+        if (result.IsFailure)
+            return result;
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            var dto = map.Personas.First(p => p.Id == request.PersonaId).Adapt<StoryMapPersonaDto>();
-            await _notifier.NotifyPersonaUpdated(map.Id, dto);
+        var dto = map.Personas.First(p => p.Id == request.PersonaId).Adapt<StoryMapPersonaDto>();
+        await _notifier.NotifyPersonaUpdated(map.Id, dto);
 
-            return Result.Success();
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success();
     }
 }

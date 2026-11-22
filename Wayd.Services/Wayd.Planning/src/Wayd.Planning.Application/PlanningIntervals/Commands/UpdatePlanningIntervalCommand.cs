@@ -24,7 +24,9 @@ public sealed class UpdatePlanningIntervalCommandValidator : CustomValidator<Upd
 
     public async Task<bool> BeUniquePlanningIntervalName(Guid id, string name, CancellationToken cancellationToken)
     {
-        return await _planningDbContext.PlanningIntervals.Where(t => t.Id != id).AllAsync(x => x.Name != name, cancellationToken);
+        // Trimmed as the name is when stored, or a leading space passes here and collides on the unique index.
+        var trimmed = name.Trim();
+        return await _planningDbContext.PlanningIntervals.Where(t => t.Id != id).AllAsync(x => x.Name != trimmed, cancellationToken);
     }
 }
 
@@ -45,44 +47,29 @@ public sealed class UpdatePlanningIntervalCommandHandler : ICommandHandler<Updat
 
     public async Task<Result<int>> Handle(UpdatePlanningIntervalCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var planningInterval = await _planningDbContext.PlanningIntervals
-                .SingleOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
-            if (planningInterval is null)
-                return Result.Failure<int>("Planning Interval not found.");
+        var planningInterval = await _planningDbContext.PlanningIntervals
+            .SingleOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+        if (planningInterval is null)
+            return Result.Failure<int>("Planning Interval not found.");
 
-            var updateResult = planningInterval.Update(
-                request.Name,
-                request.Description,
-                request.ObjectivesLocked,
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                _dateTimeProvider.Now
-                );
+        var updateResult = planningInterval.Update(
+            request.Name,
+            request.Description,
+            request.ObjectivesLocked,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            _dateTimeProvider.Now
+            );
 
-            if (updateResult.IsFailure)
-            {
-                // Reset the entity
-                await _planningDbContext.Entry(planningInterval).ReloadAsync(cancellationToken);
-                planningInterval.ClearDomainEvents();
-
-                var requestName = request.GetType().Name;
-                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", requestName, updateResult.Error);
-                return Result.Failure<int>(updateResult.Error);
-            }
-
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success(planningInterval.Key);
-        }
-        catch (Exception ex)
+        if (updateResult.IsFailure)
         {
             var requestName = request.GetType().Name;
-
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-
-            return Result.Failure<int>($"Wayd Request: Exception for Request {requestName}");
+            _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", requestName, updateResult.Error);
+            return Result.Failure<int>(updateResult.Error);
         }
+
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(planningInterval.Key);
     }
 }
 

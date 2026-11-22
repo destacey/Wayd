@@ -67,8 +67,7 @@ public sealed class CreateRoadmapCommandHandler(IPlanningDbContext planningDbCon
     {
         // Enforced here, not only in the validator: Wolverine's code generation requires handlers to
         // be public, so this can be constructed and called directly, skipping both the validator and
-        // LinkedEmployeeMiddleware. Outside the try because the catch-all below would turn a refusal
-        // into a generic failure.
+        // LinkedEmployeeMiddleware.
         var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (currentUserEmployeeId is null)
             LinkedEmployeeRequired.Throw();
@@ -78,35 +77,29 @@ public sealed class CreateRoadmapCommandHandler(IPlanningDbContext planningDbCon
         if (!request.OwnerIds.Contains(currentUserEmployeeId.Value))
             return Result.Failure<ObjectIdAndKey>("You must be one of the roadmap's owners.");
 
-        try
+        // Owners are foreign keys to employees, so an unknown one is refused here rather than at the database.
+        var ownersExist = await _planningDbContext.EnsureEmployeesExist(request.OwnerIds, cancellationToken);
+        if (ownersExist.IsFailure)
+            return Result.Failure<ObjectIdAndKey>(ownersExist.Error);
+
+        var result = Roadmap.Create(
+            request.Name,
+            request.Description,
+            request.DateRange,
+            request.Visibility,
+            request.OwnerIds,
+            EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value),
+            _dateTimeProvider.Now);
+
+        if (result.IsFailure)
         {
-            var result = Roadmap.Create(
-                request.Name,
-                request.Description,
-                request.DateRange,
-                request.Visibility,
-                request.OwnerIds,
-                EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value),
-                _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", request.GetType().Name, result.Error);
-                return Result.Failure<ObjectIdAndKey>(result.Error);
-            }
-
-            await _planningDbContext.Roadmaps.AddAsync(result.Value, cancellationToken);
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-            return new ObjectIdAndKey(result.Value.Id, result.Value.Key);
+            _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", request.GetType().Name, result.Error);
+            return Result.Failure<ObjectIdAndKey>(result.Error);
         }
-        catch (Exception ex)
-        {
-            var requestName = request.GetType().Name;
 
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
+        await _planningDbContext.Roadmaps.AddAsync(result.Value, cancellationToken);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            return Result.Failure<ObjectIdAndKey>($"Wayd Request: Exception for Request {requestName}");
-        }
+        return new ObjectIdAndKey(result.Value.Id, result.Value.Key);
     }
 }

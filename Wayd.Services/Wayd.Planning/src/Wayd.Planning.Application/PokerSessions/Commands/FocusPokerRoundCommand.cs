@@ -18,48 +18,38 @@ public sealed class FocusPokerRoundCommandValidator : CustomValidator<FocusPoker
     }
 }
 
-public sealed class FocusPokerRoundCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionAccess access, IPokerSessionNotifier notifier, ILogger<FocusPokerRoundCommandHandler> logger) : ICommandHandler<FocusPokerRoundCommand>
+public sealed class FocusPokerRoundCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionAccess access, IPokerSessionNotifier notifier) : ICommandHandler<FocusPokerRoundCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IPokerSessionAccess _access = access;
     private readonly IPokerSessionNotifier _notifier = notifier;
-    private readonly ILogger<FocusPokerRoundCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(FocusPokerRoundCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var session = await _planningDbContext.PokerSessions
-                .IncludeAccess()
-                .Include(s => s.Rounds)
-                .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
+        var session = await _planningDbContext.PokerSessions
+            .IncludeAccess()
+            .Include(s => s.Rounds)
+            .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
 
-            if (session is null)
-                return Result.Failure("Poker session not found.");
+        if (session is null)
+            return Result.Failure("Poker session not found.");
 
-            var actor = await _access.ResolveActor(session, cancellationToken);
+        var actor = await _access.ResolveActor(session, cancellationToken);
 
-            var previousRoundId = session.FocusedRoundId;
+        var previousRoundId = session.FocusedRoundId;
 
-            var result = session.FocusRound(request.RoundId, actor);
-            if (result.IsFailure)
-                return result;
+        var result = session.FocusRound(request.RoundId, actor);
+        if (result.IsFailure)
+            return result;
 
-            // Selecting the round already shown tells the session nothing, and a broadcast makes every
-            // participant read the session again.
-            if (session.FocusedRoundId == previousRoundId)
-                return Result.Success();
-
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-            await _notifier.NotifyRoundFocused(session.Id, session.FocusedRoundId);
-
+        // Selecting the round already shown tells the session nothing, and a broadcast makes every
+        // participant read the session again.
+        if (session.FocusedRoundId == previousRoundId)
             return Result.Success();
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _notifier.NotifyRoundFocused(session.Id, session.FocusedRoundId);
+
+        return Result.Success();
     }
 }

@@ -1,5 +1,4 @@
 using Wayd.Planning.Domain.Tests.Data;
-using Microsoft.Extensions.Logging;
 using Wayd.Planning.Application.StoryMaps.Commands;
 using Wayd.Planning.Application.StoryMaps.Interfaces;
 using Wayd.Planning.Application.Tests.Infrastructure;
@@ -13,16 +12,14 @@ public class RenameGoalCommandHandlerTests : IDisposable
     private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly RenameGoalCommandHandler _handler;
-    private readonly Mock<ILogger<RenameGoalCommandHandler>> _mockLogger;
     private readonly Mock<IStoryMapNotifier> _mockNotifier;
 
     public RenameGoalCommandHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _mockLogger = new Mock<ILogger<RenameGoalCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new RenameGoalCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new RenameGoalCommandHandler(_dbContext, _access, _mockNotifier.Object);
     }
 
     private static StoryMap CreateMap() =>

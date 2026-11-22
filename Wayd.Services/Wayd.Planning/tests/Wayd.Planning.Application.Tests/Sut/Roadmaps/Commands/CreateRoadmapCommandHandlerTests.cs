@@ -7,6 +7,7 @@ using Wayd.Common.Domain.Enums;
 using Wayd.Common.Models;
 using Wayd.Planning.Application.Roadmaps.Commands;
 using Wayd.Planning.Application.Tests.Infrastructure;
+using Wayd.Planning.Domain.Tests.Data;
 using NodaTime.Testing;
 using Wayd.Common.Domain.Events;
 using Wayd.Tests.Shared;
@@ -26,10 +27,13 @@ public class CreateRoadmapCommandHandlerTests : IDisposable
     private static readonly LocalDateRange AnyDateRange =
         new(new LocalDate(2026, 1, 1), new LocalDate(2026, 12, 31));
 
-    public CreateRoadmapCommandHandlerTests() =>
+    public CreateRoadmapCommandHandlerTests()
+    {
         _mockCurrentPrincipal
             .Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>()))
             .ReturnsAsync(_currentEmployeeId);
+        _dbContext.AddEmployee(new EmployeeFaker().WithId(_currentEmployeeId).Generate());
+    }
 
     private CreateRoadmapCommandHandler CreateSut() =>
         new(_dbContext, _mockCurrentPrincipal.Object, Mock.Of<ICurrentUser>(u => u.GetUserId() == "user-1"), new TestingDateTimeProvider(new FakeClock(Now)), _mockLogger.Object);
@@ -50,6 +54,23 @@ public class CreateRoadmapCommandHandlerTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_WhenAnOwnerIsNotAnEmployee_FailsWithoutSaving()
+    {
+        // Arrange — owners are foreign keys to employees, so an unknown one would otherwise fail at the database
+        var command = CommandFor(_currentEmployeeId, Guid.NewGuid());
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("One or more employees were not found.");
+        _dbContext.Roadmaps.Should().BeEmpty();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 
     [Fact]

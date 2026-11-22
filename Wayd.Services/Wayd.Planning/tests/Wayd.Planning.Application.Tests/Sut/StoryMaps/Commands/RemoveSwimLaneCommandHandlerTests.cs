@@ -1,5 +1,4 @@
 using Wayd.Planning.Domain.Tests.Data;
-using Microsoft.Extensions.Logging;
 using Wayd.Planning.Application.StoryMaps.Commands;
 using Wayd.Planning.Application.StoryMaps.Interfaces;
 using Wayd.Planning.Application.Tests.Infrastructure;
@@ -13,16 +12,14 @@ public class RemoveSwimLaneCommandHandlerTests : IDisposable
     private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly RemoveSwimLaneCommandHandler _handler;
-    private readonly Mock<ILogger<RemoveSwimLaneCommandHandler>> _mockLogger;
     private readonly Mock<IStoryMapNotifier> _mockNotifier;
 
     public RemoveSwimLaneCommandHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _mockLogger = new Mock<ILogger<RemoveSwimLaneCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new RemoveSwimLaneCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new RemoveSwimLaneCommandHandler(_dbContext, _access, _mockNotifier.Object);
     }
 
     private static StoryMap CreateMap() =>

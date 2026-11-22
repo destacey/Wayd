@@ -16,43 +16,33 @@ public sealed class SetSwimLaneDatesCommandValidator : CustomValidator<SetSwimLa
     }
 }
 
-public sealed class SetSwimLaneDatesCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<SetSwimLaneDatesCommandHandler> logger) : ICommandHandler<SetSwimLaneDatesCommand>
+public sealed class SetSwimLaneDatesCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier) : ICommandHandler<SetSwimLaneDatesCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
-    private readonly ILogger<SetSwimLaneDatesCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(SetSwimLaneDatesCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var map = await _planningDbContext.StoryMaps
-                .IncludeAccess()
-                .Include(m => m.SwimLanes)
-                .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
+        var map = await _planningDbContext.StoryMaps
+            .IncludeAccess()
+            .Include(m => m.SwimLanes)
+            .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
-            if (map is null)
-                return Result.Failure("Story map not found.");
+        if (map is null)
+            return Result.Failure("Story map not found.");
 
-            var actor = await _access.ResolveActor(map, cancellationToken);
+        var actor = await _access.ResolveActor(map, cancellationToken);
 
-            var result = map.SetSwimLaneDates(request.SwimLaneId, request.StartDate, request.EndDate, actor);
-            if (result.IsFailure)
-                return result;
+        var result = map.SetSwimLaneDates(request.SwimLaneId, request.StartDate, request.EndDate, actor);
+        if (result.IsFailure)
+            return result;
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            var laneDto = map.SwimLanes.First(l => l.Id == request.SwimLaneId).Adapt<StoryMapSwimLaneDto>();
-            await _notifier.NotifySwimLaneDatesChanged(map.Id, laneDto);
+        var laneDto = map.SwimLanes.First(l => l.Id == request.SwimLaneId).Adapt<StoryMapSwimLaneDto>();
+        await _notifier.NotifySwimLaneDatesChanged(map.Id, laneDto);
 
-            return Result.Success();
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success();
     }
 }

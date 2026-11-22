@@ -26,41 +26,31 @@ public sealed class UpdatePokerRoundDescriptionCommandValidator : CustomValidato
 /// <summary>
 /// Updates the round's description on an active session and tells the session's participants to refresh.
 /// </summary>
-public sealed class UpdatePokerRoundDescriptionCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionAccess access, IPokerSessionNotifier notifier, ILogger<UpdatePokerRoundDescriptionCommandHandler> logger) : ICommandHandler<UpdatePokerRoundDescriptionCommand>
+public sealed class UpdatePokerRoundDescriptionCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionAccess access, IPokerSessionNotifier notifier) : ICommandHandler<UpdatePokerRoundDescriptionCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IPokerSessionAccess _access = access;
     private readonly IPokerSessionNotifier _notifier = notifier;
-    private readonly ILogger<UpdatePokerRoundDescriptionCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdatePokerRoundDescriptionCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var session = await _planningDbContext.PokerSessions
-                .IncludeAccess()
-                .Include(s => s.Rounds)
-                .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
+        var session = await _planningDbContext.PokerSessions
+            .IncludeAccess()
+            .Include(s => s.Rounds)
+            .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
 
-            if (session is null)
-                return Result.Failure("Poker session not found.");
+        if (session is null)
+            return Result.Failure("Poker session not found.");
 
-            var actor = await _access.ResolveActor(session, cancellationToken);
+        var actor = await _access.ResolveActor(session, cancellationToken);
 
-            var result = session.UpdateRoundDescription(request.RoundId, request.Description, actor);
-            if (result.IsFailure)
-                return Result.Failure(result.Error);
+        var result = session.UpdateRoundDescription(request.RoundId, request.Description, actor);
+        if (result.IsFailure)
+            return Result.Failure(result.Error);
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-            await _notifier.NotifyRoundDescriptionUpdated(session.Id, request.RoundId);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _notifier.NotifyRoundDescriptionUpdated(session.Id, request.RoundId);
 
-            return Result.Success();
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success();
     }
 }

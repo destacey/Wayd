@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using Wayd.Common.Application.Interfaces;
+﻿using Wayd.Common.Application.Interfaces;
 using Wayd.Planning.Application.PokerSessions.Commands;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
 using Wayd.Planning.Application.Tests.Infrastructure;
@@ -15,7 +14,6 @@ public class WithdrawVoteCommandHandlerTests : IDisposable
     private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly WithdrawVoteCommandHandler _handler;
-    private readonly Mock<ILogger<WithdrawVoteCommandHandler>> _mockLogger;
     private readonly Mock<IPokerSessionNotifier> _mockNotifier;
     private readonly Mock<ICurrentUser> _mockCurrentUser;
 
@@ -25,13 +23,12 @@ public class WithdrawVoteCommandHandlerTests : IDisposable
     public WithdrawVoteCommandHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _mockLogger = new Mock<ILogger<WithdrawVoteCommandHandler>>();
         _mockNotifier = new Mock<IPokerSessionNotifier>();
         _mockCurrentUser = new Mock<ICurrentUser>();
         _mockCurrentUser.Setup(u => u.GetUserId()).Returns(_currentUserId);
         _access.Actor = PokerSessionActors.Voter(_currentUserId);
 
-        _handler = new WithdrawVoteCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new WithdrawVoteCommandHandler(_dbContext, _access, _mockNotifier.Object);
         _sessionFaker = new PokerSessionFaker();
     }
 

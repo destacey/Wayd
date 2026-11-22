@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using Wayd.Planning.Application.PokerSessions.Commands;
+﻿using Wayd.Planning.Application.PokerSessions.Commands;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Enums;
@@ -16,7 +15,6 @@ public class SetConsensusCommandHandlerTests : IDisposable
     private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly SetConsensusCommandHandler _handler;
-    private readonly Mock<ILogger<SetConsensusCommandHandler>> _mockLogger;
     private readonly Mock<IPokerSessionNotifier> _mockNotifier;
 
     private readonly PokerSessionFaker _sessionFaker;
@@ -24,10 +22,9 @@ public class SetConsensusCommandHandlerTests : IDisposable
     public SetConsensusCommandHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _mockLogger = new Mock<ILogger<SetConsensusCommandHandler>>();
         _mockNotifier = new Mock<IPokerSessionNotifier>();
 
-        _handler = new SetConsensusCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new SetConsensusCommandHandler(_dbContext, _access, _mockNotifier.Object);
         _sessionFaker = new PokerSessionFaker();
     }
 

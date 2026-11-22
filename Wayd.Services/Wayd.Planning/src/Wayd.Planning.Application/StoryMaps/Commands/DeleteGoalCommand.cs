@@ -15,41 +15,31 @@ public sealed class DeleteGoalCommandValidator : CustomValidator<DeleteGoalComma
     }
 }
 
-public sealed class DeleteGoalCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<DeleteGoalCommandHandler> logger) : ICommandHandler<DeleteGoalCommand>
+public sealed class DeleteGoalCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier) : ICommandHandler<DeleteGoalCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
-    private readonly ILogger<DeleteGoalCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeleteGoalCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var map = await _planningDbContext.StoryMaps
-                .IncludeAccess()
-                .Include(m => m.Goals)
-                .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
+        var map = await _planningDbContext.StoryMaps
+            .IncludeAccess()
+            .Include(m => m.Goals)
+            .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
-            if (map is null)
-                return Result.Failure("Story map not found.");
+        if (map is null)
+            return Result.Failure("Story map not found.");
 
-            var actor = await _access.ResolveActor(map, cancellationToken);
+        var actor = await _access.ResolveActor(map, cancellationToken);
 
-            var result = map.DeleteGoal(request.GoalId, actor);
-            if (result.IsFailure)
-                return result;
+        var result = map.DeleteGoal(request.GoalId, actor);
+        if (result.IsFailure)
+            return result;
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-            await _notifier.NotifyGoalDeleted(map.Id, request.GoalId);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _notifier.NotifyGoalDeleted(map.Id, request.GoalId);
 
-            return Result.Success();
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success();
     }
 }

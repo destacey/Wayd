@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Moq;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Planning.Application.StoryMaps.Commands;
@@ -18,7 +17,7 @@ public class SetStoryMapEditorsCommandHandlerTests : IDisposable
 
     public SetStoryMapEditorsCommandHandlerTests()
     {
-        _handler = new SetStoryMapEditorsCommandHandler(_dbContext, _access, _mockNotifier.Object, new Mock<ILogger<SetStoryMapEditorsCommandHandler>>().Object);
+        _handler = new SetStoryMapEditorsCommandHandler(_dbContext, _access, _mockNotifier.Object);
     }
 
     [Fact]

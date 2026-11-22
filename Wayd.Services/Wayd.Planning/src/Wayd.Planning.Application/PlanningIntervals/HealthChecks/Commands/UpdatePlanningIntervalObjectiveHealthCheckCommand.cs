@@ -72,9 +72,6 @@ public sealed class UpdatePlanningIntervalObjectiveHealthCheckCommandHandler(
             EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
         if (updateResult.IsFailure)
         {
-            await _planningDbContext.Entry(objective).ReloadAsync(cancellationToken);
-            objective.ClearDomainEvents();
-
             _logger.LogError("Unable to update health check {HealthCheckId} on objective {ObjectiveId}.  Error: {Error}", request.HealthCheckId, request.PlanningIntervalObjectiveId, updateResult.Error);
             return Result.Failure<PlanningIntervalObjectiveHealthCheckDetailsDto>(updateResult.Error);
         }

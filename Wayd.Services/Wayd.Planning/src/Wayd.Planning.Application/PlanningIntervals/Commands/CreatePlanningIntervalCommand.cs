@@ -25,19 +25,24 @@ public sealed class CreatePlanningIntervalCommandValidator : CustomValidator<Cre
             .NotNull();
 
         RuleFor(c => c.IterationWeeks)
-            .GreaterThan(0);
+            .InclusiveBetween(1, 52);
+
+        // Iteration names are the prefix plus a sequence number, and an iteration name is capped at 128, as the
+        // import's rule says.
+        RuleFor(c => c.IterationPrefix)
+            .MaximumLength(32);
     }
 
     public async Task<bool> BeUniquePlanningIntervalName(string name, CancellationToken cancellationToken)
     {
-        return await _planningDbContext.PlanningIntervals.AllAsync(x => x.Name != name, cancellationToken);
+        // Trimmed as the name is when stored, or a leading space passes here and collides on the unique index.
+        var trimmed = name.Trim();
+        return await _planningDbContext.PlanningIntervals.AllAsync(x => x.Name != trimmed, cancellationToken);
     }
 }
 
 public sealed class CreatePlanningIntervalCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<CreatePlanningIntervalCommandHandler> logger) : ICommandHandler<CreatePlanningIntervalCommand, ObjectIdAndKey>
 {
-    private const string AppRequestName = nameof(CreatePlanningIntervalCommand);
-
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -45,37 +50,29 @@ public sealed class CreatePlanningIntervalCommandHandler(IPlanningDbContext plan
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreatePlanningIntervalCommand request, CancellationToken cancellationToken)
     {
-        try
+        var createResult = PlanningInterval.Create(
+            request.Name,
+            request.Description,
+            request.DateRange,
+            request.IterationWeeks,
+            request.IterationPrefix,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            _dateTimeProvider.Now
+            );
+        if (createResult.IsFailure)
         {
-            var createResult = PlanningInterval.Create(
-                request.Name,
-                request.Description,
-                request.DateRange,
-                request.IterationWeeks,
-                request.IterationPrefix,
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                _dateTimeProvider.Now
-                );
-            if (createResult.IsFailure)
-            {
-                _logger.LogError("Error creating planning interval {ProjectName}. Error message: {Error}", request.Name, createResult.Error);
-                return Result.Failure<ObjectIdAndKey>(createResult.Error);
-            }
-
-            var planningInterval = createResult.Value;
-
-            await _planningDbContext.PlanningIntervals.AddAsync(planningInterval, cancellationToken);
-
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Planning interval {PlanningIntervalId} created with Key {PlanningIntervalKey}.", planningInterval.Id, planningInterval.Key);
-
-            return new ObjectIdAndKey(planningInterval.Id, planningInterval.Key);
+            _logger.LogError("Error creating planning interval {ProjectName}. Error message: {Error}", request.Name, createResult.Error);
+            return Result.Failure<ObjectIdAndKey>(createResult.Error);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<ObjectIdAndKey>($"Error handling {AppRequestName} command.");
-        }
+
+        var planningInterval = createResult.Value;
+
+        await _planningDbContext.PlanningIntervals.AddAsync(planningInterval, cancellationToken);
+
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Planning interval {PlanningIntervalId} created with Key {PlanningIntervalKey}.", planningInterval.Id, planningInterval.Key);
+
+        return new ObjectIdAndKey(planningInterval.Id, planningInterval.Key);
     }
 }

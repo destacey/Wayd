@@ -20,45 +20,35 @@ public sealed class AddTaskCommandValidator : CustomValidator<AddTaskCommand>
     }
 }
 
-public sealed class AddTaskCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<AddTaskCommandHandler> logger) : ICommandHandler<AddTaskCommand, StoryMapTaskDto>
+public sealed class AddTaskCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier) : ICommandHandler<AddTaskCommand, StoryMapTaskDto>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
-    private readonly ILogger<AddTaskCommandHandler> _logger = logger;
 
     public async Task<Result<StoryMapTaskDto>> Handle(AddTaskCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var map = await _planningDbContext.StoryMaps
-                .IncludeAccess()
-                .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
-                .Include(m => m.SwimLanes)
-                .AsSplitQuery()
-                .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
+        var map = await _planningDbContext.StoryMaps
+            .IncludeAccess()
+            .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
+            .Include(m => m.SwimLanes)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
-            if (map is null)
-                return Result.Failure<StoryMapTaskDto>("Story map not found.");
+        if (map is null)
+            return Result.Failure<StoryMapTaskDto>("Story map not found.");
 
-            var actor = await _access.ResolveActor(map, cancellationToken);
+        var actor = await _access.ResolveActor(map, cancellationToken);
 
-            var result = map.AddTask(request.StepId, request.Title, request.SwimLaneId, actor);
-            if (result.IsFailure)
-                return Result.Failure<StoryMapTaskDto>(result.Error);
+        var result = map.AddTask(request.StepId, request.Title, request.SwimLaneId, actor);
+        if (result.IsFailure)
+            return Result.Failure<StoryMapTaskDto>(result.Error);
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            var dto = result.Value.Adapt<StoryMapTaskDto>();
-            await _notifier.NotifyTaskAdded(map.Id, dto);
+        var dto = result.Value.Adapt<StoryMapTaskDto>();
+        await _notifier.NotifyTaskAdded(map.Id, dto);
 
-            return Result.Success(dto);
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure<StoryMapTaskDto>($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success(dto);
     }
 }

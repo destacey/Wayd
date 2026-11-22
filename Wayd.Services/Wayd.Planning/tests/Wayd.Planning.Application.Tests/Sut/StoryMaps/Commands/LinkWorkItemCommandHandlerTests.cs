@@ -1,5 +1,4 @@
 using Wayd.Planning.Domain.Tests.Data;
-using Microsoft.Extensions.Logging;
 using Wayd.Planning.Application.StoryMaps.Commands;
 using Wayd.Planning.Application.StoryMaps.Interfaces;
 using Wayd.Planning.Application.Tests.Infrastructure;
@@ -13,16 +12,14 @@ public class LinkWorkItemCommandHandlerTests : IDisposable
     private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly LinkWorkItemCommandHandler _handler;
-    private readonly Mock<ILogger<LinkWorkItemCommandHandler>> _mockLogger;
     private readonly Mock<IStoryMapNotifier> _mockNotifier;
 
     public LinkWorkItemCommandHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _mockLogger = new Mock<ILogger<LinkWorkItemCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new LinkWorkItemCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new LinkWorkItemCommandHandler(_dbContext, _access, _mockNotifier.Object);
     }
 
     [Fact]

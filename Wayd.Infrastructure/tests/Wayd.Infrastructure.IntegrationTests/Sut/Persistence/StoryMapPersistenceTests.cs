@@ -1,7 +1,6 @@
 using Mapster;
 using Mapster.Utils;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Wayd.Common.Domain.Enums;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
@@ -148,7 +147,7 @@ public sealed class StoryMapPersistenceTests(SqlServerDbContextFixture fixture)
         var actor = new StoryMapActor(editor.Id, false, new HashSet<Guid>());
 
         await using var write = _fixture.CreateContext();
-        var handler = new AddGoalCommandHandler(write, AccessOf(new(editor.Id, false, [], false), actor).Object, Mock.Of<IStoryMapNotifier>(), NullLogger<AddGoalCommandHandler>.Instance);
+        var handler = new AddGoalCommandHandler(write, AccessOf(new(editor.Id, false, [], false), actor).Object, Mock.Of<IStoryMapNotifier>());
 
         // Act
         var result = await handler.Handle(new AddGoalCommand(map.Id, "Second goal"), ct);
@@ -177,7 +176,7 @@ public sealed class StoryMapPersistenceTests(SqlServerDbContextFixture fixture)
         var actor = new StoryMapActor(teammate.Id, false, new HashSet<Guid> { team.Id });
 
         await using var write = _fixture.CreateContext();
-        var handler = new ReorderGoalCommandHandler(write, AccessOf(new(teammate.Id, false, [team.Id], false), actor).Object, Mock.Of<IStoryMapNotifier>(), NullLogger<ReorderGoalCommandHandler>.Instance);
+        var handler = new ReorderGoalCommandHandler(write, AccessOf(new(teammate.Id, false, [team.Id], false), actor).Object, Mock.Of<IStoryMapNotifier>());
 
         // Act
         var result = await handler.Handle(new ReorderGoalCommand(map.Id, goalId, 0), ct);
@@ -220,7 +219,7 @@ public sealed class StoryMapPersistenceTests(SqlServerDbContextFixture fixture)
         var actor = new StoryMapActor(owner.Id, false, new HashSet<Guid>());
 
         await using var write = _fixture.CreateContext();
-        var handler = new SetStoryMapOwnersCommandHandler(write, AccessOf(new(owner.Id, false, [], false), actor).Object, Mock.Of<IStoryMapNotifier>(), NullLogger<SetStoryMapOwnersCommandHandler>.Instance);
+        var handler = new SetStoryMapOwnersCommandHandler(write, AccessOf(new(owner.Id, false, [], false), actor).Object, Mock.Of<IStoryMapNotifier>());
 
         // Act
         var result = await handler.Handle(new SetStoryMapOwnersCommand(map.Id, [next.Id]), ct);

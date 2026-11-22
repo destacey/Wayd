@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums;
@@ -28,7 +27,7 @@ public class CreateStoryMapCommandHandlerTests : IDisposable
         _mockCurrentPrincipal = new Mock<ICurrentPrincipal>();
         _mockCurrentPrincipal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_employeeId);
 
-        _handler = new CreateStoryMapCommandHandler(_dbContext, _mockCurrentPrincipal.Object, new Mock<ILogger<CreateStoryMapCommandHandler>>().Object);
+        _handler = new CreateStoryMapCommandHandler(_dbContext, _mockCurrentPrincipal.Object);
     }
 
     [Fact]

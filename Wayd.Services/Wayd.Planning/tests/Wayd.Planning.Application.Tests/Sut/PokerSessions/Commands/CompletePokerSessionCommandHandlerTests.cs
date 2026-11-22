@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using Wayd.Common.Application.Interfaces;
+﻿using Wayd.Common.Application.Interfaces;
 using Wayd.Planning.Application.PokerSessions.Commands;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
 using Wayd.Planning.Application.Tests.Infrastructure;
@@ -15,7 +14,6 @@ public class CompletePokerSessionCommandHandlerTests : IDisposable
     private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly CompletePokerSessionCommandHandler _handler;
-    private readonly Mock<ILogger<CompletePokerSessionCommandHandler>> _mockLogger;
     private readonly Mock<IPokerSessionNotifier> _mockNotifier;
     private readonly Mock<IDateTimeProvider> _mockDateTimeProvider;
 
@@ -24,12 +22,11 @@ public class CompletePokerSessionCommandHandlerTests : IDisposable
     public CompletePokerSessionCommandHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _mockLogger = new Mock<ILogger<CompletePokerSessionCommandHandler>>();
         _mockNotifier = new Mock<IPokerSessionNotifier>();
         _mockDateTimeProvider = new Mock<IDateTimeProvider>();
         _mockDateTimeProvider.Setup(d => d.Now).Returns(Instant.FromUtc(2026, 1, 15, 10, 0));
 
-        _handler = new CompletePokerSessionCommandHandler(_dbContext, _access, _mockDateTimeProvider.Object, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new CompletePokerSessionCommandHandler(_dbContext, _access, _mockDateTimeProvider.Object, _mockNotifier.Object);
         _sessionFaker = new PokerSessionFaker();
     }
 

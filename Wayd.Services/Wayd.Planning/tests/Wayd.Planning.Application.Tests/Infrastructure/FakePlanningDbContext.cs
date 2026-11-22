@@ -127,6 +127,7 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
     public void AddPlanningSprints(IEnumerable<PlanningSprint> planningSprints) => _planningSprints.AddRange(planningSprints);
 
     // PlanningTeam
+    public void AddPlanningIntervalIterationSprints(IEnumerable<PlanningIntervalIterationSprint> mappings) => _planningIntervalIterationSprints.AddRange(mappings);
     public void AddPlanningTeam(PlanningTeam planningTeam) => _planningTeams.Add(planningTeam);
     public void AddPlanningTeams(IEnumerable<PlanningTeam> planningTeams) => _planningTeams.AddRange(planningTeams);
 

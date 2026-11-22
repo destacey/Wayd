@@ -21,40 +21,30 @@ public sealed class UpdateStoryMapCommandValidator : CustomValidator<UpdateStory
     }
 }
 
-public sealed class UpdateStoryMapCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<UpdateStoryMapCommandHandler> logger) : ICommandHandler<UpdateStoryMapCommand>
+public sealed class UpdateStoryMapCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier) : ICommandHandler<UpdateStoryMapCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
-    private readonly ILogger<UpdateStoryMapCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateStoryMapCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var map = await _planningDbContext.StoryMaps
-                .IncludeAccess()
-                .FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken);
+        var map = await _planningDbContext.StoryMaps
+            .IncludeAccess()
+            .FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken);
 
-            if (map is null)
-                return Result.Failure("Story map not found.");
+        if (map is null)
+            return Result.Failure("Story map not found.");
 
-            var actor = await _access.ResolveActor(map, cancellationToken);
+        var actor = await _access.ResolveActor(map, cancellationToken);
 
-            var result = map.Update(request.Name, request.Description, actor);
-            if (result.IsFailure)
-                return result;
+        var result = map.Update(request.Name, request.Description, actor);
+        if (result.IsFailure)
+            return result;
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-            await _notifier.NotifyMapUpdated(map.Id);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _notifier.NotifyMapUpdated(map.Id);
 
-            return Result.Success();
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success();
     }
 }

@@ -41,55 +41,48 @@ public sealed class CreateRiskCommandValidator : CustomValidator<CreateRiskComma
     }
 }
 
-public sealed class CreateRiskCommandHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, ILogger<CreateRiskCommandHandler> logger, ICurrentPrincipal currentPrincipal, ICurrentUser currentUser) : ICommandHandler<CreateRiskCommand, ObjectIdAndKey>
+public sealed class CreateRiskCommandHandler(IPlanningDbContext planningDbContext, IDateTimeProvider dateTimeProvider, ICurrentPrincipal currentPrincipal, ICurrentUser currentUser) : ICommandHandler<CreateRiskCommand, ObjectIdAndKey>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ILogger<CreateRiskCommandHandler> _logger = logger;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ICurrentUser _currentUser = currentUser;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateRiskCommand request, CancellationToken cancellationToken)
     {
-        // Outside the try: this is a refusal, and the catch-all below would turn it into a
-        // generic failure, losing both the 403 and its explanation.
         var currentUserEmployeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (currentUserEmployeeId is null)
             LinkedEmployeeRequired.Throw();
 
-        try
-        {
-            var now = _dateTimeProvider.Now;
+        // The team and assignee are foreign keys, so an unknown one is refused here rather than at the database.
+        var exist = Result.Combine(
+            await _planningDbContext.EnsureTeamsExist([request.TeamId], cancellationToken),
+            await _planningDbContext.EnsureEmployeesExist(request.AssigneeId is { } assigneeId ? [assigneeId] : [], cancellationToken));
+        if (exist.IsFailure)
+            return Result.Failure<ObjectIdAndKey>(exist.Error);
 
-            var risk = Risk.Create(
-                request.Summary,
-                request.Description,
-                request.TeamId,
-                now,
-                currentUserEmployeeId.Value,
-                request.Category,
-                request.Impact,
-                request.Likelihood,
-                request.AssigneeId,
-                request.FollowUpDate,
-                request.Response,
-                EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value),
-                now
-                );
+        var now = _dateTimeProvider.Now;
 
-            await _planningDbContext.Risks.AddAsync(risk, cancellationToken);
+        var risk = Risk.Create(
+            request.Summary,
+            request.Description,
+            request.TeamId,
+            now,
+            currentUserEmployeeId.Value,
+            request.Category,
+            request.Impact,
+            request.Likelihood,
+            request.AssigneeId,
+            request.FollowUpDate,
+            request.Response,
+            EventActor.User(_currentUser.GetUserId(), currentUserEmployeeId.Value),
+            now
+            );
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _planningDbContext.Risks.AddAsync(risk, cancellationToken);
 
-            return new ObjectIdAndKey(risk.Id, risk.Key);
-        }
-        catch (Exception ex)
-        {
-            var requestName = request.GetType().Name;
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-
-            return Result.Failure<ObjectIdAndKey>($"Wayd Request: Exception for Request {requestName}");
-        }
+        return new ObjectIdAndKey(risk.Id, risk.Key);
     }
 }

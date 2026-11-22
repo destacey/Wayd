@@ -253,21 +253,22 @@ public sealed class Roadmap : BaseAuditableEntity, ILocalSchedule, IHasIdAndKey
             return Result.Failure("Not all root roadmap items provided were found.");
         }
 
+        // Every refusal comes before the first order changes, so a refused reorder leaves the roadmap as it was.
+        if (RootActivities.Any(child => !childActivities.ContainsKey(child.Id)))
+        {
+            return Result.Failure("Not all child roadmaps provided were found.");
+        }
+
+        if (childActivities.Values.Any(order => order < 1))
+        {
+            return Result.Failure("Order must be greater than 0.");
+        }
+
         var before = SnapshotItems();
 
         foreach (var child in RootActivities)
         {
-            if (!childActivities.TryGetValue(child.Id, out int order))
-            {
-                return Result.Failure("Not all child roadmaps provided were found.");
-            }
-
-            if (order < 1)
-            {
-                return Result.Failure("Order must be greater than 0.");
-            }
-
-            child.SetOrder(order);
+            child.SetOrder(childActivities[child.Id]);
         }
 
         ResetRootActivitiesOrder();

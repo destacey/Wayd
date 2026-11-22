@@ -36,41 +36,27 @@ public sealed class UpdateRoadmapRootActivityOrderCommandHandler(IPlanningDbCont
 
     public async Task<Result> Handle(UpdateRoadmapRootActivityOrderCommand request, CancellationToken cancellationToken)
     {
-        // Outside the try: this is a refusal, and the catch-all below would turn it into a
-        // generic failure, losing both the 403 and its explanation.
         var caller = await _currentPrincipal.ResolveRoadmapActor(cancellationToken);
 
-        try
+        var roadmap = await _planningDbContext.Roadmaps
+            .Include(x => x.Owners)
+            .Include(x => x.Items)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(r => r.Id == request.RoadmapId, cancellationToken);
+
+        if (roadmap is null)
+            return Result.Failure($"Roadmap with id {request.RoadmapId} not found");
+
+        var updateResult = roadmap.SetActivityOrder(request.RoadmapActivityId, request.Order, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
+        if (updateResult.IsFailure)
         {
-            var roadmap = await _planningDbContext.Roadmaps
-                .Include(x => x.Owners)
-                .Include(x => x.Items)
-                .AsSplitQuery()
-                .FirstOrDefaultAsync(r => r.Id == request.RoadmapId, cancellationToken);
-
-            if (roadmap is null)
-                return Result.Failure($"Roadmap with id {request.RoadmapId} not found");
-
-            var updateResult = roadmap.SetActivityOrder(request.RoadmapActivityId, request.Order, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
-            if (updateResult.IsFailure)
-            {
-                // Reset the entity
-                await _planningDbContext.Entry(roadmap).ReloadAsync(cancellationToken);
-                roadmap.ClearDomainEvents();
-
-                _logger.LogError("Failure for Request {CommandName}.  Error message: {Error}", AppRequestName, updateResult.Error);
-                return Result.Failure(updateResult.Error);
-            }
-
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
+            _logger.LogError("Failure for Request {CommandName}.  Error message: {Error}", AppRequestName, updateResult.Error);
+            return Result.Failure(updateResult.Error);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
-        }
+
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
     }
 }
 

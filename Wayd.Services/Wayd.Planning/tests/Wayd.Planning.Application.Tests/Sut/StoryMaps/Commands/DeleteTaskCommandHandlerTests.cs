@@ -1,5 +1,4 @@
 using Wayd.Planning.Domain.Tests.Data;
-using Microsoft.Extensions.Logging;
 using Wayd.Planning.Application.StoryMaps.Commands;
 using Wayd.Planning.Application.StoryMaps.Interfaces;
 using Wayd.Planning.Application.Tests.Infrastructure;
@@ -13,16 +12,14 @@ public class DeleteTaskCommandHandlerTests : IDisposable
     private readonly FakeStoryMapAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly DeleteTaskCommandHandler _handler;
-    private readonly Mock<ILogger<DeleteTaskCommandHandler>> _mockLogger;
     private readonly Mock<IStoryMapNotifier> _mockNotifier;
 
     public DeleteTaskCommandHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _mockLogger = new Mock<ILogger<DeleteTaskCommandHandler>>();
         _mockNotifier = new Mock<IStoryMapNotifier>();
 
-        _handler = new DeleteTaskCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new DeleteTaskCommandHandler(_dbContext, _access, _mockNotifier.Object);
     }
 
     private static (StoryMap Map, Guid TaskId) CreateMapWithTask()

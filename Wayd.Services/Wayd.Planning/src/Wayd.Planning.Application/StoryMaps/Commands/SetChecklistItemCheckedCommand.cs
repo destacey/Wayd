@@ -17,46 +17,36 @@ public sealed class SetChecklistItemCheckedCommandValidator : CustomValidator<Se
     }
 }
 
-public sealed class SetChecklistItemCheckedCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<SetChecklistItemCheckedCommandHandler> logger) : ICommandHandler<SetChecklistItemCheckedCommand>
+public sealed class SetChecklistItemCheckedCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier) : ICommandHandler<SetChecklistItemCheckedCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
-    private readonly ILogger<SetChecklistItemCheckedCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(SetChecklistItemCheckedCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var map = await _planningDbContext.StoryMaps
-                .IncludeAccess()
-                .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
-                .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
+        var map = await _planningDbContext.StoryMaps
+            .IncludeAccess()
+            .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
+            .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
-            if (map is null)
-                return Result.Failure("Story map not found.");
+        if (map is null)
+            return Result.Failure("Story map not found.");
 
-            var actor = await _access.ResolveActor(map, cancellationToken);
+        var actor = await _access.ResolveActor(map, cancellationToken);
 
-            var result = map.SetChecklistItemChecked(request.TaskId, request.ItemId, request.IsChecked, actor);
-            if (result.IsFailure)
-                return result;
+        var result = map.SetChecklistItemChecked(request.TaskId, request.ItemId, request.IsChecked, actor);
+        if (result.IsFailure)
+            return result;
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            var taskDto = map.Goals.SelectMany(g => g.Steps).SelectMany(s => s.Tasks)
-                .First(t => t.Id == request.TaskId)
-                .Adapt<StoryMapTaskDto>();
+        var taskDto = map.Goals.SelectMany(g => g.Steps).SelectMany(s => s.Tasks)
+            .First(t => t.Id == request.TaskId)
+            .Adapt<StoryMapTaskDto>();
 
-            await _notifier.NotifyTaskChecklistChanged(map.Id, taskDto);
+        await _notifier.NotifyTaskChecklistChanged(map.Id, taskDto);
 
-            return Result.Success();
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success();
     }
 }

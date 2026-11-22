@@ -54,8 +54,6 @@ public sealed class UpdateRoadmapActivityPlacementCommandValidator : CustomValid
 
 public sealed class UpdateRoadmapActivityPlacementCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<UpdateRoadmapActivityPlacementCommandHandler> logger) : ICommandHandler<UpdateRoadmapActivityPlacementCommand>
 {
-    private const string AppRequestName = nameof(UpdateRoadmapActivityPlacementCommand);
-
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -64,57 +62,47 @@ public sealed class UpdateRoadmapActivityPlacementCommandHandler(IPlanningDbCont
 
     public async Task<Result> Handle(UpdateRoadmapActivityPlacementCommand request, CancellationToken cancellationToken)
     {
-        // Outside the try: this is a refusal, and the catch-all below would turn it into a
-        // generic failure, losing both the 403 and its explanation.
         var caller = await _currentPrincipal.ResolveRoadmapActor(cancellationToken);
 
-        try
+        var roadmap = await _planningDbContext.Roadmaps
+            .Include(x => x.Owners)
+            .Include(x => x.Items)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(r => r.Id == request.RoadmapId, cancellationToken);
+
+        if (roadmap is null)
         {
-            var roadmap = await _planningDbContext.Roadmaps
-                .Include(x => x.Owners)
-                .Include(x => x.Items)
-                .AsSplitQuery()
-                .FirstOrDefaultAsync(r => r.Id == request.RoadmapId, cancellationToken);
-
-            if (roadmap is null)
-            {
-                _logger.LogDebug("Roadmap with id {RoadmapId} not found", request.RoadmapId);
-                return Result.Failure($"Roadmap with id {request.RoadmapId} not found");
-            }
-
-            var activity = roadmap.Items.OfType<RoadmapActivity>().FirstOrDefault(x => x.Id == request.ItemId);
-            if (activity is null)
-            {
-                _logger.LogDebug("Roadmap Activity with id {RoadmapActivityId} not found", request.ItemId);
-                return Result.Failure($"Roadmap activity with id {request.ItemId} not found");
-            }
-
-            Result placementResult = Result.Success();
-            if (activity.ParentId == request.ParentId)
-            {
-                placementResult = roadmap.SetActivityOrder(activity.Id, request.Order, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
-                _logger.LogInformation("Updated roadmap activity {RoadmapActivityId} order to {Order}.", request.ItemId, request.Order);
-            }
-            else
-            {
-                placementResult = roadmap.MoveActivity(activity.Id, request.ParentId, request.Order, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
-                _logger.LogInformation("Moved roadmap activity {RoadmapActivityId} to parent {ParentId} with order {Order}.", request.ItemId, request.ParentId, request.Order);
-            }
-
-            if (placementResult.IsFailure)
-            {
-                _logger.LogError("Unable to update roadmap activity placement {RoadmapActivityId}.  Error message: {Error}", request.ItemId, placementResult.Error);
-                return Result.Failure(placementResult.Error);
-            }
-
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
+            _logger.LogDebug("Roadmap with id {RoadmapId} not found", request.RoadmapId);
+            return Result.Failure($"Roadmap with id {request.RoadmapId} not found");
         }
-        catch (Exception ex)
+
+        var activity = roadmap.Items.OfType<RoadmapActivity>().FirstOrDefault(x => x.Id == request.ItemId);
+        if (activity is null)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogDebug("Roadmap Activity with id {RoadmapActivityId} not found", request.ItemId);
+            return Result.Failure($"Roadmap activity with id {request.ItemId} not found");
         }
+
+        Result placementResult = Result.Success();
+        if (activity.ParentId == request.ParentId)
+        {
+            placementResult = roadmap.SetActivityOrder(activity.Id, request.Order, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
+            _logger.LogInformation("Updated roadmap activity {RoadmapActivityId} order to {Order}.", request.ItemId, request.Order);
+        }
+        else
+        {
+            placementResult = roadmap.MoveActivity(activity.Id, request.ParentId, request.Order, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
+            _logger.LogInformation("Moved roadmap activity {RoadmapActivityId} to parent {ParentId} with order {Order}.", request.ItemId, request.ParentId, request.Order);
+        }
+
+        if (placementResult.IsFailure)
+        {
+            _logger.LogError("Unable to update roadmap activity placement {RoadmapActivityId}.  Error message: {Error}", request.ItemId, placementResult.Error);
+            return Result.Failure(placementResult.Error);
+        }
+
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
     }
 }

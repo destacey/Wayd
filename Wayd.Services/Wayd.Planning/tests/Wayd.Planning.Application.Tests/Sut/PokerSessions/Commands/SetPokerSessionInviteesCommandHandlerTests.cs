@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Moq;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Planning.Application.PokerSessions.Commands;
@@ -17,7 +16,7 @@ public class SetPokerSessionInviteesCommandHandlerTests : IDisposable
 
     public SetPokerSessionInviteesCommandHandlerTests()
     {
-        _handler = new SetPokerSessionInviteesCommandHandler(_dbContext, _access, _mockNotifier.Object, new Mock<ILogger<SetPokerSessionInviteesCommandHandler>>().Object);
+        _handler = new SetPokerSessionInviteesCommandHandler(_dbContext, _access, _mockNotifier.Object);
     }
 
     [Fact]

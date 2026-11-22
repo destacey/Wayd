@@ -56,8 +56,6 @@ public sealed class CopyRoadmapCommandHandler(
 
     public async Task<Result<ObjectIdAndKey>> Handle(CopyRoadmapCommand request, CancellationToken cancellationToken)
     {
-        // Outside the try: this is a refusal, and the catch-all below would turn it into a
-        // generic failure, losing both the 403 and its explanation.
         var caller = await _currentPrincipal.ResolveRoadmapActor(cancellationToken);
 
         // Likewise the creator-is-an-owner rule: Copy accepts whatever owner ids it is given, so a
@@ -65,41 +63,35 @@ public sealed class CopyRoadmapCommandHandler(
         if (!request.OwnerIds.Contains(caller.EmployeeId))
             return Result.Failure<ObjectIdAndKey>("You must be one of the roadmap's owners.");
 
-        try
+        var sourceRoadmap = await _planningDbContext.Roadmaps
+            .Include(r => r.Items)
+            .Where(r => r.Id == request.SourceRoadmapId)
+            .Where(Roadmap.AccessibleTo(caller.EmployeeId, caller.IsAdministrator))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (sourceRoadmap is null)
         {
-            var sourceRoadmap = await _planningDbContext.Roadmaps
-                .Include(r => r.Items)
-                .Where(r => r.Id == request.SourceRoadmapId)
-                .Where(Roadmap.AccessibleTo(caller.EmployeeId, caller.IsAdministrator))
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (sourceRoadmap is null)
-            {
-                return Result.Failure<ObjectIdAndKey>("Source roadmap not found or you do not have permission to view it.");
-            }
-
-            // Copy the roadmap
-            var copyResult = sourceRoadmap.Copy(request.Name, request.OwnerIds, request.Visibility, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
-
-            if (copyResult.IsFailure)
-            {
-                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}",
-                    request.GetType().Name, copyResult.Error);
-                return Result.Failure<ObjectIdAndKey>(copyResult.Error);
-            }
-
-            await _planningDbContext.Roadmaps.AddAsync(copyResult.Value, cancellationToken);
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-            return new ObjectIdAndKey(copyResult.Value.Id, copyResult.Value.Key);
+            return Result.Failure<ObjectIdAndKey>("Source roadmap not found or you do not have permission to view it.");
         }
-        catch (Exception ex)
+
+        // Copy the roadmap
+        // Owners are foreign keys to employees, so an unknown one is refused here rather than at the database.
+        var ownersExist = await _planningDbContext.EnsureEmployeesExist(request.OwnerIds, cancellationToken);
+        if (ownersExist.IsFailure)
+            return Result.Failure<ObjectIdAndKey>(ownersExist.Error);
+
+        var copyResult = sourceRoadmap.Copy(request.Name, request.OwnerIds, request.Visibility, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
+
+        if (copyResult.IsFailure)
         {
-            var requestName = request.GetType().Name;
-
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-
-            return Result.Failure<ObjectIdAndKey>($"Wayd Request: Exception for Request {requestName}");
+            _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}",
+                request.GetType().Name, copyResult.Error);
+            return Result.Failure<ObjectIdAndKey>(copyResult.Error);
         }
+
+        await _planningDbContext.Roadmaps.AddAsync(copyResult.Value, cancellationToken);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        return new ObjectIdAndKey(copyResult.Value.Id, copyResult.Value.Key);
     }
 }

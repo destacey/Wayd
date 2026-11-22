@@ -18,41 +18,31 @@ public sealed class SetPokerSessionVisibilityCommandValidator : CustomValidator<
     }
 }
 
-public sealed class SetPokerSessionVisibilityCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionAccess access, IPokerSessionNotifier notifier, ILogger<SetPokerSessionVisibilityCommandHandler> logger) : ICommandHandler<SetPokerSessionVisibilityCommand>
+public sealed class SetPokerSessionVisibilityCommandHandler(IPlanningDbContext planningDbContext, IPokerSessionAccess access, IPokerSessionNotifier notifier) : ICommandHandler<SetPokerSessionVisibilityCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IPokerSessionAccess _access = access;
     private readonly IPokerSessionNotifier _notifier = notifier;
-    private readonly ILogger<SetPokerSessionVisibilityCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(SetPokerSessionVisibilityCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var session = await _planningDbContext.PokerSessions
-                .IncludeAccess()
-                .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+        var session = await _planningDbContext.PokerSessions
+            .IncludeAccess()
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
 
-            if (session is null)
-                return Result.Failure("Poker session not found.");
+        if (session is null)
+            return Result.Failure("Poker session not found.");
 
-            var actor = await _access.ResolveActor(session, cancellationToken);
+        var actor = await _access.ResolveActor(session, cancellationToken);
 
-            var result = session.SetVisibility(request.Visibility, actor);
-            if (result.IsFailure)
-                return result;
+        var result = session.SetVisibility(request.Visibility, actor);
+        if (result.IsFailure)
+            return result;
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            await _notifier.NotifyAccessChanged(session.Id);
+        await _notifier.NotifyAccessChanged(session.Id);
 
-            return Result.Success();
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success();
     }
 }

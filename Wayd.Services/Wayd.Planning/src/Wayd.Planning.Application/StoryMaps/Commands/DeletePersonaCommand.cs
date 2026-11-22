@@ -15,45 +15,35 @@ public sealed class DeletePersonaCommandValidator : CustomValidator<DeletePerson
     }
 }
 
-public sealed class DeletePersonaCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<DeletePersonaCommandHandler> logger) : ICommandHandler<DeletePersonaCommand, int>
+public sealed class DeletePersonaCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier) : ICommandHandler<DeletePersonaCommand, int>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
-    private readonly ILogger<DeletePersonaCommandHandler> _logger = logger;
 
     public async Task<Result<int>> Handle(DeletePersonaCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var map = await _planningDbContext.StoryMaps
-                .IncludeAccess()
-                .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
-                .Include(m => m.Personas)
-                .AsSplitQuery()
-                .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
+        var map = await _planningDbContext.StoryMaps
+            .IncludeAccess()
+            .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
+            .Include(m => m.Personas)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
-            if (map is null)
-                return Result.Failure<int>("Story map not found.");
+        if (map is null)
+            return Result.Failure<int>("Story map not found.");
 
-            var actor = await _access.ResolveActor(map, cancellationToken);
+        var actor = await _access.ResolveActor(map, cancellationToken);
 
-            var result = map.DeletePersona(request.PersonaId, actor);
-            if (result.IsFailure)
-                return Result.Failure<int>(result.Error);
+        var result = map.DeletePersona(request.PersonaId, actor);
+        if (result.IsFailure)
+            return Result.Failure<int>(result.Error);
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            var untaggedCount = result.Value;
-            await _notifier.NotifyPersonaDeleted(map.Id, request.PersonaId, untaggedCount);
+        var untaggedCount = result.Value;
+        await _notifier.NotifyPersonaDeleted(map.Id, request.PersonaId, untaggedCount);
 
-            return Result.Success(untaggedCount);
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure<int>($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success(untaggedCount);
     }
 }

@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using Moq;
+﻿using Moq;
 using NodaTime;
 using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;
@@ -15,16 +14,14 @@ public class CreateEstimationScaleCommandHandlerTests : IDisposable
 
     private readonly FakePlanningDbContext _dbContext;
     private readonly CreateEstimationScaleCommandHandler _handler;
-    private readonly Mock<ILogger<CreateEstimationScaleCommandHandler>> _mockLogger;
     private readonly Mock<ICurrentUser> _currentUser = new();
     private readonly TestingDateTimeProvider _dateTimeProvider = new(new FakeClock(Now));
 
     public CreateEstimationScaleCommandHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _mockLogger = new Mock<ILogger<CreateEstimationScaleCommandHandler>>();
 
-        _handler = new CreateEstimationScaleCommandHandler(_dbContext, _currentUser.Object, _dateTimeProvider, _mockLogger.Object);
+        _handler = new CreateEstimationScaleCommandHandler(_dbContext, _currentUser.Object, _dateTimeProvider);
     }
 
     [Fact]

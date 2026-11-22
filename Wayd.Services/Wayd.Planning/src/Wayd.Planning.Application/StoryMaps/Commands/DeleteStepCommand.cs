@@ -16,41 +16,31 @@ public sealed class DeleteStepCommandValidator : CustomValidator<DeleteStepComma
     }
 }
 
-public sealed class DeleteStepCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<DeleteStepCommandHandler> logger) : ICommandHandler<DeleteStepCommand>
+public sealed class DeleteStepCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier) : ICommandHandler<DeleteStepCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
-    private readonly ILogger<DeleteStepCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeleteStepCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var map = await _planningDbContext.StoryMaps
-                .IncludeAccess()
-                .Include(m => m.Goals).ThenInclude(g => g.Steps)
-                .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
+        var map = await _planningDbContext.StoryMaps
+            .IncludeAccess()
+            .Include(m => m.Goals).ThenInclude(g => g.Steps)
+            .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
-            if (map is null)
-                return Result.Failure("Story map not found.");
+        if (map is null)
+            return Result.Failure("Story map not found.");
 
-            var actor = await _access.ResolveActor(map, cancellationToken);
+        var actor = await _access.ResolveActor(map, cancellationToken);
 
-            var result = map.DeleteStep(request.StepId, actor);
-            if (result.IsFailure)
-                return result;
+        var result = map.DeleteStep(request.StepId, actor);
+        if (result.IsFailure)
+            return result;
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-            await _notifier.NotifyStepDeleted(map.Id, request.StepId);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _notifier.NotifyStepDeleted(map.Id, request.StepId);
 
-            return Result.Success();
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success();
     }
 }

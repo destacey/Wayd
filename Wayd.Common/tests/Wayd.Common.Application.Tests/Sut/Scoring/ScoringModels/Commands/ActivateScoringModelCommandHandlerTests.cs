@@ -6,6 +6,7 @@ using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Scoring.ScoringModels.Commands;
 using Wayd.Common.Application.Tests.Infrastructure;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Domain.Scoring.Enums;
 using Wayd.Common.Domain.Tests.Data;
@@ -44,6 +45,26 @@ public class ActivateScoringModelCommandHandlerTests
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         model.State.Should().Be(ScoringModelState.Active);
         _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRefuse_WhenTheModelIsAlreadyActive()
+    {
+        // Arrange
+        var model = SeedProposedModel();
+        model.Activate(EventActor.System, _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
+        var eventsBefore = model.DomainEvents.Count;
+        var command = new ActivateScoringModelCommand(model.Id);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only proposed scoring models can be activated.");
+        model.State.Should().Be(ScoringModelState.Active);
+        model.DomainEvents.Should().HaveCount(eventsBefore);
+        _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 
     [Fact]

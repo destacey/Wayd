@@ -479,6 +479,34 @@ public class BulkUpsertEmployeesCommandHandlerTests
         (await GetEmployees()).Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task Handle_WhenARecordThrows_SkipsItAndSavesTheRest()
+    {
+        // Arrange — a null work email throws in the pre-flight checks, before the record's update is applied.
+        var existing = CreateExistingEmployee("E-6008", "casey.lane@acme.example");
+        Seed(existing);
+        var eventsBefore = existing.DomainEvents.Count;
+
+        var refused = FakeExternalEmployee("E-6008", "casey.lane@acme.example", isActive: true) with
+        {
+            JobTitle = "Principal Engineer",
+            Emails = [new ExternalEmployeeEmail(null!, IsPrimary: false)],
+        };
+        var accepted = FakeExternalEmployee("E-6009", "riley.moss@acme.example", isActive: true);
+        var command = new BulkUpsertEmployeesCommand([refused, accepted], EmployeeMatchProperty.EmployeeNumber, deactivateMissing: false);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Skipped.Should().ContainKey("E-6008");
+        existing.JobTitle.Should().Be("Engineer");
+        existing.DomainEvents.Should().HaveCount(eventsBefore);
+        (await GetEmployees()).Select(e => e.EmployeeNumber).Should().BeEquivalentTo(["E-6008", "E-6009"]);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
     private void Seed(params Employee[] employees)
     {
         foreach (var employee in employees)

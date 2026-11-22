@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.StatusWorkflows.Commands;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
@@ -96,5 +97,20 @@ public sealed class SyncManagedWorkflowAssignmentCommandHandlerTests : StatusWor
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be($"Unable to save the managed workflow assignment 'azure-devops:agile for scope {scopeId}', most likely because another sync of the same source saved it at the same time. The next sync picks it up.");
         DbContext.SaveChangesCallCount.Should().Be(1, "the one save was the one that failed");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotClaimACollision_WhenTheSaveFailsForAnotherReason()
+    {
+        // Arrange — a value too long for its column fails every sync, so it must not read as a race the next run fixes
+        SeedManagedScheme("azure-devops:agile");
+        DbContext.FailNextSaveWith = SaveFailures.Truncation();
+
+        // Act
+        var act = () => CreateSut().Handle(new(Synced.Key, Guid.NewGuid(), "azure-devops:agile"), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<DbUpdateException>();
+        DbContext.SaveChangesCallCount.Should().Be(1);
     }
 }

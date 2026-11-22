@@ -44,8 +44,8 @@ public class UpdateTeamMemberCommandHandlerTests : IDisposable
         // Arrange
         var team = _teamFaker.Generate();
         var employee = _employeeFaker.Generate();
-        var roleId1 = Guid.NewGuid();
-        var roleId2 = Guid.NewGuid();
+        var roleId1 = AddRole();
+        var roleId2 = AddRole();
         _dbContext.AddTeam(team);
         _dbContext.AddEmployee(employee);
 
@@ -70,8 +70,8 @@ public class UpdateTeamMemberCommandHandlerTests : IDisposable
         // Arrange
         var team = _teamFaker.Generate();
         var employee = _employeeFaker.Generate();
-        var roleId1 = Guid.NewGuid();
-        var roleId2 = Guid.NewGuid();
+        var roleId1 = AddRole();
+        var roleId2 = AddRole();
         _dbContext.AddTeam(team);
         _dbContext.AddEmployee(employee);
 
@@ -127,5 +127,35 @@ public class UpdateTeamMemberCommandHandlerTests : IDisposable
     public void Dispose()
     {
         _dbContext.Dispose();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFail_WhenARoleDoesNotExist()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var employee = _employeeFaker.Generate();
+        _dbContext.AddTeam(team);
+        _dbContext.AddEmployee(employee);
+        team.AddMember(employee, [AddRole()], EventActor.System, _dateTimeProvider.Now);
+        var unknownRoleId = Guid.NewGuid();
+        var memberCount = team.Members.Count;
+
+        // Act
+        var result = await _handler.Handle(new UpdateTeamMemberCommand(team.Id, employee.Id, [AddRole(), unknownRoleId]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be($"Team member role {unknownRoleId} not found.");
+        team.Members.Should().HaveCount(memberCount);
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    /// <summary>Adds a team member role to the context and returns its id.</summary>
+    private Guid AddRole()
+    {
+        var role = new TeamMemberRoleFaker().Generate();
+        _dbContext.AddTeamMemberRole(role);
+        return role.Id;
     }
 }

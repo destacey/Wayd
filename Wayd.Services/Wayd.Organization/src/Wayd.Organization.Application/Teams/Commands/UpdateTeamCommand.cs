@@ -56,44 +56,31 @@ public sealed class UpdateTeamCommandHandler : ICommandHandler<UpdateTeamCommand
 
     public async Task<Result<int>> Handle(UpdateTeamCommand request, CancellationToken cancellationToken)
     {
-        try
+        var team = await _organizationDbContext.Teams
+            .FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
+        if (team is null)
+            return Result.Failure<int>("Team not found.");
+
+        var updateResult = team.UpdateDetails(
+            request.Name,
+            request.Code,
+            request.Description,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            _dateTimeProvider.Now
+            );
+
+        if (updateResult.IsFailure)
         {
-            var team = await _organizationDbContext.Teams
-                .FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
-            if (team is null)
-                return Result.Failure<int>("Team not found.");
+            _logger.LogError("Failure for request {RequestName}.  Error message: {Error}", RequestName, updateResult.Error);
 
-            var updateResult = team.UpdateDetails(
-                request.Name,
-                request.Code,
-                request.Description,
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                _dateTimeProvider.Now
-                );
-
-            if (updateResult.IsFailure)
-            {
-                // Reset the entity
-                await _organizationDbContext.Entry(team).ReloadAsync(cancellationToken);
-                team.ClearDomainEvents();
-
-                _logger.LogError("Failure for request {RequestName}.  Error message: {Error}", RequestName, updateResult.Error);
-
-                return Result.Failure<int>(updateResult.Error);
-            }
-
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogDebug("{RequestName}: updated Team with Id {TeamId}, Key {TeamKey}, and Code {TeamCode}", RequestName, team.Id, team.Key, team.Code);
-
-            return Result.Success(team.Key);
+            return Result.Failure<int>(updateResult.Error);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception for request {RequestName}", RequestName);
 
-            return Result.Failure<int>($"Exception for request {RequestName}");
-        }
+        await _organizationDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug("{RequestName}: updated Team with Id {TeamId}, Key {TeamKey}, and Code {TeamCode}", RequestName, team.Id, team.Key, team.Code);
+
+        return Result.Success(team.Key);
     }
 }
 

@@ -30,7 +30,7 @@ public sealed class HolidayCalendarCommandHandlerTests(SqlServerDbContextFixture
         var calendarId = await SeedCalendar(cancellationToken);
 
         await using var context = _fixture.CreateContext();
-        var handler = new AddHolidayCommandHandler(context, Clock(), CurrentUser(), NullLogger<AddHolidayCommandHandler>.Instance);
+        var handler = new AddHolidayCommandHandler(context, Clock(), CurrentUser());
 
         // Act
         var result = await handler.Handle(new AddHolidayCommand(calendarId, NewYearsDay, "New Year's Day"), cancellationToken);

@@ -17,8 +17,6 @@ public sealed class DeleteHolidayCalendarCommandHandler(
     ILogger<DeleteHolidayCalendarCommandHandler> logger)
     : ICommandHandler<DeleteHolidayCalendarCommand>
 {
-    private const string AppRequestName = nameof(DeleteHolidayCalendarCommand);
-
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -27,42 +25,34 @@ public sealed class DeleteHolidayCalendarCommandHandler(
 
     public async Task<Result> Handle(DeleteHolidayCalendarCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var calendar = await _organizationDbContext.HolidayCalendars
-                .Include(c => c.Holidays)
-                .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
-            if (calendar is null)
-                return Result.Failure($"Holiday calendar {request.Id} not found.");
+        var calendar = await _organizationDbContext.HolidayCalendars
+            .Include(c => c.Holidays)
+            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+        if (calendar is null)
+            return Result.Failure($"Holiday calendar {request.Id} not found.");
 
-            var scheduling = await _schedulingSettings.Get(cancellationToken);
-            if (scheduling.DefaultHolidayCalendarId == calendar.Id)
-                return Result.Failure("The holiday calendar is the system default. Choose another default in the scheduling settings first.");
+        var scheduling = await _schedulingSettings.Get(cancellationToken);
+        if (scheduling.DefaultHolidayCalendarId == calendar.Id)
+            return Result.Failure("The holiday calendar is the system default. Choose another default in the scheduling settings first.");
 
-            var teamsUsingIt = await _organizationDbContext.TeamOperatingModels
-                .Where(m => m.HolidayCalendarId == calendar.Id)
-                .CountAsync(cancellationToken);
-            if (teamsUsingIt > 0)
-                return Result.Failure($"The holiday calendar is used by {teamsUsingIt} team operating model(s). Choose another calendar for them first.");
+        var teamsUsingIt = await _organizationDbContext.TeamOperatingModels
+            .Where(m => m.HolidayCalendarId == calendar.Id)
+            .CountAsync(cancellationToken);
+        if (teamsUsingIt > 0)
+            return Result.Failure($"The holiday calendar is used by {teamsUsingIt} team operating model(s). Choose another calendar for them first.");
 
-            var employeesUsingIt = await _organizationDbContext.EmployeeCapacities
-                .Where(c => c.HolidayCalendarId == calendar.Id)
-                .CountAsync(cancellationToken);
-            if (employeesUsingIt > 0)
-                return Result.Failure($"The holiday calendar is used by {employeesUsingIt} employee(s). Choose another calendar for them first.");
+        var employeesUsingIt = await _organizationDbContext.EmployeeCapacities
+            .Where(c => c.HolidayCalendarId == calendar.Id)
+            .CountAsync(cancellationToken);
+        if (employeesUsingIt > 0)
+            return Result.Failure($"The holiday calendar is used by {employeesUsingIt} employee(s). Choose another calendar for them first.");
 
-            calendar.Delete(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            _organizationDbContext.HolidayCalendars.Remove(calendar);
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
+        calendar.Delete(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        _organizationDbContext.HolidayCalendars.Remove(calendar);
+        await _organizationDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Holiday calendar {HolidayCalendarId} deleted.", calendar.Id);
+        _logger.LogInformation("Holiday calendar {HolidayCalendarId} deleted.", calendar.Id);
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
-        }
+        return Result.Success();
     }
 }

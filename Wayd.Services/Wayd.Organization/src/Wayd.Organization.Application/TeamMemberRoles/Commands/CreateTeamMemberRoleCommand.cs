@@ -36,35 +36,25 @@ public sealed class CreateTeamMemberRoleCommandHandler(
     ILogger<CreateTeamMemberRoleCommandHandler> logger)
     : ICommandHandler<CreateTeamMemberRoleCommand, Guid>
 {
-    private const string AppRequestName = nameof(CreateTeamMemberRoleCommand);
-
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly ILogger<CreateTeamMemberRoleCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(CreateTeamMemberRoleCommand request, CancellationToken cancellationToken)
     {
-        try
+        var result = TeamMemberRole.Create(request.Name, request.Description);
+        if (result.IsFailure)
         {
-            var result = TeamMemberRole.Create(request.Name, request.Description);
-            if (result.IsFailure)
-            {
-                _logger.LogError("Error creating team member role {Name}. Error message: {Error}", request.Name, result.Error);
-                return Result.Failure<Guid>(result.Error);
-            }
-
-            result.Value.SetCountsTowardDeliveryCapacity(request.CountsTowardDeliveryCapacity);
-
-            await _organizationDbContext.TeamMemberRoles.AddAsync(result.Value, cancellationToken);
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Team member role {TeamMemberRoleId} created with name {Name}.", result.Value.Id, request.Name);
-
-            return Result.Success(result.Value.Id);
+            _logger.LogError("Error creating team member role {Name}. Error message: {Error}", request.Name, result.Error);
+            return Result.Failure<Guid>(result.Error);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<Guid>($"Error handling {AppRequestName} command.");
-        }
+
+        result.Value.SetCountsTowardDeliveryCapacity(request.CountsTowardDeliveryCapacity);
+
+        await _organizationDbContext.TeamMemberRoles.AddAsync(result.Value, cancellationToken);
+        await _organizationDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Team member role {TeamMemberRoleId} created with name {Name}.", result.Value.Id, request.Name);
+
+        return Result.Success(result.Value.Id);
     }
 }

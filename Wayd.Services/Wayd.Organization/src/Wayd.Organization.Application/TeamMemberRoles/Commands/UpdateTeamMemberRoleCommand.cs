@@ -41,44 +41,34 @@ public sealed class UpdateTeamMemberRoleCommandHandler(
     ILogger<UpdateTeamMemberRoleCommandHandler> logger)
     : ICommandHandler<UpdateTeamMemberRoleCommand>
 {
-    private const string AppRequestName = nameof(UpdateTeamMemberRoleCommand);
-
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly ILogger<UpdateTeamMemberRoleCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateTeamMemberRoleCommand request, CancellationToken cancellationToken)
     {
-        try
+        var role = await _organizationDbContext.TeamMemberRoles
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+
+        if (role is null)
         {
-            var role = await _organizationDbContext.TeamMemberRoles
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-
-            if (role is null)
-            {
-                _logger.LogInformation("Team member role with Id {TeamMemberRoleId} not found.", request.Id);
-                return Result.Failure("Team member role not found.");
-            }
-
-            var result = role.Update(request.Name, request.Description);
-            if (result.IsFailure)
-            {
-                _logger.LogError("Error updating team member role {TeamMemberRoleId}. Error message: {Error}", request.Id, result.Error);
-                return result;
-            }
-
-            if (request.CountsTowardDeliveryCapacity is { } countsTowardDeliveryCapacity)
-                role.SetCountsTowardDeliveryCapacity(countsTowardDeliveryCapacity);
-
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Team member role {TeamMemberRoleId} updated.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Team member role with Id {TeamMemberRoleId} not found.", request.Id);
+            return Result.Failure("Team member role not found.");
         }
-        catch (Exception ex)
+
+        var result = role.Update(request.Name, request.Description);
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Error updating team member role {TeamMemberRoleId}. Error message: {Error}", request.Id, result.Error);
+            return result;
         }
+
+        if (request.CountsTowardDeliveryCapacity is { } countsTowardDeliveryCapacity)
+            role.SetCountsTowardDeliveryCapacity(countsTowardDeliveryCapacity);
+
+        await _organizationDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Team member role {TeamMemberRoleId} updated.", request.Id);
+
+        return Result.Success();
     }
 }

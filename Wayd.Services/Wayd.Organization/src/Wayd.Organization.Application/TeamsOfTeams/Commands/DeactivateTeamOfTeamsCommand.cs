@@ -28,41 +28,29 @@ public sealed class DeactivateTeamOfTeamsCommandHandler(IOrganizationDbContext o
 
     public async Task<Result> Handle(DeactivateTeamOfTeamsCommand request, CancellationToken cancellationToken)
     {
-        try
+        var team = await _organizationDbContext.TeamOfTeams
+            .Include(t => t.ParentMemberships)
+            .Include(t => t.ChildMemberships)
+            .FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
+
+        if (team is null)
         {
-            var team = await _organizationDbContext.TeamOfTeams
-                .Include(t => t.ParentMemberships)
-                .FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
-
-            if (team is null)
-            {
-                _logger.LogInformation("{RequestName}: Team of Teams not found.", RequestName);
-                return Result.Failure("Team of Teams not found.");
-            }
-
-            var result = team.Deactivate(TeamDeactivatableArgs.Create(request.InactiveDate, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now));
-            if (result.IsFailure)
-            {
-                // Reset the entity
-                await _organizationDbContext.Entry(team).ReloadAsync(cancellationToken);
-                team.ClearDomainEvents();
-
-                _logger.LogError("{RequestName}: failed to deactivate Team of Teams {TeamId}. Error: {Error}", RequestName, team.Id, result.Error);
-
-                return result;
-            }
-
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("{RequestName}: deactivated Team of Teams {TeamId}", RequestName, team.Id);
-
-            return Result.Success();
+            _logger.LogInformation("{RequestName}: Team of Teams not found.", RequestName);
+            return Result.Failure("Team of Teams not found.");
         }
-        catch (Exception ex)
+
+        var result = team.Deactivate(TeamDeactivatableArgs.Create(request.InactiveDate, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now));
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception for request {RequestName}", RequestName);
+            _logger.LogError("{RequestName}: failed to deactivate Team of Teams {TeamId}. Error: {Error}", RequestName, team.Id, result.Error);
 
-            return Result.Failure<int>($"Exception for request {RequestName}");
+            return result;
         }
+
+        await _organizationDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("{RequestName}: deactivated Team of Teams {TeamId}", RequestName, team.Id);
+
+        return Result.Success();
     }
 }

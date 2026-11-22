@@ -31,31 +31,24 @@ public sealed class UpdateTeamMembershipCommandHandler(IOrganizationDbContext or
 
     public async Task<Result> Handle(UpdateTeamMembershipCommand request, CancellationToken cancellationToken)
     {
-        try
+        var team = await _organizationDbContext.Teams
+            .Include(t => t.ParentMemberships)
+                .ThenInclude(m => m.Target)
+            .SingleOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
+        if (team is null)
+            return Result.Failure("Team not found.");
+
+        var result = team.UpdateTeamMembership(request.TeamMembershipId, request.DateRange, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        if (result.IsFailure)
         {
-            Team team = await _organizationDbContext.Teams
-                .Include(t => t.ParentMemberships)
-                    .ThenInclude(m => m.Target)
-                .SingleAsync(t => t.Id == request.TeamId, cancellationToken: cancellationToken);
-
-            var result = team.UpdateTeamMembership(request.TeamMembershipId, request.DateRange, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                _logger.LogError("{RequestName}: failed to update Team Membership {TeamMembershipId} for Team {TeamId}. Error: {Error}", RequestName, request.TeamMembershipId, request.TeamId, result.Error);
-                return result;
-            }
-
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogDebug("{RequestName}: updated Team Membership {TeamMembershipId} for Team {TeamId}", RequestName, request.TeamMembershipId, request.TeamId);
-
-            return Result.Success();
+            _logger.LogError("{RequestName}: failed to update Team Membership {TeamMembershipId} for Team {TeamId}. Error: {Error}", RequestName, request.TeamMembershipId, request.TeamId, result.Error);
+            return result;
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception for request {RequestName}", RequestName);
 
-            return Result.Failure<int>($"Exception for request {RequestName}");
-        }
+        await _organizationDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug("{RequestName}: updated Team Membership {TeamMembershipId} for Team {TeamId}", RequestName, request.TeamMembershipId, request.TeamId);
+
+        return Result.Success();
     }
 }

@@ -38,8 +38,6 @@ public sealed class CreateHolidayCalendarCommandHandler(
     ILogger<CreateHolidayCalendarCommandHandler> logger)
     : ICommandHandler<CreateHolidayCalendarCommand, ObjectIdAndKey>
 {
-    private const string AppRequestName = nameof(CreateHolidayCalendarCommand);
-
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -47,25 +45,17 @@ public sealed class CreateHolidayCalendarCommandHandler(
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateHolidayCalendarCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var calendar = HolidayCalendar.Create(
-                request.Name,
-                request.Description,
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                _dateTimeProvider.Now);
+        var calendar = HolidayCalendar.Create(
+            request.Name,
+            request.Description,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            _dateTimeProvider.Now);
 
-            await _organizationDbContext.HolidayCalendars.AddAsync(calendar, cancellationToken);
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
+        await _organizationDbContext.HolidayCalendars.AddAsync(calendar, cancellationToken);
+        await _organizationDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Holiday calendar {HolidayCalendarId} created with name {Name}.", calendar.Id, calendar.Name);
+        _logger.LogInformation("Holiday calendar {HolidayCalendarId} created with name {Name}.", calendar.Id, calendar.Name);
 
-            return new ObjectIdAndKey(calendar.Id, calendar.Key);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<ObjectIdAndKey>($"Error handling {AppRequestName} command.");
-        }
+        return new ObjectIdAndKey(calendar.Id, calendar.Key);
     }
 }

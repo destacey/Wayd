@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NodaTime;
 using NodaTime.Testing;
@@ -45,8 +44,7 @@ public class RecordEmployeeTimeAwayCommandHandlerTests : IDisposable
             _dbContext,
             currentUser.Object,
             TestPrincipal.LinkedTo(callerEmployeeId, timeAwayAdministrator),
-            _dateTimeProvider,
-            NullLogger<RecordEmployeeTimeAwayCommandHandler>.Instance);
+            _dateTimeProvider);
     }
 
     private RecordEmployeeTimeAwayCommand Command(Guid? employeeId = null) =>

@@ -35,42 +35,30 @@ public sealed class UpdateHolidayCalendarCommandValidator : CustomValidator<Upda
 public sealed class UpdateHolidayCalendarCommandHandler(
     IOrganizationDbContext organizationDbContext,
     IDateTimeProvider dateTimeProvider,
-    ICurrentUser currentUser,
-    ILogger<UpdateHolidayCalendarCommandHandler> logger)
+    ICurrentUser currentUser)
     : ICommandHandler<UpdateHolidayCalendarCommand>
 {
-    private const string AppRequestName = nameof(UpdateHolidayCalendarCommand);
-
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUser _currentUser = currentUser;
-    private readonly ILogger<UpdateHolidayCalendarCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateHolidayCalendarCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var calendar = await _organizationDbContext.HolidayCalendars
-                .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
-            if (calendar is null)
-                return Result.Failure($"Holiday calendar {request.Id} not found.");
+        var calendar = await _organizationDbContext.HolidayCalendars
+            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+        if (calendar is null)
+            return Result.Failure($"Holiday calendar {request.Id} not found.");
 
-            var result = calendar.UpdateDetails(
-                request.Name,
-                request.Description,
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                _dateTimeProvider.Now);
-            if (result.IsFailure)
-                return result;
+        var result = calendar.UpdateDetails(
+            request.Name,
+            request.Description,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            _dateTimeProvider.Now);
+        if (result.IsFailure)
+            return result;
 
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
+        await _organizationDbContext.SaveChangesAsync(cancellationToken);
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
-        }
+        return Result.Success();
     }
 }

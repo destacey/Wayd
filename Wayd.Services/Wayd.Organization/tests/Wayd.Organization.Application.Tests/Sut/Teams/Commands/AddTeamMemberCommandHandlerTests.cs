@@ -44,7 +44,7 @@ public class AddTeamMemberCommandHandlerTests : IDisposable
         // Arrange
         var team = _teamFaker.Generate();
         var employee = _employeeFaker.Generate();
-        var roleId = Guid.NewGuid();
+        var roleId = AddRole();
         _dbContext.AddTeam(team);
         _dbContext.AddEmployee(employee);
 
@@ -67,8 +67,8 @@ public class AddTeamMemberCommandHandlerTests : IDisposable
         // Arrange
         var team = _teamFaker.Generate();
         var employee = _employeeFaker.Generate();
-        var roleId1 = Guid.NewGuid();
-        var roleId2 = Guid.NewGuid();
+        var roleId1 = AddRole();
+        var roleId2 = AddRole();
         _dbContext.AddTeam(team);
         _dbContext.AddEmployee(employee);
 
@@ -91,7 +91,7 @@ public class AddTeamMemberCommandHandlerTests : IDisposable
         // Arrange
         var team = _teamFaker.Generate();
         var employee = _employeeFaker.Generate();
-        var roleId = Guid.NewGuid();
+        var roleId = AddRole();
         _dbContext.AddTeam(team);
         _dbContext.AddEmployee(employee);
 
@@ -153,7 +153,7 @@ public class AddTeamMemberCommandHandlerTests : IDisposable
         _dbContext.AddTeam(team);
         _dbContext.AddEmployee(employee);
 
-        var command = new AddTeamMemberCommand(team.Id, employee.Id, [Guid.NewGuid()]);
+        var command = new AddTeamMemberCommand(team.Id, employee.Id, [AddRole()]);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -173,7 +173,7 @@ public class AddTeamMemberCommandHandlerTests : IDisposable
         _dbContext.AddTeam(team);
         _dbContext.AddEmployee(employee);
 
-        var command = new AddTeamMemberCommand(team.Id, employee.Id, [Guid.NewGuid()]);
+        var command = new AddTeamMemberCommand(team.Id, employee.Id, [AddRole()]);
 
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
@@ -187,5 +187,34 @@ public class AddTeamMemberCommandHandlerTests : IDisposable
     public void Dispose()
     {
         _dbContext.Dispose();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFail_WhenARoleDoesNotExist()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var employee = _employeeFaker.Generate();
+        _dbContext.AddTeam(team);
+        _dbContext.AddEmployee(employee);
+        var unknownRoleId = Guid.NewGuid();
+        var memberCount = team.Members.Count;
+
+        // Act
+        var result = await _handler.Handle(new AddTeamMemberCommand(team.Id, employee.Id, [AddRole(), unknownRoleId]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be($"Team member role {unknownRoleId} not found.");
+        team.Members.Should().HaveCount(memberCount);
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    /// <summary>Adds a team member role to the context and returns its id.</summary>
+    private Guid AddRole()
+    {
+        var role = new TeamMemberRoleFaker().Generate();
+        _dbContext.AddTeamMemberRole(role);
+        return role.Id;
     }
 }

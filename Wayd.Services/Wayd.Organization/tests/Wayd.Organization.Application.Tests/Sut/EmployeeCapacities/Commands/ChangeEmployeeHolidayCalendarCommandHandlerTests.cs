@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NodaTime;
 using NodaTime.Testing;
@@ -37,8 +36,7 @@ public class ChangeEmployeeHolidayCalendarCommandHandlerTests : IDisposable
             _dbContext,
             currentUser.Object,
             TestPrincipal.LinkedTo(_callerEmployeeId),
-            _dateTimeProvider,
-            NullLogger<ChangeEmployeeHolidayCalendarCommandHandler>.Instance);
+            _dateTimeProvider);
     }
 
     [Fact]

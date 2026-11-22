@@ -13,8 +13,6 @@ public sealed class ActivateStrategicThemeCommandValidator : AbstractValidator<A
 
 public sealed class ActivateStrategicThemeCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ICurrentUser currentUser, ILogger<ActivateStrategicThemeCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ActivateStrategicThemeCommand>
 {
-    private const string AppRequestName = nameof(ActivateStrategicThemeCommand);
-
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<ActivateStrategicThemeCommandHandler> _logger = logger;
@@ -22,36 +20,24 @@ public sealed class ActivateStrategicThemeCommandHandler(IStrategicManagementDbC
 
     public async Task<Result> Handle(ActivateStrategicThemeCommand request, CancellationToken cancellationToken)
     {
-        try
+        var theme = await _strategicManagementDbContext.StrategicThemes
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+        if (theme is null)
         {
-            var theme = await _strategicManagementDbContext.StrategicThemes
-                .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
-            if (theme is null)
-            {
-                _logger.LogInformation("Strategic Theme {StrategicThemeId} not found.", request.Id);
-                return Result.Failure("Strategic Theme not found.");
-            }
-
-            var activateResult = theme.Activate(EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
-            if (activateResult.IsFailure)
-            {
-                // Reset the entity
-                await _strategicManagementDbContext.Entry(theme).ReloadAsync(cancellationToken);
-                theme.ClearDomainEvents();
-
-                _logger.LogError("Unable to activate Strategic Theme {StrategicThemeId}.  Error message: {Error}", request.Id, activateResult.Error);
-                return Result.Failure(activateResult.Error);
-            }
-            await _strategicManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Strategic Theme {StrategicThemeId} activated.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Strategic Theme {StrategicThemeId} not found.", request.Id);
+            return Result.Failure("Strategic Theme not found.");
         }
-        catch (Exception ex)
+
+        var activateResult = theme.Activate(EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+        if (activateResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogInformation("Unable to activate Strategic Theme {StrategicThemeId}.  Error message: {Error}", request.Id, activateResult.Error);
+            return Result.Failure(activateResult.Error);
         }
+        await _strategicManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Strategic Theme {StrategicThemeId} activated.", request.Id);
+
+        return Result.Success();
     }
 }

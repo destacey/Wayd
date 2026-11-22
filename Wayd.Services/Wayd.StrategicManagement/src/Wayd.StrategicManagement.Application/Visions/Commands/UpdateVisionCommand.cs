@@ -1,6 +1,4 @@
-﻿using Wayd.Common.Application.Models;
-
-namespace Wayd.StrategicManagement.Application.Visions.Commands;
+﻿namespace Wayd.StrategicManagement.Application.Visions.Commands;
 
 public sealed record UpdateVisionCommand(Guid Id, string Description) : ICommand;
 
@@ -19,44 +17,30 @@ public sealed class UpdateVisionCommandValidator : AbstractValidator<UpdateVisio
 
 public sealed class UpdateVisionCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<UpdateVisionCommandHandler> logger) : ICommandHandler<UpdateVisionCommand>
 {
-    private const string AppRequestName = nameof(UpdateVisionCommand);
-
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
     private readonly ILogger<UpdateVisionCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateVisionCommand request, CancellationToken cancellationToken)
     {
-        try
+        var vision = await _strategicManagementDbContext.Visions
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+        if (vision is null)
         {
-            var vision = await _strategicManagementDbContext.Visions
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-            if (vision is null)
-            {
-                _logger.LogInformation("Vision {VisionId} not found.", request.Id);
-                return Result.Failure("Vision not found.");
-            }
-            var updateResult = vision.Update(request.Description);
-
-            if (updateResult.IsFailure)
-            {
-                // Reset the entity
-                await _strategicManagementDbContext.Entry(vision).ReloadAsync(cancellationToken);
-                vision.ClearDomainEvents();
-
-                _logger.LogError("Unable to update Vision {VisionId}.  Error message: {Error}", request.Id, updateResult.Error);
-                return Result.Failure(updateResult.Error);
-            }
-
-            await _strategicManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Vision {VisionId} updated.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Vision {VisionId} not found.", request.Id);
+            return Result.Failure("Vision not found.");
         }
-        catch (Exception ex)
+        var updateResult = vision.Update(request.Description);
+
+        if (updateResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<ObjectIdAndKey>($"Error handling {AppRequestName} command.");
+            _logger.LogInformation("Unable to update Vision {VisionId}.  Error message: {Error}", request.Id, updateResult.Error);
+            return Result.Failure(updateResult.Error);
         }
+
+        await _strategicManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Vision {VisionId} updated.", request.Id);
+
+        return Result.Success();
     }
 }

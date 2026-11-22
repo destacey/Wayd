@@ -27,8 +27,6 @@ public sealed class SetProductTagCategoryActiveCommandHandler(
     ILogger<SetProductTagCategoryActiveCommandHandler> logger)
     : ICommandHandler<SetProductTagCategoryActiveCommand>
 {
-    private const string AppRequestName = nameof(SetProductTagCategoryActiveCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
@@ -38,39 +36,31 @@ public sealed class SetProductTagCategoryActiveCommandHandler(
     public async Task<Result> Handle(
         SetProductTagCategoryActiveCommand request, CancellationToken cancellationToken)
     {
-        try
+        var category = await _productManagementDbContext.ProductTagCategories
+            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+
+        if (category is null)
         {
-            var category = await _productManagementDbContext.ProductTagCategories
-                .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
-
-            if (category is null)
-            {
-                _logger.LogInformation("Product Tag Category {CategoryId} not found.", request.Id);
-                return Result.Failure("Tag category not found.");
-            }
-
-            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
-            var result = request.IsActive
-                ? category.Activate(actor, _dateTimeProvider.Now)
-                : category.Deactivate(actor, _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                _logger.LogInformation(
-                    "Unable to change category {CategoryId} activation. Error message: {Error}", request.Id, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Product Tag Category {CategoryId} active set to {IsActive}.", request.Id, request.IsActive);
-
-            return Result.Success();
+            _logger.LogInformation("Product Tag Category {CategoryId} not found.", request.Id);
+            return Result.Failure("Tag category not found.");
         }
-        catch (Exception ex)
+
+        var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
+        var result = request.IsActive
+            ? category.Activate(actor, _dateTimeProvider.Now)
+            : category.Deactivate(actor, _dateTimeProvider.Now);
+
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogInformation(
+                "Unable to change category {CategoryId} activation. Error message: {Error}", request.Id, result.Error);
+            return Result.Failure(result.Error);
         }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Product Tag Category {CategoryId} active set to {IsActive}.", request.Id, request.IsActive);
+
+        return Result.Success();
     }
 }

@@ -29,8 +29,6 @@ public sealed class SetProductTagActiveCommandHandler(
     ILogger<SetProductTagActiveCommandHandler> logger)
     : ICommandHandler<SetProductTagActiveCommand>
 {
-    private const string AppRequestName = nameof(SetProductTagActiveCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
@@ -39,43 +37,35 @@ public sealed class SetProductTagActiveCommandHandler(
 
     public async Task<Result> Handle(SetProductTagActiveCommand request, CancellationToken cancellationToken)
     {
-        try
+        // Routed through the category, like every other tag mutation: the system flag lives there,
+        // and loading the tag directly would bypass it. Tags must be included — the aggregate
+        // resolves the tag from its own collection.
+        var category = await _productManagementDbContext.ProductTagCategories
+            .Include(c => c.Tags)
+            .FirstOrDefaultAsync(c => c.Id == request.CategoryId, cancellationToken);
+
+        if (category is null)
         {
-            // Routed through the category, like every other tag mutation: the system flag lives there,
-            // and loading the tag directly would bypass it. Tags must be included — the aggregate
-            // resolves the tag from its own collection.
-            var category = await _productManagementDbContext.ProductTagCategories
-                .Include(c => c.Tags)
-                .FirstOrDefaultAsync(c => c.Id == request.CategoryId, cancellationToken);
-
-            if (category is null)
-            {
-                _logger.LogInformation("Tag category {CategoryId} not found.", request.CategoryId);
-                return Result.Failure("Tag category not found.");
-            }
-
-            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
-            var result = request.IsActive
-                ? category.ActivateTag(request.TagId, actor, _dateTimeProvider.Now)
-                : category.DeactivateTag(request.TagId, actor, _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                _logger.LogInformation(
-                    "Unable to change tag {TagId} activation. Error message: {Error}", request.TagId, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Tag {TagId} active set to {IsActive}.", request.TagId, request.IsActive);
-
-            return Result.Success();
+            _logger.LogInformation("Tag category {CategoryId} not found.", request.CategoryId);
+            return Result.Failure("Tag category not found.");
         }
-        catch (Exception ex)
+
+        var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
+        var result = request.IsActive
+            ? category.ActivateTag(request.TagId, actor, _dateTimeProvider.Now)
+            : category.DeactivateTag(request.TagId, actor, _dateTimeProvider.Now);
+
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogInformation(
+                "Unable to change tag {TagId} activation. Error message: {Error}", request.TagId, result.Error);
+            return Result.Failure(result.Error);
         }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Tag {TagId} active set to {IsActive}.", request.TagId, request.IsActive);
+
+        return Result.Success();
     }
 }

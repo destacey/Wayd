@@ -26,8 +26,6 @@ public sealed class EndProductDependencyCommandHandler(
     ISystemCalendar systemCalendar)
     : ICommandHandler<EndProductDependencyCommand>
 {
-    private const string AppRequestName = nameof(EndProductDependencyCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<EndProductDependencyCommandHandler> _logger = logger;
@@ -36,46 +34,38 @@ public sealed class EndProductDependencyCommandHandler(
 
     public async Task<Result> Handle(EndProductDependencyCommand request, CancellationToken cancellationToken)
     {
-        try
+        var product = await _productManagementDbContext.Products
+            .Include(p => p.Dependencies)
+            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+
+        if (product is null)
         {
-            var product = await _productManagementDbContext.Products
-                .Include(p => p.Dependencies)
-                .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
-
-            if (product is null)
-            {
-                _logger.LogInformation("Product {ProductId} not found.", request.Id);
-                return Result.Failure("Product not found.");
-            }
-
-            var now = _dateTimeProvider.Now;
-            var today = await _systemCalendar.DayOf(now, cancellationToken);
-
-            var endResult = product.EndDependency(
-                request.DependencyId,
-                request.EndsOn ?? today,
-                today,
-                EventActor.User(_currentUser.GetUserId()),
-                now);
-
-            if (endResult.IsFailure)
-            {
-                product.ClearDomainEvents();
-
-                _logger.LogInformation("Unable to end dependency {DependencyId} on Product {ProductId}. Error message: {Error}", request.DependencyId, request.Id, endResult.Error);
-                return Result.Failure(endResult.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Dependency {DependencyId} on Product {ProductId} ended.", request.DependencyId, request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Product {ProductId} not found.", request.Id);
+            return Result.Failure("Product not found.");
         }
-        catch (Exception ex)
+
+        var now = _dateTimeProvider.Now;
+        var today = await _systemCalendar.DayOf(now, cancellationToken);
+
+        var endResult = product.EndDependency(
+            request.DependencyId,
+            request.EndsOn ?? today,
+            today,
+            EventActor.User(_currentUser.GetUserId()),
+            now);
+
+        if (endResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            product.ClearDomainEvents();
+
+            _logger.LogInformation("Unable to end dependency {DependencyId} on Product {ProductId}. Error message: {Error}", request.DependencyId, request.Id, endResult.Error);
+            return Result.Failure(endResult.Error);
         }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Dependency {DependencyId} on Product {ProductId} ended.", request.DependencyId, request.Id);
+
+        return Result.Success();
     }
 }

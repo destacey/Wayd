@@ -38,6 +38,15 @@ public sealed class RollBackDeploymentCommandHandlerTests : ProductCommandTestBa
                 ProductWorkflowOwners.Deployment.Key, null, (int)ProductStatusAlias.Failed, It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => Result.Success(
                 Status("Failed", StatusCategory.Removed, ProductStatusAlias.Failed)));
+
+        // What succeeding a production deployment moves an unreleased version or package to.
+        foreach (var owner in new[] { ProductWorkflowOwners.Version.Key, ProductWorkflowOwners.ReleasePackage.Key })
+        {
+            _statusResolver
+                .Setup(r => r.ForAlias(owner, null, (int)ProductStatusAlias.Released, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => Result.Success(
+                    Status("Released", StatusCategory.Done, ProductStatusAlias.Released)));
+        }
     }
 
     private RollBackDeploymentCommandHandler CreateSut() =>
@@ -54,7 +63,7 @@ public sealed class RollBackDeploymentCommandHandlerTests : ProductCommandTestBa
     {
         // Arrange
         var deployment = SeedDeployment(EnvironmentCategory.Production);
-        await SucceedSut().Handle(new SucceedDeploymentCommand(deployment.Id, null), TestContext.Current.CancellationToken);
+        (await SucceedSut().Handle(new SucceedDeploymentCommand(deployment.Id, null), TestContext.Current.CancellationToken)).IsSuccess.Should().BeTrue();
         var sut = CreateSut();
 
         // Act
@@ -73,7 +82,7 @@ public sealed class RollBackDeploymentCommandHandlerTests : ProductCommandTestBa
     {
         // Arrange
         var deployment = SeedDeployment();
-        await FailSut().Handle(new FailDeploymentCommand(deployment.Id, null, null), TestContext.Current.CancellationToken);
+        (await FailSut().Handle(new FailDeploymentCommand(deployment.Id, null, null), TestContext.Current.CancellationToken)).IsSuccess.Should().BeTrue();
         var sut = CreateSut();
 
         // Act
@@ -108,9 +117,9 @@ public sealed class RollBackDeploymentCommandHandlerTests : ProductCommandTestBa
     {
         // Arrange
         var deployment = SeedDeployment();
-        await SucceedSut().Handle(
+        (await SucceedSut().Handle(
             new SucceedDeploymentCommand(deployment.Id, Now.Plus(Duration.FromHours(1))),
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken)).IsSuccess.Should().BeTrue();
         var sut = CreateSut();
 
         // Act

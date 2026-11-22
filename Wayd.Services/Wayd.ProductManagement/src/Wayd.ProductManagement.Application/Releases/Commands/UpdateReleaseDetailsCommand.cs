@@ -38,8 +38,6 @@ public sealed class UpdateReleaseDetailsCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UpdateReleaseDetailsCommand>
 {
-    private const string AppRequestName = nameof(UpdateReleaseDetailsCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
@@ -48,55 +46,47 @@ public sealed class UpdateReleaseDetailsCommandHandler(
 
     public async Task<Result> Handle(UpdateReleaseDetailsCommand request, CancellationToken cancellationToken)
     {
-        try
+        var release = await _productManagementDbContext.Releases
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+
+        if (release is null)
         {
-            var release = await _productManagementDbContext.Releases
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-
-            if (release is null)
-            {
-                _logger.LogInformation("Release {ReleaseId} not found.", request.Id);
-                return Result.Failure("Release not found.");
-            }
-
-            if (request.ProductId is not null
-                && !await _productManagementDbContext.Products
-                    .AnyAsync(p => p.Id == request.ProductId, cancellationToken))
-            {
-                _logger.LogInformation("Product {ProductId} not found.", request.ProductId);
-                return Result.Failure("Product not found.");
-            }
-
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-
-            var result = release.UpdateDetails(
-                request.Version,
-                request.Name,
-                request.Notes,
-                request.ProductId,
-                request.Sequence,
-                EventActor.User(_currentUser.GetUserId(), employeeId),
-                _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                release.ClearDomainEvents();
-
-                _logger.LogInformation(
-                    "Unable to update Release {ReleaseId}. Error message: {Error}", request.Id, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Release {ReleaseId} updated.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Release {ReleaseId} not found.", request.Id);
+            return Result.Failure("Release not found.");
         }
-        catch (Exception ex)
+
+        if (request.ProductId is not null
+            && !await _productManagementDbContext.Products
+                .AnyAsync(p => p.Id == request.ProductId, cancellationToken))
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogInformation("Product {ProductId} not found.", request.ProductId);
+            return Result.Failure("Product not found.");
         }
+
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
+        var result = release.UpdateDetails(
+            request.Version,
+            request.Name,
+            request.Notes,
+            request.ProductId,
+            request.Sequence,
+            EventActor.User(_currentUser.GetUserId(), employeeId),
+            _dateTimeProvider.Now);
+
+        if (result.IsFailure)
+        {
+            release.ClearDomainEvents();
+
+            _logger.LogInformation(
+                "Unable to update Release {ReleaseId}. Error message: {Error}", request.Id, result.Error);
+            return Result.Failure(result.Error);
+        }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Release {ReleaseId} updated.", request.Id);
+
+        return Result.Success();
     }
 }

@@ -38,8 +38,6 @@ public sealed class TagProductByNameCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<TagProductByNameCommand, Guid>
 {
-    private const string AppRequestName = nameof(TagProductByNameCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ISettings<ProductTagSettings> _settings = settings;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -49,75 +47,67 @@ public sealed class TagProductByNameCommandHandler(
 
     public async Task<Result<Guid>> Handle(TagProductByNameCommand request, CancellationToken cancellationToken)
     {
+        var name = TagBase.ValidateFreeName(request.Name);
+        if (name.IsFailure)
+            return Result.Failure<Guid>(name.Error);
+
+        var product = await _productManagementDbContext.Products
+            .Include(p => p.Tags)
+            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+        if (product is null)
+        {
+            _logger.LogInformation("Product {ProductId} not found.", request.Id);
+            return Result.Failure<Guid>("Product not found.");
+        }
+
+        var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
+        var now = _dateTimeProvider.Now;
+
+        var lowered = name.Value.ToLower();
+        var inCategories = await _productManagementDbContext.ProductTags
+            .Where(t => t.CategoryId != null && t.IsActive && t.Name.ToLower() == lowered)
+            .Join(_productManagementDbContext.ProductTagCategories.Where(c => c.IsActive),
+                t => t.CategoryId, c => (Guid?)c.Id, (t, c) => new { Tag = t, Category = c })
+            .ToListAsync(cancellationToken);
+
+        if (inCategories.Count > 1)
+            return Result.Failure<Guid>(ProductTagErrors.AmbiguousName);
+
+        ProductTag tag;
+        Result tagResult;
+        if (inCategories.Count == 1)
+        {
+            tag = inCategories[0].Tag;
+            tagResult = product.Tag(tag, inCategories[0].Category, actor, now);
+        }
+        else
+        {
+            if (!(await _settings.Get(cancellationToken)).AllowsFreeTags)
+                return Result.Failure<Guid>(ProductTagErrors.FreeTagsTurnedOff);
+
+            var found = await FreeProductTags.FindOrCreate(_productManagementDbContext, name.Value, actor, now, cancellationToken);
+            if (found.IsFailure)
+                return Result.Failure<Guid>(found.Error);
+
+            tag = found.Value;
+            tagResult = product.Tag(tag, null, actor, now);
+        }
+
+        if (tagResult.IsFailure)
+            return Result.Failure<Guid>(tagResult.Error);
+
         try
         {
-            var name = TagBase.ValidateFreeName(request.Name);
-            if (name.IsFailure)
-                return Result.Failure<Guid>(name.Error);
-
-            var product = await _productManagementDbContext.Products
-                .Include(p => p.Tags)
-                .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
-            if (product is null)
-            {
-                _logger.LogInformation("Product {ProductId} not found.", request.Id);
-                return Result.Failure<Guid>("Product not found.");
-            }
-
-            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
-            var now = _dateTimeProvider.Now;
-
-            var lowered = name.Value.ToLower();
-            var inCategories = await _productManagementDbContext.ProductTags
-                .Where(t => t.CategoryId != null && t.IsActive && t.Name.ToLower() == lowered)
-                .Join(_productManagementDbContext.ProductTagCategories.Where(c => c.IsActive),
-                    t => t.CategoryId, c => (Guid?)c.Id, (t, c) => new { Tag = t, Category = c })
-                .ToListAsync(cancellationToken);
-
-            if (inCategories.Count > 1)
-                return Result.Failure<Guid>(ProductTagErrors.AmbiguousName);
-
-            ProductTag tag;
-            Result tagResult;
-            if (inCategories.Count == 1)
-            {
-                tag = inCategories[0].Tag;
-                tagResult = product.Tag(tag, inCategories[0].Category, actor, now);
-            }
-            else
-            {
-                if (!(await _settings.Get(cancellationToken)).AllowsFreeTags)
-                    return Result.Failure<Guid>(ProductTagErrors.FreeTagsTurnedOff);
-
-                var found = await FreeProductTags.FindOrCreate(_productManagementDbContext, name.Value, actor, now, cancellationToken);
-                if (found.IsFailure)
-                    return Result.Failure<Guid>(found.Error);
-
-                tag = found.Value;
-                tagResult = product.Tag(tag, null, actor, now);
-            }
-
-            if (tagResult.IsFailure)
-                return Result.Failure<Guid>(tagResult.Error);
-
-            try
-            {
-                await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateException)
-            {
-                // The product was given the tag, or the free tag was deleted for being unused, since the lookups.
-                return Result.Failure<Guid>(ProductTagErrors.ChangedWhileSaving);
-            }
-
-            _logger.LogInformation("Product {ProductId} tagged with {TagId}.", request.Id, tag.Id);
-
-            return tag.Id;
+            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch (DbUpdateException)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<Guid>($"Error handling {AppRequestName} command.");
+            // The product was given the tag, or the free tag was deleted for being unused, since the lookups.
+            return Result.Failure<Guid>(ProductTagErrors.ChangedWhileSaving);
         }
+
+        _logger.LogInformation("Product {ProductId} tagged with {TagId}.", request.Id, tag.Id);
+
+        return tag.Id;
     }
 }

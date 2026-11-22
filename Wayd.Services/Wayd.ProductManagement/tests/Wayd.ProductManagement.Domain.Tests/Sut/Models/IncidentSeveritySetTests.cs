@@ -9,6 +9,20 @@ public sealed class IncidentSeveritySetTests
         names.Select(n => (n, (string?)null)).ToList();
 
     [Fact]
+    public void CreateCustom_WithDuplicateLevelNames_Fails()
+    {
+        // Arrange — names differ only by case and surrounding space, which the unique index treats as equal
+        var levels = Levels("High", " high ");
+
+        // Act
+        var result = IncidentSeveritySet.CreateCustom("Custom", null, levels);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Level names must be unique within a severity set.");
+    }
+
+    [Fact]
     public void CreateCustom_WithTwoLevels_Succeeds()
     {
         // Act

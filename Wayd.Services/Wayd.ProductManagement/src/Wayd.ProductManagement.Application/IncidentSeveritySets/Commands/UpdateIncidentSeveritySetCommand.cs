@@ -40,57 +40,49 @@ public sealed class UpdateIncidentSeveritySetCommandHandler(
         UpdateIncidentSeveritySetCommand request,
         CancellationToken cancellationToken)
     {
-        try
+        var set = await _context.IncidentSeveritySets
+            .Include(s => s.Levels)
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+
+        if (set is null)
         {
-            var set = await _context.IncidentSeveritySets
-                .Include(s => s.Levels)
-                .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
-
-            if (set is null)
-            {
-                return Result.Failure("Severity set not found.");
-            }
-
-            var name = request.Name.Trim();
-            if (await _context.IncidentSeveritySets
-                    .AnyAsync(s => s.Id != request.Id && s.Name == name, cancellationToken))
-            {
-                return Result.Failure($"A severity set named '{name}' already exists.");
-            }
-
-            var details = set.UpdateDetails(name, request.Description);
-            if (details.IsFailure)
-            {
-                return details;
-            }
-
-            var levelsInUse = await _levelUsage.GetLevelIdsInUse(cancellationToken);
-            var replace = set.ReplaceLevels(
-                request.Levels
-                    .Select((l, i) => (
-                        l.Id,
-                        l.Name.Trim(),
-                        string.IsNullOrWhiteSpace(l.Color)
-                            ? IncidentSeverityLevel.DefaultColorForSortOrder(i)
-                            : l.Color!.Trim()))
-                    .ToList(),
-                levelsInUse);
-
-            if (replace.IsFailure)
-            {
-                return replace;
-            }
-
-            await _context.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Incident severity set {SetId} updated.", request.Id);
-
-            return Result.Success();
+            return Result.Failure("Severity set not found.");
         }
-        catch (Exception ex)
+
+        var name = request.Name.Trim();
+        if (await _context.IncidentSeveritySets
+                .AnyAsync(s => s.Id != request.Id && s.Name == name, cancellationToken))
         {
-            _logger.LogError(ex, "Exception handling {Command}.", nameof(UpdateIncidentSeveritySetCommand));
-            return Result.Failure($"Exception handling {nameof(UpdateIncidentSeveritySetCommand)}.");
+            return Result.Failure($"A severity set named '{name}' already exists.");
         }
+
+        var details = set.UpdateDetails(name, request.Description);
+        if (details.IsFailure)
+        {
+            return details;
+        }
+
+        var levelsInUse = await _levelUsage.GetLevelIdsInUse(cancellationToken);
+        var replace = set.ReplaceLevels(
+            request.Levels
+                .Select((l, i) => (
+                    l.Id,
+                    l.Name.Trim(),
+                    string.IsNullOrWhiteSpace(l.Color)
+                        ? IncidentSeverityLevel.DefaultColorForSortOrder(i)
+                        : l.Color!.Trim()))
+                .ToList(),
+            levelsInUse);
+
+        if (replace.IsFailure)
+        {
+            return replace;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Incident severity set {SetId} updated.", request.Id);
+
+        return Result.Success();
     }
 }

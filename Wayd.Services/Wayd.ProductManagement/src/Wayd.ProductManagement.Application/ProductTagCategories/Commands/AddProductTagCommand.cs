@@ -33,8 +33,6 @@ public sealed class AddProductTagCommandHandler(
     ILogger<AddProductTagCommandHandler> logger)
     : ICommandHandler<AddProductTagCommand, Guid>
 {
-    private const string AppRequestName = nameof(AddProductTagCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
@@ -43,39 +41,31 @@ public sealed class AddProductTagCommandHandler(
 
     public async Task<Result<Guid>> Handle(AddProductTagCommand request, CancellationToken cancellationToken)
     {
-        try
+        // The existing tags must be loaded: the duplicate-name check reads them, and an unloaded
+        // collection would let a duplicate through to the unique index.
+        var category = await _productManagementDbContext.ProductTagCategories
+            .Include(c => c.Tags)
+            .FirstOrDefaultAsync(c => c.Id == request.CategoryId, cancellationToken);
+
+        if (category is null)
         {
-            // The existing tags must be loaded: the duplicate-name check reads them, and an unloaded
-            // collection would let a duplicate through to the unique index.
-            var category = await _productManagementDbContext.ProductTagCategories
-                .Include(c => c.Tags)
-                .FirstOrDefaultAsync(c => c.Id == request.CategoryId, cancellationToken);
-
-            if (category is null)
-            {
-                _logger.LogInformation("Product Tag Category {CategoryId} not found.", request.CategoryId);
-                return Result.Failure<Guid>("Tag category not found.");
-            }
-
-            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
-            var result = category.AddTag(request.Name, request.Description, actor, _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                _logger.LogInformation(
-                    "Unable to add a tag to {CategoryId}. Error message: {Error}", request.CategoryId, result.Error);
-                return Result.Failure<Guid>(result.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Tag {TagId} added to category {CategoryId}.", result.Value.Id, request.CategoryId);
-
-            return Result.Success(result.Value.Id);
+            _logger.LogInformation("Product Tag Category {CategoryId} not found.", request.CategoryId);
+            return Result.Failure<Guid>("Tag category not found.");
         }
-        catch (Exception ex)
+
+        var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
+        var result = category.AddTag(request.Name, request.Description, actor, _dateTimeProvider.Now);
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<Guid>($"Error handling {AppRequestName} command.");
+            _logger.LogInformation(
+                "Unable to add a tag to {CategoryId}. Error message: {Error}", request.CategoryId, result.Error);
+            return Result.Failure<Guid>(result.Error);
         }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Tag {TagId} added to category {CategoryId}.", result.Value.Id, request.CategoryId);
+
+        return Result.Success(result.Value.Id);
     }
 }

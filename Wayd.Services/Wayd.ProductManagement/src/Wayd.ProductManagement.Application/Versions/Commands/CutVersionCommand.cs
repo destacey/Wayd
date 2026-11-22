@@ -29,8 +29,6 @@ public sealed class CutVersionCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<CutVersionCommand>
 {
-    private const string AppRequestName = nameof(CutVersionCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -40,68 +38,60 @@ public sealed class CutVersionCommandHandler(
 
     public async Task<Result> Handle(CutVersionCommand request, CancellationToken cancellationToken)
     {
-        try
+        var version = await _productManagementDbContext.Versions
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+
+        if (version is null)
         {
-            var version = await _productManagementDbContext.Versions
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-
-            if (version is null)
-            {
-                _logger.LogInformation("Version {VersionId} not found.", request.Id);
-                return Result.Failure("Version not found.");
-            }
-
-            // The aggregate demands the status carrying this meaning and cannot fetch it. Resolving by
-            // alias rather than by id is what lets an organization rename or reorder its workflow
-            // without breaking the transition.
-            var status = await _statusResolver.ForAlias(
-                ProductWorkflowOwners.Version.Key,
-                scopeId: null,
-                (int)ProductStatusAlias.Ready,
-                cancellationToken);
-
-            if (status.IsFailure)
-            {
-                _logger.LogError("Unable to resolve the ready version status. Error message: {Error}", status.Error);
-                return Result.Failure(status.Error);
-            }
-
-            var productName = await _productManagementDbContext.Products
-                .Where(p => p.Id == version.ProductId)
-                .Select(p => p.Name)
-                .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
-
-            // Read per scope rather than from the claim snapshot, which a personal access token
-            // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
-            // one would misattribute the change permanently.
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-
-            var result = version.Cut(
-                request.CutAt,
-                status.Value,
-                productName,
-                EventActor.User(_currentUser.GetUserId(), employeeId),
-                _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                version.ClearDomainEvents();
-
-                _logger.LogInformation(
-                    "Unable to cut Version {VersionId}. Error message: {Error}", request.Id, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Version {VersionId} cut.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Version {VersionId} not found.", request.Id);
+            return Result.Failure("Version not found.");
         }
-        catch (Exception ex)
+
+        // The aggregate demands the status carrying this meaning and cannot fetch it. Resolving by
+        // alias rather than by id is what lets an organization rename or reorder its workflow
+        // without breaking the transition.
+        var status = await _statusResolver.ForAlias(
+            ProductWorkflowOwners.Version.Key,
+            scopeId: null,
+            (int)ProductStatusAlias.Ready,
+            cancellationToken);
+
+        if (status.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to resolve the ready version status. Error message: {Error}", status.Error);
+            return Result.Failure(status.Error);
         }
+
+        var productName = await _productManagementDbContext.Products
+            .Where(p => p.Id == version.ProductId)
+            .Select(p => p.Name)
+            .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
+
+        // Read per scope rather than from the claim snapshot, which a personal access token
+        // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
+        // one would misattribute the change permanently.
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
+        var result = version.Cut(
+            request.CutAt,
+            status.Value,
+            productName,
+            EventActor.User(_currentUser.GetUserId(), employeeId),
+            _dateTimeProvider.Now);
+
+        if (result.IsFailure)
+        {
+            version.ClearDomainEvents();
+
+            _logger.LogInformation(
+                "Unable to cut Version {VersionId}. Error message: {Error}", request.Id, result.Error);
+            return Result.Failure(result.Error);
+        }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Version {VersionId} cut.", request.Id);
+
+        return Result.Success();
     }
 }

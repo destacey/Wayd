@@ -22,44 +22,36 @@ public sealed class SetIncidentSeveritySetActiveStatusCommandHandler(
         SetIncidentSeveritySetActiveStatusCommand request,
         CancellationToken cancellationToken)
     {
-        try
+        var set = await _context.IncidentSeveritySets
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+
+        if (set is null)
         {
-            var set = await _context.IncidentSeveritySets
-                .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
-
-            if (set is null)
-            {
-                return Result.Failure("Severity set not found.");
-            }
-
-            var selectedSetId = await _context.IncidentSeveritySetAssignments
-                .Select(a => a.SeveritySetId)
-                .SingleAsync(cancellationToken);
-
-            var isSelected = set.Id == selectedSetId;
-
-            Result result = request.IsActive
-                ? set.Activate()
-                : set.Deactivate(isSelected);
-
-            if (result.IsFailure)
-            {
-                return result;
-            }
-
-            await _context.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation(
-                "Incident severity set {SetId} active status set to {IsActive}.",
-                request.Id,
-                request.IsActive);
-
-            return Result.Success();
+            return Result.Failure("Severity set not found.");
         }
-        catch (Exception ex)
+
+        var selectedSetId = await _context.IncidentSeveritySetAssignments
+            .Select(a => a.SeveritySetId)
+            .SingleAsync(cancellationToken);
+
+        var isSelected = set.Id == selectedSetId;
+
+        Result result = request.IsActive
+            ? set.Activate()
+            : set.Deactivate(isSelected);
+
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {Command}.", nameof(SetIncidentSeveritySetActiveStatusCommand));
-            return Result.Failure($"Exception handling {nameof(SetIncidentSeveritySetActiveStatusCommand)}.");
+            return result;
         }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Incident severity set {SetId} active status set to {IsActive}.",
+            request.Id,
+            request.IsActive);
+
+        return Result.Success();
     }
 }

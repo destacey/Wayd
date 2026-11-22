@@ -38,8 +38,6 @@ public sealed class UpdateProductTagCategoryCommandHandler(
     ILogger<UpdateProductTagCategoryCommandHandler> logger)
     : ICommandHandler<UpdateProductTagCategoryCommand>
 {
-    private const string AppRequestName = nameof(UpdateProductTagCategoryCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
@@ -48,44 +46,36 @@ public sealed class UpdateProductTagCategoryCommandHandler(
 
     public async Task<Result> Handle(UpdateProductTagCategoryCommand request, CancellationToken cancellationToken)
     {
-        try
+        var category = await _productManagementDbContext.ProductTagCategories
+            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+
+        if (category is null)
         {
-            var category = await _productManagementDbContext.ProductTagCategories
-                .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
-
-            if (category is null)
-            {
-                _logger.LogInformation("Product Tag Category {CategoryId} not found.", request.Id);
-                return Result.Failure("Tag category not found.");
-            }
-
-            var name = request.Name.Trim();
-
-            if (await _productManagementDbContext.ProductTagCategories
-                    .AnyAsync(c => c.Id != request.Id && c.Name == name, cancellationToken))
-            {
-                return Result.Failure($"A tag category named '{name}' already exists.");
-            }
-
-            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
-            var result = category.UpdateDetails(name, request.Description, actor, _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                _logger.LogInformation(
-                    "Unable to update Product Tag Category {CategoryId}. Error message: {Error}", request.Id, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Product Tag Category {CategoryId} updated.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Product Tag Category {CategoryId} not found.", request.Id);
+            return Result.Failure("Tag category not found.");
         }
-        catch (Exception ex)
+
+        var name = request.Name.Trim();
+
+        if (await _productManagementDbContext.ProductTagCategories
+                .AnyAsync(c => c.Id != request.Id && c.Name == name, cancellationToken))
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            return Result.Failure($"A tag category named '{name}' already exists.");
         }
+
+        var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
+        var result = category.UpdateDetails(name, request.Description, actor, _dateTimeProvider.Now);
+        if (result.IsFailure)
+        {
+            _logger.LogInformation(
+                "Unable to update Product Tag Category {CategoryId}. Error message: {Error}", request.Id, result.Error);
+            return Result.Failure(result.Error);
+        }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Product Tag Category {CategoryId} updated.", request.Id);
+
+        return Result.Success();
     }
 }

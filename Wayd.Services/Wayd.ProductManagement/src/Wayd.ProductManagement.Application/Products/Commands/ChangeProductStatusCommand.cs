@@ -36,8 +36,6 @@ public sealed class ChangeProductStatusCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<ChangeProductStatusCommand>
 {
-    private const string AppRequestName = nameof(ChangeProductStatusCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ITransitionConditionChecker _conditionChecker = conditionChecker;
@@ -48,76 +46,68 @@ public sealed class ChangeProductStatusCommandHandler(
 
     public async Task<Result> Handle(ChangeProductStatusCommand request, CancellationToken cancellationToken)
     {
-        try
+        var product = await _productManagementDbContext.Products
+            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+
+        if (product is null)
         {
-            var product = await _productManagementDbContext.Products
-                .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
-
-            if (product is null)
-            {
-                _logger.LogInformation("Product {ProductId} not found.", request.Id);
-                return Result.Failure("Product not found.");
-            }
-
-            // Resolved through the governing workflow rather than by loading the status directly: that
-            // is what stops a caller moving a product to a status belonging to some other workflow.
-            var workflow = await _statusResolver.ForScope(
-                ProductWorkflowOwners.Product.Key,
-                scopeId: null,
-                cancellationToken);
-
-            if (workflow.IsFailure)
-            {
-                _logger.LogError("Unable to resolve the product workflow. Error message: {Error}", workflow.Error);
-                return Result.Failure(workflow.Error);
-            }
-
-            // TargetRef carries the moves the workflow allows into the status, and what each needs, which
-            // the aggregate enforces.
-            var target = workflow.Value.TargetRef(request.StatusId);
-
-            if (target is null)
-            {
-                _logger.LogInformation(
-                    "Status {StatusId} does not belong to workflow {WorkflowId}.", request.StatusId, workflow.Value.Id);
-                return Result.Failure($"That status does not belong to '{workflow.Value.Name}'.");
-            }
-
-            // The conditions the product cannot check itself are decided here; it checks the rest.
-            var status = await _conditionChecker.Evaluate(
-                ProductWorkflowOwners.Product.Key, product.Id, product.StatusId, target, cancellationToken);
-
-            // Read per scope rather than from the claim snapshot, which a personal access token
-            // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
-            // one would misattribute the change permanently.
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-
-            var changeResult = product.ChangeStatus(
-                status,
-                EventActor.User(_currentUser.GetUserId(), employeeId),
-                _dateTimeProvider.Now,
-                request.Reason);
-
-            if (changeResult.IsFailure)
-            {
-                // No reload: every refusal on this aggregate is checked before any state is
-                // touched, so there is nothing to roll back.
-                product.ClearDomainEvents();
-
-                _logger.LogError("Unable to change status for Product {ProductId}. Error message: {Error}", request.Id, changeResult.Error);
-                return Result.Failure(changeResult.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Product {ProductId} moved to status {StatusId}.", request.Id, request.StatusId);
-
-            return Result.Success();
+            _logger.LogInformation("Product {ProductId} not found.", request.Id);
+            return Result.Failure("Product not found.");
         }
-        catch (Exception ex)
+
+        // Resolved through the governing workflow rather than by loading the status directly: that
+        // is what stops a caller moving a product to a status belonging to some other workflow.
+        var workflow = await _statusResolver.ForScope(
+            ProductWorkflowOwners.Product.Key,
+            scopeId: null,
+            cancellationToken);
+
+        if (workflow.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to resolve the product workflow. Error message: {Error}", workflow.Error);
+            return Result.Failure(workflow.Error);
         }
+
+        // TargetRef carries the moves the workflow allows into the status, and what each needs, which
+        // the aggregate enforces.
+        var target = workflow.Value.TargetRef(request.StatusId);
+
+        if (target is null)
+        {
+            _logger.LogInformation(
+                "Status {StatusId} does not belong to workflow {WorkflowId}.", request.StatusId, workflow.Value.Id);
+            return Result.Failure($"That status does not belong to '{workflow.Value.Name}'.");
+        }
+
+        // The conditions the product cannot check itself are decided here; it checks the rest.
+        var status = await _conditionChecker.Evaluate(
+            ProductWorkflowOwners.Product.Key, product.Id, product.StatusId, target, cancellationToken);
+
+        // Read per scope rather than from the claim snapshot, which a personal access token
+        // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
+        // one would misattribute the change permanently.
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
+        var changeResult = product.ChangeStatus(
+            status,
+            EventActor.User(_currentUser.GetUserId(), employeeId),
+            _dateTimeProvider.Now,
+            request.Reason);
+
+        if (changeResult.IsFailure)
+        {
+            // No reload: every refusal on this aggregate is checked before any state is
+            // touched, so there is nothing to roll back.
+            product.ClearDomainEvents();
+
+            _logger.LogError("Unable to change status for Product {ProductId}. Error message: {Error}", request.Id, changeResult.Error);
+            return Result.Failure(changeResult.Error);
+        }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Product {ProductId} moved to status {StatusId}.", request.Id, request.StatusId);
+
+        return Result.Success();
     }
 }

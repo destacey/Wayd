@@ -33,8 +33,6 @@ public sealed class LinkProductTeamsCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<LinkProductTeamsCommand>
 {
-    private const string AppRequestName = nameof(LinkProductTeamsCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<LinkProductTeamsCommandHandler> _logger = logger;
@@ -43,72 +41,64 @@ public sealed class LinkProductTeamsCommandHandler(
 
     public async Task<Result> Handle(LinkProductTeamsCommand request, CancellationToken cancellationToken)
     {
+        var product = await _productManagementDbContext.Products
+            .Include(p => p.TeamLinks)
+            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+
+        if (product is null)
+        {
+            _logger.LogInformation("Product {ProductId} not found.", request.Id);
+            return Result.Failure("Product not found.");
+        }
+
+        var teamIds = request.TeamIds.Distinct().ToList();
+        var actor = EventActor.User(_currentUser.GetUserId());
+        var now = _dateTimeProvider.Now;
+
+        foreach (var teamId in teamIds)
+        {
+            var team = await _teams.Find(teamId, cancellationToken);
+            if (team is null)
+            {
+                product.ClearDomainEvents();
+
+                _logger.LogInformation("Team {TeamId} not found.", teamId);
+                return Result.Failure("Team not found.");
+            }
+
+            var linkResult = product.LinkTeam(team, actor, now);
+            if (linkResult.IsFailure)
+            {
+                // Links added before this one are only in memory; the request ends without saving them.
+                product.ClearDomainEvents();
+
+                _logger.LogInformation("Unable to link Team {TeamId} to Product {ProductId}. Error message: {Error}", teamId, request.Id, linkResult.Error);
+                // With several teams, the refusal names the one it is about.
+                return Result.Failure(teamIds.Count == 1 ? linkResult.Error : $"{team.Name}: {linkResult.Error}");
+            }
+        }
+
         try
         {
-            var product = await _productManagementDbContext.Products
-                .Include(p => p.TeamLinks)
-                .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
-
-            if (product is null)
+            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // Two requests for the same link both pass the aggregate's check, and the unique index rejects
+            // the second. When every link asked for now exists, that is the no-op success a repeat gets.
+            if (!await LinksWereSavedElsewhere(request.Id, teamIds, cancellationToken))
             {
-                _logger.LogInformation("Product {ProductId} not found.", request.Id);
-                return Result.Failure("Product not found.");
+                throw;
             }
 
-            var teamIds = request.TeamIds.Distinct().ToList();
-            var actor = EventActor.User(_currentUser.GetUserId());
-            var now = _dateTimeProvider.Now;
-
-            foreach (var teamId in teamIds)
-            {
-                var team = await _teams.Find(teamId, cancellationToken);
-                if (team is null)
-                {
-                    product.ClearDomainEvents();
-
-                    _logger.LogInformation("Team {TeamId} not found.", teamId);
-                    return Result.Failure("Team not found.");
-                }
-
-                var linkResult = product.LinkTeam(team, actor, now);
-                if (linkResult.IsFailure)
-                {
-                    // Links added before this one are only in memory; the request ends without saving them.
-                    product.ClearDomainEvents();
-
-                    _logger.LogInformation("Unable to link Team {TeamId} to Product {ProductId}. Error message: {Error}", teamId, request.Id, linkResult.Error);
-                    // With several teams, the refusal names the one it is about.
-                    return Result.Failure(teamIds.Count == 1 ? linkResult.Error : $"{team.Name}: {linkResult.Error}");
-                }
-            }
-
-            try
-            {
-                await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateException)
-            {
-                // Two requests for the same link both pass the aggregate's check, and the unique index rejects
-                // the second. When every link asked for now exists, that is the no-op success a repeat gets.
-                if (!await LinksWereSavedElsewhere(request.Id, teamIds, cancellationToken))
-                {
-                    throw;
-                }
-
-                _logger.LogInformation("The teams were linked to Product {ProductId} by another request first.", request.Id);
-
-                return Result.Success();
-            }
-
-            _logger.LogInformation("{TeamCount} team(s) linked to Product {ProductId}.", teamIds.Count, request.Id);
+            _logger.LogInformation("The teams were linked to Product {ProductId} by another request first.", request.Id);
 
             return Result.Success();
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
-        }
+
+        _logger.LogInformation("{TeamCount} team(s) linked to Product {ProductId}.", teamIds.Count, request.Id);
+
+        return Result.Success();
     }
 
     /// <summary>

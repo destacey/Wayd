@@ -22,8 +22,6 @@ public sealed class RemoveProductCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<RemoveProductCommand>
 {
-    private const string AppRequestName = nameof(RemoveProductCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -32,82 +30,83 @@ public sealed class RemoveProductCommandHandler(
 
     public async Task<Result> Handle(RemoveProductCommand request, CancellationToken cancellationToken)
     {
-        try
+        var product = await _productManagementDbContext.Products
+            .Include(p => p.Tags)
+            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+
+        if (product is null)
         {
-            var product = await _productManagementDbContext.Products
-                .Include(p => p.Tags)
-                .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
-
-            if (product is null)
-            {
-                _logger.LogInformation("Product {ProductId} not found.", request.Id);
-                return Result.Failure("Product not found.");
-            }
-
-            var hasChildren = await _productManagementDbContext.Products
-                .AnyAsync(p => p.ParentId == request.Id, cancellationToken);
-
-            var hasVersions = await _productManagementDbContext.Versions
-                .AnyAsync(v => v.ProductId == request.Id, cancellationToken);
-
-            // Checked separately from versions: ReleasePackageComponents.ProductId restricts, and a
-            // carried-forward component often has no version row, so the check above would miss it and
-            // the delete would fail at the database with a generic message.
-            var isInAManifest = await _productManagementDbContext.ReleasePackageComponents
-                .AnyAsync(c => c.ProductId == request.Id, cancellationToken);
-
-            // Both ends, ended links included: ProductDependencies restricts on each, so a miss here fails at the
-            // database with a generic message.
-            var hasDependencies = await _productManagementDbContext.ProductDependencies
-                .AnyAsync(d => d.ProductId == request.Id, cancellationToken);
-
-            var isDependedOn = await _productManagementDbContext.ProductDependencies
-                .AnyAsync(d => d.DependsOnProductId == request.Id, cancellationToken);
-
-            var actor = EventActor.User(_currentUser.GetUserId());
-            var now = _dateTimeProvider.Now;
-
-            // Raises the event; the delete itself is the handler's, since the aggregate cannot remove
-            // itself from a set it does not know about.
-            var removeResult = product.Remove(
-                hasChildren,
-                hasVersions,
-                isInAManifest,
-                hasDependencies,
-                isDependedOn,
-                actor,
-                now);
-
-            if (removeResult.IsFailure)
-            {
-                product.ClearDomainEvents();
-
-                _logger.LogInformation("Unable to remove Product {ProductId}. Error message: {Error}", request.Id, removeResult.Error);
-                return Result.Failure(removeResult.Error);
-            }
-
-            await StatusHistoryRemoval.Stage(
-                _statusWorkflowDbContext,
-                ProductWorkflowOwners.Product.Key,
-                [product.Id],
-                cancellationToken);
-
-            Guid[] tagIds = [.. product.Tags.Select(t => t.TagId)];
-
-            _productManagementDbContext.Products.Remove(product);
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            // Its tag assignments went with it, so a free tag only it carried is now unused.
-            await FreeProductTags.DeleteUnused(_productManagementDbContext, tagIds, actor, now, cancellationToken);
-
-            _logger.LogInformation("Product {ProductId} removed.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Product {ProductId} not found.", request.Id);
+            return Result.Failure("Product not found.");
         }
-        catch (Exception ex)
+
+        var hasChildren = await _productManagementDbContext.Products
+            .AnyAsync(p => p.ParentId == request.Id, cancellationToken);
+
+        var hasVersions = await _productManagementDbContext.Versions
+            .AnyAsync(v => v.ProductId == request.Id, cancellationToken);
+
+        // Checked separately from versions: ReleasePackageComponents.ProductId restricts, and a
+        // carried-forward component often has no version row, so the check above would miss it and
+        // the delete would fail at the database with a generic message.
+        var isInAManifest = await _productManagementDbContext.ReleasePackageComponents
+            .AnyAsync(c => c.ProductId == request.Id, cancellationToken);
+
+        // Both ends, ended links included: ProductDependencies restricts on each, so a miss here fails at the
+        // database with a generic message.
+        var hasDependencies = await _productManagementDbContext.ProductDependencies
+            .AnyAsync(d => d.ProductId == request.Id, cancellationToken);
+
+        var isDependedOn = await _productManagementDbContext.ProductDependencies
+            .AnyAsync(d => d.DependsOnProductId == request.Id, cancellationToken);
+
+        // Releases and incident links restrict too, so a miss here fails at the database rather than as a refusal.
+        var isInARelease = await _productManagementDbContext.Releases
+            .AnyAsync(r => r.ProductId == request.Id, cancellationToken);
+
+        var isOnAnIncident = await _productManagementDbContext.Incidents
+            .AnyAsync(i => i.ProductLinks.Any(l => l.ProductId == request.Id), cancellationToken);
+
+        var actor = EventActor.User(_currentUser.GetUserId());
+        var now = _dateTimeProvider.Now;
+
+        // Raises the event; the delete itself is the handler's, since the aggregate cannot remove
+        // itself from a set it does not know about.
+        var removeResult = product.Remove(
+            hasChildren,
+            hasVersions,
+            isInAManifest,
+            hasDependencies,
+            isDependedOn,
+            isInARelease,
+            isOnAnIncident,
+            actor,
+            now);
+
+        if (removeResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            product.ClearDomainEvents();
+
+            _logger.LogInformation("Unable to remove Product {ProductId}. Error message: {Error}", request.Id, removeResult.Error);
+            return Result.Failure(removeResult.Error);
         }
+
+        await StatusHistoryRemoval.Stage(
+            _statusWorkflowDbContext,
+            ProductWorkflowOwners.Product.Key,
+            [product.Id],
+            cancellationToken);
+
+        Guid[] tagIds = [.. product.Tags.Select(t => t.TagId)];
+
+        _productManagementDbContext.Products.Remove(product);
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        // Its tag assignments went with it, so a free tag only it carried is now unused.
+        await FreeProductTags.DeleteUnused(_productManagementDbContext, tagIds, actor, now, cancellationToken);
+
+        _logger.LogInformation("Product {ProductId} removed.", request.Id);
+
+        return Result.Success();
     }
 }

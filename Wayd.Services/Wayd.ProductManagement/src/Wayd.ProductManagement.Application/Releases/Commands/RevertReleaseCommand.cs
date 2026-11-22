@@ -35,8 +35,6 @@ public sealed class RevertReleaseCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<RevertReleaseCommand>
 {
-    private const string AppRequestName = nameof(RevertReleaseCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -46,59 +44,51 @@ public sealed class RevertReleaseCommandHandler(
 
     public async Task<Result> Handle(RevertReleaseCommand request, CancellationToken cancellationToken)
     {
-        try
+        var release = await _productManagementDbContext.Releases
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+
+        if (release is null)
         {
-            var release = await _productManagementDbContext.Releases
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-
-            if (release is null)
-            {
-                _logger.LogInformation("Release {ReleaseId} not found.", request.Id);
-                return Result.Failure("Release not found.");
-            }
-
-            // Back to Ready, the workflow's non-terminal resting state, rather than to the initial
-            // status: a release that was announced had been ready to announce, and reverting says only
-            // that the announcement did not happen.
-            var status = await _statusResolver.ForAlias(
-                ProductWorkflowOwners.Release.Key,
-                scopeId: null,
-                (int)ProductStatusAlias.Ready,
-                cancellationToken);
-
-            if (status.IsFailure)
-            {
-                _logger.LogError("Unable to resolve the ready release status. Error message: {Error}", status.Error);
-                return Result.Failure(status.Error);
-            }
-
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-
-            var result = release.RevertRelease(
-                status.Value,
-                request.Reason,
-                EventActor.User(_currentUser.GetUserId(), employeeId),
-                _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                release.ClearDomainEvents();
-
-                _logger.LogInformation(
-                    "Unable to revert Release {ReleaseId}. Error message: {Error}", request.Id, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Release {ReleaseId} reverted.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Release {ReleaseId} not found.", request.Id);
+            return Result.Failure("Release not found.");
         }
-        catch (Exception ex)
+
+        // Back to Ready, the workflow's non-terminal resting state, rather than to the initial
+        // status: a release that was announced had been ready to announce, and reverting says only
+        // that the announcement did not happen.
+        var status = await _statusResolver.ForAlias(
+            ProductWorkflowOwners.Release.Key,
+            scopeId: null,
+            (int)ProductStatusAlias.Ready,
+            cancellationToken);
+
+        if (status.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to resolve the ready release status. Error message: {Error}", status.Error);
+            return Result.Failure(status.Error);
         }
+
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
+        var result = release.RevertRelease(
+            status.Value,
+            request.Reason,
+            EventActor.User(_currentUser.GetUserId(), employeeId),
+            _dateTimeProvider.Now);
+
+        if (result.IsFailure)
+        {
+            release.ClearDomainEvents();
+
+            _logger.LogInformation(
+                "Unable to revert Release {ReleaseId}. Error message: {Error}", request.Id, result.Error);
+            return Result.Failure(result.Error);
+        }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Release {ReleaseId} reverted.", request.Id);
+
+        return Result.Success();
     }
 }

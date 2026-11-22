@@ -33,8 +33,6 @@ public sealed class CreateDeploymentEnvironmentCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<CreateDeploymentEnvironmentCommand, ObjectIdAndKey>
 {
-    private const string AppRequestName = nameof(CreateDeploymentEnvironmentCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<CreateDeploymentEnvironmentCommandHandler> _logger = logger;
@@ -43,34 +41,26 @@ public sealed class CreateDeploymentEnvironmentCommandHandler(
     public async Task<Result<ObjectIdAndKey>> Handle(
         CreateDeploymentEnvironmentCommand request, CancellationToken cancellationToken)
     {
-        try
+        var name = request.Name.Trim();
+
+        if (await _productManagementDbContext.DeploymentEnvironments
+                .AnyAsync(e => e.Name == name, cancellationToken))
         {
-            var name = request.Name.Trim();
-
-            if (await _productManagementDbContext.DeploymentEnvironments
-                    .AnyAsync(e => e.Name == name, cancellationToken))
-            {
-                return Result.Failure<ObjectIdAndKey>($"An environment named '{name}' already exists.");
-            }
-
-            var environment = DeploymentEnvironment.Create(
-                name,
-                request.Category,
-                request.RingOrder,
-                EventActor.User(_currentUser.GetUserId()),
-                _dateTimeProvider.Now);
-
-            await _productManagementDbContext.DeploymentEnvironments.AddAsync(environment, cancellationToken);
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Deployment Environment {EnvironmentId} created.", environment.Id);
-
-            return Result.Success(new ObjectIdAndKey(environment.Id, environment.Key));
+            return Result.Failure<ObjectIdAndKey>($"An environment named '{name}' already exists.");
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<ObjectIdAndKey>($"Error handling {AppRequestName} command.");
-        }
+
+        var environment = DeploymentEnvironment.Create(
+            name,
+            request.Category,
+            request.RingOrder,
+            EventActor.User(_currentUser.GetUserId()),
+            _dateTimeProvider.Now);
+
+        await _productManagementDbContext.DeploymentEnvironments.AddAsync(environment, cancellationToken);
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Deployment Environment {EnvironmentId} created.", environment.Id);
+
+        return Result.Success(new ObjectIdAndKey(environment.Id, environment.Key));
     }
 }

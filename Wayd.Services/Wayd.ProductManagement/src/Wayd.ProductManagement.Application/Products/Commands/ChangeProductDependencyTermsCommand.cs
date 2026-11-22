@@ -53,8 +53,6 @@ public sealed class ChangeProductDependencyTermsCommandHandler(
     ISystemCalendar systemCalendar)
     : ICommandHandler<ChangeProductDependencyTermsCommand, Guid>
 {
-    private const string AppRequestName = nameof(ChangeProductDependencyTermsCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<ChangeProductDependencyTermsCommandHandler> _logger = logger;
@@ -63,48 +61,40 @@ public sealed class ChangeProductDependencyTermsCommandHandler(
 
     public async Task<Result<Guid>> Handle(ChangeProductDependencyTermsCommand request, CancellationToken cancellationToken)
     {
-        try
+        var product = await _productManagementDbContext.Products
+            .Include(p => p.Dependencies)
+            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+
+        if (product is null)
         {
-            var product = await _productManagementDbContext.Products
-                .Include(p => p.Dependencies)
-                .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
-
-            if (product is null)
-            {
-                _logger.LogInformation("Product {ProductId} not found.", request.Id);
-                return Result.Failure<Guid>("Product not found.");
-            }
-
-            var now = _dateTimeProvider.Now;
-            var today = await _systemCalendar.DayOf(now, cancellationToken);
-
-            var changeResult = product.ChangeDependencyTerms(
-                request.DependencyId,
-                request.Strength,
-                request.InteractionStyles.ToFlagCombination(),
-                request.ChangedOn ?? today,
-                today,
-                EventActor.User(_currentUser.GetUserId()),
-                now);
-
-            if (changeResult.IsFailure)
-            {
-                product.ClearDomainEvents();
-
-                _logger.LogInformation("Unable to change the terms of dependency {DependencyId} on Product {ProductId}. Error message: {Error}", request.DependencyId, request.Id, changeResult.Error);
-                return Result.Failure<Guid>(changeResult.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Dependency {DependencyId} on Product {ProductId} is now {Strength}.", request.DependencyId, request.Id, request.Strength);
-
-            return Result.Success(changeResult.Value.Id);
+            _logger.LogInformation("Product {ProductId} not found.", request.Id);
+            return Result.Failure<Guid>("Product not found.");
         }
-        catch (Exception ex)
+
+        var now = _dateTimeProvider.Now;
+        var today = await _systemCalendar.DayOf(now, cancellationToken);
+
+        var changeResult = product.ChangeDependencyTerms(
+            request.DependencyId,
+            request.Strength,
+            request.InteractionStyles.ToFlagCombination(),
+            request.ChangedOn ?? today,
+            today,
+            EventActor.User(_currentUser.GetUserId()),
+            now);
+
+        if (changeResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<Guid>($"Error handling {AppRequestName} command.");
+            product.ClearDomainEvents();
+
+            _logger.LogInformation("Unable to change the terms of dependency {DependencyId} on Product {ProductId}. Error message: {Error}", request.DependencyId, request.Id, changeResult.Error);
+            return Result.Failure<Guid>(changeResult.Error);
         }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Dependency {DependencyId} on Product {ProductId} is now {Strength}.", request.DependencyId, request.Id, request.Strength);
+
+        return Result.Success(changeResult.Value.Id);
     }
 }

@@ -46,8 +46,6 @@ public sealed class PlanReleaseCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<PlanReleaseCommand, ObjectIdAndKey>
 {
-    private const string AppRequestName = nameof(PlanReleaseCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -57,60 +55,52 @@ public sealed class PlanReleaseCommandHandler(
 
     public async Task<Result<ObjectIdAndKey>> Handle(PlanReleaseCommand request, CancellationToken cancellationToken)
     {
-        try
+        // Any node may own an announcement, so there is no releasability check here — that gate
+        // asks whether an artifact can be cut against a node, which is a version's question. A
+        // product line is usually not releasable and is exactly what a release sits under.
+        if (request.ProductId is not null
+            && !await _productManagementDbContext.Products
+                .AnyAsync(p => p.Id == request.ProductId, cancellationToken))
         {
-            // Any node may own an announcement, so there is no releasability check here — that gate
-            // asks whether an artifact can be cut against a node, which is a version's question. A
-            // product line is usually not releasable and is exactly what a release sits under.
-            if (request.ProductId is not null
-                && !await _productManagementDbContext.Products
-                    .AnyAsync(p => p.Id == request.ProductId, cancellationToken))
-            {
-                _logger.LogInformation("Product {ProductId} not found.", request.ProductId);
-                return Result.Failure<ObjectIdAndKey>("Product not found.");
-            }
-
-            var initialStatus = await _statusResolver.Initial(
-                ProductWorkflowOwners.Release.Key, scopeId: null, cancellationToken);
-
-            if (initialStatus.IsFailure)
-            {
-                _logger.LogError("Unable to resolve the initial release status. Error message: {Error}", initialStatus.Error);
-                return Result.Failure<ObjectIdAndKey>(initialStatus.Error);
-            }
-
-            // Read per scope rather than from the claim snapshot, which a personal access token
-            // freezes for its whole lifetime. Planning writes the release's first status transition,
-            // which freezes this value, so a stale one would misattribute it permanently.
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-
-            var result = Release.Create(
-                request.ProductId,
-                request.Version,
-                request.Name,
-                request.TargetDate,
-                request.Sequence,
-                initialStatus.Value,
-                EventActor.User(_currentUser.GetUserId(), employeeId),
-                _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                _logger.LogInformation("Unable to plan a release. Error message: {Error}", result.Error);
-                return Result.Failure<ObjectIdAndKey>(result.Error);
-            }
-
-            await _productManagementDbContext.Releases.AddAsync(result.Value, cancellationToken);
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Release {ReleaseId} planned.", result.Value.Id);
-
-            return Result.Success(new ObjectIdAndKey(result.Value.Id, result.Value.Key));
+            _logger.LogInformation("Product {ProductId} not found.", request.ProductId);
+            return Result.Failure<ObjectIdAndKey>("Product not found.");
         }
-        catch (Exception ex)
+
+        var initialStatus = await _statusResolver.Initial(
+            ProductWorkflowOwners.Release.Key, scopeId: null, cancellationToken);
+
+        if (initialStatus.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<ObjectIdAndKey>($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to resolve the initial release status. Error message: {Error}", initialStatus.Error);
+            return Result.Failure<ObjectIdAndKey>(initialStatus.Error);
         }
+
+        // Read per scope rather than from the claim snapshot, which a personal access token
+        // freezes for its whole lifetime. Planning writes the release's first status transition,
+        // which freezes this value, so a stale one would misattribute it permanently.
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
+        var result = Release.Create(
+            request.ProductId,
+            request.Version,
+            request.Name,
+            request.TargetDate,
+            request.Sequence,
+            initialStatus.Value,
+            EventActor.User(_currentUser.GetUserId(), employeeId),
+            _dateTimeProvider.Now);
+
+        if (result.IsFailure)
+        {
+            _logger.LogInformation("Unable to plan a release. Error message: {Error}", result.Error);
+            return Result.Failure<ObjectIdAndKey>(result.Error);
+        }
+
+        await _productManagementDbContext.Releases.AddAsync(result.Value, cancellationToken);
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Release {ReleaseId} planned.", result.Value.Id);
+
+        return Result.Success(new ObjectIdAndKey(result.Value.Id, result.Value.Key));
     }
 }

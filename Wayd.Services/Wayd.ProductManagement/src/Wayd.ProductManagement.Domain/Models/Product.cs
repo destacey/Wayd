@@ -715,7 +715,9 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     /// <param name="isDependedOn">
     /// Whether any other node has a dependency on this one recorded, ended ones included.
     /// </param>
-    public Result Remove(bool hasChildren, bool hasVersions, bool isInAManifest, bool hasDependencies, bool isDependedOn, EventActor actor, Instant timestamp)
+    /// <param name="isInARelease">Whether any release is for this product.</param>
+    /// <param name="isOnAnIncident">Whether any incident names this product as affected.</param>
+    public Result Remove(bool hasChildren, bool hasVersions, bool isInAManifest, bool hasDependencies, bool isDependedOn, bool isInARelease, bool isOnAnIncident, EventActor actor, Instant timestamp)
     {
         if (hasChildren)
         {
@@ -745,6 +747,16 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
         if (isDependedOn)
         {
             return Result.Failure("Other products have dependencies on this product recorded, so it cannot be removed.");
+        }
+
+        if (isInARelease)
+        {
+            return Result.Failure("This product has releases and cannot be removed.");
+        }
+
+        if (isOnAnIncident)
+        {
+            return Result.Failure("Incidents name this product as affected, so it cannot be removed. Remove it from them first.");
         }
 
         AddDomainEvent(new ProductRemovedEvent(Id, Key, Name, ParentId, actor, timestamp));

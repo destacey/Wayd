@@ -24,8 +24,6 @@ public sealed class CreateStatusWorkflowCommandHandler(
     IWorkflowOwnerAvailability ownerAvailability)
     : ICommandHandler<CreateStatusWorkflowCommand, Guid>
 {
-    private const string AppRequestName = nameof(CreateStatusWorkflowCommand);
-
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -34,32 +32,24 @@ public sealed class CreateStatusWorkflowCommandHandler(
 
     public async Task<Result<Guid>> Handle(CreateStatusWorkflowCommand request, CancellationToken cancellationToken)
     {
-        try
+        // Answered as for an owner type no module registers, so a hidden module is not disclosed.
+        if (!await _ownerAvailability.IsAvailable(request.OwnerType.Trim(), cancellationToken))
         {
-            // Answered as for an owner type no module registers, so a hidden module is not disclosed.
-            if (!await _ownerAvailability.IsAvailable(request.OwnerType.Trim(), cancellationToken))
-            {
-                return Result.Failure<Guid>($"'{request.OwnerType.Trim()}' is not a registered workflow owner type.");
-            }
-
-            var result = StatusWorkflow.Create(request.Name, request.Description, request.OwnerType, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                _logger.LogInformation("Unable to create workflow. Error message: {Error}", result.Error);
-                return Result.Failure<Guid>(result.Error);
-            }
-
-            _dbContext.StatusWorkflows.Add(result.Value);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Status Workflow {WorkflowId} created.", result.Value.Id);
-
-            return Result.Success(result.Value.Id);
+            return Result.Failure<Guid>($"'{request.OwnerType.Trim()}' is not a registered workflow owner type.");
         }
-        catch (Exception ex)
+
+        var result = StatusWorkflow.Create(request.Name, request.Description, request.OwnerType, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<Guid>($"Error handling {AppRequestName} command.");
+            _logger.LogInformation("Unable to create workflow. Error message: {Error}", result.Error);
+            return Result.Failure<Guid>(result.Error);
         }
+
+        _dbContext.StatusWorkflows.Add(result.Value);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Status Workflow {WorkflowId} created.", result.Value.Id);
+
+        return Result.Success(result.Value.Id);
     }
 }

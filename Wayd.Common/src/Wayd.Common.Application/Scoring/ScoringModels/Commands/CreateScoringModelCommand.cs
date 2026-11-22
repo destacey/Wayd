@@ -87,8 +87,6 @@ public sealed class CreateScoringModelCommandHandler(
     ILogger<CreateScoringModelCommandHandler> logger)
     : ICommandHandler<CreateScoringModelCommand, Guid>
 {
-    private const string AppRequestName = nameof(CreateScoringModelCommand);
-
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -96,42 +94,34 @@ public sealed class CreateScoringModelCommandHandler(
 
     public async Task<Result<Guid>> Handle(CreateScoringModelCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var scales = request.Scales?
-                .Select(s => (s.Name, (IEnumerable<(string Label, decimal Value)>)s.Levels
-                    .Select(l => (l.Label, l.Value))
-                    .ToList()))
-                .ToList();
+        var scales = request.Scales?
+            .Select(s => (s.Name, (IEnumerable<(string Label, decimal Value)>)s.Levels
+                .Select(l => (l.Label, l.Value))
+                .ToList()))
+            .ToList();
 
-            var criteria = request.Criteria?
-                .Select(c => (c.Name, c.Token, c.Description, c.Weight, c.ScaleName))
-                .ToList();
+        var criteria = request.Criteria?
+            .Select(c => (c.Name, c.Token, c.Description, c.Weight, c.ScaleName))
+            .ToList();
 
-            var outputs = request.Outputs?
-                .Select(o => (o.Name, o.Token, o.Formula, o.IsPrimary))
-                .ToList();
+        var outputs = request.Outputs?
+            .Select(o => (o.Name, o.Token, o.Formula, o.IsPrimary))
+            .ToList();
 
-            var model = ScoringModel.Create(
-                request.Name,
-                request.Description,
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                _dateTimeProvider.Now,
-                scales,
-                criteria,
-                outputs);
+        var model = ScoringModel.Create(
+            request.Name,
+            request.Description,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            _dateTimeProvider.Now,
+            scales,
+            criteria,
+            outputs);
 
-            await _waydDbContext.ScoringModels.AddAsync(model, cancellationToken);
-            await _waydDbContext.SaveChangesAsync(cancellationToken);
+        await _waydDbContext.ScoringModels.AddAsync(model, cancellationToken);
+        await _waydDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Scoring Model {ScoringModelId} created.", model.Id);
+        _logger.LogInformation("Scoring Model {ScoringModelId} created.", model.Id);
 
-            return Result.Success(model.Id);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<Guid>($"Error handling {AppRequestName} command.");
-        }
+        return Result.Success(model.Id);
     }
 }

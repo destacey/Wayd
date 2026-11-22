@@ -14,51 +14,39 @@ public sealed class UpdateSchedulingSettingsCommandHandler(
     ISystemSettingsStore store,
     ISettings<SchedulingSettings> settings,
     IDispatcher dispatcher,
-    ICurrentUser currentUser,
-    ILogger<UpdateSchedulingSettingsCommandHandler> logger)
+    ICurrentUser currentUser)
     : ICommandHandler<UpdateSchedulingSettingsCommand>
 {
-    private const string AppRequestName = nameof(UpdateSchedulingSettingsCommand);
-
     private readonly ISystemSettingsStore _store = store;
     private readonly ISettings<SchedulingSettings> _settings = settings;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICurrentUser _currentUser = currentUser;
-    private readonly ILogger<UpdateSchedulingSettingsCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateSchedulingSettingsCommand request, CancellationToken cancellationToken)
     {
-        try
+        // The calendar lives in Organization, so the section's validator cannot check it.
+        if (request.DefaultHolidayCalendarId is { } calendarId
+            && await _dispatcher.Send(new GetHolidayCalendarNavigationQuery(calendarId), cancellationToken) is null)
+            return Result.Failure($"Holiday calendar {calendarId} not found.");
+
+        var saved = await _settings.Get(cancellationToken);
+        var workingDays = request.DefaultWorkingDays ?? saved.DefaultWorkingDays;
+
+        // The store validates the section, so the rules hold for every caller, not just this command.
+        var values = new SchedulingSettings
         {
-            // The calendar lives in Organization, so the section's validator cannot check it.
-            if (request.DefaultHolidayCalendarId is { } calendarId
-                && await _dispatcher.Send(new GetHolidayCalendarNavigationQuery(calendarId), cancellationToken) is null)
-                return Result.Failure($"Holiday calendar {calendarId} not found.");
+            DefaultCommitmentGraceDays = request.DefaultCommitmentGraceDays,
+            // Stored in week order without repeats; an invalid set is kept as given for the store to reject.
+            DefaultWorkingDays = WorkingWeek.Create(workingDays) is { IsSuccess: true } week
+                ? week.Value.Days
+                : workingDays,
+            DefaultHolidayCalendarId = request.DefaultHolidayCalendarId,
+            WorkingDayHours = request.WorkingDayHours ?? saved.WorkingDayHours,
+        };
 
-            var saved = await _settings.Get(cancellationToken);
-            var workingDays = request.DefaultWorkingDays ?? saved.DefaultWorkingDays;
-
-            // The store validates the section, so the rules hold for every caller, not just this command.
-            var values = new SchedulingSettings
-            {
-                DefaultCommitmentGraceDays = request.DefaultCommitmentGraceDays,
-                // Stored in week order without repeats; an invalid set is kept as given for the store to reject.
-                DefaultWorkingDays = WorkingWeek.Create(workingDays) is { IsSuccess: true } week
-                    ? week.Value.Days
-                    : workingDays,
-                DefaultHolidayCalendarId = request.DefaultHolidayCalendarId,
-                WorkingDayHours = request.WorkingDayHours ?? saved.WorkingDayHours,
-            };
-
-            return await _store.Save(
-                values,
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
-        }
+        return await _store.Save(
+            values,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            cancellationToken);
     }
 }

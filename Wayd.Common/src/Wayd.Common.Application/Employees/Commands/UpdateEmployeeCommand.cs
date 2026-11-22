@@ -115,60 +115,45 @@ public sealed class UpdateEmployeeCommandHandler : ICommandHandler<UpdateEmploye
 
     public async Task<Result<int>> Handle(UpdateEmployeeCommand request, CancellationToken cancellationToken)
     {
-        try
+        var employee = await _waydDbContext.Employees
+            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+        if (employee is null)
+            return Result.Failure<int>("Employee not found.");
+
+        // verify the manager exists
+        if (request.ManagerId.HasValue
+            && employee.ManagerId != request.ManagerId
+            && await _waydDbContext.Employees.AllAsync(e => e.Id != request.ManagerId.Value, cancellationToken))
         {
-            var employee = await _waydDbContext.Employees
-                .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
-            if (employee is null)
-                return Result.Failure<int>("Employee not found.");
-
-            // verify the manager exists
-            if (request.ManagerId.HasValue
-                && employee.ManagerId != request.ManagerId
-                && await _waydDbContext.Employees.AllAsync(e => e.Id != request.ManagerId.Value, cancellationToken))
-            {
-                _logger.LogWarning("Wayd Request: Unable to find manager {ManagerId} while updating employee {EmployeeId}", request.ManagerId.Value, request.Id);
-                return Result.Failure<int>("Manager not found.");
-            }
-
-            var updateResult = employee.Update(
-                request.Name,
-                request.EmployeeNumber,
-                request.HireDate,
-                request.Email,
-                request.JobTitle,
-                request.Department,
-                request.OfficeLocation,
-                request.ManagerId,
-                employee.IsActive,        // this command should not change IsActive
-                employee.EmployeeType,    // manual edits don't change classification
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                _dateTimeProvider.Now
-                );
-
-            if (updateResult.IsFailure)
-            {
-                // Reset the entity
-                await _waydDbContext.Entry(employee).ReloadAsync(cancellationToken);
-                employee.ClearDomainEvents();
-
-                var requestName = request.GetType().Name;
-                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", requestName, updateResult.Error);
-                return Result.Failure<int>(updateResult.Error);
-            }
-
-            await _waydDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success(employee.Key);
+            _logger.LogWarning("Wayd Request: Unable to find manager {ManagerId} while updating employee {EmployeeId}", request.ManagerId.Value, request.Id);
+            return Result.Failure<int>("Manager not found.");
         }
-        catch (Exception ex)
+
+        var updateResult = employee.Update(
+            request.Name,
+            request.EmployeeNumber,
+            request.HireDate,
+            request.Email,
+            request.JobTitle,
+            request.Department,
+            request.OfficeLocation,
+            request.ManagerId,
+            employee.IsActive,        // this command should not change IsActive
+            employee.EmployeeType,    // manual edits don't change classification
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            _dateTimeProvider.Now
+            );
+
+        if (updateResult.IsFailure)
         {
             var requestName = request.GetType().Name;
-
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-
-            return Result.Failure<int>($"Wayd Request: Exception for Request {requestName}");
+            _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", requestName, updateResult.Error);
+            return Result.Failure<int>(updateResult.Error);
         }
+
+        await _waydDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(employee.Key);
     }
 }
 

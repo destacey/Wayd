@@ -23,8 +23,6 @@ public sealed class CreateRecordTypeCommandHandler(
     IWorkflowOwnerAvailability ownerAvailability)
     : ICommandHandler<CreateRecordTypeCommand, Guid>
 {
-    private const string AppRequestName = nameof(CreateRecordTypeCommand);
-
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -33,36 +31,28 @@ public sealed class CreateRecordTypeCommandHandler(
 
     public async Task<Result<Guid>> Handle(CreateRecordTypeCommand request, CancellationToken cancellationToken)
     {
-        try
+        if (!await _ownerAvailability.IsAvailable(request.OwnerType, cancellationToken))
         {
-            if (!await _ownerAvailability.IsAvailable(request.OwnerType, cancellationToken))
-            {
-                return Result.Failure<Guid>($"'{request.OwnerType}' is not a registered workflow owner type.");
-            }
-
-            var created = RecordType.Create(request.OwnerType, request.Name, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
-            if (created.IsFailure)
-            {
-                _logger.LogInformation("Unable to create a record type. Error message: {Error}", created.Error);
-                return Result.Failure<Guid>(created.Error);
-            }
-
-            var recordType = created.Value;
-            if (await RecordTypeNames.IsTaken(_dbContext, recordType.OwnerType, recordType.Name, exceptId: null, cancellationToken))
-            {
-                return Result.Failure<Guid>($"A record type named '{recordType.Name}' already exists.");
-            }
-
-            _dbContext.RecordTypes.Add(recordType);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success(recordType.Id);
+            return Result.Failure<Guid>($"'{request.OwnerType}' is not a registered workflow owner type.");
         }
-        catch (Exception ex)
+
+        var created = RecordType.Create(request.OwnerType, request.Name, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+        if (created.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<Guid>($"Error handling {AppRequestName} command.");
+            _logger.LogInformation("Unable to create a record type. Error message: {Error}", created.Error);
+            return Result.Failure<Guid>(created.Error);
         }
+
+        var recordType = created.Value;
+        if (await RecordTypeNames.IsTaken(_dbContext, recordType.OwnerType, recordType.Name, exceptId: null, cancellationToken))
+        {
+            return Result.Failure<Guid>($"A record type named '{recordType.Name}' already exists.");
+        }
+
+        _dbContext.RecordTypes.Add(recordType);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(recordType.Id);
     }
 }
 

@@ -1,7 +1,6 @@
 using Wayd.Common.Domain.Models.Organizations;
 using CSharpFunctionalExtensions;
 using FluentAssertions;
-using Microsoft.Extensions.Logging.Abstractions;
 using NodaTime;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Interfaces;
@@ -29,7 +28,7 @@ public class UpdateSchedulingSettingsCommandHandlerTests
     }
 
     private UpdateSchedulingSettingsCommandHandler CreateHandler() =>
-        new(_store.Object, _settings.Object, _dispatcher.Object, _currentUser.Object, NullLogger<UpdateSchedulingSettingsCommandHandler>.Instance);
+        new(_store.Object, _settings.Object, _dispatcher.Object, _currentUser.Object);
 
     [Fact]
     public async Task Handle_SavesTheValuesAsTheCurrentUser()

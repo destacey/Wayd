@@ -19,7 +19,6 @@ public sealed class ActivateScoringModelCommandHandler(
     ILogger<ActivateScoringModelCommandHandler> logger)
     : ICommandHandler<ActivateScoringModelCommand>
 {
-    private const string AppRequestName = nameof(ActivateScoringModelCommand);
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -27,41 +26,29 @@ public sealed class ActivateScoringModelCommandHandler(
 
     public async Task<Result> Handle(ActivateScoringModelCommand request, CancellationToken cancellationToken)
     {
-        try
+        var model = await _waydDbContext.ScoringModels
+            .Include(x => x.Criteria)
+            .Include(x => x.Scales).ThenInclude(s => s.Levels)
+            .Include(x => x.Outputs)
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+        if (model is null)
         {
-            var model = await _waydDbContext.ScoringModels
-                .Include(x => x.Criteria)
-                .Include(x => x.Scales).ThenInclude(s => s.Levels)
-                .Include(x => x.Outputs)
-                .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
-            if (model is null)
-            {
-                _logger.LogInformation("Scoring Model {ScoringModelId} not found.", request.Id);
-                return Result.Failure("Scoring Model not found.");
-            }
-
-            var activateResult = model.Activate(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            if (activateResult.IsFailure)
-            {
-                // Reset the entity
-                await _waydDbContext.Entry(model).ReloadAsync(cancellationToken);
-                model.ClearDomainEvents();
-
-                _logger.LogError("Unable to activate Scoring Model {ScoringModelId}.  Error message: {Error}", request.Id, activateResult.Error);
-
-                return Result.Failure(activateResult.Error);
-            }
-
-            await _waydDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Scoring Model {ScoringModelId} activated.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Scoring Model {ScoringModelId} not found.", request.Id);
+            return Result.Failure("Scoring Model not found.");
         }
-        catch (Exception ex)
+
+        var activateResult = model.Activate(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        if (activateResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to activate Scoring Model {ScoringModelId}.  Error message: {Error}", request.Id, activateResult.Error);
+
+            return Result.Failure(activateResult.Error);
         }
+
+        await _waydDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Scoring Model {ScoringModelId} activated.", request.Id);
+
+        return Result.Success();
     }
 }

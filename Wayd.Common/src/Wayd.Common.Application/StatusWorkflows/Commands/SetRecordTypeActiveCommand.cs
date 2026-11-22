@@ -17,51 +17,39 @@ public sealed class SetRecordTypeActiveCommandHandler(
     IStatusWorkflowDbContext dbContext,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
-    ILogger<SetRecordTypeActiveCommandHandler> logger,
     IWorkflowOwnerAvailability ownerAvailability)
     : ICommandHandler<SetRecordTypeActiveCommand>
 {
-    private const string AppRequestName = nameof(SetRecordTypeActiveCommand);
-
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ILogger<SetRecordTypeActiveCommandHandler> _logger = logger;
     private readonly IWorkflowOwnerAvailability _ownerAvailability = ownerAvailability;
 
     public async Task<Result> Handle(SetRecordTypeActiveCommand request, CancellationToken cancellationToken)
     {
-        try
+        var recordType = await _dbContext.RecordTypes.FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+        if (recordType is null || !await _ownerAvailability.IsAvailable(recordType.OwnerType, cancellationToken))
         {
-            var recordType = await _dbContext.RecordTypes.FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-            if (recordType is null || !await _ownerAvailability.IsAvailable(recordType.OwnerType, cancellationToken))
-            {
-                return Result.Failure("Record type not found.");
-            }
-
-            if (request.IsActive && !recordType.IsActive
-                && await RecordTypeNames.IsTaken(_dbContext, recordType.OwnerType, recordType.Name, recordType.Id, cancellationToken))
-            {
-                return Result.Failure($"Another active record type is named '{recordType.Name}'. Rename one of them first.");
-            }
-
-            var actor = EventActor.User(_currentUser.GetUserId());
-            var result = request.IsActive
-                ? recordType.Activate(actor, _dateTimeProvider.Now)
-                : recordType.Deactivate(actor, _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                return result;
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
+            return Result.Failure("Record type not found.");
         }
-        catch (Exception ex)
+
+        if (request.IsActive && !recordType.IsActive
+            && await RecordTypeNames.IsTaken(_dbContext, recordType.OwnerType, recordType.Name, recordType.Id, cancellationToken))
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            return Result.Failure($"Another active record type is named '{recordType.Name}'. Rename one of them first.");
         }
+
+        var actor = EventActor.User(_currentUser.GetUserId());
+        var result = request.IsActive
+            ? recordType.Activate(actor, _dateTimeProvider.Now)
+            : recordType.Deactivate(actor, _dateTimeProvider.Now);
+        if (result.IsFailure)
+        {
+            return result;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
     }
 }

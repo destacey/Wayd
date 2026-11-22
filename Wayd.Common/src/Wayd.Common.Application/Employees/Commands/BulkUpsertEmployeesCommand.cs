@@ -197,10 +197,6 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
 
                     if (updateResult.IsFailure)
                     {
-                        // Reset the entity
-                        await _waydDbContext.Entry(existing).ReloadAsync(cancellationToken);
-                        existing.ClearDomainEvents();
-
                         _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", requestName, updateResult.Error);
                         errors.Add(externalEmployee.EmployeeNumber, updateResult.Error);
 
@@ -213,9 +209,6 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
                     var emailsResult = existing.SyncEmails(ToDomainEmails(externalEmployee), SyncActor, _dateTimeProvider.Now);
                     if (emailsResult.IsFailure)
                     {
-                        await _waydDbContext.Entry(existing).ReloadAsync(cancellationToken);
-                        existing.ClearDomainEvents();
-
                         _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", requestName, emailsResult.Error);
                         errors.Add(externalEmployee.EmployeeNumber, emailsResult.Error);
 
@@ -269,6 +262,7 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
             }
             catch (Exception ex)
             {
+                // One record's failure must not stop the rest of the people sync; the record is reported as skipped.
                 _logger.LogError(ex, "Wayd Request: Exception for Request {Name} on {Employee}.",
                     requestName, Describe(externalEmployee));
 
@@ -276,28 +270,14 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
             }
         }
 
-        try
-        {
-            await _waydDbContext.SaveChangesAsync(cancellationToken);
+        await _waydDbContext.SaveChangesAsync(cancellationToken);
 
-            await ProcessMissingManagers(missingManagers, cancellationToken);
+        await ProcessMissingManagers(missingManagers, cancellationToken);
 
-            if (request.DeactivateMissing)
-                await DeactivateEmployeesNotInPayload(claimedEmployeeIds, cancellationToken);
+        if (request.DeactivateMissing)
+            await DeactivateEmployeesNotInPayload(claimedEmployeeIds, cancellationToken);
 
-            return Result.Success(new BulkUpsertEmployeesResult(claimedEmployeeIds.Count, errors));
-        }
-        catch (Exception ex)
-        {
-            // Log the shape of the batch, never its contents: the payload is thousands of names and email
-            // addresses, and EF has already logged the failing command. What is actually diagnostic is how
-            // big the batch was and what the database objected to.
-            _logger.LogError(ex,
-                "Wayd Request: Exception for Request {Name} while updating the database. {Upserted} employees claimed, {Skipped} skipped.",
-                requestName, claimedEmployeeIds.Count, errors.Count);
-
-            return Result.Failure<BulkUpsertEmployeesResult>($"{requestName} failed while saving. The database's error is in the API log.");
-        }
+        return Result.Success(new BulkUpsertEmployeesResult(claimedEmployeeIds.Count, errors));
     }
 
     /// <summary>

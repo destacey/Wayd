@@ -45,8 +45,6 @@ public sealed class UpdateScoringModelCriterionCommandHandler(
     ILogger<UpdateScoringModelCriterionCommandHandler> logger)
     : ICommandHandler<UpdateScoringModelCriterionCommand>
 {
-    private const string AppRequestName = nameof(UpdateScoringModelCriterionCommand);
-
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -54,36 +52,28 @@ public sealed class UpdateScoringModelCriterionCommandHandler(
 
     public async Task<Result> Handle(UpdateScoringModelCriterionCommand request, CancellationToken cancellationToken)
     {
-        try
+        var model = await _waydDbContext.ScoringModels
+            .Include(x => x.Criteria)
+            .Include(x => x.Outputs)
+            .Include(x => x.Scales)
+            .FirstOrDefaultAsync(r => r.Id == request.ScoringModelId, cancellationToken);
+        if (model is null)
         {
-            var model = await _waydDbContext.ScoringModels
-                .Include(x => x.Criteria)
-                .Include(x => x.Outputs)
-                .Include(x => x.Scales)
-                .FirstOrDefaultAsync(r => r.Id == request.ScoringModelId, cancellationToken);
-            if (model is null)
-            {
-                _logger.LogInformation("Scoring Model {ScoringModelId} not found.", request.ScoringModelId);
-                return Result.Failure("Scoring Model not found.");
-            }
-
-            var updateResult = model.UpdateCriterion(request.CriterionId, request.Name, request.Token, request.Description, request.Weight, request.ScaleId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            if (updateResult.IsFailure)
-            {
-                _logger.LogError("Unable to update criterion on Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, updateResult.Error);
-                return Result.Failure(updateResult.Error);
-            }
-
-            await _waydDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Criterion {CriterionId} updated on Scoring Model {ScoringModelId}.", request.CriterionId, request.ScoringModelId);
-
-            return Result.Success();
+            _logger.LogInformation("Scoring Model {ScoringModelId} not found.", request.ScoringModelId);
+            return Result.Failure("Scoring Model not found.");
         }
-        catch (Exception ex)
+
+        var updateResult = model.UpdateCriterion(request.CriterionId, request.Name, request.Token, request.Description, request.Weight, request.ScaleId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        if (updateResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to update criterion on Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, updateResult.Error);
+            return Result.Failure(updateResult.Error);
         }
+
+        await _waydDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Criterion {CriterionId} updated on Scoring Model {ScoringModelId}.", request.CriterionId, request.ScoringModelId);
+
+        return Result.Success();
     }
 }

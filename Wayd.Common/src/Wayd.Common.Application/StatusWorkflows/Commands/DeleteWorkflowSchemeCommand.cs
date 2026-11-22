@@ -17,47 +17,35 @@ public sealed class DeleteWorkflowSchemeCommandHandler(
     IStatusWorkflowDbContext dbContext,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
-    ILogger<DeleteWorkflowSchemeCommandHandler> logger,
     IWorkflowOwnerAvailability ownerAvailability)
     : ICommandHandler<DeleteWorkflowSchemeCommand>
 {
-    private const string AppRequestName = nameof(DeleteWorkflowSchemeCommand);
-
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ILogger<DeleteWorkflowSchemeCommandHandler> _logger = logger;
     private readonly IWorkflowOwnerAvailability _ownerAvailability = ownerAvailability;
 
     public async Task<Result> Handle(DeleteWorkflowSchemeCommand request, CancellationToken cancellationToken)
     {
-        try
+        var scheme = await _dbContext.StatusWorkflowSchemes
+            .Include(s => s.Entries)
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+        if (scheme is null || scheme.IsImplicit || !await _ownerAvailability.IsAvailable(scheme.OwnerType, cancellationToken))
         {
-            var scheme = await _dbContext.StatusWorkflowSchemes
-                .Include(s => s.Entries)
-                .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
-            if (scheme is null || scheme.IsImplicit || !await _ownerAvailability.IsAvailable(scheme.OwnerType, cancellationToken))
-            {
-                return Result.Failure("Workflow scheme not found.");
-            }
-
-            var isAssigned = await _dbContext.WorkflowAssignments.AnyAsync(a => a.SchemeId == scheme.Id, cancellationToken);
-
-            var result = scheme.Delete(isAssigned, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                return result;
-            }
-
-            _dbContext.StatusWorkflowSchemes.Remove(scheme);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
+            return Result.Failure("Workflow scheme not found.");
         }
-        catch (Exception ex)
+
+        var isAssigned = await _dbContext.WorkflowAssignments.AnyAsync(a => a.SchemeId == scheme.Id, cancellationToken);
+
+        var result = scheme.Delete(isAssigned, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            return result;
         }
+
+        _dbContext.StatusWorkflowSchemes.Remove(scheme);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
     }
 }

@@ -28,8 +28,6 @@ public sealed class CreateWorkflowSchemeCommandHandler(
     IWorkflowOwnerAvailability ownerAvailability)
     : ICommandHandler<CreateWorkflowSchemeCommand, Guid>
 {
-    private const string AppRequestName = nameof(CreateWorkflowSchemeCommand);
-
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -38,37 +36,29 @@ public sealed class CreateWorkflowSchemeCommandHandler(
 
     public async Task<Result<Guid>> Handle(CreateWorkflowSchemeCommand request, CancellationToken cancellationToken)
     {
-        try
+        if (!await _ownerAvailability.IsAvailable(request.OwnerType, cancellationToken))
         {
-            if (!await _ownerAvailability.IsAvailable(request.OwnerType, cancellationToken))
-            {
-                return Result.Failure<Guid>($"'{request.OwnerType}' is not a registered workflow owner type.");
-            }
-
-            var workflow = await _dbContext.StatusWorkflows
-                .FirstOrDefaultAsync(w => w.Id == request.DefaultWorkflowId, cancellationToken);
-            if (workflow is null)
-            {
-                return Result.Failure<Guid>("Status workflow not found.");
-            }
-
-            var created = StatusWorkflowScheme.Create(
-                request.OwnerType, request.Name, request.Description, workflow, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
-            if (created.IsFailure)
-            {
-                _logger.LogInformation("Unable to create a workflow scheme. Error message: {Error}", created.Error);
-                return Result.Failure<Guid>(created.Error);
-            }
-
-            _dbContext.StatusWorkflowSchemes.Add(created.Value);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success(created.Value.Id);
+            return Result.Failure<Guid>($"'{request.OwnerType}' is not a registered workflow owner type.");
         }
-        catch (Exception ex)
+
+        var workflow = await _dbContext.StatusWorkflows
+            .FirstOrDefaultAsync(w => w.Id == request.DefaultWorkflowId, cancellationToken);
+        if (workflow is null)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<Guid>($"Error handling {AppRequestName} command.");
+            return Result.Failure<Guid>("Status workflow not found.");
         }
+
+        var created = StatusWorkflowScheme.Create(
+            request.OwnerType, request.Name, request.Description, workflow, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+        if (created.IsFailure)
+        {
+            _logger.LogInformation("Unable to create a workflow scheme. Error message: {Error}", created.Error);
+            return Result.Failure<Guid>(created.Error);
+        }
+
+        _dbContext.StatusWorkflowSchemes.Add(created.Value);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(created.Value.Id);
     }
 }

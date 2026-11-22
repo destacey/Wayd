@@ -16,8 +16,6 @@ public sealed class PublishStatusWorkflowCommandHandler(
     ILogger<PublishStatusWorkflowCommandHandler> logger)
     : ICommandHandler<PublishStatusWorkflowCommand>
 {
-    private const string AppRequestName = nameof(PublishStatusWorkflowCommand);
-
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -25,43 +23,35 @@ public sealed class PublishStatusWorkflowCommandHandler(
 
     public async Task<Result> Handle(PublishStatusWorkflowCommand request, CancellationToken cancellationToken)
     {
-        try
+        // Statuses must be included: Publish checks that every required alias is carried by one of
+        // them, and an unloaded collection reads as "no status carries any alias" — so a workflow
+        // that genuinely has them would be refused. Transitions likewise: a restricted workflow is
+        // refused unless every status is reachable, which an unloaded set never is.
+        var workflow = await _dbContext.StatusWorkflows
+            .Include(w => w.Statuses)
+            .Include(w => w.Transitions)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(w => w.Id == request.Id, cancellationToken);
+
+        if (workflow is null)
         {
-            // Statuses must be included: Publish checks that every required alias is carried by one of
-            // them, and an unloaded collection reads as "no status carries any alias" — so a workflow
-            // that genuinely has them would be refused. Transitions likewise: a restricted workflow is
-            // refused unless every status is reachable, which an unloaded set never is.
-            var workflow = await _dbContext.StatusWorkflows
-                .Include(w => w.Statuses)
-                .Include(w => w.Transitions)
-                .AsSplitQuery()
-                .FirstOrDefaultAsync(w => w.Id == request.Id, cancellationToken);
-
-            if (workflow is null)
-            {
-                _logger.LogInformation("Status Workflow {WorkflowId} not found.", request.Id);
-                return Result.Failure("Status workflow not found.");
-            }
-
-            var result = workflow.Publish(EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                workflow.ClearDomainEvents();
-
-                _logger.LogInformation("Unable to publish Status Workflow {WorkflowId}. Error message: {Error}", request.Id, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Status Workflow {WorkflowId} published.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Status Workflow {WorkflowId} not found.", request.Id);
+            return Result.Failure("Status workflow not found.");
         }
-        catch (Exception ex)
+
+        var result = workflow.Publish(EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            workflow.ClearDomainEvents();
+
+            _logger.LogInformation("Unable to publish Status Workflow {WorkflowId}. Error message: {Error}", request.Id, result.Error);
+            return Result.Failure(result.Error);
         }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Status Workflow {WorkflowId} published.", request.Id);
+
+        return Result.Success();
     }
 }

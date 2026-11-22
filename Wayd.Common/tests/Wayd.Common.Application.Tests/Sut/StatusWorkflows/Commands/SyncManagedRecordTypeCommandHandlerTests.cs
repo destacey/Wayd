@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Application.StatusWorkflows.Commands;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
@@ -112,11 +113,10 @@ public sealed class SyncManagedRecordTypeCommandHandlerTests : StatusWorkflowHan
         DbContext.FailNextSaveWith = SaveFailures.Truncation();
 
         // Act
-        var result = await CreateSut().Handle(new SyncManagedRecordTypeCommand(Synced.Key, "conn-1:bug", "Bug"), TestContext.Current.CancellationToken);
+        var act = () => CreateSut().Handle(new SyncManagedRecordTypeCommand(Synced.Key, "conn-1:bug", "Bug"), TestContext.Current.CancellationToken);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().NotContain("another sync");
+        await act.Should().ThrowAsync<DbUpdateException>();
         DbContext.SaveChangesCallCount.Should().Be(1);
     }
 }

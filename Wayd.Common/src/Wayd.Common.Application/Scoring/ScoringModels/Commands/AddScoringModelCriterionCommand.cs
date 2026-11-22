@@ -41,8 +41,6 @@ public sealed class AddScoringModelCriterionCommandHandler(
     ILogger<AddScoringModelCriterionCommandHandler> logger)
     : ICommandHandler<AddScoringModelCriterionCommand, Guid>
 {
-    private const string AppRequestName = nameof(AddScoringModelCriterionCommand);
-
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -50,36 +48,28 @@ public sealed class AddScoringModelCriterionCommandHandler(
 
     public async Task<Result<Guid>> Handle(AddScoringModelCriterionCommand request, CancellationToken cancellationToken)
     {
-        try
+        var model = await _waydDbContext.ScoringModels
+            .Include(x => x.Criteria)
+            .Include(x => x.Outputs)
+            .Include(x => x.Scales)
+            .FirstOrDefaultAsync(r => r.Id == request.ScoringModelId, cancellationToken);
+        if (model is null)
         {
-            var model = await _waydDbContext.ScoringModels
-                .Include(x => x.Criteria)
-                .Include(x => x.Outputs)
-                .Include(x => x.Scales)
-                .FirstOrDefaultAsync(r => r.Id == request.ScoringModelId, cancellationToken);
-            if (model is null)
-            {
-                _logger.LogInformation("Scoring Model {ScoringModelId} not found.", request.ScoringModelId);
-                return Result.Failure<Guid>("Scoring Model not found.");
-            }
-
-            var addResult = model.AddCriterion(request.Name, request.Token, request.Description, request.Weight, request.ScaleId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            if (addResult.IsFailure)
-            {
-                _logger.LogError("Unable to add criterion to Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, addResult.Error);
-                return Result.Failure<Guid>(addResult.Error);
-            }
-
-            await _waydDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Criterion {CriterionId} added to Scoring Model {ScoringModelId}.", addResult.Value.Id, request.ScoringModelId);
-
-            return Result.Success(addResult.Value.Id);
+            _logger.LogInformation("Scoring Model {ScoringModelId} not found.", request.ScoringModelId);
+            return Result.Failure<Guid>("Scoring Model not found.");
         }
-        catch (Exception ex)
+
+        var addResult = model.AddCriterion(request.Name, request.Token, request.Description, request.Weight, request.ScaleId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        if (addResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<Guid>($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to add criterion to Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, addResult.Error);
+            return Result.Failure<Guid>(addResult.Error);
         }
+
+        await _waydDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Criterion {CriterionId} added to Scoring Model {ScoringModelId}.", addResult.Value.Id, request.ScoringModelId);
+
+        return Result.Success(addResult.Value.Id);
     }
 }

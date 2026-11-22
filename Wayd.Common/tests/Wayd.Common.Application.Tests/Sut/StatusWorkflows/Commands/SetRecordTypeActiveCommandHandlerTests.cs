@@ -9,7 +9,7 @@ namespace Wayd.Common.Application.Tests.Sut.StatusWorkflows.Commands;
 public sealed class SetRecordTypeActiveCommandHandlerTests : WorkflowSchemeHandlerTestBase
 {
     private SetRecordTypeActiveCommandHandler CreateSut() =>
-        new(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<SetRecordTypeActiveCommandHandler>(), OwnerAvailability);
+        new(DbContext, CurrentUser.Object, DateTimeProvider.Object, OwnerAvailability);
 
     [Fact]
     public async Task Handle_ShouldReactivateTheType_WhenItsNameIsFree()

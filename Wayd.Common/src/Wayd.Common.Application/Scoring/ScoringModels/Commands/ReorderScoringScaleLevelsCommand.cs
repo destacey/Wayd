@@ -30,8 +30,6 @@ public sealed class ReorderScoringScaleLevelsCommandHandler(
     ILogger<ReorderScoringScaleLevelsCommandHandler> logger)
     : ICommandHandler<ReorderScoringScaleLevelsCommand>
 {
-    private const string AppRequestName = nameof(ReorderScoringScaleLevelsCommand);
-
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -39,34 +37,26 @@ public sealed class ReorderScoringScaleLevelsCommandHandler(
 
     public async Task<Result> Handle(ReorderScoringScaleLevelsCommand request, CancellationToken cancellationToken)
     {
-        try
+        var model = await _waydDbContext.ScoringModels
+            .Include(x => x.Scales).ThenInclude(s => s.Levels)
+            .FirstOrDefaultAsync(r => r.Id == request.ScoringModelId, cancellationToken);
+        if (model is null)
         {
-            var model = await _waydDbContext.ScoringModels
-                .Include(x => x.Scales).ThenInclude(s => s.Levels)
-                .FirstOrDefaultAsync(r => r.Id == request.ScoringModelId, cancellationToken);
-            if (model is null)
-            {
-                _logger.LogInformation("Scoring Model {ScoringModelId} not found.", request.ScoringModelId);
-                return Result.Failure("Scoring Model not found.");
-            }
-
-            var reorderResult = model.ReorderScaleLevels(request.ScaleId, request.OrderedLevelIds, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            if (reorderResult.IsFailure)
-            {
-                _logger.LogError("Unable to reorder rating levels on Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, reorderResult.Error);
-                return Result.Failure(reorderResult.Error);
-            }
-
-            await _waydDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Rating levels reordered on scale {ScaleId} on Scoring Model {ScoringModelId}.", request.ScaleId, request.ScoringModelId);
-
-            return Result.Success();
+            _logger.LogInformation("Scoring Model {ScoringModelId} not found.", request.ScoringModelId);
+            return Result.Failure("Scoring Model not found.");
         }
-        catch (Exception ex)
+
+        var reorderResult = model.ReorderScaleLevels(request.ScaleId, request.OrderedLevelIds, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        if (reorderResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to reorder rating levels on Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, reorderResult.Error);
+            return Result.Failure(reorderResult.Error);
         }
+
+        await _waydDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Rating levels reordered on scale {ScaleId} on Scoring Model {ScoringModelId}.", request.ScaleId, request.ScoringModelId);
+
+        return Result.Success();
     }
 }

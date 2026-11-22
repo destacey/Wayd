@@ -26,8 +26,6 @@ public sealed class ReorderScoringModelOutputsCommandHandler(
     ILogger<ReorderScoringModelOutputsCommandHandler> logger)
     : ICommandHandler<ReorderScoringModelOutputsCommand>
 {
-    private const string AppRequestName = nameof(ReorderScoringModelOutputsCommand);
-
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -35,35 +33,27 @@ public sealed class ReorderScoringModelOutputsCommandHandler(
 
     public async Task<Result> Handle(ReorderScoringModelOutputsCommand request, CancellationToken cancellationToken)
     {
-        try
+        var model = await _waydDbContext.ScoringModels
+            .Include(x => x.Criteria)
+            .Include(x => x.Outputs)
+            .FirstOrDefaultAsync(r => r.Id == request.ScoringModelId, cancellationToken);
+        if (model is null)
         {
-            var model = await _waydDbContext.ScoringModels
-                .Include(x => x.Criteria)
-                .Include(x => x.Outputs)
-                .FirstOrDefaultAsync(r => r.Id == request.ScoringModelId, cancellationToken);
-            if (model is null)
-            {
-                _logger.LogInformation("Scoring Model {ScoringModelId} not found.", request.ScoringModelId);
-                return Result.Failure("Scoring Model not found.");
-            }
-
-            var reorderResult = model.ReorderOutputs(request.OrderedOutputIds, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            if (reorderResult.IsFailure)
-            {
-                _logger.LogError("Unable to reorder outputs on Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, reorderResult.Error);
-                return Result.Failure(reorderResult.Error);
-            }
-
-            await _waydDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Outputs reordered on Scoring Model {ScoringModelId}.", request.ScoringModelId);
-
-            return Result.Success();
+            _logger.LogInformation("Scoring Model {ScoringModelId} not found.", request.ScoringModelId);
+            return Result.Failure("Scoring Model not found.");
         }
-        catch (Exception ex)
+
+        var reorderResult = model.ReorderOutputs(request.OrderedOutputIds, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        if (reorderResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to reorder outputs on Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, reorderResult.Error);
+            return Result.Failure(reorderResult.Error);
         }
+
+        await _waydDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Outputs reordered on Scoring Model {ScoringModelId}.", request.ScoringModelId);
+
+        return Result.Success();
     }
 }

@@ -76,8 +76,6 @@ public sealed class CreatePersonalAccessTokenCommandHandler(
     ITokenHashingService tokenHashingService,
     ILogger<CreatePersonalAccessTokenCommandHandler> logger) : ICommandHandler<CreatePersonalAccessTokenCommand, CreatePersonalAccessTokenResult>
 {
-    private const string AppRequestName = nameof(CreatePersonalAccessTokenCommand);
-
     private readonly IWaydDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -86,55 +84,47 @@ public sealed class CreatePersonalAccessTokenCommandHandler(
 
     public async Task<Result<CreatePersonalAccessTokenResult>> Handle(CreatePersonalAccessTokenCommand request, CancellationToken cancellationToken)
     {
-        try
+        var userId = _currentUser.GetUserId();
+        var now = _dateTimeProvider.Now;
+
+        // verify user hasn't exceeded token limit
+        var activeTokenCount = await _dbContext.PersonalAccessTokens
+            .CountAsync(t => t.UserId == userId && t.RevokedAt == null && t.ExpiresAt > now, cancellationToken);
+        if (activeTokenCount >= 10)
         {
-            var userId = _currentUser.GetUserId();
-            var now = _dateTimeProvider.Now;
-
-            // verify user hasn't exceeded token limit
-            var activeTokenCount = await _dbContext.PersonalAccessTokens
-                .CountAsync(t => t.UserId == userId && t.RevokedAt == null && t.ExpiresAt > now, cancellationToken);
-            if (activeTokenCount >= 10)
-            {
-                return Result.Failure<CreatePersonalAccessTokenResult>($"You have reached the maximum of 10 active tokens. Please revoke an existing token before creating a new one.");
-            }
-
-            // Generate the token
-            var plaintextToken = _tokenHashingService.GenerateToken();
-            var (tokenIdentifier, tokenHash) = _tokenHashingService.HashToken(plaintextToken);
-
-            var tokenResult = PersonalAccessToken.Create(
-                name: request.Name,
-                tokenIdentifier: tokenIdentifier,
-                tokenHash: tokenHash,
-                userId: userId,
-                expiresAt: request.ExpiresAt,
-                scope: request.Scope,
-                actor: EventActor.User(userId, _currentUser.GetEmployeeId()),
-                timestamp: now
-            );
-
-            if (tokenResult.IsFailure)
-            {
-                return Result.Failure<CreatePersonalAccessTokenResult>(tokenResult.Error);
-            }
-
-            var token = tokenResult.Value;
-
-            await _dbContext.PersonalAccessTokens.AddAsync(token, cancellationToken);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation(
-                "Personal access token created. UserId: {UserId}, TokenId: {TokenId}, TokenName: {TokenName}, ExpiresAt: {ExpiresAt}, Scope: {Scope}",
-                userId, token.Id, token.Name, token.ExpiresAt, token.Scope);
-
-            // Return the result with the plaintext token (ONLY time it's visible!)
-            return Result.Success(new CreatePersonalAccessTokenResult(token.Id, token.Name, plaintextToken, token.ExpiresAt, token.Scope));
+            return Result.Failure<CreatePersonalAccessTokenResult>($"You have reached the maximum of 10 active tokens. Please revoke an existing token before creating a new one.");
         }
-        catch (Exception ex)
+
+        // Generate the token
+        var plaintextToken = _tokenHashingService.GenerateToken();
+        var (tokenIdentifier, tokenHash) = _tokenHashingService.HashToken(plaintextToken);
+
+        var tokenResult = PersonalAccessToken.Create(
+            name: request.Name,
+            tokenIdentifier: tokenIdentifier,
+            tokenHash: tokenHash,
+            userId: userId,
+            expiresAt: request.ExpiresAt,
+            scope: request.Scope,
+            actor: EventActor.User(userId, _currentUser.GetEmployeeId()),
+            timestamp: now
+        );
+
+        if (tokenResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<CreatePersonalAccessTokenResult>($"Error handling {AppRequestName} command.");
+            return Result.Failure<CreatePersonalAccessTokenResult>(tokenResult.Error);
         }
+
+        var token = tokenResult.Value;
+
+        await _dbContext.PersonalAccessTokens.AddAsync(token, cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Personal access token created. UserId: {UserId}, TokenId: {TokenId}, TokenName: {TokenName}, ExpiresAt: {ExpiresAt}, Scope: {Scope}",
+            userId, token.Id, token.Name, token.ExpiresAt, token.Scope);
+
+        // Return the result with the plaintext token (ONLY time it's visible!)
+        return Result.Success(new CreatePersonalAccessTokenResult(token.Id, token.Name, plaintextToken, token.ExpiresAt, token.Scope));
     }
 }

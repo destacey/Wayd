@@ -72,7 +72,7 @@ public sealed class EmployeesControllerTests
         _mocker
             .GetMock<IDispatcher>()
             .Setup(d => d.Send(It.IsAny<DeleteEmployeeCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Failure("Error handling DeleteEmployeeCommand command."));
+            .ReturnsAsync(Result.Failure("Employee not found."));
 
         var controller = CreateController();
 
@@ -82,7 +82,7 @@ public sealed class EmployeesControllerTests
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>()
             .Which.Value.Should().BeOfType<ProblemDetails>()
-            .Which.Detail.Should().Be("Error handling DeleteEmployeeCommand command.");
+            .Which.Detail.Should().Be("Employee not found.");
     }
 
     [Fact]

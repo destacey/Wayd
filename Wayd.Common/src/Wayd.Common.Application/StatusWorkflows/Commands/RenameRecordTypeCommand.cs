@@ -22,8 +22,6 @@ public sealed class RenameRecordTypeCommandHandler(
     IWorkflowOwnerAvailability ownerAvailability)
     : ICommandHandler<RenameRecordTypeCommand>
 {
-    private const string AppRequestName = nameof(RenameRecordTypeCommand);
-
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -32,34 +30,26 @@ public sealed class RenameRecordTypeCommandHandler(
 
     public async Task<Result> Handle(RenameRecordTypeCommand request, CancellationToken cancellationToken)
     {
-        try
+        var recordType = await _dbContext.RecordTypes.FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+        if (recordType is null || !await _ownerAvailability.IsAvailable(recordType.OwnerType, cancellationToken))
         {
-            var recordType = await _dbContext.RecordTypes.FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-            if (recordType is null || !await _ownerAvailability.IsAvailable(recordType.OwnerType, cancellationToken))
-            {
-                return Result.Failure("Record type not found.");
-            }
-
-            if (await RecordTypeNames.IsTaken(_dbContext, recordType.OwnerType, request.Name.Trim(), recordType.Id, cancellationToken))
-            {
-                return Result.Failure($"A record type named '{request.Name.Trim()}' already exists.");
-            }
-
-            var result = recordType.Rename(request.Name, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                _logger.LogInformation("Unable to rename Record Type {RecordTypeId}. Error message: {Error}", request.Id, result.Error);
-                return result;
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
+            return Result.Failure("Record type not found.");
         }
-        catch (Exception ex)
+
+        if (await RecordTypeNames.IsTaken(_dbContext, recordType.OwnerType, request.Name.Trim(), recordType.Id, cancellationToken))
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            return Result.Failure($"A record type named '{request.Name.Trim()}' already exists.");
         }
+
+        var result = recordType.Rename(request.Name, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+        if (result.IsFailure)
+        {
+            _logger.LogInformation("Unable to rename Record Type {RecordTypeId}. Error message: {Error}", request.Id, result.Error);
+            return result;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
     }
 }

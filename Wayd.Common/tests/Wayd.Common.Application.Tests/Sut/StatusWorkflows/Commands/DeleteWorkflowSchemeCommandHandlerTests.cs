@@ -7,7 +7,7 @@ namespace Wayd.Common.Application.Tests.Sut.StatusWorkflows.Commands;
 public sealed class DeleteWorkflowSchemeCommandHandlerTests : WorkflowSchemeHandlerTestBase
 {
     private DeleteWorkflowSchemeCommandHandler CreateSut() =>
-        new(DbContext, CurrentUser.Object, DateTimeProvider.Object, Logger<DeleteWorkflowSchemeCommandHandler>(), OwnerAvailability);
+        new(DbContext, CurrentUser.Object, DateTimeProvider.Object, OwnerAvailability);
 
     [Fact]
     public async Task Handle_ShouldBeRefused_WhileAScopeFollowsTheScheme()

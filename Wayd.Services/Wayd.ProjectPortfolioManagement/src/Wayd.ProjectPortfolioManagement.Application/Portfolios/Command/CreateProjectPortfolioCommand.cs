@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Application.Models;
+﻿using Wayd.ProjectPortfolioManagement.Application.Common;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Events;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
@@ -39,8 +40,6 @@ public sealed class CreateProjectPortfolioCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<CreateProjectPortfolioCommand, ObjectIdAndKey>
 {
-    private const string AppRequestName = nameof(CreateProjectPortfolioCommand);
-
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<CreateProjectPortfolioCommandHandler> _logger = logger;
@@ -48,30 +47,25 @@ public sealed class CreateProjectPortfolioCommandHandler(
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateProjectPortfolioCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var roles = GetRoles(request);
+        var roles = GetRoles(request);
+        var peopleExist = await _projectPortfolioManagementDbContext.EnsureEmployeesExist(roles.Values.SelectMany(ids => ids), cancellationToken);
+        if (peopleExist.IsFailure)
+            return Result.Failure<ObjectIdAndKey>(peopleExist.Error);
 
-            var portfolio = ProjectPortfolio.Create(
-                request.Name,
-                request.Description,
-                roles,
-                EventActor.User(_currentUser.GetUserId()),
-                _dateTimeProvider.Now
-                );
+        var portfolio = ProjectPortfolio.Create(
+            request.Name,
+            request.Description,
+            roles,
+            EventActor.User(_currentUser.GetUserId()),
+            _dateTimeProvider.Now
+            );
 
-            await _projectPortfolioManagementDbContext.Portfolios.AddAsync(portfolio, cancellationToken);
-            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
+        await _projectPortfolioManagementDbContext.Portfolios.AddAsync(portfolio, cancellationToken);
+        await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Project Portfolio {ProjectPortfolioId} created with Key {ProjectPortfolioKey}.", portfolio.Id, portfolio.Key);
+        _logger.LogInformation("Project Portfolio {ProjectPortfolioId} created with Key {ProjectPortfolioKey}.", portfolio.Id, portfolio.Key);
 
-            return new ObjectIdAndKey(portfolio.Id, portfolio.Key);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<ObjectIdAndKey>($"Error handling {AppRequestName} command.");
-        }
+        return new ObjectIdAndKey(portfolio.Id, portfolio.Key);
     }
 
     private static Dictionary<ProjectPortfolioRole, HashSet<Guid>> GetRoles(CreateProjectPortfolioCommand request)

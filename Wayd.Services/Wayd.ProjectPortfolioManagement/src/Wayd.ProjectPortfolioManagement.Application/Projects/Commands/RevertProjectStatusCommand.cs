@@ -61,10 +61,6 @@ public sealed class RevertProjectStatusCommandHandler(
             var revertResult = project.RevertStatus(actor, project.AncestryRoles(), request.ToStatus, request.Reason, _dateTimeProvider.Now);
             if (revertResult.IsFailure)
             {
-                // Reset the entity
-                await _projectPortfolioManagementDbContext.Entry(project).ReloadAsync(cancellationToken);
-                project.ClearDomainEvents();
-
                 _logger.LogError("Unable to revert Project {ProjectId} to {ToStatus}.  Error message: {Error}", request.Id, request.ToStatus, revertResult.Error);
                 return Result.Failure(revertResult.Error);
             }
@@ -78,11 +74,6 @@ public sealed class RevertProjectStatusCommandHandler(
         catch (DbUpdateConcurrencyException)
         {
             return Result.Failure(ProjectSaves.StaleError);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
         }
     }
 }

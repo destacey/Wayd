@@ -34,46 +34,36 @@ public sealed class UpdateExpenditureCategoryCommandHandler(
     ILogger<UpdateExpenditureCategoryCommandHandler> logger)
     : ICommandHandler<UpdateExpenditureCategoryCommand>
 {
-    private const string AppRequestName = nameof(UpdateExpenditureCategoryCommand);
-
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<UpdateExpenditureCategoryCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateExpenditureCategoryCommand request, CancellationToken cancellationToken)
     {
-        try
+        var expenditureCategory = await _projectPortfolioManagementDbContext.ExpenditureCategories
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+        if (expenditureCategory is null)
         {
-            var expenditureCategory = await _projectPortfolioManagementDbContext.ExpenditureCategories
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-            if (expenditureCategory is null)
-            {
-                _logger.LogInformation("Expenditure Category {ExpenditureCategoryId} not found.", request.Id);
-                return Result.Failure("Expenditure Category not found.");
-            }
-
-            var updateResult = expenditureCategory.Update(
-                request.Name,
-                request.Description,
-                request.IsCapitalizable,
-                request.RequiresDepreciation,
-                request.AccountingCode
-                );
-            if (updateResult.IsFailure)
-            {
-                _logger.LogError("Unable to update Expenditure Category {ExpenditureCategoryId}.  Error message: {Error}", expenditureCategory.Id, updateResult.Error);
-                return Result.Failure("Expenditure Category update failed.");
-            }
-
-            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Expenditure Category {ExpenditureCategoryId} updated.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Expenditure Category {ExpenditureCategoryId} not found.", request.Id);
+            return Result.Failure("Expenditure Category not found.");
         }
-        catch (Exception ex)
+
+        var updateResult = expenditureCategory.Update(
+            request.Name,
+            request.Description,
+            request.IsCapitalizable,
+            request.RequiresDepreciation,
+            request.AccountingCode
+            );
+        if (updateResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<int>($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to update Expenditure Category {ExpenditureCategoryId}.  Error message: {Error}", expenditureCategory.Id, updateResult.Error);
+            return Result.Failure("Expenditure Category update failed.");
         }
+
+        await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Expenditure Category {ExpenditureCategoryId} updated.", request.Id);
+
+        return Result.Success();
     }
 }

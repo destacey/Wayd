@@ -82,11 +82,6 @@ public sealed class DeleteProgramCommandHandler(
         {
             return Result.Failure(ProjectSaves.StaleError);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
-        }
     }
 }
 

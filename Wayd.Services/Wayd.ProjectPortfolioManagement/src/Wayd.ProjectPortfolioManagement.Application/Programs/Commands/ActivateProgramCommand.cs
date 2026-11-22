@@ -20,8 +20,6 @@ public sealed class ActivateProgramCommandHandler(
     ILogger<ActivateProgramCommandHandler> logger,
     IDateTimeProvider dateTimeProvider) : ICommandHandler<ActivateProgramCommand>
 {
-    private const string AppRequestName = nameof(ActivateProgramCommand);
-
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -30,44 +28,33 @@ public sealed class ActivateProgramCommandHandler(
 
     public async Task<Result> Handle(ActivateProgramCommand request, CancellationToken cancellationToken)
     {
-        try
+        var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
+
+        var program = await _projectPortfolioManagementDbContext.Programs
+            .AsSplitQuery()
+            .Include(p => p.Roles)
+            .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+        if (program is null)
         {
-            var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
-
-            var program = await _projectPortfolioManagementDbContext.Programs
-                .AsSplitQuery()
-                .Include(p => p.Roles)
-                .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
-                .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
-            if (program is null)
-            {
-                _logger.LogInformation("Program {ProgramId} not found.", request.Id);
-                return Result.Failure("Program not found.");
-            }
-
-            var activateResult = program.Activate(actor, program.AncestryRoles(), _dateTimeProvider.Now);
-            if (activateResult.IsFailure)
-            {
-                // Reset the entity
-                await _projectPortfolioManagementDbContext.Entry(program).ReloadAsync(cancellationToken);
-
-                program.ClearDomainEvents();
-
-                _logger.LogError("Unable to activate Program {ProgramId}.  Error message: {Error}", request.Id, activateResult.Error);
-
-                return Result.Failure(activateResult.Error);
-            }
-
-            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Program {ProgramId} activated.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Program {ProgramId} not found.", request.Id);
+            return Result.Failure("Program not found.");
         }
-        catch (Exception ex)
+
+        var activateResult = program.Activate(actor, program.AncestryRoles(), _dateTimeProvider.Now);
+        if (activateResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            program.ClearDomainEvents();
+
+            _logger.LogError("Unable to activate Program {ProgramId}.  Error message: {Error}", request.Id, activateResult.Error);
+
+            return Result.Failure(activateResult.Error);
         }
+
+        await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Program {ProgramId} activated.", request.Id);
+
+        return Result.Success();
     }
 }

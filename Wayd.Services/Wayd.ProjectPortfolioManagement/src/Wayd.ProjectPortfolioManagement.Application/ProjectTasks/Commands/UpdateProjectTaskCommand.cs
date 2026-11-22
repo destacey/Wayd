@@ -1,3 +1,4 @@
+using Wayd.ProjectPortfolioManagement.Application.Common;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
@@ -62,128 +63,121 @@ public sealed class UpdateProjectTaskCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UpdateProjectTaskCommand>
 {
-    private const string AppRequestName = nameof(UpdateProjectTaskCommand);
-
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly ILogger<UpdateProjectTaskCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result> Handle(UpdateProjectTaskCommand request, CancellationToken cancellationToken)
     {
-        try
+        var deliverableIds = request.DeliverableIds?.Distinct().ToList() ?? [];
+
+        // Only this task's deliverable links and the named deliverables: setting links reads no others.
+        var project = await _ppmDbContext.Projects
+            .AsSplitQuery()
+            .Include(p => p.Stages)
+            .Include(p => p.Tasks)
+            .ThenInclude(t => t.Roles)
+            .Include(p => p.Tasks)
+            .ThenInclude(t => t.DeliverableLinks.Where(l => l.ProjectTaskId == request.Id))
+            .Include(p => p.Deliverables.Where(d => deliverableIds.Contains(d.Id)))
+            .FirstOrDefaultAsync(p => p.Tasks.Any(t => t.Id == request.Id), cancellationToken);
+        if (project is null)
         {
-            var deliverableIds = request.DeliverableIds?.Distinct().ToList() ?? [];
-
-            // Only this task's deliverable links and the named deliverables: setting links reads no others.
-            var project = await _ppmDbContext.Projects
-                .AsSplitQuery()
-                .Include(p => p.Stages)
-                .Include(p => p.Tasks)
-                .ThenInclude(t => t.Roles)
-                .Include(p => p.Tasks)
-                .ThenInclude(t => t.DeliverableLinks.Where(l => l.ProjectTaskId == request.Id))
-                .Include(p => p.Deliverables.Where(d => deliverableIds.Contains(d.Id)))
-                .FirstOrDefaultAsync(p => p.Tasks.Any(t => t.Id == request.Id), cancellationToken);
-            if (project is null)
-            {
-                _logger.LogInformation("Project task {TaskId} not found.", request.Id);
-                return Result.Failure("Project task not found.");
-            }
-
-            var task = project.Tasks.First(t => t.Id == request.Id);
-
-            // Validate parent — ParentId can be a stage or task, domain handles full validation
-            if (request.ParentId == request.Id)
-            {
-                _logger.LogInformation("Cannot set task {TaskId} as its own parent.", request.Id);
-                return Result.Failure("A task cannot be its own parent.");
-            }
-
-            // Update basic details
-            var detailsResult = task.UpdateDetails(request.Name, request.Description, request.Priority);
-            if (detailsResult.IsFailure)
-            {
-                return await HandleDomainFailure(project, detailsResult, cancellationToken);
-            }
-
-            // Update status
-            var statusResult = task.UpdateStatus(request.Status, _dateTimeProvider.Now);
-            if (statusResult.IsFailure)
-            {
-                return await HandleDomainFailure(project, statusResult, cancellationToken);
-            }
-
-            // Update progress
-            if (task.Type is ProjectTaskType.Task)
-            {
-                if (request.Progress is null)
-                {
-                    _logger.LogInformation("Progress must be provided for task type 'Task'.");
-                    return Result.Failure("Progress must be provided for task type 'Task'.");
-                }
-
-                var progressResult = task.UpdateProgress(request.Progress);
-                if (progressResult.IsFailure)
-                {
-                    return await HandleDomainFailure(project, progressResult, cancellationToken);
-                }
-            }
-
-            // Update effort
-            var effortResult = task.UpdateEffort(request.EstimatedEffortHours);
-            if (effortResult.IsFailure)
-            {
-                return await HandleDomainFailure(project, effortResult, cancellationToken);
-            }
-
-            // Update parent/stage if changed
-            // For root tasks, the effective parent is the stage; for child tasks, it's the parent task
-            var effectiveCurrentParentId = task.ParentId ?? task.ProjectStageId;
-            var parentChanging = request.ParentId != effectiveCurrentParentId;
-
-            // Update planned dates
-            var plannedDatesResult = project.UpdateTaskDates(task.Id, request.PlannedDateRange, request.PlannedDate, parentChanging);
-            if (plannedDatesResult.IsFailure)
-            {
-                return await HandleDomainFailure(project, plannedDatesResult, cancellationToken);
-            }
-
-            if (parentChanging)
-            {
-                var parentResult = project.ChangeTaskPlacement(task.Id, request.ParentId, null);
-                if (parentResult.IsFailure)
-                {
-                    return await HandleDomainFailure(project, parentResult, cancellationToken);
-                }
-            }
-
-            var roles = GetRoles(request);
-            var updateRolesResult = task.UpdateRoles(roles);
-            if (updateRolesResult.IsFailure)
-            {
-                return await HandleDomainFailure(project, updateRolesResult, cancellationToken);
-            }
-
-            if (request.DeliverableIds is not null)
-            {
-                var linkResult = project.SetTaskDeliverables(task.Id, deliverableIds);
-                if (linkResult.IsFailure)
-                {
-                    return await HandleDomainFailure(project, linkResult, cancellationToken);
-                }
-            }
-
-            await _ppmDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Project task {TaskId} updated successfully.", task.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Project task {TaskId} not found.", request.Id);
+            return Result.Failure("Project task not found.");
         }
-        catch (Exception ex)
+
+        var task = project.Tasks.First(t => t.Id == request.Id);
+
+        // Validate parent — ParentId can be a stage or task, domain handles full validation
+        if (request.ParentId == request.Id)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogInformation("Cannot set task {TaskId} as its own parent.", request.Id);
+            return Result.Failure("A task cannot be its own parent.");
         }
+
+        // Update basic details
+        var detailsResult = task.UpdateDetails(request.Name, request.Description, request.Priority);
+        if (detailsResult.IsFailure)
+        {
+            return HandleDomainFailure(project, detailsResult);
+        }
+
+        // Update status
+        var statusResult = task.UpdateStatus(request.Status, _dateTimeProvider.Now);
+        if (statusResult.IsFailure)
+        {
+            return HandleDomainFailure(project, statusResult);
+        }
+
+        // Update progress
+        if (task.Type is ProjectTaskType.Task)
+        {
+            if (request.Progress is null)
+            {
+                _logger.LogInformation("Progress must be provided for task type 'Task'.");
+                return Result.Failure("Progress must be provided for task type 'Task'.");
+            }
+
+            var progressResult = task.UpdateProgress(request.Progress);
+            if (progressResult.IsFailure)
+            {
+                return HandleDomainFailure(project, progressResult);
+            }
+        }
+
+        // Update effort
+        var effortResult = task.UpdateEffort(request.EstimatedEffortHours);
+        if (effortResult.IsFailure)
+        {
+            return HandleDomainFailure(project, effortResult);
+        }
+
+        // Update parent/stage if changed
+        // For root tasks, the effective parent is the stage; for child tasks, it's the parent task
+        var effectiveCurrentParentId = task.ParentId ?? task.ProjectStageId;
+        var parentChanging = request.ParentId != effectiveCurrentParentId;
+
+        // Update planned dates
+        var plannedDatesResult = project.UpdateTaskDates(task.Id, request.PlannedDateRange, request.PlannedDate, parentChanging);
+        if (plannedDatesResult.IsFailure)
+        {
+            return HandleDomainFailure(project, plannedDatesResult);
+        }
+
+        if (parentChanging)
+        {
+            var parentResult = project.ChangeTaskPlacement(task.Id, request.ParentId, null);
+            if (parentResult.IsFailure)
+            {
+                return HandleDomainFailure(project, parentResult);
+            }
+        }
+
+        var roles = GetRoles(request);
+        var peopleExist = await _ppmDbContext.EnsureEmployeesExist(roles.Values.SelectMany(ids => ids), cancellationToken);
+        if (peopleExist.IsFailure)
+            return Result.Failure(peopleExist.Error);
+        var updateRolesResult = task.UpdateRoles(roles);
+        if (updateRolesResult.IsFailure)
+        {
+            return HandleDomainFailure(project, updateRolesResult);
+        }
+
+        if (request.DeliverableIds is not null)
+        {
+            var linkResult = project.SetTaskDeliverables(task.Id, deliverableIds);
+            if (linkResult.IsFailure)
+            {
+                return HandleDomainFailure(project, linkResult);
+            }
+        }
+
+        await _ppmDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Project task {TaskId} updated successfully.", task.Id);
+
+        return Result.Success();
     }
 
     private async Task<HashSet<Guid>> GetDescendantIds(Guid taskId, CancellationToken cancellationToken)
@@ -216,36 +210,8 @@ public sealed class UpdateProjectTaskCommandHandler(
         return roles;
     }
 
-    private async Task<Result> HandleDomainFailure(Project project, Result errorResult, CancellationToken cancellationToken)
+    private Result HandleDomainFailure(Project project, Result errorResult)
     {
-        try
-        {
-            // Reset the project aggregate and all tasks/stages
-            await _ppmDbContext.Entry(project).ReloadAsync(cancellationToken);
-            foreach (var task in project.Tasks)
-            {
-                await _ppmDbContext.Entry(task).ReloadAsync(cancellationToken);
-                task.ClearDomainEvents();
-            }
-            foreach (var stage in project.Stages)
-            {
-                await _ppmDbContext.Entry(stage).ReloadAsync(cancellationToken);
-                stage.ClearDomainEvents();
-            }
-        }
-        catch (NotImplementedException)
-        {
-            // Fallback for FakeProjectPortfolioManagementDbContext in unit tests
-            foreach (var task in project.Tasks)
-            {
-                task.ClearDomainEvents();
-            }
-            foreach (var stage in project.Stages)
-            {
-                stage.ClearDomainEvents();
-            }
-        }
-
         _logger.LogError("Unable to update project task. Error message: {Error}", errorResult.Error);
         return Result.Failure(errorResult.Error);
     }

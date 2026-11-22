@@ -15,8 +15,6 @@ public sealed class CompleteStrategicInitiativeCommandValidator : AbstractValida
 
 public sealed class CompleteStrategicInitiativeCommandHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext, ILogger<CompleteStrategicInitiativeCommandHandler> logger, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider) : ICommandHandler<CompleteStrategicInitiativeCommand>
 {
-    private const string AppRequestName = nameof(CompleteStrategicInitiativeCommand);
-
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<CompleteStrategicInitiativeCommandHandler> _logger = logger;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -24,39 +22,28 @@ public sealed class CompleteStrategicInitiativeCommandHandler(IProjectPortfolioM
 
     public async Task<Result> Handle(CompleteStrategicInitiativeCommand request, CancellationToken cancellationToken)
     {
-        try
+        var strategicInitiative = await _projectPortfolioManagementDbContext.StrategicInitiatives
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+        if (strategicInitiative is null)
         {
-            var strategicInitiative = await _projectPortfolioManagementDbContext.StrategicInitiatives
-                .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
-            if (strategicInitiative is null)
-            {
-                _logger.LogInformation("Strategic Initiative {StrategicInitiativeId} not found.", request.Id);
-                return Result.Failure("Strategic Initiative not found.");
-            }
-
-            var completeResult = strategicInitiative.Complete(EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
-            if (completeResult.IsFailure)
-            {
-                // Reset the entity
-                await _projectPortfolioManagementDbContext.Entry(strategicInitiative).ReloadAsync(cancellationToken);
-
-                strategicInitiative.ClearDomainEvents();
-
-                _logger.LogError("Unable to complete Strategic Initiative {StrategicInitiativeId}.  Error message: {Error}", request.Id, completeResult.Error);
-
-                return Result.Failure(completeResult.Error);
-            }
-
-            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Strategic Initiative {StrategicInitiativeId} completed.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Strategic Initiative {StrategicInitiativeId} not found.", request.Id);
+            return Result.Failure("Strategic Initiative not found.");
         }
-        catch (Exception ex)
+
+        var completeResult = strategicInitiative.Complete(EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+        if (completeResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            strategicInitiative.ClearDomainEvents();
+
+            _logger.LogError("Unable to complete Strategic Initiative {StrategicInitiativeId}.  Error message: {Error}", request.Id, completeResult.Error);
+
+            return Result.Failure(completeResult.Error);
         }
+
+        await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Strategic Initiative {StrategicInitiativeId} completed.", request.Id);
+
+        return Result.Success();
     }
 }

@@ -25,7 +25,6 @@ public sealed class DeleteStrategicInitiativeCommandHandler(
     IKpiWriter kpiWriter)
     : ICommandHandler<DeleteStrategicInitiativeCommand>
 {
-    private const string AppRequestName = nameof(DeleteStrategicInitiativeCommand);
     private readonly ILinkWriter _linkWriter = linkWriter;
     private readonly IKpiWriter _kpiWriter = kpiWriter;
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
@@ -35,53 +34,45 @@ public sealed class DeleteStrategicInitiativeCommandHandler(
 
     public async Task<Result> Handle(DeleteStrategicInitiativeCommand request, CancellationToken cancellationToken)
     {
-        try
+        var strategicInitiative = await _projectPortfolioManagementDbContext.StrategicInitiatives
+            .Include(s => s.Roles)
+            .Include(s => s.StrategicInitiativeProjects)
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+        if (strategicInitiative == null)
         {
-            var strategicInitiative = await _projectPortfolioManagementDbContext.StrategicInitiatives
-                .Include(s => s.Roles)
-                .Include(s => s.StrategicInitiativeProjects)
-                .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
-            if (strategicInitiative == null)
-            {
-                _logger.LogInformation("Strategic Initiative with Id {StrategicInitiativeId} not found.", request.Id);
-                return Result.Failure("Strategic Initiative not found.");
-            }
-
-            var portfolio = await _projectPortfolioManagementDbContext.Portfolios
-                    .Include(p => p.StrategicInitiatives.Where(i => i.Id == request.Id))
-                    // The rest of the strategic initiative relationships are already include from the initial strategicInitiative query
-                    .FirstOrDefaultAsync(p => p.Id == strategicInitiative.PortfolioId, cancellationToken);
-            if (portfolio == null)
-            {
-                _logger.LogInformation("Portfolio with Id {PortfolioId} not found.", strategicInitiative.PortfolioId);
-                return Result.Failure("Portfolio not found.");
-            }
-
-            var actor = EventActor.User(_currentUser.GetUserId());
-            var deleteResult = portfolio.DeleteStrategicInitiative(
-                strategicInitiative.Id,
-                actor,
-                _dateTimeProvider.Now);
-            if (deleteResult.IsFailure)
-            {
-                _logger.LogError("Error deleting Strategic Initiative {StrategicInitiativeId}. Error message: {Error}", request.Id, deleteResult.Error);
-                return Result.Failure(deleteResult.Error);
-            }
-
-            // A link has no foreign key to its record, so it would outlive the initiative.
-            await _linkWriter.RemoveAll(PpmLinkOwners.StrategicInitiative.Key, strategicInitiative.Id, actor, cancellationToken);
-            await _kpiWriter.RemoveAll(PpmKpiSubjects.StrategicInitiative.Key, strategicInitiative.Id, actor, cancellationToken);
-
-            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Strategic Initiative {StrategicInitiativeId} with Key {StrategicInitiativeKey} deleted", strategicInitiative.Id, strategicInitiative.Key);
-
-            return Result.Success();
+            _logger.LogInformation("Strategic Initiative with Id {StrategicInitiativeId} not found.", request.Id);
+            return Result.Failure("Strategic Initiative not found.");
         }
-        catch (Exception ex)
+
+        var portfolio = await _projectPortfolioManagementDbContext.Portfolios
+                .Include(p => p.StrategicInitiatives.Where(i => i.Id == request.Id))
+                // The rest of the strategic initiative relationships are already include from the initial strategicInitiative query
+                .FirstOrDefaultAsync(p => p.Id == strategicInitiative.PortfolioId, cancellationToken);
+        if (portfolio == null)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogInformation("Portfolio with Id {PortfolioId} not found.", strategicInitiative.PortfolioId);
+            return Result.Failure("Portfolio not found.");
         }
+
+        var actor = EventActor.User(_currentUser.GetUserId());
+        var deleteResult = portfolio.DeleteStrategicInitiative(
+            strategicInitiative.Id,
+            actor,
+            _dateTimeProvider.Now);
+        if (deleteResult.IsFailure)
+        {
+            _logger.LogError("Error deleting Strategic Initiative {StrategicInitiativeId}. Error message: {Error}", request.Id, deleteResult.Error);
+            return Result.Failure(deleteResult.Error);
+        }
+
+        // A link has no foreign key to its record, so it would outlive the initiative.
+        await _linkWriter.RemoveAll(PpmLinkOwners.StrategicInitiative.Key, strategicInitiative.Id, actor, cancellationToken);
+        await _kpiWriter.RemoveAll(PpmKpiSubjects.StrategicInitiative.Key, strategicInitiative.Id, actor, cancellationToken);
+
+        await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Strategic Initiative {StrategicInitiativeId} with Key {StrategicInitiativeKey} deleted", strategicInitiative.Id, strategicInitiative.Key);
+
+        return Result.Success();
     }
 }

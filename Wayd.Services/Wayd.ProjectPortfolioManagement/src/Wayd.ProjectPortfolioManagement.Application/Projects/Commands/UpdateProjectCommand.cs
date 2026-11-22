@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Application.Attachments;
+﻿using Wayd.ProjectPortfolioManagement.Application.Common;
+using Wayd.Common.Application.Attachments;
 using Wayd.Common.Application.Models;
 using Wayd.ProjectPortfolioManagement.Domain;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
@@ -134,29 +135,38 @@ public sealed class UpdateProjectCommandHandler(
             );
             if (updateResult.IsFailure)
             {
-                return await HandleDomainFailure(project, updateResult, cancellationToken);
+                return HandleDomainFailure(project, updateResult);
             }
 
             var updateTimelineResult = project.UpdateTimeline(actor, ancestry, request.DateRange, _dateTimeProvider.Now);
             if (updateTimelineResult.IsFailure)
             {
-                return await HandleDomainFailure(project, updateTimelineResult, cancellationToken);
+                return HandleDomainFailure(project, updateTimelineResult);
             }
 
             var strategicThemes = request.StrategicThemeIds?.ToHashSet() ?? [];
+            // Each theme is a foreign key to the replica, so an unknown one is refused here rather than at the database.
+            if (strategicThemes.Count > 0
+                && await _projectPortfolioManagementDbContext.PpmStrategicThemes.CountAsync(st => strategicThemes.Contains(st.Id), cancellationToken) != strategicThemes.Count)
+            {
+                return Result.Failure("One or more Strategic Themes not found.");
+            }
             var updateStrategicThemesResult = project.UpdateStrategicThemes(actor, ancestry, strategicThemes, _dateTimeProvider.Now);
             if (updateStrategicThemesResult.IsFailure)
             {
-                return await HandleDomainFailure(project, updateStrategicThemesResult, cancellationToken);
+                return HandleDomainFailure(project, updateStrategicThemesResult);
             }
 
             // Last: roles decide who may manage the project, so an edit that removes the actor's own role
             // would otherwise refuse the rest of the actor's changes in the same request.
             var roles = GetRoles(request);
+            var peopleExist = await _projectPortfolioManagementDbContext.EnsureEmployeesExist(roles.Values.SelectMany(ids => ids), cancellationToken);
+            if (peopleExist.IsFailure)
+                return Result.Failure(peopleExist.Error);
             var updateRolesResult = project.UpdateRoles(actor, ancestry, roles, _dateTimeProvider.Now);
             if (updateRolesResult.IsFailure)
             {
-                return await HandleDomainFailure(project, updateRolesResult, cancellationToken);
+                return HandleDomainFailure(project, updateRolesResult);
             }
 
             await _markdownAttachments.Claim(
@@ -174,11 +184,6 @@ public sealed class UpdateProjectCommandHandler(
         catch (DbUpdateConcurrencyException)
         {
             return Result.Failure(ProjectSaves.StaleError);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
         }
     }
 
@@ -206,12 +211,8 @@ public sealed class UpdateProjectCommandHandler(
         return roles;
     }
 
-    private async Task<Result> HandleDomainFailure(Project project, Result errorResult, CancellationToken cancellationToken)
+    private Result HandleDomainFailure(Project project, Result errorResult)
     {
-        // Reset the entity
-        await _projectPortfolioManagementDbContext.Entry(project).ReloadAsync(cancellationToken);
-        project.ClearDomainEvents();
-
         _logger.LogError("Unable to update Project {ProjectId}.  Error message: {Error}", project.Id, errorResult.Error);
         return Result.Failure(errorResult.Error);
     }

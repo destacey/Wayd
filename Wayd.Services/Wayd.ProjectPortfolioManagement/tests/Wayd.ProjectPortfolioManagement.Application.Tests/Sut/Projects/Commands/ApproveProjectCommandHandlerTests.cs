@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using Wayd.Common.Application.Exceptions;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Interfaces;
 using Wayd.ProjectPortfolioManagement.Application.Common;
@@ -152,7 +153,7 @@ public class ApproveProjectCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_ShouldThrow_WhenUserHasNoLinkedEmployee()
+    public async Task Handle_ShouldBeForbidden_WhenUserHasNoLinkedEmployee()
     {
         // Arrange — every managed PPM action must be attributable to an employee.
         _mockCurrentPrincipal
@@ -161,14 +162,16 @@ public class ApproveProjectCommandHandlerTests : IDisposable
 
         var project = _projectFaker.AsProposed(_dateTimeProvider, Guid.NewGuid());
         _dbContext.AddProject(project);
+        var status = project.Status;
 
         var command = new ApproveProjectCommand(project.Id);
 
         // Act
-        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+        var act = () => _handler.Handle(command, TestContext.Current.CancellationToken);
 
-        // Assert — the handler's catch-all converts the thrown guard into a failure result.
-        result.IsFailure.Should().BeTrue();
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>().WithMessage("*isn't linked to an employee record*");
+        project.Status.Should().Be(status);
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 

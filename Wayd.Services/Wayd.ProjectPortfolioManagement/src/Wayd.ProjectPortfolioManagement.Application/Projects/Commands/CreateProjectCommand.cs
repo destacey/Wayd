@@ -1,3 +1,4 @@
+using Wayd.ProjectPortfolioManagement.Application.Common;
 using Wayd.Common.Application.Attachments;
 using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
@@ -134,6 +135,9 @@ public sealed class CreateProjectCommandHandler(
             }
 
             var roles = GetRoles(request);
+            var peopleExist = await _projectPortfolioManagementDbContext.EnsureEmployeesExist(roles.Values.SelectMany(ids => ids), cancellationToken);
+            if (peopleExist.IsFailure)
+                return Result.Failure<ProjectIdAndKey>(peopleExist.Error);
 
             var projectKey = new ProjectKey(request.Key);
 
@@ -211,11 +215,6 @@ public sealed class CreateProjectCommandHandler(
         {
             // Only an image can conflict on a new project: another save claimed it, or the sweep deleted it.
             return Result.Failure<ProjectIdAndKey>(ImageConflictError);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<ProjectIdAndKey>($"Error handling {AppRequestName} command.");
         }
     }
 

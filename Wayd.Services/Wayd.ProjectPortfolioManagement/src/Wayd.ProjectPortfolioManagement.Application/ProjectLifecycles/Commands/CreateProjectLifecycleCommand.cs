@@ -41,36 +41,26 @@ public sealed class CreateProjectLifecycleCommandHandler(
     ILogger<CreateProjectLifecycleCommandHandler> logger)
     : ICommandHandler<CreateProjectLifecycleCommand, Guid>
 {
-    private const string AppRequestName = nameof(CreateProjectLifecycleCommand);
-
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<CreateProjectLifecycleCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(CreateProjectLifecycleCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var stages = request.Stages?
-                .Select(p => (p.Name, p.Description))
-                .ToList();
+        var stages = request.Stages?
+            .Select(p => (p.Name, p.Description))
+            .ToList();
 
-            var lifecycle = ProjectLifecycle.Create(
-                request.Name,
-                request.Description,
-                stages
-                );
+        var lifecycle = ProjectLifecycle.Create(
+            request.Name,
+            request.Description,
+            stages
+            );
 
-            await _projectPortfolioManagementDbContext.ProjectLifecycles.AddAsync(lifecycle, cancellationToken);
-            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
+        await _projectPortfolioManagementDbContext.ProjectLifecycles.AddAsync(lifecycle, cancellationToken);
+        await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Project Lifecycle {ProjectLifecycleId} created.", lifecycle.Id);
+        _logger.LogInformation("Project Lifecycle {ProjectLifecycleId} created.", lifecycle.Id);
 
-            return Result.Success(lifecycle.Id);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<Guid>($"Error handling {AppRequestName} command.");
-        }
+        return Result.Success(lifecycle.Id);
     }
 }

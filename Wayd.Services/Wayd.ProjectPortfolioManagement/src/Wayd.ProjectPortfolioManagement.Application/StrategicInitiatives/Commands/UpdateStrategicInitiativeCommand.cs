@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Domain.Events;
+﻿using Wayd.ProjectPortfolioManagement.Application.Common;
+using Wayd.Common.Domain.Events;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models.StrategicInitiatives;
 
@@ -41,7 +42,6 @@ public sealed class UpdateStrategicInitiativeCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UpdateStrategicInitiativeCommand>
 {
-    private const string AppRequestName = nameof(UpdateStrategicInitiativeCommand);
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<UpdateStrategicInitiativeCommandHandler> _logger = logger;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -49,51 +49,46 @@ public sealed class UpdateStrategicInitiativeCommandHandler(
 
     public async Task<Result> Handle(UpdateStrategicInitiativeCommand request, CancellationToken cancellationToken)
     {
-        try
+        var strategicInitiative = await _projectPortfolioManagementDbContext.StrategicInitiatives
+            .Include(s => s.Roles)
+            .Include(s => s.StrategicInitiativeProjects)
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+        if (strategicInitiative == null)
         {
-            var strategicInitiative = await _projectPortfolioManagementDbContext.StrategicInitiatives
-                .Include(s => s.Roles)
-                .Include(s => s.StrategicInitiativeProjects)
-                .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
-            if (strategicInitiative == null)
-            {
-                _logger.LogInformation("Strategic Initiative with Id {StrategicInitiativeId} not found.", request.Id);
-                return Result.Failure("Strategic Initiative not found.");
-            }
-
-            var actor = EventActor.User(_currentUser.GetUserId());
-            var timestamp = _dateTimeProvider.Now;
-
-            var updateResult = strategicInitiative.UpdateDetails(request.Name, request.Description, actor, timestamp);
-            if (updateResult.IsFailure)
-            {
-                return await HandleDomainFailure(strategicInitiative, updateResult, cancellationToken);
-            }
-
-            var timelineResult = strategicInitiative.UpdateTimeline(request.DateRange, actor, timestamp);
-            if (timelineResult.IsFailure)
-            {
-                return await HandleDomainFailure(strategicInitiative, timelineResult, cancellationToken);
-            }
-
-            var roles = GetRoles(request);
-            var updateRolesResult = strategicInitiative.UpdateRoles(roles, actor, timestamp);
-            if (updateRolesResult.IsFailure)
-            {
-                return await HandleDomainFailure(strategicInitiative, updateRolesResult, cancellationToken);
-            }
-
-            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Strategic Initiative {StrategicInitiativeId} updated successfully.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Strategic Initiative with Id {StrategicInitiativeId} not found.", request.Id);
+            return Result.Failure("Strategic Initiative not found.");
         }
-        catch (Exception ex)
+
+        var actor = EventActor.User(_currentUser.GetUserId());
+        var timestamp = _dateTimeProvider.Now;
+
+        var updateResult = strategicInitiative.UpdateDetails(request.Name, request.Description, actor, timestamp);
+        if (updateResult.IsFailure)
         {
-            _logger.LogError(ex, "{AppRequestName} failed.", AppRequestName);
-            return Result.Failure("An error occurred while updating the strategic initiative.");
+            return HandleDomainFailure(strategicInitiative, updateResult);
         }
+
+        var timelineResult = strategicInitiative.UpdateTimeline(request.DateRange, actor, timestamp);
+        if (timelineResult.IsFailure)
+        {
+            return HandleDomainFailure(strategicInitiative, timelineResult);
+        }
+
+        var roles = GetRoles(request);
+        var peopleExist = await _projectPortfolioManagementDbContext.EnsureEmployeesExist(roles.Values.SelectMany(ids => ids), cancellationToken);
+        if (peopleExist.IsFailure)
+            return Result.Failure(peopleExist.Error);
+        var updateRolesResult = strategicInitiative.UpdateRoles(roles, actor, timestamp);
+        if (updateRolesResult.IsFailure)
+        {
+            return HandleDomainFailure(strategicInitiative, updateRolesResult);
+        }
+
+        await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Strategic Initiative {StrategicInitiativeId} updated successfully.", request.Id);
+
+        return Result.Success();
     }
 
     private static Dictionary<StrategicInitiativeRole, HashSet<Guid>> GetRoles(UpdateStrategicInitiativeCommand request)
@@ -112,12 +107,8 @@ public sealed class UpdateStrategicInitiativeCommandHandler(
         return roles;
     }
 
-    private async Task<Result> HandleDomainFailure(StrategicInitiative strategicInitiative, Result errorResult, CancellationToken cancellationToken)
+    private Result HandleDomainFailure(StrategicInitiative strategicInitiative, Result errorResult)
     {
-        // Reset the entity
-        await _projectPortfolioManagementDbContext.Entry(strategicInitiative).ReloadAsync(cancellationToken);
-        strategicInitiative.ClearDomainEvents();
-
         _logger.LogError("Unable to update strategic initiative {StrategicInitiativeId}.  Error message: {Error}", strategicInitiative.Id, errorResult.Error);
         return Result.Failure(errorResult.Error);
     }

@@ -1,4 +1,5 @@
-﻿using Wayd.ProjectPortfolioManagement.Domain.Enums;
+﻿using Wayd.ProjectPortfolioManagement.Application.Common;
+using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
@@ -46,8 +47,6 @@ public sealed class UpdateProgramCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UpdateProgramCommand>
 {
-    private const string AppRequestName = nameof(UpdateProgramCommand);
-
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -56,70 +55,71 @@ public sealed class UpdateProgramCommandHandler(
 
     public async Task<Result> Handle(UpdateProgramCommand request, CancellationToken cancellationToken)
     {
-        try
+        var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
+
+        // Portfolio roles are loaded because delivery leadership inherits downward — an Owner/Manager
+        // on the parent portfolio may manage this program even without a role on the program itself.
+        var program = await _ppmDbContext.Programs
+            .AsSplitQuery()
+            .Include(p => p.Roles)
+            .Include(p => p.StrategicThemeTags)
+            .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
+            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+        if (program == null)
         {
-            var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
-
-            // Portfolio roles are loaded because delivery leadership inherits downward — an Owner/Manager
-            // on the parent portfolio may manage this program even without a role on the program itself.
-            var program = await _ppmDbContext.Programs
-                .AsSplitQuery()
-                .Include(p => p.Roles)
-                .Include(p => p.StrategicThemeTags)
-                .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
-                .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
-            if (program == null)
-            {
-                _logger.LogInformation("Program with Id {ProgramId} not found.", request.Id);
-                return Result.Failure("Program not found.");
-            }
-
-            var ancestry = program.AncestryRoles();
-
-            var updateResult = program.UpdateDetails(
-                actor,
-                ancestry,
-                request.Name,
-                request.Description,
-                _dateTimeProvider.Now);
-            if (updateResult.IsFailure)
-            {
-                return await HandleDomainFailure(program, updateResult, cancellationToken);
-            }
-
-            var updateTimelineResult = program.UpdateTimeline(actor, ancestry, request.DateRange, _dateTimeProvider.Now);
-            if (updateTimelineResult.IsFailure)
-            {
-                return await HandleDomainFailure(program, updateTimelineResult, cancellationToken);
-            }
-
-            var strategicThemes = request.StrategicThemeIds?.ToHashSet() ?? [];
-            var updateStrategicThemesResult = program.UpdateStrategicThemes(actor, ancestry, strategicThemes, _dateTimeProvider.Now);
-            if (updateStrategicThemesResult.IsFailure)
-            {
-                return await HandleDomainFailure(program, updateStrategicThemesResult, cancellationToken);
-            }
-
-            // Last: roles decide who may manage the program, so an edit that removes the actor's own role
-            // would otherwise refuse the rest of the actor's changes in the same request.
-            var roles = GetRoles(request);
-            var updateRolesResult = program.UpdateRoles(actor, ancestry, roles, _dateTimeProvider.Now);
-            if (updateRolesResult.IsFailure)
-            {
-                return await HandleDomainFailure(program, updateRolesResult, cancellationToken);
-            }
-
-            await _ppmDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Program {ProgramId} updated.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Program with Id {ProgramId} not found.", request.Id);
+            return Result.Failure("Program not found.");
         }
-        catch (Exception ex)
+
+        var ancestry = program.AncestryRoles();
+
+        var updateResult = program.UpdateDetails(
+            actor,
+            ancestry,
+            request.Name,
+            request.Description,
+            _dateTimeProvider.Now);
+        if (updateResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            return HandleDomainFailure(program, updateResult);
         }
+
+        var updateTimelineResult = program.UpdateTimeline(actor, ancestry, request.DateRange, _dateTimeProvider.Now);
+        if (updateTimelineResult.IsFailure)
+        {
+            return HandleDomainFailure(program, updateTimelineResult);
+        }
+
+        var strategicThemes = request.StrategicThemeIds?.ToHashSet() ?? [];
+        // Each theme is a foreign key to the replica, so an unknown one is refused here rather than at the database.
+        if (strategicThemes.Count > 0
+            && await _ppmDbContext.PpmStrategicThemes.CountAsync(st => strategicThemes.Contains(st.Id), cancellationToken) != strategicThemes.Count)
+        {
+            return Result.Failure("One or more Strategic Themes not found.");
+        }
+        var updateStrategicThemesResult = program.UpdateStrategicThemes(actor, ancestry, strategicThemes, _dateTimeProvider.Now);
+        if (updateStrategicThemesResult.IsFailure)
+        {
+            return HandleDomainFailure(program, updateStrategicThemesResult);
+        }
+
+        // Last: roles decide who may manage the program, so an edit that removes the actor's own role
+        // would otherwise refuse the rest of the actor's changes in the same request.
+        var roles = GetRoles(request);
+        var peopleExist = await _ppmDbContext.EnsureEmployeesExist(roles.Values.SelectMany(ids => ids), cancellationToken);
+        if (peopleExist.IsFailure)
+            return Result.Failure(peopleExist.Error);
+        var updateRolesResult = program.UpdateRoles(actor, ancestry, roles, _dateTimeProvider.Now);
+        if (updateRolesResult.IsFailure)
+        {
+            return HandleDomainFailure(program, updateRolesResult);
+        }
+
+        await _ppmDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Program {ProgramId} updated.", request.Id);
+
+        return Result.Success();
     }
 
     private static Dictionary<ProgramRole, HashSet<Guid>> GetRoles(UpdateProgramCommand request)
@@ -142,12 +142,8 @@ public sealed class UpdateProgramCommandHandler(
         return roles;
     }
 
-    private async Task<Result> HandleDomainFailure(Program program, Result errorResult, CancellationToken cancellationToken)
+    private Result HandleDomainFailure(Program program, Result errorResult)
     {
-        // Reset the entity
-        await _ppmDbContext.Entry(program).ReloadAsync(cancellationToken);
-        program.ClearDomainEvents();
-
         _logger.LogError("Unable to update Program {ProgramId}.  Error message: {Error}", program.Id, errorResult.Error);
         return Result.Failure(errorResult.Error);
     }

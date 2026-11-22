@@ -71,10 +71,6 @@ public sealed class CancelProjectCommandHandler(
             var cancelResult = project.Cancel(actor, project.AncestryRoles(), _dateTimeProvider.Now, descopedStatus: descoped);
             if (cancelResult.IsFailure)
             {
-                // Reset the entity
-                await _projectPortfolioManagementDbContext.Entry(project).ReloadAsync(cancellationToken);
-                project.ClearDomainEvents();
-
                 _logger.LogError("Unable to cancel Project {ProjectId}.  Error message: {Error}", request.Id, cancelResult.Error);
                 return Result.Failure(cancelResult.Error);
             }
@@ -88,11 +84,6 @@ public sealed class CancelProjectCommandHandler(
         catch (DbUpdateConcurrencyException)
         {
             return Result.Failure(ProjectSaves.StaleError);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
         }
     }
 }

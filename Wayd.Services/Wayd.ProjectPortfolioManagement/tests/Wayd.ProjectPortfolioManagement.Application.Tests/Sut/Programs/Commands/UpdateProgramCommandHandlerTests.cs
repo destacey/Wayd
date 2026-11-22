@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using Wayd.Common.Application.Exceptions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime.Extensions;
@@ -198,7 +199,7 @@ public class UpdateProgramCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_ShouldFail_WhenUserHasNoLinkedEmployee()
+    public async Task Handle_ShouldBeForbidden_WhenUserHasNoLinkedEmployee()
     {
         // Arrange
         _mockCurrentPrincipal
@@ -209,10 +210,10 @@ public class UpdateProgramCommandHandlerTests : IDisposable
         _dbContext.AddProgram(program);
 
         // Act
-        var result = await _handler.Handle(CommandFor(program), TestContext.Current.CancellationToken);
+        var act = () => _handler.Handle(CommandFor(program), TestContext.Current.CancellationToken);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
+        await act.Should().ThrowAsync<ForbiddenException>().WithMessage("*isn't linked to an employee record*");
         program.Name.Should().Be("Original");
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }

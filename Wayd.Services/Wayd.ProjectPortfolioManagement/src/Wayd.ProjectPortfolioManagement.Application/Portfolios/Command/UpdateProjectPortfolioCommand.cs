@@ -1,4 +1,5 @@
-﻿using Wayd.ProjectPortfolioManagement.Domain.Enums;
+﻿using Wayd.ProjectPortfolioManagement.Application.Common;
+using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
@@ -41,8 +42,6 @@ public sealed class UpdateProjectPortfolioCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UpdateProjectPortfolioCommand>
 {
-    private const string AppRequestName = nameof(UpdateProjectPortfolioCommand);
-
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -51,49 +50,44 @@ public sealed class UpdateProjectPortfolioCommandHandler(
 
     public async Task<Result> Handle(UpdateProjectPortfolioCommand request, CancellationToken cancellationToken)
     {
-        try
+        var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
+
+        // A portfolio has no ancestor, so its own roles are the whole membership picture.
+        var portfolio = await _projectPortfolioManagementDbContext.Portfolios
+            .Include(p => p.Roles)
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+        if (portfolio is null)
         {
-            var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
-
-            // A portfolio has no ancestor, so its own roles are the whole membership picture.
-            var portfolio = await _projectPortfolioManagementDbContext.Portfolios
-                .Include(p => p.Roles)
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-            if (portfolio is null)
-            {
-                _logger.LogInformation("Project Portfolio {ProjectPortfolioId} not found.", request.Id);
-                return Result.Failure("Project Portfolio not found.");
-            }
-
-            var updateResult = portfolio.UpdateDetails(
-                actor,
-                request.Name,
-                request.Description,
-                _dateTimeProvider.Now
-                );
-            if (updateResult.IsFailure)
-            {
-                return await HandleDomainFailure(portfolio, updateResult, cancellationToken);
-            }
-
-            var roles = GetRoles(request);
-            var updateRolesResult = portfolio.UpdateRoles(actor, roles, _dateTimeProvider.Now);
-            if (updateRolesResult.IsFailure)
-            {
-                return await HandleDomainFailure(portfolio, updateRolesResult, cancellationToken);
-            }
-
-            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Project Portfolio {ProjectPortfolioId} updated.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Project Portfolio {ProjectPortfolioId} not found.", request.Id);
+            return Result.Failure("Project Portfolio not found.");
         }
-        catch (Exception ex)
+
+        var updateResult = portfolio.UpdateDetails(
+            actor,
+            request.Name,
+            request.Description,
+            _dateTimeProvider.Now
+            );
+        if (updateResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            return HandleDomainFailure(portfolio, updateResult);
         }
+
+        var roles = GetRoles(request);
+        var peopleExist = await _projectPortfolioManagementDbContext.EnsureEmployeesExist(roles.Values.SelectMany(ids => ids), cancellationToken);
+        if (peopleExist.IsFailure)
+            return Result.Failure(peopleExist.Error);
+        var updateRolesResult = portfolio.UpdateRoles(actor, roles, _dateTimeProvider.Now);
+        if (updateRolesResult.IsFailure)
+        {
+            return HandleDomainFailure(portfolio, updateRolesResult);
+        }
+
+        await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Project Portfolio {ProjectPortfolioId} updated.", request.Id);
+
+        return Result.Success();
     }
 
     private static Dictionary<ProjectPortfolioRole, HashSet<Guid>> GetRoles(UpdateProjectPortfolioCommand request)
@@ -116,12 +110,8 @@ public sealed class UpdateProjectPortfolioCommandHandler(
         return roles;
     }
 
-    private async Task<Result> HandleDomainFailure(ProjectPortfolio portfolio, Result errorResult, CancellationToken cancellationToken)
+    private Result HandleDomainFailure(ProjectPortfolio portfolio, Result errorResult)
     {
-        // Reset the entity
-        await _projectPortfolioManagementDbContext.Entry(portfolio).ReloadAsync(cancellationToken);
-        portfolio.ClearDomainEvents();
-
         _logger.LogError("Unable to update Project Portfolio {ProjectPortfolioId}.  Error message: {Error}", portfolio.Id, errorResult.Error);
         return Result.Failure(errorResult.Error);
     }

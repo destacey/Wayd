@@ -1,9 +1,11 @@
 ﻿using FluentAssertions;
+using Wayd.Common.Application.Exceptions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
 using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Tests.Data;
 using Wayd.ProjectPortfolioManagement.Application.Common;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Command;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
@@ -134,6 +136,7 @@ public class UpdateProjectPortfolioCommandHandlerTests : IDisposable
             .ReturnsAsync(true);
 
         var newOwnerId = Guid.NewGuid();
+        _dbContext.AddEmployee(new EmployeeFaker().WithId(newOwnerId).Generate());
         var portfolio = PortfolioWith();
         _dbContext.AddPortfolio(portfolio);
 
@@ -142,9 +145,30 @@ public class UpdateProjectPortfolioCommandHandlerTests : IDisposable
             CommandFor(portfolio, ownerIds: [newOwnerId]), TestContext.Current.CancellationToken);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         portfolio.Roles.Should().ContainSingle(r => r.EmployeeId == newOwnerId && r.Role == ProjectPortfolioRole.Owner);
         _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFail_WhenARoleNamesAnUnknownEmployee()
+    {
+        // Arrange — each role is a foreign key to the employee, so an unknown one would otherwise fail at the database
+        _mockCurrentPrincipal
+            .Setup(p => p.HasPermission(PpmAuthorizationExtensions.PpmAdministratorPermission, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var portfolio = PortfolioWith();
+        _dbContext.AddPortfolio(portfolio);
+
+        // Act
+        var result = await _handler.Handle(
+            CommandFor(portfolio, ownerIds: [Guid.NewGuid()]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("One or more employees were not found.");
+        portfolio.Roles.Should().BeEmpty();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 
     [Fact]
@@ -163,7 +187,7 @@ public class UpdateProjectPortfolioCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_ShouldFail_WhenUserHasNoLinkedEmployee()
+    public async Task Handle_ShouldBeForbidden_WhenUserHasNoLinkedEmployee()
     {
         // Arrange
         _mockCurrentPrincipal
@@ -174,10 +198,10 @@ public class UpdateProjectPortfolioCommandHandlerTests : IDisposable
         _dbContext.AddPortfolio(portfolio);
 
         // Act
-        var result = await _handler.Handle(CommandFor(portfolio), TestContext.Current.CancellationToken);
+        var act = () => _handler.Handle(CommandFor(portfolio), TestContext.Current.CancellationToken);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
+        await act.Should().ThrowAsync<ForbiddenException>().WithMessage("*isn't linked to an employee record*");
         portfolio.Name.Should().Be("Original");
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }

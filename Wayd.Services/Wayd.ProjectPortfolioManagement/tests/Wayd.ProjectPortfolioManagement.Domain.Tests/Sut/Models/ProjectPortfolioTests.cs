@@ -943,6 +943,37 @@ public class ProjectPortfolioTests
     }
 
     [Fact]
+    public void ChangeProjectProgram_ShouldLeaveTheProjectInItsProgram_WhenTheTargetIsNotAcceptingProjects()
+    {
+        // Arrange — the project is in an active program; the target is only proposed
+        var employeeId = Guid.NewGuid();
+        var portfolio = _portfolioFaker
+            .WithStatus(ProjectPortfolioStatus.Active)
+            .WithDateRange(new FlexibleDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(-10)))
+            .WithOwner(employeeId)
+            .Generate();
+        var range = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date.PlusDays(-5), _dateTimeProvider.Now.InUtc().Date.PlusMonths(3));
+        var current = portfolio.CreateProgram("Current Program", "Description", range, null, null, EventActor.System, _dateTimeProvider.Now).Value;
+        current.Activate(AnAuthorizedActor(), NoProgramAncestry(), _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
+        var target = portfolio.CreateProgram("Proposed Program", "Description", range, null, null, EventActor.System, _dateTimeProvider.Now).Value;
+        var seed = _projectFaker.AsProposed(_dateTimeProvider, portfolio.Id);
+        var project = portfolio.CreateProject(
+            seed.Name, seed.Description, seed.Key, 1, null, null, null, null, null, null, _dateTimeProvider.Now, AnAuthorizedActor()).Value;
+        portfolio.ChangeProjectProgram(employeeId.AsActor(), project.Id, current.Id, _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
+        var revision = project.Revision;
+
+        // Act
+        var result = portfolio.ChangeProjectProgram(employeeId.AsActor(), project.Id, target.Id, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("The program is not accepting new projects.");
+        project.ProgramId.Should().Be(current.Id);
+        current.Projects.Should().Contain(project);
+        project.Revision.Should().Be(revision);
+    }
+
+    [Fact]
     public void ChangeProjectProgram_ShouldSucceed_WhenActorIsProjectOwner()
     {
         // Arrange — the actor leads the project but holds no portfolio role, so this passes only because

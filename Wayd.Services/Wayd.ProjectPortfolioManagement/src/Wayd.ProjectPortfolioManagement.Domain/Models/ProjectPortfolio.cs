@@ -849,14 +849,22 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("The specified program does not belong to this portfolio.");
         }
 
-        if (project.ProgramId.HasValue)
+        // Refused before the project leaves its current program, so a refusal leaves it where it was.
+        if (program is not null && !program.AcceptingProjects)
         {
-            // remove the project from the current program
-            var currentProgram = _programs.SingleOrDefault(p => p.Id == project.ProgramId.Value);
-            if (currentProgram is null)
-            {
-                return Result.Failure("The project is associated with an invalid program.");
-            }
+            return Result.Failure("The program is not accepting new projects.");
+        }
+
+        var currentProgram = project.ProgramId.HasValue
+            ? _programs.SingleOrDefault(p => p.Id == project.ProgramId.Value)
+            : null;
+        if (project.ProgramId.HasValue && currentProgram is null)
+        {
+            return Result.Failure("The project is associated with an invalid program.");
+        }
+
+        if (currentProgram is not null)
+        {
             var removeProjectResult = currentProgram.RemoveProject(project, actor.ToEventActor(), timestamp);
             if (removeProjectResult.IsFailure)
             {

@@ -11,6 +11,7 @@ using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Queries;
+using Wayd.Common.Domain;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Integrations.Abstractions;
 
@@ -255,7 +256,7 @@ public sealed class AzureDevOpsWorkItemSource(
         else if (workItemsResult.Value.Count > 0)
         {
             var iterationMappings = await _dispatcher.Send(new GetIterationMappingsQuery(Connector.AzureDevOps, ctx.SystemId), cancellationToken);
-            var syncResult = await _dispatcher.Send(new SyncExternalWorkItemsCommand(RequireDescriptor().ConnectionId, Connector.AzureDevOps, target.InternalWorkspaceId, workItemsResult.Value, teamMappings, iterationMappings), cancellationToken);
+            var syncResult = await RunItemStep("work-items-sync", target, () => _dispatcher.Send(new SyncExternalWorkItemsCommand(RequireDescriptor().ConnectionId, Connector.AzureDevOps, target.InternalWorkspaceId, workItemsResult.Value, teamMappings, iterationMappings), cancellationToken));
             if (syncResult.IsFailure)
             {
                 hadPartialFailure = true;
@@ -280,7 +281,7 @@ public sealed class AzureDevOpsWorkItemSource(
             }
             else if (parentsResult.Value.Count > 0)
             {
-                var syncResult = await _dispatcher.Send(new SyncExternalWorkItemParentChangesCommand(target.InternalWorkspaceId, parentsResult.Value), cancellationToken);
+                var syncResult = await RunItemStep("parents-sync", target, () => _dispatcher.Send(new SyncExternalWorkItemParentChangesCommand(target.InternalWorkspaceId, parentsResult.Value), cancellationToken));
                 if (syncResult.IsFailure)
                 {
                     hadPartialFailure = true;
@@ -304,7 +305,7 @@ public sealed class AzureDevOpsWorkItemSource(
         }
         else if (depsResult.Value.Count > 0)
         {
-            var syncResult = await _dispatcher.Send(new SyncExternalWorkItemDependencyChangesCommand(target.InternalWorkspaceId, depsResult.Value), cancellationToken);
+            var syncResult = await RunItemStep("deps-sync", target, () => _dispatcher.Send(new SyncExternalWorkItemDependencyChangesCommand(target.InternalWorkspaceId, depsResult.Value), cancellationToken));
             if (syncResult.IsFailure)
             {
                 hadPartialFailure = true;
@@ -329,7 +330,7 @@ public sealed class AzureDevOpsWorkItemSource(
         }
         else if (deletedResult.Value.Length > 0)
         {
-            var syncResult = await _dispatcher.Send(new DeleteExternalWorkItemsCommand(SetUpWorkspaceIds(target), deletedResult.Value), cancellationToken);
+            var syncResult = await RunItemStep("deleted-sync", target, () => _dispatcher.Send(new DeleteExternalWorkItemsCommand(SetUpWorkspaceIds(target), deletedResult.Value), cancellationToken));
             if (syncResult.IsFailure)
             {
                 hadPartialFailure = true;
@@ -348,6 +349,37 @@ public sealed class AzureDevOpsWorkItemSource(
             DeletedWorkItemsProcessed: deleted,
             HadPartialFailure: hadPartialFailure,
             PartialFailureMessage: hadPartialFailure ? string.Join("; ", failureMessages) : null));
+    }
+
+    /// <summary>
+    /// Runs one of a workspace's item-sync steps. A step that throws counts as that step failing, so the
+    /// workspace is degraded rather than failed and its other steps still run.
+    /// </summary>
+    private async Task<Result> RunItemStep(string step, WorkspaceSyncTarget target, Func<Task<Result>> send)
+    {
+        try
+        {
+            return await send();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "The {Step} step threw for workspace {WorkspaceId}.", step, target.InternalWorkspaceId);
+            return Result.Failure(ErrorMessages.UnexpectedInRun);
+        }
+    }
+
+    /// <inheritdoc cref="RunItemStep(string, WorkspaceSyncTarget, Func{Task{Result}})"/>
+    private async Task<Result<T>> RunItemStep<T>(string step, WorkspaceSyncTarget target, Func<Task<Result<T>>> send)
+    {
+        try
+        {
+            return await send();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "The {Step} step threw for workspace {WorkspaceId}.", step, target.InternalWorkspaceId);
+            return Result.Failure<T>(ErrorMessages.UnexpectedInRun);
+        }
     }
 
     /// <summary>

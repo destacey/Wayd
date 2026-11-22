@@ -21,30 +21,22 @@ public sealed class UpdateWorkTypeLevelsOrderCommandHandler : ICommandHandler<Up
 
     public async Task<Result> Handle(UpdateWorkTypeLevelsOrderCommand request, CancellationToken cancellationToken)
     {
-        try
+        var hierarchy = await _workDbContext.WorkTypeHierarchies
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (hierarchy is null)
+            return Result.Failure("The system work type hierarchy does not exist.");
+
+        var updateResult = hierarchy.UpdatePortfolioTierLevelsOrder(request.Levels);
+        if (updateResult.IsFailure)
         {
-            var hierarchy = await _workDbContext.WorkTypeHierarchies
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (hierarchy is null)
-                return Result.Failure("The system work type hierarchy does not exist.");
-
-            var updateResult = hierarchy.UpdatePortfolioTierLevelsOrder(request.Levels);
-            if (updateResult.IsFailure)
-            {
-                _logger.LogError("Failure handling {CommandName} command. Error message: {Error}", AppRequestName, updateResult.Error);
-                return Result.Failure(updateResult.Error);
-            }
-
-            await _workDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
+            _logger.LogError("Failure handling {CommandName} command. Error message: {Error}", AppRequestName, updateResult.Error);
+            return Result.Failure(updateResult.Error);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
-        }
+
+        await _workDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
     }
 
 

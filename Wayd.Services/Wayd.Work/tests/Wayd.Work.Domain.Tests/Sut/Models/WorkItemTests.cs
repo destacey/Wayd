@@ -427,6 +427,64 @@ public class WorkItemTests
 
     #endregion Estimates
 
+    #region Update refusals
+
+    [Fact]
+    public void Update_WhenTheDoneTimestampPrecedesCreation_ChangesNothing()
+    {
+        // Arrange
+        var workItem = _workItemFaker.Generate();
+        var (title, storyPoints, activated, done) = (workItem.Title, workItem.StoryPoints, workItem.ActivatedTimestamp, workItem.DoneTimestamp);
+        var beforeCreation = workItem.Created - Duration.FromDays(1);
+
+        // Act
+        var act = () => workItem.Update("Renamed", workItem.Type, workItem.CurrentStatus(), null, null,
+            _dateTimeProvider.Now, null, null, null, 0, storyPoints: 99, null, null, null,
+            activatedTimestamp: workItem.Created, doneTimestamp: beforeCreation, null);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>().WithMessage("The completed timestamp cannot be before the created timestamp.");
+        (workItem.Title, workItem.StoryPoints, workItem.ActivatedTimestamp, workItem.DoneTimestamp).Should().Be((title, storyPoints, activated, done));
+    }
+
+    [Fact]
+    public void Update_WithAParentThatCannotParentIt_ChangesNothing()
+    {
+        // Arrange
+        var storyWorkType = _workTypeFaker.AsStory().Generate();
+        var workItem = _workItemFaker.WithType(storyWorkType).Generate();
+        var before = (workItem.Title, workItem.StoryPoints, workItem.ActivatedTimestamp, workItem.DoneTimestamp, workItem.ParentId);
+        var storyParent = new TestParentInfo(Guid.NewGuid(), 123456, storyWorkType.Level!.Tier, storyWorkType.Level.Order);
+
+        // Act
+        var act = () => workItem.Update("Renamed", workItem.Type, workItem.CurrentStatus(), storyParent, null,
+            _dateTimeProvider.Now, null, null, null, 0, storyPoints: 99, null, null, null, null, null, null);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>().WithMessage("Only portfolio tier work items can be parents.");
+        (workItem.Title, workItem.StoryPoints, workItem.ActivatedTimestamp, workItem.DoneTimestamp, workItem.ParentId).Should().Be(before);
+    }
+
+    [Fact]
+    public void Update_WithAParentAtItsOwnLevel_ChangesNothing()
+    {
+        // Arrange
+        var featureWorkType = _workTypeFaker.AsFeature().Generate();
+        var workItem = _workItemFaker.WithType(featureWorkType).Generate();
+        var before = (workItem.Title, workItem.StoryPoints, workItem.ParentId);
+        var featureParent = new TestParentInfo(Guid.NewGuid(), 123456, featureWorkType.Level!.Tier, featureWorkType.Level.Order);
+
+        // Act
+        var act = () => workItem.Update("Renamed", workItem.Type, workItem.CurrentStatus(), featureParent, null,
+            _dateTimeProvider.Now, null, null, null, 0, storyPoints: 99, null, null, null, null, null, null);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>().WithMessage("The parent must be a higher level than the work item.");
+        (workItem.Title, workItem.StoryPoints, workItem.ParentId).Should().Be(before);
+    }
+
+    #endregion Update refusals
+
     #region Status
 
     [Fact]

@@ -35,37 +35,22 @@ public sealed class UpdateWorkTypeCommandHandler : ICommandHandler<UpdateWorkTyp
 
     public async Task<Result<int>> Handle(UpdateWorkTypeCommand request, CancellationToken cancellationToken)
     {
-        try
+        var workType = await _workDbContext.WorkTypes
+            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+        if (workType is null)
+            return Result.Failure<int>("Work Type not found.");
+
+        var updateResult = workType.Update(request.Description, request.LevelId, _timestamp);
+
+        if (updateResult.IsFailure)
         {
-            var workType = await _workDbContext.WorkTypes
-                .FirstAsync(p => p.Id == request.Id, cancellationToken);
-            if (workType is null)
-                return Result.Failure<int>("Work Type not found.");
-
-            var updateResult = workType.Update(request.Description, request.LevelId, _timestamp);
-
-            if (updateResult.IsFailure)
-            {
-                // Reset the entity
-                await _workDbContext.Entry(workType).ReloadAsync(cancellationToken);
-                workType.ClearDomainEvents();
-
-                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", AppRequestName, updateResult.Error);
-                return Result.Failure<int>(updateResult.Error);
-            }
-
-            await _workDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success(workType.Id);
+            _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", AppRequestName, updateResult.Error);
+            return Result.Failure<int>(updateResult.Error);
         }
-        catch (Exception ex)
-        {
-            var requestName = request.GetType().Name;
 
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
+        await _workDbContext.SaveChangesAsync(cancellationToken);
 
-            return Result.Failure<int>($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success(workType.Id);
     }
 }
 

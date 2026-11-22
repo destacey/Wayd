@@ -1,7 +1,6 @@
 ﻿using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Application.SystemSettings;
-using Wayd.Common.Domain;
 using Wayd.Common.Domain.Settings;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkItemDependencies;
@@ -35,32 +34,19 @@ public sealed class SyncExternalWorkItemDependencyChangesCommandHandler(
 
     public async Task<Result> Handle(SyncExternalWorkItemDependencyChangesCommand request, CancellationToken cancellationToken)
     {
-        try
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var validLinks = await ValidateAndMapWorkItemLinks(request.WorkItemLinks, cancellationToken);
+        if (!validLinks.Any())
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var validLinks = await ValidateAndMapWorkItemLinks(request.WorkItemLinks, cancellationToken);
-            if (!validLinks.Any())
-            {
-                _logger.LogInformation("{AppRequestName}: No valid work item dependency links found for workspace {WorkspaceId} ", AppRequestName, request.WorkspaceId);
-                return Result.Success();
-            }
-
-            _logger.LogInformation("{AppRequestName}: Found {ValidLinksCount} valid work item dependency links out of {WorkItemLinksCount}.", AppRequestName, validLinks.Count, request.WorkItemLinks.Count);
-
-            await ProcessLinksInBatches(validLinks, cancellationToken);
+            _logger.LogInformation("{AppRequestName}: No valid work item dependency links found for workspace {WorkspaceId} ", AppRequestName, request.WorkspaceId);
             return Result.Success();
         }
-        catch (OperationCanceledException)
-        {
-            _logger.LogInformation("{AppRequestName}: Operation cancelled.", AppRequestName);
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception thrown handling {AppRequestName}", AppRequestName);
-            return Result.Failure(ErrorMessages.UnexpectedInRun);
-        }
+
+        _logger.LogInformation("{AppRequestName}: Found {ValidLinksCount} valid work item dependency links out of {WorkItemLinksCount}.", AppRequestName, validLinks.Count, request.WorkItemLinks.Count);
+
+        await ProcessLinksInBatches(validLinks, cancellationToken);
+        return Result.Success();
     }
 
     private async Task<IReadOnlyList<DependencyInfo>> ValidateAndMapWorkItemLinks(IReadOnlyList<IExternalWorkItemLink> workItemLinks, CancellationToken cancellationToken)
@@ -235,11 +221,14 @@ public sealed class SyncExternalWorkItemDependencyChangesCommandHandler(
             }
             catch (Exception ex)
             {
+                // One batch's failure must not stop the rest. Its changes are dropped from the tracker,
+                // or the next batch's save would write them half-applied, or fail on them again. The null
+                // check is for tests, whose fake supplies no tracker.
+                _workDbContext.ChangeTracker?.Clear();
                 _logger.LogError(ex,
                     "Error processing batch {CurrentBatch} of {TotalBatches}. Continuing with next batch.",
                     i + 1,
                     totalBatches);
-                // Continue processing remaining batches
             }
         }
     }
@@ -306,7 +295,7 @@ public sealed class SyncExternalWorkItemDependencyChangesCommandHandler(
         await _workDbContext.SaveChangesAsync(cancellationToken);
 
         // Clear the change tracker to release tracked entities between batches
-        _workDbContext.ChangeTracker.Clear();
+        _workDbContext.ChangeTracker?.Clear();
     }
 
     private record struct WorkItemExternalId(int ExternalId, Guid WorkspaceExternalId);

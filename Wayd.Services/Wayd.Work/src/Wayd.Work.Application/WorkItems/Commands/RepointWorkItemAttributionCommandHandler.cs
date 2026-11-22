@@ -1,5 +1,4 @@
 ﻿using Wayd.Common.Application.Requests.WorkManagement.Commands;
-using Wayd.Common.Domain;
 using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkItems.Commands;
@@ -37,58 +36,49 @@ public sealed class RepointWorkItemAttributionCommandHandler(
 
         var externalId = request.ExternalId.Trim();
 
-        try
+        // All three attributions the sync resolves, so a mapping repairs the record rather
+        // than half of it. Each is its own set-based statement: they match different rows
+        // (one person may have created an item someone else is assigned), and each column
+        // has its own index to seek on.
+        var assignedUpdated = await _workDbContext.WorkItems
+            .Where(wi => wi.ExtendedProps != null
+                && wi.ExtendedProps.AssignedToExternalId == externalId
+                && wi.AssignedToId != request.EmployeeId)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(wi => wi.AssignedToId, request.EmployeeId),
+                cancellationToken);
+
+        var createdUpdated = await _workDbContext.WorkItems
+            .Where(wi => wi.ExtendedProps != null
+                && wi.ExtendedProps.CreatedByExternalId == externalId
+                && wi.CreatedById != request.EmployeeId)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(wi => wi.CreatedById, request.EmployeeId),
+                cancellationToken);
+
+        var lastModifiedUpdated = await _workDbContext.WorkItems
+            .Where(wi => wi.ExtendedProps != null
+                && wi.ExtendedProps.LastModifiedByExternalId == externalId
+                && wi.LastModifiedById != request.EmployeeId)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(wi => wi.LastModifiedById, request.EmployeeId),
+                cancellationToken);
+
+        // History periods resolve the assignee the same way, so a mapping corrects the past too.
+        var historyUpdated = await _workDbContext.WorkItemStateHistory
+            .Where(h => h.AssignedToExternalId == externalId
+                && h.AssignedToId != request.EmployeeId)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(h => h.AssignedToId, request.EmployeeId),
+                cancellationToken);
+
+        if (assignedUpdated + createdUpdated + lastModifiedUpdated + historyUpdated > 0)
         {
-            // All three attributions the sync resolves, so a mapping repairs the record rather
-            // than half of it. Each is its own set-based statement: they match different rows
-            // (one person may have created an item someone else is assigned), and each column
-            // has its own index to seek on.
-            var assignedUpdated = await _workDbContext.WorkItems
-                .Where(wi => wi.ExtendedProps != null
-                    && wi.ExtendedProps.AssignedToExternalId == externalId
-                    && wi.AssignedToId != request.EmployeeId)
-                .ExecuteUpdateAsync(
-                    s => s.SetProperty(wi => wi.AssignedToId, request.EmployeeId),
-                    cancellationToken);
-
-            var createdUpdated = await _workDbContext.WorkItems
-                .Where(wi => wi.ExtendedProps != null
-                    && wi.ExtendedProps.CreatedByExternalId == externalId
-                    && wi.CreatedById != request.EmployeeId)
-                .ExecuteUpdateAsync(
-                    s => s.SetProperty(wi => wi.CreatedById, request.EmployeeId),
-                    cancellationToken);
-
-            var lastModifiedUpdated = await _workDbContext.WorkItems
-                .Where(wi => wi.ExtendedProps != null
-                    && wi.ExtendedProps.LastModifiedByExternalId == externalId
-                    && wi.LastModifiedById != request.EmployeeId)
-                .ExecuteUpdateAsync(
-                    s => s.SetProperty(wi => wi.LastModifiedById, request.EmployeeId),
-                    cancellationToken);
-
-            // History periods resolve the assignee the same way, so a mapping corrects the past too.
-            var historyUpdated = await _workDbContext.WorkItemStateHistory
-                .Where(h => h.AssignedToExternalId == externalId
-                    && h.AssignedToId != request.EmployeeId)
-                .ExecuteUpdateAsync(
-                    s => s.SetProperty(h => h.AssignedToId, request.EmployeeId),
-                    cancellationToken);
-
-            if (assignedUpdated + createdUpdated + lastModifiedUpdated + historyUpdated > 0)
-            {
-                _logger.LogInformation(
-                    "Repointed external identity {ExternalId} to employee {EmployeeId}: {AssignedCount} assigned, {CreatedCount} created, {LastModifiedCount} last-modified, {HistoryCount} history periods.",
-                    externalId, request.EmployeeId, assignedUpdated, createdUpdated, lastModifiedUpdated, historyUpdated);
-            }
-
-            return Result.Success();
+            _logger.LogInformation(
+                "Repointed external identity {ExternalId} to employee {EmployeeId}: {AssignedCount} assigned, {CreatedCount} created, {LastModifiedCount} last-modified, {HistoryCount} history periods.",
+                externalId, request.EmployeeId, assignedUpdated, createdUpdated, lastModifiedUpdated, historyUpdated);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex,
-                "Error repointing work item attribution for external identity {ExternalId}.", externalId);
-            return Result.Failure(ErrorMessages.UnexpectedInRun);
-        }
+
+        return Result.Success();
     }
 }

@@ -217,8 +217,16 @@ public sealed class WorkItem : ManagedStatusEntity, IHasWorkspace, IHasOptionalW
 
         Guard.Against.Null(status, nameof(status));
 
-        SetActivatedTimestamp(activatedTimestamp, Created, doneTimestamp);
-        SetDoneTimestamp(doneTimestamp, Created, status.Category);
+        // Every refusal comes before the first assignment, so a refused update leaves the item as it was.
+        CheckTimestamps(activatedTimestamp, doneTimestamp, Created);
+        var parentCheck = CheckParent(parentInfo, workType);
+        if (parentCheck.IsFailure)
+        {
+            throw new InvalidOperationException(parentCheck.Error);
+        }
+
+        SetActivatedTimestamp(activatedTimestamp, doneTimestamp);
+        SetDoneTimestamp(doneTimestamp, status.Category);
 
         Title = title;
         TypeId = workType.Id;
@@ -256,28 +264,16 @@ public sealed class WorkItem : ManagedStatusEntity, IHasWorkspace, IHasOptionalW
     // TODO: Running into EF issues when set the WorkType directly. So adding it for the check.
     public Result UpdateParent(IWorkItemParentInfo? parentInfo, WorkType currentWorkType)
     {
-        if (currentWorkType?.Level?.Tier is null)
+        var check = CheckParent(parentInfo, currentWorkType);
+        if (check.IsFailure)
         {
-            return Result.Failure("Unable to set the work item parent without the type and level.");
-        }
-
-        if (parentInfo is not null)
-        {
-            if (parentInfo.Tier != WorkTypeTier.Portfolio)
-            {
-                return Result.Failure("Only portfolio tier work items can be parents.");
-            }
-
-            if (currentWorkType.Level.Tier == WorkTypeTier.Portfolio && currentWorkType.Level.Order <= parentInfo.LevelOrder)
-            {
-                return Result.Failure("The parent must be a higher level than the work item.");
-            }
+            return check;
         }
 
         ParentId = parentInfo?.Id;
 
         // Project Ids are not set for WorkTypes in the Other tier
-        if (currentWorkType.Level.Tier is not WorkTypeTier.Other)
+        if (currentWorkType.Level!.Tier is not WorkTypeTier.Other)
         {
             ParentProjectId = parentInfo?.ProjectId;
 
@@ -439,13 +435,46 @@ public sealed class WorkItem : ManagedStatusEntity, IHasWorkspace, IHasOptionalW
         }
     }
 
-    private void SetActivatedTimestamp(Instant? activatedTimestamp, Instant created, Instant? doneTimestamp)
+    /// <summary>Whether <paramref name="parentInfo"/> may parent an item of <paramref name="currentWorkType"/>.</summary>
+    private static Result CheckParent(IWorkItemParentInfo? parentInfo, WorkType currentWorkType)
+    {
+        if (currentWorkType?.Level?.Tier is null)
+        {
+            return Result.Failure("Unable to set the work item parent without the type and level.");
+        }
+
+        if (parentInfo is not null)
+        {
+            if (parentInfo.Tier != WorkTypeTier.Portfolio)
+            {
+                return Result.Failure("Only portfolio tier work items can be parents.");
+            }
+
+            if (currentWorkType.Level.Tier == WorkTypeTier.Portfolio && currentWorkType.Level.Order <= parentInfo.LevelOrder)
+            {
+                return Result.Failure("The parent must be a higher level than the work item.");
+            }
+        }
+
+        return Result.Success();
+    }
+
+    /// <summary>Throws when the source reports the item started or finished before it was created.</summary>
+    private static void CheckTimestamps(Instant? activatedTimestamp, Instant? doneTimestamp, Instant created)
     {
         if (activatedTimestamp.HasValue && activatedTimestamp.Value < created)
         {
             throw new InvalidOperationException("The activated timestamp cannot be before the created timestamp.");
         }
 
+        if (doneTimestamp.HasValue && doneTimestamp < created)
+        {
+            throw new InvalidOperationException("The completed timestamp cannot be before the created timestamp.");
+        }
+    }
+
+    private void SetActivatedTimestamp(Instant? activatedTimestamp, Instant? doneTimestamp)
+    {
         if (activatedTimestamp is null && doneTimestamp.HasValue)
         {
             ActivatedTimestamp = doneTimestamp;
@@ -462,13 +491,8 @@ public sealed class WorkItem : ManagedStatusEntity, IHasWorkspace, IHasOptionalW
         ActivatedTimestamp = activatedTimestamp;
     }
 
-    private void SetDoneTimestamp(Instant? doneTimestamp, Instant created, StatusCategory statusCategory)
+    private void SetDoneTimestamp(Instant? doneTimestamp, StatusCategory statusCategory)
     {
-        if (doneTimestamp.HasValue && doneTimestamp < created)
-        {
-            throw new InvalidOperationException("The completed timestamp cannot be before the created timestamp.");
-        }
-
         DoneTimestamp = doneTimestamp.HasValue && CountsAsFinished(statusCategory) ? doneTimestamp : null;
     }
 }

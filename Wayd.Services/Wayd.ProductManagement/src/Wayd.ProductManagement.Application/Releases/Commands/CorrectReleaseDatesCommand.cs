@@ -36,8 +36,6 @@ public sealed class CorrectReleaseDatesCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<CorrectReleaseDatesCommand>
 {
-    private const string AppRequestName = nameof(CorrectReleaseDatesCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
@@ -46,46 +44,38 @@ public sealed class CorrectReleaseDatesCommandHandler(
 
     public async Task<Result> Handle(CorrectReleaseDatesCommand request, CancellationToken cancellationToken)
     {
-        try
+        var release = await _productManagementDbContext.Releases
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+
+        if (release is null)
         {
-            var release = await _productManagementDbContext.Releases
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-
-            if (release is null)
-            {
-                _logger.LogInformation("Release {ReleaseId} not found.", request.Id);
-                return Result.Failure("Release not found.");
-            }
-
-            // Read per scope rather than from the claim snapshot, which a personal access token
-            // freezes for its whole lifetime. The correction's actor is permanent audit-trail data.
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-
-            var result = release.CorrectDates(
-                request.TargetDate,
-                request.ReleasedDate,
-                EventActor.User(_currentUser.GetUserId(), employeeId),
-                _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                release.ClearDomainEvents();
-
-                _logger.LogInformation(
-                    "Unable to correct Release {ReleaseId} dates. Error message: {Error}", request.Id, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Release {ReleaseId} dates corrected.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Release {ReleaseId} not found.", request.Id);
+            return Result.Failure("Release not found.");
         }
-        catch (Exception ex)
+
+        // Read per scope rather than from the claim snapshot, which a personal access token
+        // freezes for its whole lifetime. The correction's actor is permanent audit-trail data.
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
+        var result = release.CorrectDates(
+            request.TargetDate,
+            request.ReleasedDate,
+            EventActor.User(_currentUser.GetUserId(), employeeId),
+            _dateTimeProvider.Now);
+
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            release.ClearDomainEvents();
+
+            _logger.LogInformation(
+                "Unable to correct Release {ReleaseId} dates. Error message: {Error}", request.Id, result.Error);
+            return Result.Failure(result.Error);
         }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Release {ReleaseId} dates corrected.", request.Id);
+
+        return Result.Success();
     }
 }

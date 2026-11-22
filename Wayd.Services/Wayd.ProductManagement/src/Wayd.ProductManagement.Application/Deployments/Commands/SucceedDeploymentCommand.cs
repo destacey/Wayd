@@ -26,8 +26,6 @@ public sealed class SucceedDeploymentCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<SucceedDeploymentCommand>
 {
-    private const string AppRequestName = nameof(SucceedDeploymentCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -37,73 +35,65 @@ public sealed class SucceedDeploymentCommandHandler(
 
     public async Task<Result> Handle(SucceedDeploymentCommand request, CancellationToken cancellationToken)
     {
-        try
+        var deployment = await _productManagementDbContext.Deployments
+            .FirstOrDefaultAsync(d => d.Id == request.Id, cancellationToken);
+
+        if (deployment is null)
         {
-            var deployment = await _productManagementDbContext.Deployments
-                .FirstOrDefaultAsync(d => d.Id == request.Id, cancellationToken);
-
-            if (deployment is null)
-            {
-                _logger.LogInformation("Deployment {DeploymentId} not found.", request.Id);
-                return Result.Failure("Deployment not found.");
-            }
-
-            // Metrics read the alias rather than the status name, so resolving by meaning is what keeps
-            // a renamed outcome counting.
-            var status = await _statusResolver.ForAlias(
-                ProductWorkflowOwners.Deployment.Key,
-                scopeId: null,
-                (int)ProductStatusAlias.Succeeded,
-                cancellationToken);
-
-            if (status.IsFailure)
-            {
-                _logger.LogError("Unable to resolve the succeeded deployment status. Error message: {Error}", status.Error);
-                return Result.Failure(status.Error);
-            }
-
-            var environmentName = await _productManagementDbContext.DeploymentEnvironments
-                .Where(e => e.Id == deployment.EnvironmentId)
-                .Select(e => e.Name)
-                .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
-
-            // Read per scope rather than from the claim snapshot, which a personal access token
-            // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
-            // one would misattribute the change permanently.
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-
-            var actor = EventActor.User(_currentUser.GetUserId(), employeeId);
-            var completedAt = request.CompletedAt ?? _dateTimeProvider.Now;
-
-            var result = deployment.Succeed(
-                completedAt,
-                status.Value,
-                environmentName,
-                actor,
-                _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                deployment.ClearDomainEvents();
-
-                _logger.LogInformation(
-                    "Unable to succeed Deployment {DeploymentId}. Error message: {Error}", request.Id, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await ProductionRelease.Record(
-                _productManagementDbContext, _statusResolver, deployment, completedAt, actor, _dateTimeProvider.Now, _logger, cancellationToken);
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Deployment {DeploymentId} succeeded.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Deployment {DeploymentId} not found.", request.Id);
+            return Result.Failure("Deployment not found.");
         }
-        catch (Exception ex)
+
+        // Metrics read the alias rather than the status name, so resolving by meaning is what keeps
+        // a renamed outcome counting.
+        var status = await _statusResolver.ForAlias(
+            ProductWorkflowOwners.Deployment.Key,
+            scopeId: null,
+            (int)ProductStatusAlias.Succeeded,
+            cancellationToken);
+
+        if (status.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to resolve the succeeded deployment status. Error message: {Error}", status.Error);
+            return Result.Failure(status.Error);
         }
+
+        var environmentName = await _productManagementDbContext.DeploymentEnvironments
+            .Where(e => e.Id == deployment.EnvironmentId)
+            .Select(e => e.Name)
+            .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
+
+        // Read per scope rather than from the claim snapshot, which a personal access token
+        // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
+        // one would misattribute the change permanently.
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
+        var actor = EventActor.User(_currentUser.GetUserId(), employeeId);
+        var completedAt = request.CompletedAt ?? _dateTimeProvider.Now;
+
+        var result = deployment.Succeed(
+            completedAt,
+            status.Value,
+            environmentName,
+            actor,
+            _dateTimeProvider.Now);
+
+        if (result.IsFailure)
+        {
+            deployment.ClearDomainEvents();
+
+            _logger.LogInformation(
+                "Unable to succeed Deployment {DeploymentId}. Error message: {Error}", request.Id, result.Error);
+            return Result.Failure(result.Error);
+        }
+
+        await ProductionRelease.Record(
+            _productManagementDbContext, _statusResolver, deployment, completedAt, actor, _dateTimeProvider.Now, _logger, cancellationToken);
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Deployment {DeploymentId} succeeded.", request.Id);
+
+        return Result.Success();
     }
 }

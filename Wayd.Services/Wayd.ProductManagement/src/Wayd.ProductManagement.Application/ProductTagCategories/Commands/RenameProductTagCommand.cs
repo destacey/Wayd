@@ -36,8 +36,6 @@ public sealed class RenameProductTagCommandHandler(
     ILogger<RenameProductTagCommandHandler> logger)
     : ICommandHandler<RenameProductTagCommand>
 {
-    private const string AppRequestName = nameof(RenameProductTagCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
@@ -46,37 +44,29 @@ public sealed class RenameProductTagCommandHandler(
 
     public async Task<Result> Handle(RenameProductTagCommand request, CancellationToken cancellationToken)
     {
-        try
+        var category = await _productManagementDbContext.ProductTagCategories
+            .Include(c => c.Tags)
+            .FirstOrDefaultAsync(c => c.Id == request.CategoryId, cancellationToken);
+
+        if (category is null)
         {
-            var category = await _productManagementDbContext.ProductTagCategories
-                .Include(c => c.Tags)
-                .FirstOrDefaultAsync(c => c.Id == request.CategoryId, cancellationToken);
-
-            if (category is null)
-            {
-                _logger.LogInformation("Product Tag Category {CategoryId} not found.", request.CategoryId);
-                return Result.Failure("Tag category not found.");
-            }
-
-            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
-            var result = category.UpdateTagDetails(request.TagId, request.Name, request.Description, actor, _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                _logger.LogInformation(
-                    "Unable to rename tag {TagId}. Error message: {Error}", request.TagId, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Tag {TagId} renamed.", request.TagId);
-
-            return Result.Success();
+            _logger.LogInformation("Product Tag Category {CategoryId} not found.", request.CategoryId);
+            return Result.Failure("Tag category not found.");
         }
-        catch (Exception ex)
+
+        var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
+        var result = category.UpdateTagDetails(request.TagId, request.Name, request.Description, actor, _dateTimeProvider.Now);
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogInformation(
+                "Unable to rename tag {TagId}. Error message: {Error}", request.TagId, result.Error);
+            return Result.Failure(result.Error);
         }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Tag {TagId} renamed.", request.TagId);
+
+        return Result.Success();
     }
 }

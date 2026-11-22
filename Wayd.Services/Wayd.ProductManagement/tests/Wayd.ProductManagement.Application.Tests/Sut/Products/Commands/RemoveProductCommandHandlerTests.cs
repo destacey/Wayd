@@ -1,5 +1,8 @@
 ﻿using Wayd.Common.Domain.Events;
 using FluentAssertions;
+using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.ProductManagement.Domain.Models;
 using NodaTime;
 using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.ProductManagement.Application.Products.Commands;
@@ -15,6 +18,52 @@ public sealed class RemoveProductCommandHandlerTests : ProductCommandTestBase
 {
     private RemoveProductCommandHandler CreateSut() =>
         new(DbContext, DbContext, CurrentUser.Object, Logger<RemoveProductCommandHandler>(), DateTimeProvider.Object);
+
+    private Incident SeedIncident(IReadOnlyCollection<Guid> productIds, IReadOnlyCollection<Guid>? releaseIds = null)
+    {
+        var incident = Incident.Create(
+            "Checkout unavailable", null, null, ActingEmployeeId, Guid.CreateVersion7(), Now, null, null,
+            productIds, Status("Open", StatusCategory.Active, ProductStatusAlias.Open), EventActor.System, Now,
+            ActingEmployeeId, ActingEmployeeId, releaseIds).Value;
+        DbContext.AddIncident(incident);
+        return incident;
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRefuse_WhenAReleaseIsForTheProduct()
+    {
+        // Arrange
+        var product = SeedProduct();
+        SeedRelease(product.Id);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new RemoveProductCommand(product.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("This product has releases and cannot be removed.");
+        DbContext.Products.Should().ContainSingle();
+        DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRefuse_WhenAnIncidentNamesTheProduct()
+    {
+        // Arrange
+        var product = SeedProduct();
+        SeedIncident([product.Id]);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new RemoveProductCommand(product.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Incidents name this product as affected, so it cannot be removed. Remove it from them first.");
+        DbContext.Products.Should().ContainSingle();
+        DbContext.SaveChangesCallCount.Should().Be(0);
+    }
 
     [Fact]
     public async Task Handle_ShouldRemoveTheProduct()

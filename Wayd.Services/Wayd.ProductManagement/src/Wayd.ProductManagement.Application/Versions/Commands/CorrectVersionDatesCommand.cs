@@ -39,8 +39,6 @@ public sealed class CorrectVersionDatesCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<CorrectVersionDatesCommand>
 {
-    private const string AppRequestName = nameof(CorrectVersionDatesCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
@@ -49,53 +47,45 @@ public sealed class CorrectVersionDatesCommandHandler(
 
     public async Task<Result> Handle(CorrectVersionDatesCommand request, CancellationToken cancellationToken)
     {
-        try
+        var version = await _productManagementDbContext.Versions
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+
+        if (version is null)
         {
-            var version = await _productManagementDbContext.Versions
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-
-            if (version is null)
-            {
-                _logger.LogInformation("Version {VersionId} not found.", request.Id);
-                return Result.Failure("Version not found.");
-            }
-
-            var productName = await _productManagementDbContext.Products
-                .Where(p => p.Id == version.ProductId)
-                .Select(p => p.Name)
-                .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
-
-            // Read per scope rather than from the claim snapshot, which a personal access token
-            // freezes for its whole lifetime. The correction's actor is permanent audit-trail data.
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-
-            var result = version.CorrectDates(
-                request.TargetDate,
-                request.CutAt,
-                request.ReleasedAt,
-                productName,
-                EventActor.User(_currentUser.GetUserId(), employeeId),
-                _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                version.ClearDomainEvents();
-
-                _logger.LogInformation(
-                    "Unable to correct Version {VersionId} dates. Error message: {Error}", request.Id, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Version {VersionId} dates corrected.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Version {VersionId} not found.", request.Id);
+            return Result.Failure("Version not found.");
         }
-        catch (Exception ex)
+
+        var productName = await _productManagementDbContext.Products
+            .Where(p => p.Id == version.ProductId)
+            .Select(p => p.Name)
+            .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
+
+        // Read per scope rather than from the claim snapshot, which a personal access token
+        // freezes for its whole lifetime. The correction's actor is permanent audit-trail data.
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
+        var result = version.CorrectDates(
+            request.TargetDate,
+            request.CutAt,
+            request.ReleasedAt,
+            productName,
+            EventActor.User(_currentUser.GetUserId(), employeeId),
+            _dateTimeProvider.Now);
+
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            version.ClearDomainEvents();
+
+            _logger.LogInformation(
+                "Unable to correct Version {VersionId} dates. Error message: {Error}", request.Id, result.Error);
+            return Result.Failure(result.Error);
         }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Version {VersionId} dates corrected.", request.Id);
+
+        return Result.Success();
     }
 }

@@ -28,8 +28,6 @@ public sealed class UpdateProductDetailsCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UpdateProductDetailsCommand>
 {
-    private const string AppRequestName = nameof(UpdateProductDetailsCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<UpdateProductDetailsCommandHandler> _logger = logger;
@@ -37,43 +35,35 @@ public sealed class UpdateProductDetailsCommandHandler(
 
     public async Task<Result> Handle(UpdateProductDetailsCommand request, CancellationToken cancellationToken)
     {
-        try
+        var product = await _productManagementDbContext.Products
+            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+
+        if (product is null)
         {
-            var product = await _productManagementDbContext.Products
-                .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
-
-            if (product is null)
-            {
-                _logger.LogInformation("Product {ProductId} not found.", request.Id);
-                return Result.Failure("Product not found.");
-            }
-
-            var updateResult = product.UpdateDetails(
-                request.Name,
-                request.Description,
-                EventActor.User(_currentUser.GetUserId()),
-                _dateTimeProvider.Now);
-
-            if (updateResult.IsFailure)
-            {
-                // No reload: every refusal on this aggregate is checked before any state is
-                // touched, so there is nothing to roll back.
-                product.ClearDomainEvents();
-
-                _logger.LogError("Unable to update Product {ProductId}. Error message: {Error}", request.Id, updateResult.Error);
-                return Result.Failure(updateResult.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Product {ProductId} updated.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Product {ProductId} not found.", request.Id);
+            return Result.Failure("Product not found.");
         }
-        catch (Exception ex)
+
+        var updateResult = product.UpdateDetails(
+            request.Name,
+            request.Description,
+            EventActor.User(_currentUser.GetUserId()),
+            _dateTimeProvider.Now);
+
+        if (updateResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            // No reload: every refusal on this aggregate is checked before any state is
+            // touched, so there is nothing to roll back.
+            product.ClearDomainEvents();
+
+            _logger.LogError("Unable to update Product {ProductId}. Error message: {Error}", request.Id, updateResult.Error);
+            return Result.Failure(updateResult.Error);
         }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Product {ProductId} updated.", request.Id);
+
+        return Result.Success();
     }
 }

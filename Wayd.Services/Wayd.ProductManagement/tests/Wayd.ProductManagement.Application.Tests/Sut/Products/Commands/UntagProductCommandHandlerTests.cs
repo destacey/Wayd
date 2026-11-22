@@ -24,7 +24,7 @@ public sealed class UntagProductCommandHandlerTests : ProductCommandTestBase
         // Arrange
         var product = SeedProduct();
         var (_, tag) = SeedTag();
-        await TagSut().Handle(new TagProductCommand(product.Id, tag.Id), TestContext.Current.CancellationToken);
+        (await TagSut().Handle(new TagProductCommand(product.Id, tag.Id), TestContext.Current.CancellationToken)).IsSuccess.Should().BeTrue();
         product.ClearDomainEvents();
         var sut = CreateSut();
 
@@ -42,7 +42,7 @@ public sealed class UntagProductCommandHandlerTests : ProductCommandTestBase
         // Arrange
         var product = SeedProduct();
         var (_, tag) = SeedTag();
-        await TagSut().Handle(new TagProductCommand(product.Id, tag.Id), TestContext.Current.CancellationToken);
+        (await TagSut().Handle(new TagProductCommand(product.Id, tag.Id), TestContext.Current.CancellationToken)).IsSuccess.Should().BeTrue();
         product.ClearDomainEvents();
         var sut = CreateSut();
 
@@ -77,7 +77,7 @@ public sealed class UntagProductCommandHandlerTests : ProductCommandTestBase
         // Arrange
         var product = SeedProduct();
         var (_, tag) = SeedTag();
-        await TagSut().Handle(new TagProductCommand(product.Id, tag.Id), TestContext.Current.CancellationToken);
+        (await TagSut().Handle(new TagProductCommand(product.Id, tag.Id), TestContext.Current.CancellationToken)).IsSuccess.Should().BeTrue();
         DbContext.ProductTags.Remove(tag);
         var sut = CreateSut();
 

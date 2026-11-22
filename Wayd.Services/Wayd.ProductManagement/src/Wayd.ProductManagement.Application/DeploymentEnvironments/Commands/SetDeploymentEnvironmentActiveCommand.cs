@@ -26,8 +26,6 @@ public sealed class SetDeploymentEnvironmentActiveCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<SetDeploymentEnvironmentActiveCommand>
 {
-    private const string AppRequestName = nameof(SetDeploymentEnvironmentActiveCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<SetDeploymentEnvironmentActiveCommandHandler> _logger = logger;
@@ -36,43 +34,35 @@ public sealed class SetDeploymentEnvironmentActiveCommandHandler(
     public async Task<Result> Handle(
         SetDeploymentEnvironmentActiveCommand request, CancellationToken cancellationToken)
     {
-        try
+        var environment = await _productManagementDbContext.DeploymentEnvironments
+            .FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
+
+        if (environment is null)
         {
-            var environment = await _productManagementDbContext.DeploymentEnvironments
-                .FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
+            _logger.LogInformation("Deployment Environment {EnvironmentId} not found.", request.Id);
+            return Result.Failure("Deployment environment not found.");
+        }
 
-            if (environment is null)
-            {
-                _logger.LogInformation("Deployment Environment {EnvironmentId} not found.", request.Id);
-                return Result.Failure("Deployment environment not found.");
-            }
+        var actor = EventActor.User(_currentUser.GetUserId());
+        var now = _dateTimeProvider.Now;
 
-            var actor = EventActor.User(_currentUser.GetUserId());
-            var now = _dateTimeProvider.Now;
+        var result = request.IsActive
+            ? environment.Activate(actor, now)
+            : environment.Deactivate(actor, now);
 
-            var result = request.IsActive
-                ? environment.Activate(actor, now)
-                : environment.Deactivate(actor, now);
-
-            if (result.IsFailure)
-            {
-                _logger.LogInformation(
-                    "Unable to change Deployment Environment {EnvironmentId} activation. Error message: {Error}",
-                    request.Id, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
+        if (result.IsFailure)
+        {
             _logger.LogInformation(
-                "Deployment Environment {EnvironmentId} active set to {IsActive}.", request.Id, request.IsActive);
+                "Unable to change Deployment Environment {EnvironmentId} activation. Error message: {Error}",
+                request.Id, result.Error);
+            return Result.Failure(result.Error);
+        }
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
-        }
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Deployment Environment {EnvironmentId} active set to {IsActive}.", request.Id, request.IsActive);
+
+        return Result.Success();
     }
 }

@@ -32,8 +32,6 @@ public sealed class DeleteVersionCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<DeleteVersionCommand>
 {
-    private const string AppRequestName = nameof(DeleteVersionCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -43,80 +41,72 @@ public sealed class DeleteVersionCommandHandler(
 
     public async Task<Result> Handle(DeleteVersionCommand request, CancellationToken cancellationToken)
     {
-        try
+        var version = await _productManagementDbContext.Versions
+            .FirstOrDefaultAsync(v => v.Id == request.Id, cancellationToken);
+
+        if (version is null)
         {
-            var version = await _productManagementDbContext.Versions
-                .FirstOrDefaultAsync(v => v.Id == request.Id, cancellationToken);
-
-            if (version is null)
-            {
-                _logger.LogInformation("Version {VersionId} not found.", request.Id);
-                return Result.Failure("Version not found.");
-            }
-
-            var releaseCount = await _productManagementDbContext.ReleaseVersions
-                .CountAsync(rv => rv.VersionId == request.Id, cancellationToken);
-
-            if (releaseCount > 0)
-            {
-                return Result.Failure(
-                    $"This version is listed in {releaseCount} release(s). Remove it from them, or delete them, first.");
-            }
-
-            // A manifest line holds the version by id without a foreign key, so nothing would stop the
-            // delete — it would leave the package pointing at a version that no longer exists.
-            var packageCount = await _productManagementDbContext.ReleasePackageComponents
-                .Where(c => c.VersionId == request.Id)
-                .Select(c => c.PackageId)
-                .Distinct()
-                .CountAsync(cancellationToken);
-
-            if (packageCount > 0)
-            {
-                return Result.Failure(
-                    $"This version is named in the manifest of {packageCount} package(s). Remove it from them, or delete them, first.");
-            }
-
-            var deployments = await _productManagementDbContext.Deployments
-                .Where(d => d.VersionId == request.Id)
-                .ToListAsync(cancellationToken);
-
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-            var actor = EventActor.User(_currentUser.GetUserId(), employeeId);
-            var timestamp = _dateTimeProvider.Now;
-
-            // Deployments restrict on the version, so they go in the same save rather than being left to
-            // fail the delete at the database.
-            await DeploymentRemoval.Stage(
-                _productManagementDbContext,
-                _statusWorkflowDbContext,
-                deployments,
-                actor,
-                timestamp,
-                cancellationToken);
-
-            await StatusHistoryRemoval.Stage(
-                _statusWorkflowDbContext,
-                ProductWorkflowOwners.Version.Key,
-                [version.Id],
-                cancellationToken);
-
-            version.Delete(actor, timestamp);
-            _productManagementDbContext.Versions.Remove(version);
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation(
-                "Version {VersionId} deleted with {DeploymentCount} deployments.",
-                request.Id,
-                deployments.Count);
-
-            return Result.Success();
+            _logger.LogInformation("Version {VersionId} not found.", request.Id);
+            return Result.Failure("Version not found.");
         }
-        catch (Exception ex)
+
+        var releaseCount = await _productManagementDbContext.ReleaseVersions
+            .CountAsync(rv => rv.VersionId == request.Id, cancellationToken);
+
+        if (releaseCount > 0)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            return Result.Failure(
+                $"This version is listed in {releaseCount} release(s). Remove it from them, or delete them, first.");
         }
+
+        // A manifest line holds the version by id without a foreign key, so nothing would stop the
+        // delete — it would leave the package pointing at a version that no longer exists.
+        var packageCount = await _productManagementDbContext.ReleasePackageComponents
+            .Where(c => c.VersionId == request.Id)
+            .Select(c => c.PackageId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+
+        if (packageCount > 0)
+        {
+            return Result.Failure(
+                $"This version is named in the manifest of {packageCount} package(s). Remove it from them, or delete them, first.");
+        }
+
+        var deployments = await _productManagementDbContext.Deployments
+            .Where(d => d.VersionId == request.Id)
+            .ToListAsync(cancellationToken);
+
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        var actor = EventActor.User(_currentUser.GetUserId(), employeeId);
+        var timestamp = _dateTimeProvider.Now;
+
+        // Deployments restrict on the version, so they go in the same save rather than being left to
+        // fail the delete at the database.
+        await DeploymentRemoval.Stage(
+            _productManagementDbContext,
+            _statusWorkflowDbContext,
+            deployments,
+            actor,
+            timestamp,
+            cancellationToken);
+
+        await StatusHistoryRemoval.Stage(
+            _statusWorkflowDbContext,
+            ProductWorkflowOwners.Version.Key,
+            [version.Id],
+            cancellationToken);
+
+        version.Delete(actor, timestamp);
+        _productManagementDbContext.Versions.Remove(version);
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Version {VersionId} deleted with {DeploymentCount} deployments.",
+            request.Id,
+            deployments.Count);
+
+        return Result.Success();
     }
 }

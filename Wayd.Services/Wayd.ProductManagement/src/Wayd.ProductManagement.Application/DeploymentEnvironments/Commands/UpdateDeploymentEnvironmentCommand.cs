@@ -43,8 +43,6 @@ public sealed class UpdateDeploymentEnvironmentCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UpdateDeploymentEnvironmentCommand>
 {
-    private const string AppRequestName = nameof(UpdateDeploymentEnvironmentCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<UpdateDeploymentEnvironmentCommandHandler> _logger = logger;
@@ -52,55 +50,47 @@ public sealed class UpdateDeploymentEnvironmentCommandHandler(
 
     public async Task<Result> Handle(UpdateDeploymentEnvironmentCommand request, CancellationToken cancellationToken)
     {
-        try
+        var environment = await _productManagementDbContext.DeploymentEnvironments
+            .FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
+
+        if (environment is null)
         {
-            var environment = await _productManagementDbContext.DeploymentEnvironments
-                .FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
-
-            if (environment is null)
-            {
-                _logger.LogInformation("Deployment Environment {EnvironmentId} not found.", request.Id);
-                return Result.Failure("Deployment environment not found.");
-            }
-
-            var name = request.Name.Trim();
-
-            if (await _productManagementDbContext.DeploymentEnvironments
-                    .AnyAsync(e => e.Id != request.Id && e.Name == name, cancellationToken))
-            {
-                return Result.Failure($"An environment named '{name}' already exists.");
-            }
-
-            var actor = EventActor.User(_currentUser.GetUserId());
-            var now = _dateTimeProvider.Now;
-
-            var updateResult = environment.Update(name, request.RingOrder, actor, now);
-            if (updateResult.IsFailure)
-            {
-                _logger.LogInformation(
-                    "Unable to update Deployment Environment {EnvironmentId}. Error message: {Error}",
-                    request.Id, updateResult.Error);
-                return Result.Failure(updateResult.Error);
-            }
-
-            var reclassifyResult = environment.Reclassify(request.Category, actor, now);
-
-            if (reclassifyResult.IsFailure)
-            {
-                environment.ClearDomainEvents();
-                return Result.Failure(reclassifyResult.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Deployment Environment {EnvironmentId} updated.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Deployment Environment {EnvironmentId} not found.", request.Id);
+            return Result.Failure("Deployment environment not found.");
         }
-        catch (Exception ex)
+
+        var name = request.Name.Trim();
+
+        if (await _productManagementDbContext.DeploymentEnvironments
+                .AnyAsync(e => e.Id != request.Id && e.Name == name, cancellationToken))
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            return Result.Failure($"An environment named '{name}' already exists.");
         }
+
+        var actor = EventActor.User(_currentUser.GetUserId());
+        var now = _dateTimeProvider.Now;
+
+        var updateResult = environment.Update(name, request.RingOrder, actor, now);
+        if (updateResult.IsFailure)
+        {
+            _logger.LogInformation(
+                "Unable to update Deployment Environment {EnvironmentId}. Error message: {Error}",
+                request.Id, updateResult.Error);
+            return Result.Failure(updateResult.Error);
+        }
+
+        var reclassifyResult = environment.Reclassify(request.Category, actor, now);
+
+        if (reclassifyResult.IsFailure)
+        {
+            environment.ClearDomainEvents();
+            return Result.Failure(reclassifyResult.Error);
+        }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Deployment Environment {EnvironmentId} updated.", request.Id);
+
+        return Result.Success();
     }
 }

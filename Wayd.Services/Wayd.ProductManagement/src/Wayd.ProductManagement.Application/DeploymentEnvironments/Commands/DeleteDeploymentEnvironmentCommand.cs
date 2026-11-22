@@ -30,8 +30,6 @@ public sealed class DeleteDeploymentEnvironmentCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<DeleteDeploymentEnvironmentCommand>
 {
-    private const string AppRequestName = nameof(DeleteDeploymentEnvironmentCommand);
-
     private static readonly string DeleteDeliveryPermission =
         ApplicationPermission.NameFor(ApplicationAction.Delete, ApplicationResource.Delivery);
 
@@ -44,60 +42,52 @@ public sealed class DeleteDeploymentEnvironmentCommandHandler(
 
     public async Task<Result> Handle(DeleteDeploymentEnvironmentCommand request, CancellationToken cancellationToken)
     {
-        try
+        var environment = await _productManagementDbContext.DeploymentEnvironments
+            .FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
+
+        if (environment is null)
         {
-            var environment = await _productManagementDbContext.DeploymentEnvironments
-                .FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
-
-            if (environment is null)
-            {
-                _logger.LogInformation("Deployment Environment {EnvironmentId} not found.", request.Id);
-                return Result.Failure("Deployment environment not found.");
-            }
-
-            var deployments = await _productManagementDbContext.Deployments
-                .Where(d => d.EnvironmentId == request.Id)
-                .ToListAsync(cancellationToken);
-
-            // The endpoint grants deleting the environment; taking deployments with it is deleting
-            // deployments, which is its own grant. Only knowable once they are counted, so checked here.
-            if (deployments.Count > 0
-                && !await _currentPrincipal.HasPermission(DeleteDeliveryPermission, cancellationToken))
-            {
-                return Result.Failure(
-                    $"Deployments into this environment would be deleted with it ({deployments.Count}), which also needs permission to delete deployments.");
-            }
-
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-            var actor = EventActor.User(_currentUser.GetUserId(), employeeId);
-            var timestamp = _dateTimeProvider.Now;
-
-            // Deployments.EnvironmentId restricts, so they go in the same save rather than being left to
-            // fail the delete at the database.
-            await DeploymentRemoval.Stage(
-                _productManagementDbContext,
-                _statusWorkflowDbContext,
-                deployments,
-                actor,
-                timestamp,
-                cancellationToken);
-
-            environment.Delete(actor, timestamp);
-            _productManagementDbContext.DeploymentEnvironments.Remove(environment);
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation(
-                "Deployment Environment {EnvironmentId} deleted with {DeploymentCount} deployments.",
-                request.Id,
-                deployments.Count);
-
-            return Result.Success();
+            _logger.LogInformation("Deployment Environment {EnvironmentId} not found.", request.Id);
+            return Result.Failure("Deployment environment not found.");
         }
-        catch (Exception ex)
+
+        var deployments = await _productManagementDbContext.Deployments
+            .Where(d => d.EnvironmentId == request.Id)
+            .ToListAsync(cancellationToken);
+
+        // The endpoint grants deleting the environment; taking deployments with it is deleting
+        // deployments, which is its own grant. Only knowable once they are counted, so checked here.
+        if (deployments.Count > 0
+            && !await _currentPrincipal.HasPermission(DeleteDeliveryPermission, cancellationToken))
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            return Result.Failure(
+                $"Deployments into this environment would be deleted with it ({deployments.Count}), which also needs permission to delete deployments.");
         }
+
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        var actor = EventActor.User(_currentUser.GetUserId(), employeeId);
+        var timestamp = _dateTimeProvider.Now;
+
+        // Deployments.EnvironmentId restricts, so they go in the same save rather than being left to
+        // fail the delete at the database.
+        await DeploymentRemoval.Stage(
+            _productManagementDbContext,
+            _statusWorkflowDbContext,
+            deployments,
+            actor,
+            timestamp,
+            cancellationToken);
+
+        environment.Delete(actor, timestamp);
+        _productManagementDbContext.DeploymentEnvironments.Remove(environment);
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Deployment Environment {EnvironmentId} deleted with {DeploymentCount} deployments.",
+            request.Id,
+            deployments.Count);
+
+        return Result.Success();
     }
 }

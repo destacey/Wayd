@@ -48,8 +48,6 @@ public sealed class StartDeploymentCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<StartDeploymentCommand, ObjectIdAndKey>
 {
-    private const string AppRequestName = nameof(StartDeploymentCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -60,85 +58,77 @@ public sealed class StartDeploymentCommandHandler(
     public async Task<Result<ObjectIdAndKey>> Handle(
         StartDeploymentCommand request, CancellationToken cancellationToken)
     {
-        try
+        var environment = await _productManagementDbContext.DeploymentEnvironments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Id == request.EnvironmentId, cancellationToken);
+
+        if (environment is null)
         {
-            var environment = await _productManagementDbContext.DeploymentEnvironments
-                .AsNoTracking()
-                .FirstOrDefaultAsync(e => e.Id == request.EnvironmentId, cancellationToken);
-
-            if (environment is null)
-            {
-                _logger.LogInformation("Deployment Environment {EnvironmentId} not found.", request.EnvironmentId);
-                return Result.Failure<ObjectIdAndKey>("Deployment environment not found.");
-            }
-
-            if (!environment.IsActive)
-            {
-                return Result.Failure<ObjectIdAndKey>($"'{environment.Name}' is inactive and cannot be deployed into.");
-            }
-
-            if (request.VersionId is not null
-                && !await _productManagementDbContext.Versions
-                    .AnyAsync(v => v.Id == request.VersionId, cancellationToken))
-            {
-                return Result.Failure<ObjectIdAndKey>("Version not found.");
-            }
-
-            if (request.PackageId is not null
-                && !await _productManagementDbContext.ReleasePackages
-                    .AnyAsync(p => p.Id == request.PackageId, cancellationToken))
-            {
-                return Result.Failure<ObjectIdAndKey>("Release package not found.");
-            }
-
-            var inProgress = await _statusResolver.ForAlias(
-                ProductWorkflowOwners.Deployment.Key,
-                scopeId: null,
-                (int)ProductStatusAlias.InProgress,
-                cancellationToken);
-
-            if (inProgress.IsFailure)
-            {
-                _logger.LogError("Unable to resolve the in-progress deployment status. Error message: {Error}", inProgress.Error);
-                return Result.Failure<ObjectIdAndKey>(inProgress.Error);
-            }
-
-            // Read per scope rather than from the claim snapshot, which a personal access token
-            // freezes for its whole lifetime. Starting writes the deployment's first status transition,
-            // which freezes this value, so a stale one would misattribute it permanently.
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-
-            var result = Deployment.Create(
-                request.VersionId,
-                request.PackageId,
-                request.EnvironmentId,
-                // Frozen from the environment as it stands now, so reclassifying it later cannot rewrite
-                // what this deployment counted as.
-                environment.Category,
-                request.ArtifactId,
-                request.StartedAt ?? _dateTimeProvider.Now,
-                inProgress.Value,
-                environment.Name,
-                EventActor.User(_currentUser.GetUserId(), employeeId),
-                _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                _logger.LogInformation("Unable to start a deployment. Error message: {Error}", result.Error);
-                return Result.Failure<ObjectIdAndKey>(result.Error);
-            }
-
-            await _productManagementDbContext.Deployments.AddAsync(result.Value, cancellationToken);
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Deployment {DeploymentId} started.", result.Value.Id);
-
-            return Result.Success(new ObjectIdAndKey(result.Value.Id, result.Value.Key));
+            _logger.LogInformation("Deployment Environment {EnvironmentId} not found.", request.EnvironmentId);
+            return Result.Failure<ObjectIdAndKey>("Deployment environment not found.");
         }
-        catch (Exception ex)
+
+        if (!environment.IsActive)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<ObjectIdAndKey>($"Error handling {AppRequestName} command.");
+            return Result.Failure<ObjectIdAndKey>($"'{environment.Name}' is inactive and cannot be deployed into.");
         }
+
+        if (request.VersionId is not null
+            && !await _productManagementDbContext.Versions
+                .AnyAsync(v => v.Id == request.VersionId, cancellationToken))
+        {
+            return Result.Failure<ObjectIdAndKey>("Version not found.");
+        }
+
+        if (request.PackageId is not null
+            && !await _productManagementDbContext.ReleasePackages
+                .AnyAsync(p => p.Id == request.PackageId, cancellationToken))
+        {
+            return Result.Failure<ObjectIdAndKey>("Release package not found.");
+        }
+
+        var inProgress = await _statusResolver.ForAlias(
+            ProductWorkflowOwners.Deployment.Key,
+            scopeId: null,
+            (int)ProductStatusAlias.InProgress,
+            cancellationToken);
+
+        if (inProgress.IsFailure)
+        {
+            _logger.LogError("Unable to resolve the in-progress deployment status. Error message: {Error}", inProgress.Error);
+            return Result.Failure<ObjectIdAndKey>(inProgress.Error);
+        }
+
+        // Read per scope rather than from the claim snapshot, which a personal access token
+        // freezes for its whole lifetime. Starting writes the deployment's first status transition,
+        // which freezes this value, so a stale one would misattribute it permanently.
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
+        var result = Deployment.Create(
+            request.VersionId,
+            request.PackageId,
+            request.EnvironmentId,
+            // Frozen from the environment as it stands now, so reclassifying it later cannot rewrite
+            // what this deployment counted as.
+            environment.Category,
+            request.ArtifactId,
+            request.StartedAt ?? _dateTimeProvider.Now,
+            inProgress.Value,
+            environment.Name,
+            EventActor.User(_currentUser.GetUserId(), employeeId),
+            _dateTimeProvider.Now);
+
+        if (result.IsFailure)
+        {
+            _logger.LogInformation("Unable to start a deployment. Error message: {Error}", result.Error);
+            return Result.Failure<ObjectIdAndKey>(result.Error);
+        }
+
+        await _productManagementDbContext.Deployments.AddAsync(result.Value, cancellationToken);
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Deployment {DeploymentId} started.", result.Value.Id);
+
+        return Result.Success(new ObjectIdAndKey(result.Value.Id, result.Value.Key));
     }
 }

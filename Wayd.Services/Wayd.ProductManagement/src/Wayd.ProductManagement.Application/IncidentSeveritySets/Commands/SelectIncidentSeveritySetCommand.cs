@@ -22,36 +22,28 @@ public sealed class SelectIncidentSeveritySetCommandHandler(
         SelectIncidentSeveritySetCommand request,
         CancellationToken cancellationToken)
     {
-        try
+        var set = await _context.IncidentSeveritySets
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == request.SeveritySetId, cancellationToken);
+
+        if (set is null)
         {
-            var set = await _context.IncidentSeveritySets
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.Id == request.SeveritySetId, cancellationToken);
-
-            if (set is null)
-            {
-                return Result.Failure("Severity set not found.");
-            }
-
-            var assignment = await _context.IncidentSeveritySetAssignments.SingleAsync(cancellationToken);
-            var result = assignment.Select(request.SeveritySetId, set.IsActive);
-            if (result.IsFailure)
-            {
-                return result;
-            }
-
-            await _context.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation(
-                "Organization incident severity set changed to {SetId}.",
-                request.SeveritySetId);
-
-            return Result.Success();
+            return Result.Failure("Severity set not found.");
         }
-        catch (Exception ex)
+
+        var assignment = await _context.IncidentSeveritySetAssignments.SingleAsync(cancellationToken);
+        var result = assignment.Select(request.SeveritySetId, set.IsActive);
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {Command}.", nameof(SelectIncidentSeveritySetCommand));
-            return Result.Failure($"Exception handling {nameof(SelectIncidentSeveritySetCommand)}.");
+            return result;
         }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Organization incident severity set changed to {SetId}.",
+            request.SeveritySetId);
+
+        return Result.Success();
     }
 }

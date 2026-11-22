@@ -32,36 +32,28 @@ public sealed class CreateIncidentSeveritySetCommandHandler(
         CreateIncidentSeveritySetCommand request,
         CancellationToken cancellationToken)
     {
-        try
+        var name = request.Name.Trim();
+        if (await _context.IncidentSeveritySets.AnyAsync(s => s.Name == name, cancellationToken))
         {
-            var name = request.Name.Trim();
-            if (await _context.IncidentSeveritySets.AnyAsync(s => s.Name == name, cancellationToken))
-            {
-                return Result.Failure<Guid>($"A severity set named '{name}' already exists.");
-            }
-
-            var create = IncidentSeveritySet.CreateCustom(
-                name,
-                request.Description,
-                request.Levels
-                    .Select((l, i) => (l.Name, l.Color ?? IncidentSeverityLevel.DefaultColorForSortOrder(i)))
-                    .ToList());
-            if (create.IsFailure)
-            {
-                return Result.Failure<Guid>(create.Error);
-            }
-
-            _context.IncidentSeveritySets.Add(create.Value);
-            await _context.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Incident severity set {SetId} created.", create.Value.Id);
-
-            return Result.Success(create.Value.Id);
+            return Result.Failure<Guid>($"A severity set named '{name}' already exists.");
         }
-        catch (Exception ex)
+
+        var create = IncidentSeveritySet.CreateCustom(
+            name,
+            request.Description,
+            request.Levels
+                .Select((l, i) => (l.Name, l.Color ?? IncidentSeverityLevel.DefaultColorForSortOrder(i)))
+                .ToList());
+        if (create.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {Command}.", nameof(CreateIncidentSeveritySetCommand));
-            return Result.Failure<Guid>($"Exception handling {nameof(CreateIncidentSeveritySetCommand)}.");
+            return Result.Failure<Guid>(create.Error);
         }
+
+        _context.IncidentSeveritySets.Add(create.Value);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Incident severity set {SetId} created.", create.Value.Id);
+
+        return Result.Success(create.Value.Id);
     }
 }

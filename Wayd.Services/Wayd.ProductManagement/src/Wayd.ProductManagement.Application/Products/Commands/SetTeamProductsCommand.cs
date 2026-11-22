@@ -38,8 +38,6 @@ public sealed class SetTeamProductsCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<SetTeamProductsCommand>
 {
-    private const string AppRequestName = nameof(SetTeamProductsCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<SetTeamProductsCommandHandler> _logger = logger;
@@ -48,77 +46,69 @@ public sealed class SetTeamProductsCommandHandler(
 
     public async Task<Result> Handle(SetTeamProductsCommand request, CancellationToken cancellationToken)
     {
+        var wanted = request.ProductIds.ToHashSet();
+        var teamId = request.TeamId;
+
+        // Every product the change touches: those asked for, and those the team is on now.
+        var products = await _productManagementDbContext.Products
+            .Include(p => p.TeamLinks)
+            .Where(p => wanted.Contains(p.Id) || p.TeamLinks.Any(l => l.TeamId == teamId))
+            .ToListAsync(cancellationToken);
+
+        if (wanted.Except(products.Select(p => p.Id)).Any())
+        {
+            _logger.LogInformation("Unable to set the products of Team {TeamId}: a product was not found.", teamId);
+            return Result.Failure("Product not found.");
+        }
+
+        // Only linking needs the team itself. A team being unlinked from everything may have no copy at all.
+        ProductTeam? team = null;
+        if (wanted.Count > 0)
+        {
+            team = await _teams.Find(teamId, cancellationToken);
+            if (team is null)
+            {
+                _logger.LogInformation("Team {TeamId} not found.", teamId);
+                return Result.Failure("Team not found.");
+            }
+        }
+
+        var actor = EventActor.User(_currentUser.GetUserId());
+        var now = _dateTimeProvider.Now;
+
+        foreach (var product in products)
+        {
+            var result = wanted.Contains(product.Id)
+                ? product.LinkTeam(team!, actor, now)
+                : product.UnlinkTeam(teamId, actor, now);
+
+            if (result.IsFailure)
+            {
+                // The changes so far are only in memory; the request ends without saving them.
+                foreach (var changed in products)
+                {
+                    changed.ClearDomainEvents();
+                }
+
+                _logger.LogInformation("Unable to set the products of Team {TeamId}. Error message: {Error}", teamId, result.Error);
+                return Result.Failure(result.Error);
+            }
+        }
+
         try
         {
-            var wanted = request.ProductIds.ToHashSet();
-            var teamId = request.TeamId;
-
-            // Every product the change touches: those asked for, and those the team is on now.
-            var products = await _productManagementDbContext.Products
-                .Include(p => p.TeamLinks)
-                .Where(p => wanted.Contains(p.Id) || p.TeamLinks.Any(l => l.TeamId == teamId))
-                .ToListAsync(cancellationToken);
-
-            if (wanted.Except(products.Select(p => p.Id)).Any())
-            {
-                _logger.LogInformation("Unable to set the products of Team {TeamId}: a product was not found.", teamId);
-                return Result.Failure("Product not found.");
-            }
-
-            // Only linking needs the team itself. A team being unlinked from everything may have no copy at all.
-            ProductTeam? team = null;
-            if (wanted.Count > 0)
-            {
-                team = await _teams.Find(teamId, cancellationToken);
-                if (team is null)
-                {
-                    _logger.LogInformation("Team {TeamId} not found.", teamId);
-                    return Result.Failure("Team not found.");
-                }
-            }
-
-            var actor = EventActor.User(_currentUser.GetUserId());
-            var now = _dateTimeProvider.Now;
-
-            foreach (var product in products)
-            {
-                var result = wanted.Contains(product.Id)
-                    ? product.LinkTeam(team!, actor, now)
-                    : product.UnlinkTeam(teamId, actor, now);
-
-                if (result.IsFailure)
-                {
-                    // The changes so far are only in memory; the request ends without saving them.
-                    foreach (var changed in products)
-                    {
-                        changed.ClearDomainEvents();
-                    }
-
-                    _logger.LogInformation("Unable to set the products of Team {TeamId}. Error message: {Error}", teamId, result.Error);
-                    return Result.Failure(result.Error);
-                }
-            }
-
-            try
-            {
-                await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateException ex)
-            {
-                // Another request linked the team to one of these products while this one ran, and the unique
-                // index rejected the duplicate. Nothing was saved, so the caller can simply try again.
-                _logger.LogWarning(ex, "The products of Team {TeamId} changed while they were being set.", teamId);
-                return Result.Failure("The team's products were changed by someone else at the same time. Reload them and try again.");
-            }
-
-            _logger.LogInformation("Team {TeamId} set to {ProductCount} product(s).", teamId, wanted.Count);
-
-            return Result.Success();
+            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch (DbUpdateException ex)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            // Another request linked the team to one of these products while this one ran, and the unique
+            // index rejected the duplicate. Nothing was saved, so the caller can simply try again.
+            _logger.LogWarning(ex, "The products of Team {TeamId} changed while they were being set.", teamId);
+            return Result.Failure("The team's products were changed by someone else at the same time. Reload them and try again.");
         }
+
+        _logger.LogInformation("Team {TeamId} set to {ProductCount} product(s).", teamId, wanted.Count);
+
+        return Result.Success();
     }
 }

@@ -41,8 +41,6 @@ public sealed class SetReleasePackageManifestCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<SetReleasePackageManifestCommand>
 {
-    private const string AppRequestName = nameof(SetReleasePackageManifestCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<SetReleasePackageManifestCommandHandler> _logger = logger;
@@ -50,83 +48,75 @@ public sealed class SetReleasePackageManifestCommandHandler(
 
     public async Task<Result> Handle(SetReleasePackageManifestCommand request, CancellationToken cancellationToken)
     {
-        try
+        // The current manifest must be loaded: SetManifest compares against it to decide whether
+        // anything actually changed, and an unloaded collection would read as empty.
+        var package = await _productManagementDbContext.ReleasePackages
+            .Include(p => p.Components)
+            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+
+        if (package is null)
         {
-            // The current manifest must be loaded: SetManifest compares against it to decide whether
-            // anything actually changed, and an unloaded collection would read as empty.
-            var package = await _productManagementDbContext.ReleasePackages
-                .Include(p => p.Components)
-                .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
-
-            if (package is null)
-            {
-                _logger.LogInformation("Release Package {PackageId} not found.", request.Id);
-                return Result.Failure("Release package not found.");
-            }
-
-            var productIds = request.Components.Select(c => c.ProductId).Distinct().ToList();
-
-            var knownCount = await _productManagementDbContext.Products
-                .CountAsync(p => productIds.Contains(p.Id), cancellationToken);
-
-            if (knownCount != productIds.Count)
-            {
-                return Result.Failure("The manifest names a product that does not exist.");
-            }
-
-            // Version ids are optional — a carried-forward component often has no version row — but one
-            // that is supplied must resolve. Left unchecked, the projection renders an unknown id as
-            // null, making a typo indistinguishable from a legitimately carried-forward component.
-            var versionIds = request.Components
-                .Where(c => c.VersionId is not null)
-                .Select(c => c.VersionId!.Value)
-                .Distinct()
-                .ToList();
-
-            if (versionIds.Count > 0)
-            {
-                var knownVersions = await _productManagementDbContext.Versions
-                    .CountAsync(v => versionIds.Contains(v.Id), cancellationToken);
-
-                if (knownVersions != versionIds.Count)
-                {
-                    return Result.Failure("The manifest names a version that does not exist.");
-                }
-            }
-
-            // Withdrawn releases are left out: their contents are frozen and announce nothing.
-            var versionIdsCarriedDirectly = await _productManagementDbContext.Releases
-                .Where(r => r.StatusCategory != StatusCategory.Removed
-                    && r.Packages.Any(p => p.PackageId == package.Id))
-                .SelectMany(r => r.Versions.Select(v => v.VersionId))
-                .Distinct()
-                .ToListAsync(cancellationToken);
-
-            var result = package.SetManifest(
-                [.. request.Components.Select(c => (c.ProductId, c.VersionId, c.Version, c.Kind))],
-                versionIdsCarriedDirectly,
-                EventActor.User(_currentUser.GetUserId()),
-                _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                package.ClearDomainEvents();
-
-                _logger.LogInformation(
-                    "Unable to set the manifest for {PackageId}. Error message: {Error}", request.Id, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Release Package {PackageId} manifest set.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Release Package {PackageId} not found.", request.Id);
+            return Result.Failure("Release package not found.");
         }
-        catch (Exception ex)
+
+        var productIds = request.Components.Select(c => c.ProductId).Distinct().ToList();
+
+        var knownCount = await _productManagementDbContext.Products
+            .CountAsync(p => productIds.Contains(p.Id), cancellationToken);
+
+        if (knownCount != productIds.Count)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            return Result.Failure("The manifest names a product that does not exist.");
         }
+
+        // Version ids are optional — a carried-forward component often has no version row — but one
+        // that is supplied must resolve. Left unchecked, the projection renders an unknown id as
+        // null, making a typo indistinguishable from a legitimately carried-forward component.
+        var versionIds = request.Components
+            .Where(c => c.VersionId is not null)
+            .Select(c => c.VersionId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (versionIds.Count > 0)
+        {
+            var knownVersions = await _productManagementDbContext.Versions
+                .CountAsync(v => versionIds.Contains(v.Id), cancellationToken);
+
+            if (knownVersions != versionIds.Count)
+            {
+                return Result.Failure("The manifest names a version that does not exist.");
+            }
+        }
+
+        // Withdrawn releases are left out: their contents are frozen and announce nothing.
+        var versionIdsCarriedDirectly = await _productManagementDbContext.Releases
+            .Where(r => r.StatusCategory != StatusCategory.Removed
+                && r.Packages.Any(p => p.PackageId == package.Id))
+            .SelectMany(r => r.Versions.Select(v => v.VersionId))
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var result = package.SetManifest(
+            [.. request.Components.Select(c => (c.ProductId, c.VersionId, c.Version, c.Kind))],
+            versionIdsCarriedDirectly,
+            EventActor.User(_currentUser.GetUserId()),
+            _dateTimeProvider.Now);
+
+        if (result.IsFailure)
+        {
+            package.ClearDomainEvents();
+
+            _logger.LogInformation(
+                "Unable to set the manifest for {PackageId}. Error message: {Error}", request.Id, result.Error);
+            return Result.Failure(result.Error);
+        }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Release Package {PackageId} manifest set.", request.Id);
+
+        return Result.Success();
     }
 }

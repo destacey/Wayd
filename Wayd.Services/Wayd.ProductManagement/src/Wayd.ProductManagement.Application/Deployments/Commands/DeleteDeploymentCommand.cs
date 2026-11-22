@@ -27,8 +27,6 @@ public sealed class DeleteDeploymentCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<DeleteDeploymentCommand>
 {
-    private const string AppRequestName = nameof(DeleteDeploymentCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -38,37 +36,29 @@ public sealed class DeleteDeploymentCommandHandler(
 
     public async Task<Result> Handle(DeleteDeploymentCommand request, CancellationToken cancellationToken)
     {
-        try
+        var deployment = await _productManagementDbContext.Deployments
+            .FirstOrDefaultAsync(d => d.Id == request.Id, cancellationToken);
+
+        if (deployment is null)
         {
-            var deployment = await _productManagementDbContext.Deployments
-                .FirstOrDefaultAsync(d => d.Id == request.Id, cancellationToken);
-
-            if (deployment is null)
-            {
-                _logger.LogInformation("Deployment {DeploymentId} not found.", request.Id);
-                return Result.Failure("Deployment not found.");
-            }
-
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-
-            await DeploymentRemoval.Stage(
-                _productManagementDbContext,
-                _statusWorkflowDbContext,
-                [deployment],
-                EventActor.User(_currentUser.GetUserId(), employeeId),
-                _dateTimeProvider.Now,
-                cancellationToken);
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Deployment {DeploymentId} deleted.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Deployment {DeploymentId} not found.", request.Id);
+            return Result.Failure("Deployment not found.");
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
-        }
+
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
+        await DeploymentRemoval.Stage(
+            _productManagementDbContext,
+            _statusWorkflowDbContext,
+            [deployment],
+            EventActor.User(_currentUser.GetUserId(), employeeId),
+            _dateTimeProvider.Now,
+            cancellationToken);
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Deployment {DeploymentId} deleted.", request.Id);
+
+        return Result.Success();
     }
 }

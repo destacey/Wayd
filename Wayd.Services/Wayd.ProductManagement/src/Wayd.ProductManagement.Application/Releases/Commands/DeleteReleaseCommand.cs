@@ -30,8 +30,6 @@ public sealed class DeleteReleaseCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<DeleteReleaseCommand>
 {
-    private const string AppRequestName = nameof(DeleteReleaseCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -41,41 +39,41 @@ public sealed class DeleteReleaseCommandHandler(
 
     public async Task<Result> Handle(DeleteReleaseCommand request, CancellationToken cancellationToken)
     {
-        try
+        // The contents cascade in the database, but are loaded so the tracked graph matches.
+        var release = await _productManagementDbContext.Releases
+            .Include(r => r.Versions)
+            .Include(r => r.Packages)
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+
+        if (release is null)
         {
-            // The contents cascade in the database, but are loaded so the tracked graph matches.
-            var release = await _productManagementDbContext.Releases
-                .Include(r => r.Versions)
-                .Include(r => r.Packages)
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-
-            if (release is null)
-            {
-                _logger.LogInformation("Release {ReleaseId} not found.", request.Id);
-                return Result.Failure("Release not found.");
-            }
-
-            await StatusHistoryRemoval.Stage(
-                _statusWorkflowDbContext,
-                ProductWorkflowOwners.Release.Key,
-                [release.Id],
-                cancellationToken);
-
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-
-            release.Delete(EventActor.User(_currentUser.GetUserId(), employeeId), _dateTimeProvider.Now);
-            _productManagementDbContext.Releases.Remove(release);
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Release {ReleaseId} deleted.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Release {ReleaseId} not found.", request.Id);
+            return Result.Failure("Release not found.");
         }
-        catch (Exception ex)
+
+        // An incident's link to the release restricts its delete, so it is refused here rather than at the database.
+        var linkedIncidents = await _productManagementDbContext.Incidents
+            .CountAsync(i => i.ReleaseLinks.Any(l => l.ReleaseId == request.Id), cancellationToken);
+        if (linkedIncidents > 0)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            return Result.Failure($"This release is linked from {linkedIncidents} incident(s). Remove it from them first.");
         }
+
+        await StatusHistoryRemoval.Stage(
+            _statusWorkflowDbContext,
+            ProductWorkflowOwners.Release.Key,
+            [release.Id],
+            cancellationToken);
+
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
+        release.Delete(EventActor.User(_currentUser.GetUserId(), employeeId), _dateTimeProvider.Now);
+        _productManagementDbContext.Releases.Remove(release);
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Release {ReleaseId} deleted.", request.Id);
+
+        return Result.Success();
     }
 }

@@ -5,6 +5,7 @@ using Wayd.Common.Domain.Events.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Application.Releases.Commands;
 using Wayd.ProductManagement.Application.Tests.Infrastructure;
+using Wayd.ProductManagement.Domain.Models;
 
 namespace Wayd.ProductManagement.Application.Tests.Sut.Releases.Commands;
 
@@ -15,6 +16,34 @@ public sealed class DeleteReleaseCommandHandlerTests : ProductCommandTestBase
 {
     private DeleteReleaseCommandHandler CreateSut() =>
         new(DbContext, DbContext, CurrentUser.Object, CurrentPrincipal.Object, Logger<DeleteReleaseCommandHandler>(), DateTimeProvider.Object);
+
+    private Incident SeedIncident(IReadOnlyCollection<Guid> productIds, IReadOnlyCollection<Guid>? releaseIds = null)
+    {
+        var incident = Incident.Create(
+            "Checkout unavailable", null, null, ActingEmployeeId, Guid.CreateVersion7(), Now, null, null,
+            productIds, Status("Open", StatusCategory.Active, ProductStatusAlias.Open), EventActor.System, Now,
+            ActingEmployeeId, ActingEmployeeId, releaseIds).Value;
+        DbContext.AddIncident(incident);
+        return incident;
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRefuse_WhenAnIncidentLinksTheRelease()
+    {
+        // Arrange
+        var release = SeedRelease();
+        SeedIncident([], [release.Id]);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new DeleteReleaseCommand(release.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("This release is linked from 1 incident(s). Remove it from them first.");
+        DbContext.Releases.Should().ContainSingle();
+        DbContext.SaveChangesCallCount.Should().Be(0);
+    }
 
     [Fact]
     public async Task Handle_ShouldDeleteAReleasedReleaseAndItsStatusHistory()

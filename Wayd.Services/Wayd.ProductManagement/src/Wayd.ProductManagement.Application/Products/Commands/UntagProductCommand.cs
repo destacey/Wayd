@@ -24,8 +24,6 @@ public sealed class UntagProductCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UntagProductCommand>
 {
-    private const string AppRequestName = nameof(UntagProductCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
@@ -34,46 +32,38 @@ public sealed class UntagProductCommandHandler(
 
     public async Task<Result> Handle(UntagProductCommand request, CancellationToken cancellationToken)
     {
-        try
+        var product = await _productManagementDbContext.Products
+            .Include(p => p.Tags)
+            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+
+        if (product is null)
         {
-            var product = await _productManagementDbContext.Products
-                .Include(p => p.Tags)
-                .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
-
-            if (product is null)
-            {
-                _logger.LogInformation("Product {ProductId} not found.", request.Id);
-                return Result.Failure("Product not found.");
-            }
-
-            // Removing a tag the product never carried succeeds without an event, so no existence
-            // check on the tag itself is needed.
-            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
-            var now = _dateTimeProvider.Now;
-            var untagResult = product.Untag(request.TagId, actor, now);
-
-            if (untagResult.IsFailure)
-            {
-                // No reload: every refusal on this aggregate is checked before any state is
-                // touched, so there is nothing to roll back.
-                product.ClearDomainEvents();
-
-                _logger.LogError("Unable to untag Product {ProductId}. Error message: {Error}", request.Id, untagResult.Error);
-                return Result.Failure(untagResult.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            await FreeProductTags.DeleteUnused(_productManagementDbContext, [request.TagId], actor, now, cancellationToken);
-
-            _logger.LogInformation("Product {ProductId} untagged from {TagId}.", request.Id, request.TagId);
-
-            return Result.Success();
+            _logger.LogInformation("Product {ProductId} not found.", request.Id);
+            return Result.Failure("Product not found.");
         }
-        catch (Exception ex)
+
+        // Removing a tag the product never carried succeeds without an event, so no existence
+        // check on the tag itself is needed.
+        var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
+        var now = _dateTimeProvider.Now;
+        var untagResult = product.Untag(request.TagId, actor, now);
+
+        if (untagResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            // No reload: every refusal on this aggregate is checked before any state is
+            // touched, so there is nothing to roll back.
+            product.ClearDomainEvents();
+
+            _logger.LogError("Unable to untag Product {ProductId}. Error message: {Error}", request.Id, untagResult.Error);
+            return Result.Failure(untagResult.Error);
         }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        await FreeProductTags.DeleteUnused(_productManagementDbContext, [request.TagId], actor, now, cancellationToken);
+
+        _logger.LogInformation("Product {ProductId} untagged from {TagId}.", request.Id, request.TagId);
+
+        return Result.Success();
     }
 }

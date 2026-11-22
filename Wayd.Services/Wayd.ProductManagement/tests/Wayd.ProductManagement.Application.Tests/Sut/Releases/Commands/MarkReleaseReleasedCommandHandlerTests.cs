@@ -62,10 +62,10 @@ public sealed class MarkReleaseReleasedCommandHandlerTests : ProductCommandTestB
         var version = SeedVersion(product.Id);
         var release = SeedRelease();
 
-        await new SetReleaseContentsCommandHandler(
+        (await new SetReleaseContentsCommandHandler(
                 DbContext, CurrentUser.Object, CurrentPrincipal.Object,
                 Logger<SetReleaseContentsCommandHandler>(), DateTimeProvider.Object)
-            .Handle(new SetReleaseContentsCommand(release.Id, [version.Id], []), TestContext.Current.CancellationToken);
+            .Handle(new SetReleaseContentsCommand(release.Id, [version.Id], []), TestContext.Current.CancellationToken)).IsSuccess.Should().BeTrue();
 
         var sut = CreateSut();
 
@@ -94,10 +94,10 @@ public sealed class MarkReleaseReleasedCommandHandlerTests : ProductCommandTestB
             Now);
 
         var release = SeedRelease();
-        await new SetReleaseContentsCommandHandler(
+        (await new SetReleaseContentsCommandHandler(
                 DbContext, CurrentUser.Object, CurrentPrincipal.Object,
                 Logger<SetReleaseContentsCommandHandler>(), DateTimeProvider.Object)
-            .Handle(new SetReleaseContentsCommand(release.Id, [version.Id], []), TestContext.Current.CancellationToken);
+            .Handle(new SetReleaseContentsCommand(release.Id, [version.Id], []), TestContext.Current.CancellationToken)).IsSuccess.Should().BeTrue();
 
         var sut = CreateSut();
 

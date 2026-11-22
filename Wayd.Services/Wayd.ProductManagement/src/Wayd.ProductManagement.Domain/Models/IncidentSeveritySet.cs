@@ -58,6 +58,12 @@ public sealed class IncidentSeveritySet : BaseAuditableEntity
             return Result.Failure<IncidentSeveritySet>("A severity set must have at least two levels.");
         }
 
+        var names = levels.Select(l => l.Name.Trim()).ToList();
+        if (names.Distinct(StringComparer.OrdinalIgnoreCase).Count() != names.Count)
+        {
+            return Result.Failure<IncidentSeveritySet>("Level names must be unique within a severity set.");
+        }
+
         var set = new IncidentSeveritySet(name, description, isSystem: false);
         set.AddLevels(levels);
         return Result.Success(set);

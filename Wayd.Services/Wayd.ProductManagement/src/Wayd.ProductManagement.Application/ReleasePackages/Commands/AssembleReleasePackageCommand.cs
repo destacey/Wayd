@@ -50,8 +50,6 @@ public sealed class AssembleReleasePackageCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<AssembleReleasePackageCommand, ObjectIdAndKey>
 {
-    private const string AppRequestName = nameof(AssembleReleasePackageCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -62,79 +60,71 @@ public sealed class AssembleReleasePackageCommandHandler(
     public async Task<Result<ObjectIdAndKey>> Handle(
         AssembleReleasePackageCommand request, CancellationToken cancellationToken)
     {
-        try
+        var productIds = request.Components.Select(c => c.ProductId).Distinct().ToList();
+
+        var knownCount = await _productManagementDbContext.Products
+            .CountAsync(p => productIds.Contains(p.Id), cancellationToken);
+
+        // A manifest naming a product that does not exist would claim a shipment nobody can trace.
+        if (knownCount != productIds.Count)
         {
-            var productIds = request.Components.Select(c => c.ProductId).Distinct().ToList();
-
-            var knownCount = await _productManagementDbContext.Products
-                .CountAsync(p => productIds.Contains(p.Id), cancellationToken);
-
-            // A manifest naming a product that does not exist would claim a shipment nobody can trace.
-            if (knownCount != productIds.Count)
-            {
-                return Result.Failure<ObjectIdAndKey>("The manifest names a product that does not exist.");
-            }
-
-            // Version ids are optional — a carried-forward component often has no version row — but one
-            // that is supplied must resolve. Left unchecked, the projection renders an unknown id as
-            // null, making a typo indistinguishable from a legitimately carried-forward component.
-            var versionIds = request.Components
-                .Where(c => c.VersionId is not null)
-                .Select(c => c.VersionId!.Value)
-                .Distinct()
-                .ToList();
-
-            if (versionIds.Count > 0)
-            {
-                var knownVersions = await _productManagementDbContext.Versions
-                    .CountAsync(v => versionIds.Contains(v.Id), cancellationToken);
-
-                if (knownVersions != versionIds.Count)
-                {
-                    return Result.Failure<ObjectIdAndKey>("The manifest names a version that does not exist.");
-                }
-            }
-
-            var initialStatus = await _statusResolver.Initial(
-                ProductWorkflowOwners.ReleasePackage.Key, scopeId: null, cancellationToken);
-
-            if (initialStatus.IsFailure)
-            {
-                _logger.LogError("Unable to resolve the initial package status. Error message: {Error}", initialStatus.Error);
-                return Result.Failure<ObjectIdAndKey>(initialStatus.Error);
-            }
-
-            // Read per scope rather than from the claim snapshot, which a personal access token
-            // freezes for its whole lifetime. Assembly writes the package's first status transition,
-            // which freezes this value, so a stale one would misattribute it permanently.
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-
-            var result = ReleasePackage.Create(
-                request.Version,
-                request.Name,
-                request.TargetDate,
-                [.. request.Components.Select(c => (c.ProductId, c.VersionId, c.Version, c.Kind))],
-                initialStatus.Value,
-                EventActor.User(_currentUser.GetUserId(), employeeId),
-                _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                _logger.LogInformation("Unable to assemble a package. Error message: {Error}", result.Error);
-                return Result.Failure<ObjectIdAndKey>(result.Error);
-            }
-
-            await _productManagementDbContext.ReleasePackages.AddAsync(result.Value, cancellationToken);
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Release Package {PackageId} assembled.", result.Value.Id);
-
-            return Result.Success(new ObjectIdAndKey(result.Value.Id, result.Value.Key));
+            return Result.Failure<ObjectIdAndKey>("The manifest names a product that does not exist.");
         }
-        catch (Exception ex)
+
+        // Version ids are optional — a carried-forward component often has no version row — but one
+        // that is supplied must resolve. Left unchecked, the projection renders an unknown id as
+        // null, making a typo indistinguishable from a legitimately carried-forward component.
+        var versionIds = request.Components
+            .Where(c => c.VersionId is not null)
+            .Select(c => c.VersionId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (versionIds.Count > 0)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<ObjectIdAndKey>($"Error handling {AppRequestName} command.");
+            var knownVersions = await _productManagementDbContext.Versions
+                .CountAsync(v => versionIds.Contains(v.Id), cancellationToken);
+
+            if (knownVersions != versionIds.Count)
+            {
+                return Result.Failure<ObjectIdAndKey>("The manifest names a version that does not exist.");
+            }
         }
+
+        var initialStatus = await _statusResolver.Initial(
+            ProductWorkflowOwners.ReleasePackage.Key, scopeId: null, cancellationToken);
+
+        if (initialStatus.IsFailure)
+        {
+            _logger.LogError("Unable to resolve the initial package status. Error message: {Error}", initialStatus.Error);
+            return Result.Failure<ObjectIdAndKey>(initialStatus.Error);
+        }
+
+        // Read per scope rather than from the claim snapshot, which a personal access token
+        // freezes for its whole lifetime. Assembly writes the package's first status transition,
+        // which freezes this value, so a stale one would misattribute it permanently.
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
+        var result = ReleasePackage.Create(
+            request.Version,
+            request.Name,
+            request.TargetDate,
+            [.. request.Components.Select(c => (c.ProductId, c.VersionId, c.Version, c.Kind))],
+            initialStatus.Value,
+            EventActor.User(_currentUser.GetUserId(), employeeId),
+            _dateTimeProvider.Now);
+
+        if (result.IsFailure)
+        {
+            _logger.LogInformation("Unable to assemble a package. Error message: {Error}", result.Error);
+            return Result.Failure<ObjectIdAndKey>(result.Error);
+        }
+
+        await _productManagementDbContext.ReleasePackages.AddAsync(result.Value, cancellationToken);
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Release Package {PackageId} assembled.", result.Value.Id);
+
+        return Result.Success(new ObjectIdAndKey(result.Value.Id, result.Value.Key));
     }
 }

@@ -28,8 +28,6 @@ public sealed class TagProductCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<TagProductCommand>
 {
-    private const string AppRequestName = nameof(TagProductCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ISettings<ProductTagSettings> _settings = settings;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -39,80 +37,72 @@ public sealed class TagProductCommandHandler(
 
     public async Task<Result> Handle(TagProductCommand request, CancellationToken cancellationToken)
     {
-        try
+        var product = await _productManagementDbContext.Products
+            .Include(p => p.Tags)
+            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+
+        if (product is null)
         {
-            var product = await _productManagementDbContext.Products
-                .Include(p => p.Tags)
-                .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
-
-            if (product is null)
-            {
-                _logger.LogInformation("Product {ProductId} not found.", request.Id);
-                return Result.Failure("Product not found.");
-            }
-
-            var tag = await _productManagementDbContext.ProductTags
-                .FirstOrDefaultAsync(t => t.Id == request.TagId, cancellationToken);
-
-            if (tag is null)
-            {
-                _logger.LogInformation("Product Tag {TagId} not found.", request.TagId);
-                return Result.Failure("Tag not found.");
-            }
-
-            // The category decides whether this replaces an existing tag or joins it, so the aggregate
-            // needs it loaded alongside the tag. A free tag has none, and needs free tags turned on.
-            ProductTagCategory? category = null;
-            if (tag.IsFree)
-            {
-                if (!(await _settings.Get(cancellationToken)).AllowsFreeTags)
-                {
-                    return Result.Failure(ProductTagErrors.FreeTagsTurnedOff);
-                }
-            }
-            else
-            {
-                category = await _productManagementDbContext.ProductTagCategories
-                    .FirstOrDefaultAsync(c => c.Id == tag.CategoryId, cancellationToken);
-
-                if (category is null)
-                {
-                    _logger.LogError("Tag {TagId} references missing category {CategoryId}.", request.TagId, tag.CategoryId);
-                    return Result.Failure("That tag's category no longer exists.");
-                }
-
-                if (!category.IsActive)
-                {
-                    return Result.Failure($"'{category.Name}' is inactive and cannot be used to tag products.");
-                }
-            }
-
-            var tagResult = product.Tag(
-                tag,
-                category,
-                EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken)),
-                _dateTimeProvider.Now);
-
-            if (tagResult.IsFailure)
-            {
-                // No reload: every refusal on this aggregate is checked before any state is
-                // touched, so there is nothing to roll back.
-                product.ClearDomainEvents();
-
-                _logger.LogError("Unable to tag Product {ProductId}. Error message: {Error}", request.Id, tagResult.Error);
-                return Result.Failure(tagResult.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Product {ProductId} tagged with {TagId}.", request.Id, request.TagId);
-
-            return Result.Success();
+            _logger.LogInformation("Product {ProductId} not found.", request.Id);
+            return Result.Failure("Product not found.");
         }
-        catch (Exception ex)
+
+        var tag = await _productManagementDbContext.ProductTags
+            .FirstOrDefaultAsync(t => t.Id == request.TagId, cancellationToken);
+
+        if (tag is null)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogInformation("Product Tag {TagId} not found.", request.TagId);
+            return Result.Failure("Tag not found.");
         }
+
+        // The category decides whether this replaces an existing tag or joins it, so the aggregate
+        // needs it loaded alongside the tag. A free tag has none, and needs free tags turned on.
+        ProductTagCategory? category = null;
+        if (tag.IsFree)
+        {
+            if (!(await _settings.Get(cancellationToken)).AllowsFreeTags)
+            {
+                return Result.Failure(ProductTagErrors.FreeTagsTurnedOff);
+            }
+        }
+        else
+        {
+            category = await _productManagementDbContext.ProductTagCategories
+                .FirstOrDefaultAsync(c => c.Id == tag.CategoryId, cancellationToken);
+
+            if (category is null)
+            {
+                _logger.LogError("Tag {TagId} references missing category {CategoryId}.", request.TagId, tag.CategoryId);
+                return Result.Failure("That tag's category no longer exists.");
+            }
+
+            if (!category.IsActive)
+            {
+                return Result.Failure($"'{category.Name}' is inactive and cannot be used to tag products.");
+            }
+        }
+
+        var tagResult = product.Tag(
+            tag,
+            category,
+            EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken)),
+            _dateTimeProvider.Now);
+
+        if (tagResult.IsFailure)
+        {
+            // No reload: every refusal on this aggregate is checked before any state is
+            // touched, so there is nothing to roll back.
+            product.ClearDomainEvents();
+
+            _logger.LogError("Unable to tag Product {ProductId}. Error message: {Error}", request.Id, tagResult.Error);
+            return Result.Failure(tagResult.Error);
+        }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Product {ProductId} tagged with {TagId}.", request.Id, request.TagId);
+
+        return Result.Success();
     }
 }

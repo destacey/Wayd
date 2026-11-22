@@ -47,8 +47,6 @@ public sealed class SetReleaseContentsCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<SetReleaseContentsCommand>
 {
-    private const string AppRequestName = nameof(SetReleaseContentsCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
@@ -57,82 +55,74 @@ public sealed class SetReleaseContentsCommandHandler(
 
     public async Task<Result> Handle(SetReleaseContentsCommand request, CancellationToken cancellationToken)
     {
-        try
+        var release = await _productManagementDbContext.Releases
+            .Include(r => r.Versions)
+            .Include(r => r.Packages)
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+
+        if (release is null)
         {
-            var release = await _productManagementDbContext.Releases
-                .Include(r => r.Versions)
-                .Include(r => r.Packages)
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-
-            if (release is null)
-            {
-                _logger.LogInformation("Release {ReleaseId} not found.", request.Id);
-                return Result.Failure("Release not found.");
-            }
-
-            var versionIds = request.VersionIds.Distinct().ToList();
-            var packageIds = request.PackageIds.Distinct().ToList();
-
-            if (versionIds.Count > 0)
-            {
-                var known = await _productManagementDbContext.Versions
-                    .CountAsync(v => versionIds.Contains(v.Id), cancellationToken);
-
-                if (known != versionIds.Count)
-                {
-                    return Result.Failure("The release names a version that does not exist.");
-                }
-            }
-
-            if (packageIds.Count > 0)
-            {
-                var known = await _productManagementDbContext.ReleasePackages
-                    .CountAsync(p => packageIds.Contains(p.Id), cancellationToken);
-
-                if (known != packageIds.Count)
-                {
-                    return Result.Failure("The release names a package that does not exist.");
-                }
-            }
-
-            // Resolved from the packages being set rather than the ones already attached: the rule is
-            // about what this release contains afterwards. A manifest line that names no version record
-            // — a component carried forward from before Wayd held it — covers nothing, so it cannot
-            // conflict with a version carried directly.
-            var versionIdsInPackages = await _productManagementDbContext.ReleasePackageComponents
-                .Where(c => packageIds.Contains(c.PackageId) && c.VersionId != null)
-                .Select(c => c.VersionId!.Value)
-                .Distinct()
-                .ToListAsync(cancellationToken);
-
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-
-            var result = release.SetContents(
-                versionIds,
-                packageIds,
-                versionIdsInPackages,
-                EventActor.User(_currentUser.GetUserId(), employeeId),
-                _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                release.ClearDomainEvents();
-
-                _logger.LogInformation(
-                    "Unable to set Release {ReleaseId} contents. Error message: {Error}", request.Id, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Release {ReleaseId} contents set.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Release {ReleaseId} not found.", request.Id);
+            return Result.Failure("Release not found.");
         }
-        catch (Exception ex)
+
+        var versionIds = request.VersionIds.Distinct().ToList();
+        var packageIds = request.PackageIds.Distinct().ToList();
+
+        if (versionIds.Count > 0)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            var known = await _productManagementDbContext.Versions
+                .CountAsync(v => versionIds.Contains(v.Id), cancellationToken);
+
+            if (known != versionIds.Count)
+            {
+                return Result.Failure("The release names a version that does not exist.");
+            }
         }
+
+        if (packageIds.Count > 0)
+        {
+            var known = await _productManagementDbContext.ReleasePackages
+                .CountAsync(p => packageIds.Contains(p.Id), cancellationToken);
+
+            if (known != packageIds.Count)
+            {
+                return Result.Failure("The release names a package that does not exist.");
+            }
+        }
+
+        // Resolved from the packages being set rather than the ones already attached: the rule is
+        // about what this release contains afterwards. A manifest line that names no version record
+        // — a component carried forward from before Wayd held it — covers nothing, so it cannot
+        // conflict with a version carried directly.
+        var versionIdsInPackages = await _productManagementDbContext.ReleasePackageComponents
+            .Where(c => packageIds.Contains(c.PackageId) && c.VersionId != null)
+            .Select(c => c.VersionId!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
+        var result = release.SetContents(
+            versionIds,
+            packageIds,
+            versionIdsInPackages,
+            EventActor.User(_currentUser.GetUserId(), employeeId),
+            _dateTimeProvider.Now);
+
+        if (result.IsFailure)
+        {
+            release.ClearDomainEvents();
+
+            _logger.LogInformation(
+                "Unable to set Release {ReleaseId} contents. Error message: {Error}", request.Id, result.Error);
+            return Result.Failure(result.Error);
+        }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Release {ReleaseId} contents set.", request.Id);
+
+        return Result.Success();
     }
 }

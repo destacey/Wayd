@@ -30,8 +30,6 @@ public sealed class MarkReleasePackageReleasedCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<MarkReleasePackageReleasedCommand>
 {
-    private const string AppRequestName = nameof(MarkReleasePackageReleasedCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -41,62 +39,54 @@ public sealed class MarkReleasePackageReleasedCommandHandler(
 
     public async Task<Result> Handle(MarkReleasePackageReleasedCommand request, CancellationToken cancellationToken)
     {
-        try
+        // The manifest must be loaded: MarkReleased refuses an empty one, and an unloaded
+        // collection reads as empty — so without this every release of a real package is refused.
+        var package = await _productManagementDbContext.ReleasePackages
+            .Include(p => p.Components)
+            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+
+        if (package is null)
         {
-            // The manifest must be loaded: MarkReleased refuses an empty one, and an unloaded
-            // collection reads as empty — so without this every release of a real package is refused.
-            var package = await _productManagementDbContext.ReleasePackages
-                .Include(p => p.Components)
-                .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
-
-            if (package is null)
-            {
-                _logger.LogInformation("Release Package {PackageId} not found.", request.Id);
-                return Result.Failure("Release package not found.");
-            }
-
-            var status = await _statusResolver.ForAlias(
-                ProductWorkflowOwners.ReleasePackage.Key,
-                scopeId: null,
-                (int)ProductStatusAlias.Released,
-                cancellationToken);
-
-            if (status.IsFailure)
-            {
-                _logger.LogError("Unable to resolve the released package status. Error message: {Error}", status.Error);
-                return Result.Failure(status.Error);
-            }
-
-            // Read per scope rather than from the claim snapshot, which a personal access token
-            // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
-            // one would misattribute the change permanently.
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-
-            var result = package.MarkReleased(
-                request.ReleasedAt,
-                status.Value,
-                EventActor.User(_currentUser.GetUserId(), employeeId),
-                _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                package.ClearDomainEvents();
-
-                _logger.LogInformation(
-                    "Unable to mark released Release Package {PackageId}. Error message: {Error}", request.Id, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Release Package {PackageId} marked released.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Release Package {PackageId} not found.", request.Id);
+            return Result.Failure("Release package not found.");
         }
-        catch (Exception ex)
+
+        var status = await _statusResolver.ForAlias(
+            ProductWorkflowOwners.ReleasePackage.Key,
+            scopeId: null,
+            (int)ProductStatusAlias.Released,
+            cancellationToken);
+
+        if (status.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to resolve the released package status. Error message: {Error}", status.Error);
+            return Result.Failure(status.Error);
         }
+
+        // Read per scope rather than from the claim snapshot, which a personal access token
+        // freezes for its whole lifetime. This value is frozen onto the transition, so a stale
+        // one would misattribute the change permanently.
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
+        var result = package.MarkReleased(
+            request.ReleasedAt,
+            status.Value,
+            EventActor.User(_currentUser.GetUserId(), employeeId),
+            _dateTimeProvider.Now);
+
+        if (result.IsFailure)
+        {
+            package.ClearDomainEvents();
+
+            _logger.LogInformation(
+                "Unable to mark released Release Package {PackageId}. Error message: {Error}", request.Id, result.Error);
+            return Result.Failure(result.Error);
+        }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Release Package {PackageId} marked released.", request.Id);
+
+        return Result.Success();
     }
 }

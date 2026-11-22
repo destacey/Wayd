@@ -24,43 +24,35 @@ public sealed class DeleteIncidentSeveritySetCommandHandler(
         DeleteIncidentSeveritySetCommand request,
         CancellationToken cancellationToken)
     {
-        try
+        var set = await _context.IncidentSeveritySets
+            .Include(s => s.Levels)
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+
+        if (set is null)
         {
-            var set = await _context.IncidentSeveritySets
-                .Include(s => s.Levels)
-                .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
-
-            if (set is null)
-            {
-                return Result.Failure("Severity set not found.");
-            }
-
-            var selectedSetId = await _context.IncidentSeveritySetAssignments
-                .Select(a => a.SeveritySetId)
-                .SingleAsync(cancellationToken);
-
-            var levelsInUse = await _levelUsage.GetLevelIdsInUse(cancellationToken);
-            var levelsInSetInUse = levelsInUse
-                .Where(id => set.Levels.Any(l => l.Id == id))
-                .ToHashSet();
-
-            var delete = set.Delete(set.Id == selectedSetId, levelsInSetInUse);
-            if (delete.IsFailure)
-            {
-                return delete;
-            }
-
-            _context.IncidentSeveritySets.Remove(set);
-            await _context.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Incident severity set {SetId} deleted.", request.Id);
-
-            return Result.Success();
+            return Result.Failure("Severity set not found.");
         }
-        catch (Exception ex)
+
+        var selectedSetId = await _context.IncidentSeveritySetAssignments
+            .Select(a => a.SeveritySetId)
+            .SingleAsync(cancellationToken);
+
+        var levelsInUse = await _levelUsage.GetLevelIdsInUse(cancellationToken);
+        var levelsInSetInUse = levelsInUse
+            .Where(id => set.Levels.Any(l => l.Id == id))
+            .ToHashSet();
+
+        var delete = set.Delete(set.Id == selectedSetId, levelsInSetInUse);
+        if (delete.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {Command}.", nameof(DeleteIncidentSeveritySetCommand));
-            return Result.Failure($"Exception handling {nameof(DeleteIncidentSeveritySetCommand)}.");
+            return delete;
         }
+
+        _context.IncidentSeveritySets.Remove(set);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Incident severity set {SetId} deleted.", request.Id);
+
+        return Result.Success();
     }
 }

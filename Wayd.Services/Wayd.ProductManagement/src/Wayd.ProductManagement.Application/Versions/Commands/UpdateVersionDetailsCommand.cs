@@ -40,8 +40,6 @@ public sealed class UpdateVersionDetailsCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<UpdateVersionDetailsCommand>
 {
-    private const string AppRequestName = nameof(UpdateVersionDetailsCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<UpdateVersionDetailsCommandHandler> _logger = logger;
@@ -49,44 +47,36 @@ public sealed class UpdateVersionDetailsCommandHandler(
 
     public async Task<Result> Handle(UpdateVersionDetailsCommand request, CancellationToken cancellationToken)
     {
-        try
+        var version = await _productManagementDbContext.Versions
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+
+        if (version is null)
         {
-            var version = await _productManagementDbContext.Versions
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-
-            if (version is null)
-            {
-                _logger.LogInformation("Version {VersionId} not found.", request.Id);
-                return Result.Failure("Version not found.");
-            }
-
-            var result = version.UpdateDetails(
-                request.Version,
-                request.Name,
-                request.Notes,
-                request.Sequence,
-                EventActor.User(_currentUser.GetUserId()),
-                _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                version.ClearDomainEvents();
-
-                _logger.LogInformation(
-                    "Unable to update Version {VersionId}. Error message: {Error}", request.Id, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Version {VersionId} updated.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Version {VersionId} not found.", request.Id);
+            return Result.Failure("Version not found.");
         }
-        catch (Exception ex)
+
+        var result = version.UpdateDetails(
+            request.Version,
+            request.Name,
+            request.Notes,
+            request.Sequence,
+            EventActor.User(_currentUser.GetUserId()),
+            _dateTimeProvider.Now);
+
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            version.ClearDomainEvents();
+
+            _logger.LogInformation(
+                "Unable to update Version {VersionId}. Error message: {Error}", request.Id, result.Error);
+            return Result.Failure(result.Error);
         }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Version {VersionId} updated.", request.Id);
+
+        return Result.Success();
     }
 }

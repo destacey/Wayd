@@ -42,8 +42,6 @@ public sealed class CreateProductTagCategoryCommandHandler(
     ILogger<CreateProductTagCategoryCommandHandler> logger)
     : ICommandHandler<CreateProductTagCategoryCommand, ObjectIdAndKey>
 {
-    private const string AppRequestName = nameof(CreateProductTagCategoryCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
@@ -53,34 +51,26 @@ public sealed class CreateProductTagCategoryCommandHandler(
     public async Task<Result<ObjectIdAndKey>> Handle(
         CreateProductTagCategoryCommand request, CancellationToken cancellationToken)
     {
-        try
+        var name = request.Name.Trim();
+
+        if (await _productManagementDbContext.ProductTagCategories.AnyAsync(c => c.Name == name, cancellationToken))
         {
-            var name = request.Name.Trim();
-
-            if (await _productManagementDbContext.ProductTagCategories.AnyAsync(c => c.Name == name, cancellationToken))
-            {
-                return Result.Failure<ObjectIdAndKey>($"A tag category named '{name}' already exists.");
-            }
-
-            var order = await _productManagementDbContext.ProductTagCategories
-                .Select(c => (int?)c.Order)
-                .MaxAsync(cancellationToken) ?? 0;
-
-            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
-            var category = ProductTagCategory.Create(name, request.Description, request.AllowsMany, order + 1,
-                actor, _dateTimeProvider.Now);
-
-            await _productManagementDbContext.ProductTagCategories.AddAsync(category, cancellationToken);
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Product Tag Category {CategoryId} created.", category.Id);
-
-            return Result.Success(new ObjectIdAndKey(category.Id, category.Key));
+            return Result.Failure<ObjectIdAndKey>($"A tag category named '{name}' already exists.");
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<ObjectIdAndKey>($"Error handling {AppRequestName} command.");
-        }
+
+        var order = await _productManagementDbContext.ProductTagCategories
+            .Select(c => (int?)c.Order)
+            .MaxAsync(cancellationToken) ?? 0;
+
+        var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
+        var category = ProductTagCategory.Create(name, request.Description, request.AllowsMany, order + 1,
+            actor, _dateTimeProvider.Now);
+
+        await _productManagementDbContext.ProductTagCategories.AddAsync(category, cancellationToken);
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Product Tag Category {CategoryId} created.", category.Id);
+
+        return Result.Success(new ObjectIdAndKey(category.Id, category.Key));
     }
 }

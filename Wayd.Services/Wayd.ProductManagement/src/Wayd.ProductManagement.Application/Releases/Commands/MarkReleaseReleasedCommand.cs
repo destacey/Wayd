@@ -30,8 +30,6 @@ public sealed class MarkReleaseReleasedCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<MarkReleaseReleasedCommand>
 {
-    private const string AppRequestName = nameof(MarkReleaseReleasedCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -41,76 +39,68 @@ public sealed class MarkReleaseReleasedCommandHandler(
 
     public async Task<Result> Handle(MarkReleaseReleasedCommand request, CancellationToken cancellationToken)
     {
-        try
+        var release = await _productManagementDbContext.Releases
+            .Include(r => r.Versions)
+            .Include(r => r.Packages)
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+
+        if (release is null)
         {
-            var release = await _productManagementDbContext.Releases
-                .Include(r => r.Versions)
-                .Include(r => r.Packages)
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-
-            if (release is null)
-            {
-                _logger.LogInformation("Release {ReleaseId} not found.", request.Id);
-                return Result.Failure("Release not found.");
-            }
-
-            // The aggregate demands the status carrying this meaning and cannot fetch it. Resolving by
-            // alias rather than by id is what lets an organization rename or reorder its workflow
-            // without breaking the transition.
-            var status = await _statusResolver.ForAlias(
-                ProductWorkflowOwners.Release.Key,
-                scopeId: null,
-                (int)ProductStatusAlias.Released,
-                cancellationToken);
-
-            if (status.IsFailure)
-            {
-                _logger.LogError("Unable to resolve the released release status. Error message: {Error}", status.Error);
-                return Result.Failure(status.Error);
-            }
-
-            // Whether anything this release carries has yet to ship. The aggregate holds ids, not the
-            // records, so it cannot answer this itself — but it is the one claim an announcement makes
-            // that its own contents can contradict, so it is checked rather than assumed.
-            var versionIds = release.Versions.Select(v => v.VersionId).ToList();
-            var packageIds = release.Packages.Select(p => p.PackageId).ToList();
-
-            var hasUnreleasedVersion = versionIds.Count > 0
-                && await _productManagementDbContext.Versions
-                    .AnyAsync(v => versionIds.Contains(v.Id) && v.ReleasedAt == null, cancellationToken);
-
-            var hasUnreleasedPackage = packageIds.Count > 0
-                && await _productManagementDbContext.ReleasePackages
-                    .AnyAsync(p => packageIds.Contains(p.Id) && p.ReleasedAt == null, cancellationToken);
-
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-
-            var result = release.MarkReleased(
-                request.ReleasedDate,
-                hasUnreleasedVersion || hasUnreleasedPackage,
-                status.Value,
-                EventActor.User(_currentUser.GetUserId(), employeeId),
-                _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                release.ClearDomainEvents();
-
-                _logger.LogInformation(
-                    "Unable to release Release {ReleaseId}. Error message: {Error}", request.Id, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Release {ReleaseId} released.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Release {ReleaseId} not found.", request.Id);
+            return Result.Failure("Release not found.");
         }
-        catch (Exception ex)
+
+        // The aggregate demands the status carrying this meaning and cannot fetch it. Resolving by
+        // alias rather than by id is what lets an organization rename or reorder its workflow
+        // without breaking the transition.
+        var status = await _statusResolver.ForAlias(
+            ProductWorkflowOwners.Release.Key,
+            scopeId: null,
+            (int)ProductStatusAlias.Released,
+            cancellationToken);
+
+        if (status.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to resolve the released release status. Error message: {Error}", status.Error);
+            return Result.Failure(status.Error);
         }
+
+        // Whether anything this release carries has yet to ship. The aggregate holds ids, not the
+        // records, so it cannot answer this itself — but it is the one claim an announcement makes
+        // that its own contents can contradict, so it is checked rather than assumed.
+        var versionIds = release.Versions.Select(v => v.VersionId).ToList();
+        var packageIds = release.Packages.Select(p => p.PackageId).ToList();
+
+        var hasUnreleasedVersion = versionIds.Count > 0
+            && await _productManagementDbContext.Versions
+                .AnyAsync(v => versionIds.Contains(v.Id) && v.ReleasedAt == null, cancellationToken);
+
+        var hasUnreleasedPackage = packageIds.Count > 0
+            && await _productManagementDbContext.ReleasePackages
+                .AnyAsync(p => packageIds.Contains(p.Id) && p.ReleasedAt == null, cancellationToken);
+
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+
+        var result = release.MarkReleased(
+            request.ReleasedDate,
+            hasUnreleasedVersion || hasUnreleasedPackage,
+            status.Value,
+            EventActor.User(_currentUser.GetUserId(), employeeId),
+            _dateTimeProvider.Now);
+
+        if (result.IsFailure)
+        {
+            release.ClearDomainEvents();
+
+            _logger.LogInformation(
+                "Unable to release Release {ReleaseId}. Error message: {Error}", request.Id, result.Error);
+            return Result.Failure(result.Error);
+        }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Release {ReleaseId} released.", request.Id);
+
+        return Result.Success();
     }
 }

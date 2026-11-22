@@ -29,8 +29,6 @@ public sealed class DeleteProductTagCommandHandler(
     ILogger<DeleteProductTagCommandHandler> logger)
     : ICommandHandler<DeleteProductTagCommand>
 {
-    private const string AppRequestName = nameof(DeleteProductTagCommand);
-
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
@@ -39,43 +37,35 @@ public sealed class DeleteProductTagCommandHandler(
 
     public async Task<Result> Handle(DeleteProductTagCommand request, CancellationToken cancellationToken)
     {
-        try
+        // Routed through the category, like every other tag mutation: the system flag lives there.
+        // Tags must be included — the aggregate resolves the tag from its own collection.
+        var category = await _productManagementDbContext.ProductTagCategories
+            .Include(c => c.Tags)
+            .FirstOrDefaultAsync(c => c.Id == request.CategoryId, cancellationToken);
+
+        if (category is null)
         {
-            // Routed through the category, like every other tag mutation: the system flag lives there.
-            // Tags must be included — the aggregate resolves the tag from its own collection.
-            var category = await _productManagementDbContext.ProductTagCategories
-                .Include(c => c.Tags)
-                .FirstOrDefaultAsync(c => c.Id == request.CategoryId, cancellationToken);
-
-            if (category is null)
-            {
-                _logger.LogInformation("Tag category {CategoryId} not found.", request.CategoryId);
-                return Result.Failure("Tag category not found.");
-            }
-
-            var isInUse = await _productManagementDbContext.ProductTagAssignments
-                .AnyAsync(a => a.TagId == request.TagId, cancellationToken);
-
-            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
-            var result = category.RemoveTag(request.TagId, isInUse, actor, _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                _logger.LogInformation(
-                    "Unable to delete tag {TagId}. Error message: {Error}", request.TagId, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _productManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Tag {TagId} deleted.", request.TagId);
-
-            return Result.Success();
+            _logger.LogInformation("Tag category {CategoryId} not found.", request.CategoryId);
+            return Result.Failure("Tag category not found.");
         }
-        catch (Exception ex)
+
+        var isInUse = await _productManagementDbContext.ProductTagAssignments
+            .AnyAsync(a => a.TagId == request.TagId, cancellationToken);
+
+        var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
+        var result = category.RemoveTag(request.TagId, isInUse, actor, _dateTimeProvider.Now);
+
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogInformation(
+                "Unable to delete tag {TagId}. Error message: {Error}", request.TagId, result.Error);
+            return Result.Failure(result.Error);
         }
+
+        await _productManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Tag {TagId} deleted.", request.TagId);
+
+        return Result.Success();
     }
 }

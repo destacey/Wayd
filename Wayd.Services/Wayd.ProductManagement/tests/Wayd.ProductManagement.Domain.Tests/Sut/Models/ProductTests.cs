@@ -796,7 +796,7 @@ public sealed class ProductTests
         var sut = _faker.WithParentId(parentId).Generate();
 
         // Act
-        var result = sut.Remove(hasChildren: false, hasVersions: false, isInAManifest: false, hasDependencies: false, isDependedOn: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Remove(hasChildren: false, hasVersions: false, isInAManifest: false, hasDependencies: false, isDependedOn: false, isInARelease: false, isOnAnIncident: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -811,7 +811,7 @@ public sealed class ProductTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.Remove(hasChildren: true, hasVersions: false, isInAManifest: false, hasDependencies: false, isDependedOn: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Remove(hasChildren: true, hasVersions: false, isInAManifest: false, hasDependencies: false, isDependedOn: false, isInARelease: false, isOnAnIncident: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -828,7 +828,7 @@ public sealed class ProductTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.Remove(hasChildren: false, hasVersions: false, isInAManifest: true, hasDependencies: false, isDependedOn: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Remove(hasChildren: false, hasVersions: false, isInAManifest: true, hasDependencies: false, isDependedOn: false, isInARelease: false, isOnAnIncident: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -842,7 +842,7 @@ public sealed class ProductTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.Remove(hasChildren: false, hasVersions: true, isInAManifest: false, hasDependencies: false, isDependedOn: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Remove(hasChildren: false, hasVersions: true, isInAManifest: false, hasDependencies: false, isDependedOn: false, isInARelease: false, isOnAnIncident: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -856,7 +856,7 @@ public sealed class ProductTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.Remove(hasChildren: false, hasVersions: false, isInAManifest: false, hasDependencies: true, isDependedOn: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Remove(hasChildren: false, hasVersions: false, isInAManifest: false, hasDependencies: true, isDependedOn: false, isInARelease: false, isOnAnIncident: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -871,11 +871,41 @@ public sealed class ProductTests
         var sut = _faker.Generate();
 
         // Act
-        var result = sut.Remove(hasChildren: false, hasVersions: false, isInAManifest: false, hasDependencies: false, isDependedOn: true, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.Remove(hasChildren: false, hasVersions: false, isInAManifest: false, hasDependencies: false, isDependedOn: true, isInARelease: false, isOnAnIncident: false, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("Other products have dependencies on this product recorded, so it cannot be removed.");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Remove_ShouldFail_WhenItHasReleases()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+
+        // Act
+        var result = sut.Remove(hasChildren: false, hasVersions: false, isInAManifest: false, hasDependencies: false, isDependedOn: false, isInARelease: true, isOnAnIncident: false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("This product has releases and cannot be removed.");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Remove_ShouldFail_WhenAnIncidentNamesIt()
+    {
+        // Arrange
+        var sut = _faker.Generate();
+
+        // Act
+        var result = sut.Remove(hasChildren: false, hasVersions: false, isInAManifest: false, hasDependencies: false, isDependedOn: false, isInARelease: false, isOnAnIncident: true, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Incidents name this product as affected, so it cannot be removed. Remove it from them first.");
         sut.DomainEvents.Should().BeEmpty();
     }
 

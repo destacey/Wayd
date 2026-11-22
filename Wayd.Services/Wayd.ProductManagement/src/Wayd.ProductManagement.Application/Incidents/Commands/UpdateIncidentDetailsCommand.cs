@@ -30,6 +30,7 @@ public sealed class UpdateIncidentDetailsCommandValidator : AbstractValidator<Up
         RuleFor(c => c.Remediation).MaximumLength(4096);
         RuleFor(c => c.RootCause).MaximumLength(4096);
         RuleFor(c => c.SeverityLevelId).NotEmpty();
+        RuleFor(c => c.ProductIds).NotNull();
         RuleFor(c => c.ReportedByEmployeeId).NotEmpty();
         RuleFor(c => c.CommanderEmployeeId)
             .Must(id => id != Guid.Empty)

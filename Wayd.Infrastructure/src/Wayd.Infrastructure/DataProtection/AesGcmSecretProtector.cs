@@ -30,10 +30,15 @@ internal sealed class AesGcmSecretProtector : ISecretProtector
     public bool IsProtected(string value)
         => value is not null && value.StartsWith(VersionTag + ":", StringComparison.Ordinal);
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// Do not return an input that already carries the version tag unchanged. The entity in memory always holds
+    /// plaintext (the converter decrypts on read and encrypts a clone on write), so a tagged input is a secret that
+    /// starts with the tag; passing it through would store it in the clear and fail on the next read.
+    /// </remarks>
     public string Protect(string plaintext)
     {
         if (plaintext is null) throw new ArgumentNullException(nameof(plaintext));
-        if (IsProtected(plaintext)) return plaintext; // idempotent
 
         var plaintextBytes = Encoding.UTF8.GetBytes(plaintext);
         var nonce = RandomNumberGenerator.GetBytes(NonceSize);

@@ -10,7 +10,8 @@ public interface ISecretProtector
 {
     /// <summary>
     /// Encrypt a plaintext secret. Returns a self-describing string that includes
-    /// the algorithm version, nonce, and ciphertext.
+    /// the algorithm version, nonce, and ciphertext. Always encrypts: an input that
+    /// already looks protected is treated as plaintext and encrypted again.
     /// </summary>
     string Protect(string plaintext);
 
@@ -21,9 +22,10 @@ public interface ISecretProtector
     string Unprotect(string protectedValue);
 
     /// <summary>
-    /// True when the input was produced by <see cref="Protect"/>; false when it
-    /// is plaintext (e.g. a legacy value awaiting backfill). Lets callers
-    /// detect un-encrypted values cheaply without attempting decryption.
+    /// True when the input carries the version tag <see cref="Protect"/> writes;
+    /// false when it is plaintext (e.g. a legacy value awaiting backfill). Decides
+    /// only how a stored value is read: since every write is encrypted, the only
+    /// untagged values in storage are ones written before encryption shipped.
     /// </summary>
     bool IsProtected(string value);
 }

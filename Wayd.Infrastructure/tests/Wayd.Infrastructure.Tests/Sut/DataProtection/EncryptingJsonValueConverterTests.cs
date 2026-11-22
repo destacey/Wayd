@@ -116,6 +116,23 @@ public class EncryptingJsonValueConverterTests
     }
 
     [Fact]
+    public void Encrypts_a_secret_that_starts_with_the_version_tag()
+    {
+        // Arrange
+        var converter = (ValueConverter<TestConfig, string>)new EncryptingJsonValueConverter<TestConfig>();
+        var lookalike = "wayd1:not-a-nonce:not-a-ciphertext";
+        var original = new TestConfig { Organization = "acme", PersonalAccessToken = lookalike };
+
+        // Act
+        var stored = (string)converter.ConvertToProvider(original)!;
+        var restored = (TestConfig)converter.ConvertFromProvider(stored)!;
+
+        // Assert
+        stored.Should().NotContain(lookalike);
+        restored.PersonalAccessToken.Should().Be(lookalike);
+    }
+
+    [Fact]
     public void Decrypts_legacy_plaintext_values_unchanged()
     {
         // Simulate a row written before encryption shipped: JSON with a plaintext PAT.

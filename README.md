@@ -107,7 +107,7 @@ On first boot with an empty database, the API prints a one-time **bootstrap toke
 
 Local (Wayd) username/password sign-in works out of the box. To let your team sign in with Microsoft Entra ID or another OIDC provider, add a provider in the app under **Settings → Access → Identity Providers** — identity providers are stored in the database, not in configuration files. See the [Entra app registration guide](docs/contributing/entra-app-registration.mdx) and [Configuration → Authentication](docs/contributing/configuration.mdx#authentication).
 
-Every sign-in ends in a Wayd JWT signed with `SecuritySettings:LocalJwt:Secret`. The checked-in `security.json` holds development-only values for it and for `SecuritySettings:DataProtection:MasterKey`; a non-Development host refuses to start with the placeholder JWT secret.
+Every sign-in ends in a Wayd JWT signed with `SecuritySettings:LocalJwt:Secret`. Development-only values for it and for `SecuritySettings:DataProtection:MasterKey` live in `security.Development.json`, which loads only in Development; any other host must set both, and refuses to start with the development values.
 
 ### Alternative: Run with Docker Compose
 

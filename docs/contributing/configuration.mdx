@@ -12,7 +12,7 @@ audience: [developer, operator]
 The API reads its settings from these sources, each overriding the one before (`Wayd.Web.Api/Configurations/ConfigureServices.cs`):
 
 1. `appsettings.json`, then `appsettings.{Environment}.json`.
-2. One file per concern in `Wayd.Web/src/Wayd.Web.Api/Configurations/` — `logger.json`, `hangfire.json`, `cors.json`, `database.json`, `middleware.json`, `security.json`, `openapi.json`, `securityheaders.json`, `integrations.json` — each followed by its optional `{name}.{Environment}.json` overlay (`database.Development.json`, `hangfire.Development.json`).
+2. One file per concern in `Wayd.Web/src/Wayd.Web.Api/Configurations/` — `logger.json`, `hangfire.json`, `cors.json`, `database.json`, `middleware.json`, `security.json`, `openapi.json`, `securityheaders.json`, `integrations.json` — each followed by its optional `{name}.{Environment}.json` overlay (`database.Development.json`, `hangfire.Development.json`, `security.Development.json`).
 3. User secrets (`dotnet user-secrets`, in `Wayd.Web/src/Wayd.Web.Api`).
 4. Environment variables, with `__` in place of `:` (`DatabaseSettings__ConnectionString`).
 
@@ -143,7 +143,7 @@ Don't guess — decode a real token at [jwt.ms](https://jwt.ms) and copy the `au
 
 ### Local Authentication
 
-Configure in `Wayd.Web/src/Wayd.Web.Api/Configurations/security.json` or User Secrets:
+`Wayd.Web/src/Wayd.Web.Api/Configurations/security.json` holds the shared settings; set the secret through User Secrets or environment variables:
 
 ```json
 {
@@ -163,7 +163,7 @@ Configure in `Wayd.Web/src/Wayd.Web.Api/Configurations/security.json` or User Se
 
 Only `Secret` needs to be set per deploy — the rest have sensible defaults and in particular `Issuer` / `Audience` are JWT claim identifiers, not environment-specific config. Don't override them per environment.
 
-The checked-in `security.json` holds a placeholder secret beginning `DEV-ONLY-SECRET`. A host outside Development refuses to start while the secret is empty or still that placeholder.
+`security.json` holds no secret. `security.Development.json`, which loads only in Development, supplies a placeholder beginning `DEV-ONLY-SECRET`, so a deployment must set its own. Every host refuses to start with a secret shorter than 32 characters, the least that keys HMAC-SHA256 at full strength, and a host outside Development also refuses the placeholder, wherever it is configured.
 
 **Every sign-in refusal reads the same** (`TokenService.SignInRefused`): an unknown user, a wrong password, a locked, inactive or non-local account. The message names the lockout as well, so a locked-out owner knows to wait, but nobody learns whether an account exists, its state, or whether a guess made during a lockout was right; a reply that differed for the right password would turn the lockout into an uncounted guessing oracle. An unknown or non-local user still has a password hash verified, so the refusal takes as long as a wrong password.
 
@@ -179,7 +179,7 @@ The checked-in `security.json` holds a placeholder secret beginning `DEV-ONLY-SE
 
 Connector credentials (Azure DevOps PATs, AI API keys, future OAuth refresh tokens) are encrypted at rest before being written to the `Connections` table. Encryption uses AES-256-GCM with a per-row random nonce; the master key lives in configuration.
 
-Configure in `Wayd.Web/src/Wayd.Web.Api/Configurations/security.json` or User Secrets:
+Set the key through User Secrets or environment variables, never in `security.json`:
 
 ```json
 {
@@ -197,7 +197,9 @@ Generate the key with:
 openssl rand -base64 32
 ```
 
-The host refuses to start when the key is missing, is not base64, or does not decode to exactly 32 bytes. The key checked into `security.json` is for development only and is **not** rejected elsewhere, so a deployment must override it.
+The host refuses to start when the key is missing, is not base64, or does not decode to exactly 32 bytes. `security.json` holds no key. The development key lives in `security.Development.json`, which loads only in Development; a host outside Development also refuses that key if it is copied into its configuration, so a deployment must supply its own.
+
+Every write encrypts each `[Encrypted]` field, whatever it holds — a submitted secret that happens to begin with the `wayd1:` version tag is encrypted like any other. The tag only tells a read whether a stored value is ciphertext or a plaintext row from before encryption shipped.
 
 User Secrets for local dev:
 

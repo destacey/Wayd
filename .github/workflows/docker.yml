@@ -62,7 +62,8 @@ jobs:
             # reproducible across environments, so regenerating separately would risk drift).
             #
             # Env: ASPNETCORE_ENVIRONMENT=Development runs the codegen boot in Auto mode (no pre-existing tree
-            # needed) and skips the production JWT-secret guard in AddLocalJwtAuth. WAYD_SKIP_DB_INIT + a
+            # needed), loads the development JWT secret and master key from security.Development.json, and skips
+            # the guards that refuse those values outside Development. WAYD_SKIP_DB_INIT + a
             # placeholder connection string let the host boot without a database (codegen never connects; the
             # `codegen write` verb builds the host but never calls app.Run(), so no hosted service runs).
             # OTEL_EXPORTER_OTLP_ENDPOINT is cleared so the OTLP exporter services do not perturb registration

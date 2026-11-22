@@ -127,7 +127,7 @@ public static class ConfigureServices
 
         // Data protection (at-rest secret encryption) must initialize before
         // persistence so the EF model can pick up the protector via SecretProtectorAccessor.
-        services.AddDataProtectionForSecrets(config);
+        services.AddDataProtectionForSecrets(config, environment);
 
         // CONNECTOR MODULES — one self-contained registration per connector (keyed sources,
         // descriptor builders, init probes, HTTP clients), discovered from this assembly. Adding

@@ -90,6 +90,7 @@ public class VisionTests
             .WithDates(new FlexibleInstantRange(_dateTimeProvider.Now.Plus(Duration.FromDays(-10)), _dateTimeProvider.Now))
             .Generate();
 
+        var originalDescription = vision.Description;
         string updatedDescription = "Do amazing things.";
 
         // Act
@@ -98,6 +99,7 @@ public class VisionTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("The vision is archived and cannot be updated.");
+        vision.Description.Should().Be(originalDescription);
     }
 
     [Fact]
@@ -129,11 +131,13 @@ public class VisionTests
         vision.Activate(activationDate);
 
         // Act
-        var result = vision.Activate(activationDate);
+        var result = vision.Activate(activationDate.Plus(Duration.FromDays(1)));
 
         // Assert
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().Be("The vision must be in the Proposed state to activate it.");
+        vision.State.Should().Be(VisionState.Active);
+        vision.Dates.Should().Be(new FlexibleInstantRange(activationDate));
     }
 
     [Fact]
@@ -171,6 +175,8 @@ public class VisionTests
         // Assert
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().Be("The vision must be in the Active state to archive it.");
+        vision.State.Should().Be(VisionState.Proposed);
+        vision.Dates.Should().BeNull();
     }
 
     [Fact]
@@ -181,7 +187,8 @@ public class VisionTests
             .WithState(VisionState.Archived)
             .WithDates(new FlexibleInstantRange(_dateTimeProvider.Now.Plus(Duration.FromDays(-10)), _dateTimeProvider.Now))
             .Generate();
-        var archiveDate = _dateTimeProvider.Now;
+        var originalDates = vision.Dates;
+        var archiveDate = _dateTimeProvider.Now.Plus(Duration.FromDays(1));
 
         // Act
         var result = vision.Archive(archiveDate);
@@ -189,6 +196,8 @@ public class VisionTests
         // Assert
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().Be("The vision must be in the Active state to archive it.");
+        vision.State.Should().Be(VisionState.Archived);
+        vision.Dates.Should().Be(originalDates);
     }
 
     [Fact]
@@ -207,6 +216,8 @@ public class VisionTests
         // Assert
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().Be("The end date must be on or after the start date.");
+        vision.State.Should().Be(VisionState.Active);
+        vision.Dates.Should().Be(new FlexibleInstantRange(_dateTimeProvider.Now));
     }
 }
 

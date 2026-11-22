@@ -101,6 +101,14 @@ types, never a bare `catch (Exception)`:
 | Microsoft Graph (Teams) | `ApiException` (Graph's `ODataError`), `AuthenticationFailedException`, `HttpRequestException` |
 | Workday | `WorkdaySoapException` |
 
+A catch may also turn one specific, expected exception into a `CustomException`: a `DbUpdateException` from a
+unique index that is itself the check — two concurrent writes of the same link or key — becomes a
+`ConflictException`. Filter for that exception alone, never `Exception`, and let every other failure propagate.
+
+A business-rule failure needs no undo. An aggregate method checks every rule before it assigns anything, so a
+rejected call leaves the entity and its pending events as they were, and the handler returns the failure
+without saving or reloading the entity.
+
 ## Authentication and authorization
 
 Every controller requires an authenticated caller: controllers are mapped with `RequireAuthorization()`

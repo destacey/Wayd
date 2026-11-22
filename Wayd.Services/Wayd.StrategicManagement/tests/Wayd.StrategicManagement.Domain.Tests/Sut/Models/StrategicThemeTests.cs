@@ -101,6 +101,7 @@ public class StrategicThemeTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
+        theme.State.Should().Be(StrategicThemeState.Active);
         theme.DomainEvents.Should().BeEmpty();
     }
 
@@ -132,6 +133,7 @@ public class StrategicThemeTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
+        theme.State.Should().Be(StrategicThemeState.Proposed);
         theme.DomainEvents.Should().BeEmpty();
     }
 
@@ -162,6 +164,7 @@ public class StrategicThemeTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
+        theme.State.Should().Be(StrategicThemeState.Active);
         theme.DomainEvents.Should().BeEmpty();
     }
 }

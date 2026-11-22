@@ -24,34 +24,24 @@ public sealed class CreateStrategyCommandValidator : AbstractValidator<CreateStr
 
 public sealed class CreateStrategyCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<CreateStrategyCommandHandler> logger) : ICommandHandler<CreateStrategyCommand, ObjectIdAndKey>
 {
-    private const string AppRequestName = nameof(CreateStrategyCommand);
-
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
     private readonly ILogger<CreateStrategyCommandHandler> _logger = logger;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateStrategyCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var strategy = Strategy.Create(
-                request.Name,
-                request.Description,
-                request.Status,
-                request.Dates
-                );
+        var strategy = Strategy.Create(
+            request.Name,
+            request.Description,
+            request.Status,
+            request.Dates
+            );
 
-            await _strategicManagementDbContext.Strategies.AddAsync(strategy, cancellationToken);
-            await _strategicManagementDbContext.SaveChangesAsync(cancellationToken);
+        await _strategicManagementDbContext.Strategies.AddAsync(strategy, cancellationToken);
+        await _strategicManagementDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Strategy {StrategyId} created with Key {StrategyKey}.", strategy.Id, strategy.Key);
+        _logger.LogInformation("Strategy {StrategyId} created with Key {StrategyKey}.", strategy.Id, strategy.Key);
 
-            return new ObjectIdAndKey(strategy.Id, strategy.Key);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<ObjectIdAndKey>($"Error handling {AppRequestName} command.");
-        }
+        return new ObjectIdAndKey(strategy.Id, strategy.Key);
     }
 }
 

@@ -14,8 +14,6 @@ public sealed class DeleteStrategicThemeCommandValidator : AbstractValidator<Del
 
 public sealed class DeleteStrategicThemeCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ICurrentUser currentUser, ILogger<DeleteStrategicThemeCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<DeleteStrategicThemeCommand>
 {
-    private const string AppRequestName = nameof(DeleteStrategicThemeCommand);
-
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<DeleteStrategicThemeCommandHandler> _logger = logger;
@@ -23,35 +21,27 @@ public sealed class DeleteStrategicThemeCommandHandler(IStrategicManagementDbCon
 
     public async Task<Result> Handle(DeleteStrategicThemeCommand request, CancellationToken cancellationToken)
     {
-        try
+        var strategicTheme = await _strategicManagementDbContext.StrategicThemes
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+
+        if (strategicTheme is null)
         {
-            var strategicTheme = await _strategicManagementDbContext.StrategicThemes
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-
-            if (strategicTheme is null)
-            {
-                _logger.LogInformation("Strategic Theme {StrategicThemeId} not found.", request.Id);
-                return Result.Failure("Strategic Theme not found.");
-            }
-
-            var deleteResult = strategicTheme.Delete(EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
-            if (deleteResult.IsFailure)
-            {
-                _logger.LogInformation("Strategic Theme {StrategicThemeId} cannot be deleted. Error message: {Error}", request.Id, deleteResult.Error);
-                return Result.Failure(deleteResult.Error);
-            }
-
-            _strategicManagementDbContext.StrategicThemes.Remove(strategicTheme);
-            await _strategicManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Strategic Theme {StrategicThemeId} deleted.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Strategic Theme {StrategicThemeId} not found.", request.Id);
+            return Result.Failure("Strategic Theme not found.");
         }
-        catch (Exception ex)
+
+        var deleteResult = strategicTheme.Delete(EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+        if (deleteResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogInformation("Strategic Theme {StrategicThemeId} cannot be deleted. Error message: {Error}", request.Id, deleteResult.Error);
+            return Result.Failure(deleteResult.Error);
         }
+
+        _strategicManagementDbContext.StrategicThemes.Remove(strategicTheme);
+        await _strategicManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Strategic Theme {StrategicThemeId} deleted.", request.Id);
+
+        return Result.Success();
     }
 }

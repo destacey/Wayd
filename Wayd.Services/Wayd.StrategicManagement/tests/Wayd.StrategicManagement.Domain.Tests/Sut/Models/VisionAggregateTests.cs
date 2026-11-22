@@ -71,6 +71,8 @@ public sealed class VisionAggregateTests
         // Assert
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().Be("An active vision already exists. Only one active vision is allowed.");
+        proposedVision.State.Should().Be(VisionState.Proposed);
+        proposedVision.Dates.Should().BeNull();
     }
 
     [Fact]
@@ -90,6 +92,8 @@ public sealed class VisionAggregateTests
         // Assert
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().Be("The vision cannot be activated because it overlaps with another archived vision.");
+        proposedVision.State.Should().Be(VisionState.Proposed);
+        proposedVision.Dates.Should().BeNull();
     }
 
     #endregion Activate
@@ -193,6 +197,7 @@ public sealed class VisionAggregateTests
         var visionAggregate = new VisionAggregate([archivedVision]);
 
         var archiveDate = archivedVision.Dates!.Start.Plus(Duration.FromDays(5));
+        var originalDates = archivedVision.Dates;
 
         // Act
         var result = visionAggregate.Archive(archivedVision.Id, archiveDate);
@@ -200,6 +205,8 @@ public sealed class VisionAggregateTests
         // Assert
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().Be("The vision must be in the Active state to archive it.");
+        archivedVision.State.Should().Be(VisionState.Archived);
+        archivedVision.Dates.Should().Be(originalDates);
     }
 
     [Fact]
@@ -217,12 +224,16 @@ public sealed class VisionAggregateTests
 
         var archiveDate = activeVision.Dates!.Start.Plus(Duration.FromDays(10));
 
+        var originalDates = activeVision.Dates;
+
         // Act
         var result = visionAggregate.Archive(activeVision.Id, archiveDate);
 
         // Assert
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().Be("The vision cannot be archived because it overlaps with another archived vision.");
+        activeVision.State.Should().Be(VisionState.Active);
+        activeVision.Dates.Should().Be(originalDates);
     }
 
     #endregion Archive

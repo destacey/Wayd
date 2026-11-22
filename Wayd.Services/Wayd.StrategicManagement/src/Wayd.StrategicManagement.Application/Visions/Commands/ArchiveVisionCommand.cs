@@ -15,53 +15,39 @@ public sealed class ArchiveVisionCommandValidator : AbstractValidator<ArchiveVis
 
 public sealed class ArchiveVisionCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<ArchiveVisionCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<ArchiveVisionCommand>
 {
-    private const string AppRequestName = nameof(ArchiveVisionCommand);
-
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
     private readonly ILogger<ArchiveVisionCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result> Handle(ArchiveVisionCommand request, CancellationToken cancellationToken)
     {
-        try
+        var visions = await _strategicManagementDbContext.Visions
+            .ToListAsync(cancellationToken);
+        if (visions.Count == 0)
         {
-            var visions = await _strategicManagementDbContext.Visions
-                .ToListAsync(cancellationToken);
-            if (visions.Count == 0)
-            {
-                _logger.LogInformation("No Visions found.");
-                return Result.Failure("No Visions found.");
-            }
-
-            var vision = visions.SingleOrDefault(v => v.Id == request.Id);
-            if (vision is null)
-            {
-                _logger.LogInformation("Vision {VisionId} not found.", request.Id);
-                return Result.Failure("Vision not found.");
-            }
-
-            var aggregate = new VisionAggregate(visions);
-
-            var archiveResult = aggregate.Archive(request.Id, _dateTimeProvider.Now);
-            if (archiveResult.IsFailure)
-            {
-                // Reset the entity
-                await _strategicManagementDbContext.Entry(vision).ReloadAsync(cancellationToken);
-                vision.ClearDomainEvents();
-
-                _logger.LogError("Unable to archive Vision {VisionId}.  Error message: {Error}", request.Id, archiveResult.Error);
-                return Result.Failure(archiveResult.Error);
-            }
-            await _strategicManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Vision {VisionId} archived.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("No Visions found.");
+            return Result.Failure("No Visions found.");
         }
-        catch (Exception ex)
+
+        var vision = visions.SingleOrDefault(v => v.Id == request.Id);
+        if (vision is null)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogInformation("Vision {VisionId} not found.", request.Id);
+            return Result.Failure("Vision not found.");
         }
+
+        var aggregate = new VisionAggregate(visions);
+
+        var archiveResult = aggregate.Archive(request.Id, _dateTimeProvider.Now);
+        if (archiveResult.IsFailure)
+        {
+            _logger.LogInformation("Unable to archive Vision {VisionId}.  Error message: {Error}", request.Id, archiveResult.Error);
+            return Result.Failure(archiveResult.Error);
+        }
+        await _strategicManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Vision {VisionId} archived.", request.Id);
+
+        return Result.Success();
     }
 }

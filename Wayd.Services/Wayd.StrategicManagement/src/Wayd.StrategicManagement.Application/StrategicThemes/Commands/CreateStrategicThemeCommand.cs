@@ -16,6 +16,7 @@ public sealed class CreateStrategicThemeCommandValidator : AbstractValidator<Cre
             .MaximumLength(64);
 
         RuleFor(x => x.Description)
+            .NotEmpty()
             .MaximumLength(1024);
     }
 }
@@ -26,8 +27,6 @@ public sealed class CreateStrategicThemeCommandHandler(
     ILogger<CreateStrategicThemeCommandHandler> logger,
     IDateTimeProvider dateTimeProvider) : ICommandHandler<CreateStrategicThemeCommand, ObjectIdAndKey>
 {
-    private const string AppRequestName = nameof(CreateStrategicThemeCommand);
-
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<CreateStrategicThemeCommandHandler> _logger = logger;
@@ -35,28 +34,20 @@ public sealed class CreateStrategicThemeCommandHandler(
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateStrategicThemeCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var strategicTheme = StrategicTheme.Create(
-                request.Name,
-                request.Description,
-                StrategicThemeState.Proposed,
-                EventActor.User(_currentUser.GetUserId()),
-                _dateTimeProvider.Now
-                );
+        var strategicTheme = StrategicTheme.Create(
+            request.Name,
+            request.Description,
+            StrategicThemeState.Proposed,
+            EventActor.User(_currentUser.GetUserId()),
+            _dateTimeProvider.Now
+            );
 
-            await _strategicManagementDbContext.StrategicThemes.AddAsync(strategicTheme, cancellationToken);
-            await _strategicManagementDbContext.SaveChangesAsync(cancellationToken);
+        await _strategicManagementDbContext.StrategicThemes.AddAsync(strategicTheme, cancellationToken);
+        await _strategicManagementDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Strategic Theme {StrategicThemeId} created with Key {StrategicThemeKey}.", strategicTheme.Id, strategicTheme.Key);
+        _logger.LogInformation("Strategic Theme {StrategicThemeId} created with Key {StrategicThemeKey}.", strategicTheme.Id, strategicTheme.Key);
 
-            return new ObjectIdAndKey(strategicTheme.Id, strategicTheme.Key);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<ObjectIdAndKey>($"Error handling {AppRequestName} command.");
-        }
+        return new ObjectIdAndKey(strategicTheme.Id, strategicTheme.Key);
     }
 }
 

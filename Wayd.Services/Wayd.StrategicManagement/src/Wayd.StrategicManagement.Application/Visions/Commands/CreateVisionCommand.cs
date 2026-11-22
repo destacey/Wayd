@@ -17,29 +17,19 @@ public sealed class CreateVisionCommandValidator : AbstractValidator<CreateVisio
 
 public sealed class CreateVisionCommandHandler(IStrategicManagementDbContext strategicManagementDbContext, ILogger<CreateVisionCommandHandler> logger) : ICommandHandler<CreateVisionCommand, ObjectIdAndKey>
 {
-    private const string AppRequestName = nameof(CreateVisionCommand);
-
     private readonly IStrategicManagementDbContext _strategicManagementDbContext = strategicManagementDbContext;
     private readonly ILogger<CreateVisionCommandHandler> _logger = logger;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateVisionCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var vision = Vision.Create(request.Description);
+        var vision = Vision.Create(request.Description);
 
-            await _strategicManagementDbContext.Visions.AddAsync(vision, cancellationToken);
-            await _strategicManagementDbContext.SaveChangesAsync(cancellationToken);
+        await _strategicManagementDbContext.Visions.AddAsync(vision, cancellationToken);
+        await _strategicManagementDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Vision {VisionId} created with Key {VisionKey}.", vision.Id, vision.Key);
+        _logger.LogInformation("Vision {VisionId} created with Key {VisionKey}.", vision.Id, vision.Key);
 
-            return new ObjectIdAndKey(vision.Id, vision.Key);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<ObjectIdAndKey>($"Error handling {AppRequestName} command.");
-        }
+        return new ObjectIdAndKey(vision.Id, vision.Key);
     }
 }
 

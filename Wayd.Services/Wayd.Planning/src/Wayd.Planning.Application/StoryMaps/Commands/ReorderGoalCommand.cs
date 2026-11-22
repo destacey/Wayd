@@ -16,40 +16,30 @@ public sealed class ReorderGoalCommandValidator : CustomValidator<ReorderGoalCom
     }
 }
 
-public sealed class ReorderGoalCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<ReorderGoalCommandHandler> logger) : ICommandHandler<ReorderGoalCommand>
+public sealed class ReorderGoalCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier) : ICommandHandler<ReorderGoalCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
-    private readonly ILogger<ReorderGoalCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ReorderGoalCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await StoryMapMutation.Apply(
-                _planningDbContext,
-                _access,
-                ct => _planningDbContext.StoryMaps
-                    .IncludeAccess()
-                    .Include(m => m.Goals)
-                    .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, ct),
-                (map, actor) => map.ReorderGoal(request.GoalId, request.NewOrder, actor)
-                    .Map(() => map.Goals.First(g => g.Id == request.GoalId).Order),
-                cancellationToken);
+        var result = await StoryMapMutation.Apply(
+            _planningDbContext,
+            _access,
+            ct => _planningDbContext.StoryMaps
+                .IncludeAccess()
+                .Include(m => m.Goals)
+                .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, ct),
+            (map, actor) => map.ReorderGoal(request.GoalId, request.NewOrder, actor)
+                .Map(() => map.Goals.First(g => g.Id == request.GoalId).Order),
+            cancellationToken);
 
-            if (result.IsFailure)
-                return Result.Failure(result.Error);
+        if (result.IsFailure)
+            return Result.Failure(result.Error);
 
-            await _notifier.NotifyGoalReordered(request.StoryMapId, request.GoalId, result.Value);
+        await _notifier.NotifyGoalReordered(request.StoryMapId, request.GoalId, result.Value);
 
-            return Result.Success();
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success();
     }
 }

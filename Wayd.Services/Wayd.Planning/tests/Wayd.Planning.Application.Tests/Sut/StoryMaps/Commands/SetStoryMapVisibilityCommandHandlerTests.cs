@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Moq;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -19,7 +18,7 @@ public class SetStoryMapVisibilityCommandHandlerTests : IDisposable
 
     public SetStoryMapVisibilityCommandHandlerTests()
     {
-        _handler = new SetStoryMapVisibilityCommandHandler(_dbContext, _access, _mockNotifier.Object, new Mock<ILogger<SetStoryMapVisibilityCommandHandler>>().Object);
+        _handler = new SetStoryMapVisibilityCommandHandler(_dbContext, _access, _mockNotifier.Object);
     }
 
     [Fact]

@@ -19,41 +19,31 @@ public sealed class RenameSwimLaneCommandValidator : CustomValidator<RenameSwimL
     }
 }
 
-public sealed class RenameSwimLaneCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<RenameSwimLaneCommandHandler> logger) : ICommandHandler<RenameSwimLaneCommand>
+public sealed class RenameSwimLaneCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier) : ICommandHandler<RenameSwimLaneCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
-    private readonly ILogger<RenameSwimLaneCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(RenameSwimLaneCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var map = await _planningDbContext.StoryMaps
-                .IncludeAccess()
-                .Include(m => m.SwimLanes)
-                .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
+        var map = await _planningDbContext.StoryMaps
+            .IncludeAccess()
+            .Include(m => m.SwimLanes)
+            .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
-            if (map is null)
-                return Result.Failure("Story map not found.");
+        if (map is null)
+            return Result.Failure("Story map not found.");
 
-            var actor = await _access.ResolveActor(map, cancellationToken);
+        var actor = await _access.ResolveActor(map, cancellationToken);
 
-            var result = map.RenameSwimLane(request.SwimLaneId, request.Name, actor);
-            if (result.IsFailure)
-                return result;
+        var result = map.RenameSwimLane(request.SwimLaneId, request.Name, actor);
+        if (result.IsFailure)
+            return result;
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-            await _notifier.NotifySwimLaneRenamed(map.Id, request.SwimLaneId, request.Name);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _notifier.NotifySwimLaneRenamed(map.Id, request.SwimLaneId, request.Name);
 
-            return Result.Success();
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success();
     }
 }

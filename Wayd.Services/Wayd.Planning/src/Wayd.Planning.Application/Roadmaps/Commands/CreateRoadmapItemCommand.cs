@@ -68,44 +68,31 @@ public sealed class CreateRoadmapItemCommandHandler(IPlanningDbContext planningD
 
     public async Task<Result<Guid>> Handle(CreateRoadmapItemCommand request, CancellationToken cancellationToken)
     {
-        // Outside the try: this is a refusal, and the catch-all below would turn it into a
-        // generic failure, losing both the 403 and its explanation.
         var caller = await _currentPrincipal.ResolveRoadmapActor(cancellationToken);
 
-        try
+        var roadmap = await _planningDbContext.Roadmaps
+            .Include(x => x.Owners)
+            .Include(x => x.Items)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(r => r.Id == request.RoadmapId, cancellationToken);
+
+        if (roadmap is null)
+            return Result.Failure<Guid>($"Roadmap with id {request.RoadmapId} not found");
+
+        Result<BaseRoadmapItem> result = request.Item.Match(
+           activity => roadmap.CreateActivity(activity, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now, request.Order).Map(x => (BaseRoadmapItem)x),
+           milestone => roadmap.CreateMilestone(milestone, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now).Map(x => (BaseRoadmapItem)x),
+           timebox => roadmap.CreateTimebox(timebox, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now).Map(x => (BaseRoadmapItem)x)
+        );
+
+        if (result.IsFailure)
         {
-            var roadmap = await _planningDbContext.Roadmaps
-                .Include(x => x.Owners)
-                .Include(x => x.Items)
-                .AsSplitQuery()
-                .FirstOrDefaultAsync(r => r.Id == request.RoadmapId, cancellationToken);
-
-            if (roadmap is null)
-                return Result.Failure<Guid>($"Roadmap with id {request.RoadmapId} not found");
-
-            Result<BaseRoadmapItem> result = request.Item.Match(
-               activity => roadmap.CreateActivity(activity, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now, request.Order).Map(x => (BaseRoadmapItem)x),
-               milestone => roadmap.CreateMilestone(milestone, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now).Map(x => (BaseRoadmapItem)x),
-               timebox => roadmap.CreateTimebox(timebox, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now).Map(x => (BaseRoadmapItem)x)
-            );
-
-            if (result.IsFailure)
-            {
-                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", request.GetType().Name, result.Error);
-                return Result.Failure<Guid>(result.Error);
-            }
-
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-            return result.Value.Id;
+            _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", request.GetType().Name, result.Error);
+            return Result.Failure<Guid>(result.Error);
         }
-        catch (Exception ex)
-        {
-            var requestName = request.GetType().Name;
 
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {requestName}");
-        }
+        return result.Value.Id;
     }
 }

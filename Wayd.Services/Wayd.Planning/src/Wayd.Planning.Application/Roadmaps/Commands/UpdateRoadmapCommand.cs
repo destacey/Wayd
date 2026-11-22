@@ -36,8 +36,6 @@ public sealed class UpdateRoadmapCommandValidator : AbstractValidator<UpdateRoad
 
 public sealed class UpdateRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<UpdateRoadmapCommandHandler> logger) : ICommandHandler<UpdateRoadmapCommand>
 {
-    private const string AppRequestName = nameof(UpdateRoadmapCommand);
-
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -46,52 +44,43 @@ public sealed class UpdateRoadmapCommandHandler(IPlanningDbContext planningDbCon
 
     public async Task<Result> Handle(UpdateRoadmapCommand request, CancellationToken cancellationToken)
     {
-        // Outside the try: this is a refusal, and the catch-all below would turn it into a
-        // generic failure, losing both the 403 and its explanation.
         var caller = await _currentPrincipal.ResolveRoadmapActor(cancellationToken);
 
-        try
+        var roadmap = await _planningDbContext.Roadmaps
+            .Include(x => x.Owners)
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+
+        if (roadmap is null)
         {
-            var roadmap = await _planningDbContext.Roadmaps
-                .Include(x => x.Owners)
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-
-            if (roadmap is null)
-            {
-                _logger.LogInformation("Roadmap with id {RoadmapId} not found.", request.Id);
-                return Result.Failure($"Roadmap with id {request.Id} not found");
-            }
-
-            var updateResult = roadmap.Update(
-                request.Name,
-                request.Description,
-                request.DateRange,
-                request.OwnerIds,
-                request.Visibility,
-                caller,
-                EventActor.User(_currentUser.GetUserId(), caller.EmployeeId),
-                _dateTimeProvider.Now);
-
-            if (updateResult.IsFailure)
-            {
-                // Reset the entity
-                await _planningDbContext.Entry(roadmap).ReloadAsync(cancellationToken);
-                roadmap.ClearDomainEvents();
-
-                _logger.LogError("Unable to update Roadmap {RoadmapId}.  Error message: {Error}", request.Id, updateResult.Error);
-                return Result.Failure(updateResult.Error);
-            }
-
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Roadmap {RoadmapId} updated.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Roadmap with id {RoadmapId} not found.", request.Id);
+            return Result.Failure($"Roadmap with id {request.Id} not found");
         }
-        catch (Exception ex)
+
+        // Owners are foreign keys to employees, so an unknown one is refused here rather than at the database.
+        var ownersExist = await _planningDbContext.EnsureEmployeesExist(request.OwnerIds, cancellationToken);
+        if (ownersExist.IsFailure)
+            return Result.Failure(ownersExist.Error);
+
+        var updateResult = roadmap.Update(
+            request.Name,
+            request.Description,
+            request.DateRange,
+            request.OwnerIds,
+            request.Visibility,
+            caller,
+            EventActor.User(_currentUser.GetUserId(), caller.EmployeeId),
+            _dateTimeProvider.Now);
+
+        if (updateResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to update Roadmap {RoadmapId}.  Error message: {Error}", request.Id, updateResult.Error);
+            return Result.Failure(updateResult.Error);
         }
+
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Roadmap {RoadmapId} updated.", request.Id);
+
+        return Result.Success();
     }
 }

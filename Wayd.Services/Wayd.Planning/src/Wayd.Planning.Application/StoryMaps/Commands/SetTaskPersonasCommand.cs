@@ -16,48 +16,38 @@ public sealed class SetTaskPersonasCommandValidator : CustomValidator<SetTaskPer
     }
 }
 
-public sealed class SetTaskPersonasCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<SetTaskPersonasCommandHandler> logger) : ICommandHandler<SetTaskPersonasCommand>
+public sealed class SetTaskPersonasCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier) : ICommandHandler<SetTaskPersonasCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
-    private readonly ILogger<SetTaskPersonasCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(SetTaskPersonasCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var map = await _planningDbContext.StoryMaps
-                .IncludeAccess()
-                .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
-                .Include(m => m.Personas)
-                .AsSplitQuery()
-                .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
+        var map = await _planningDbContext.StoryMaps
+            .IncludeAccess()
+            .Include(m => m.Goals).ThenInclude(g => g.Steps).ThenInclude(s => s.Tasks)
+            .Include(m => m.Personas)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, cancellationToken);
 
-            if (map is null)
-                return Result.Failure("Story map not found.");
+        if (map is null)
+            return Result.Failure("Story map not found.");
 
-            var actor = await _access.ResolveActor(map, cancellationToken);
+        var actor = await _access.ResolveActor(map, cancellationToken);
 
-            var result = map.SetTaskPersonas(request.TaskId, request.PersonaIds, actor);
-            if (result.IsFailure)
-                return result;
+        var result = map.SetTaskPersonas(request.TaskId, request.PersonaIds, actor);
+        if (result.IsFailure)
+            return result;
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-            var appliedPersonaIds = map.Goals
-                .SelectMany(g => g.Steps)
-                .SelectMany(s => s.Tasks)
-                .First(t => t.Id == request.TaskId)
-                .PersonaIds;
-            await _notifier.NotifyTaskPersonasChanged(map.Id, request.TaskId, appliedPersonaIds);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+        var appliedPersonaIds = map.Goals
+            .SelectMany(g => g.Steps)
+            .SelectMany(s => s.Tasks)
+            .First(t => t.Id == request.TaskId)
+            .PersonaIds;
+        await _notifier.NotifyTaskPersonasChanged(map.Id, request.TaskId, appliedPersonaIds);
 
-            return Result.Success();
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success();
     }
 }

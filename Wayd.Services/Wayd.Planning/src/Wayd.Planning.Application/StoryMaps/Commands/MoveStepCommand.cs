@@ -20,43 +20,33 @@ public sealed class MoveStepCommandValidator : CustomValidator<MoveStepCommand>
     }
 }
 
-public sealed class MoveStepCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<MoveStepCommandHandler> logger) : ICommandHandler<MoveStepCommand>
+public sealed class MoveStepCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier) : ICommandHandler<MoveStepCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
-    private readonly ILogger<MoveStepCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(MoveStepCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await StoryMapMutation.Apply(
-                _planningDbContext,
-                _access,
-                ct => _planningDbContext.StoryMaps
-                    .IncludeAccess()
-                    .Include(m => m.Goals).ThenInclude(g => g.Steps)
-                    .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, ct),
-                (map, actor) => map.MoveStep(request.StepId, request.TargetGoalId, request.NewOrder, actor)
-                    .Map(() => map.Goals
-                        .SelectMany(g => g.Steps)
-                        .First(s => s.Id == request.StepId)
-                        .Order),
-                cancellationToken);
+        var result = await StoryMapMutation.Apply(
+            _planningDbContext,
+            _access,
+            ct => _planningDbContext.StoryMaps
+                .IncludeAccess()
+                .Include(m => m.Goals).ThenInclude(g => g.Steps)
+                .FirstOrDefaultAsync(m => m.Id == request.StoryMapId, ct),
+            (map, actor) => map.MoveStep(request.StepId, request.TargetGoalId, request.NewOrder, actor)
+                .Map(() => map.Goals
+                    .SelectMany(g => g.Steps)
+                    .First(s => s.Id == request.StepId)
+                    .Order),
+            cancellationToken);
 
-            if (result.IsFailure)
-                return Result.Failure(result.Error);
+        if (result.IsFailure)
+            return Result.Failure(result.Error);
 
-            await _notifier.NotifyStepMoved(request.StoryMapId, request.StepId, request.TargetGoalId, result.Value);
+        await _notifier.NotifyStepMoved(request.StoryMapId, request.StepId, request.TargetGoalId, result.Value);
 
-            return Result.Success();
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success();
     }
 }

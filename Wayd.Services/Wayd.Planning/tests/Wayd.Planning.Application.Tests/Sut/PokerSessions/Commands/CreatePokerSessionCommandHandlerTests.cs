@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using Wayd.Common.Application.Exceptions;
+﻿using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Organization;
@@ -17,7 +16,6 @@ public class CreatePokerSessionCommandHandlerTests : IDisposable
 {
     private readonly FakePlanningDbContext _dbContext;
     private readonly CreatePokerSessionCommandHandler _handler;
-    private readonly Mock<ILogger<CreatePokerSessionCommandHandler>> _mockLogger;
     private readonly Mock<ICurrentUser> _mockCurrentUser;
     private readonly Mock<ICurrentPrincipal> _mockCurrentPrincipal;
     private readonly Mock<IDateTimeProvider> _mockDateTimeProvider;
@@ -29,7 +27,6 @@ public class CreatePokerSessionCommandHandlerTests : IDisposable
     public CreatePokerSessionCommandHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _mockLogger = new Mock<ILogger<CreatePokerSessionCommandHandler>>();
         _mockCurrentUser = new Mock<ICurrentUser>();
         _mockCurrentUser.Setup(u => u.GetUserId()).Returns(_currentUserId);
         _mockCurrentPrincipal = new Mock<ICurrentPrincipal>();
@@ -38,7 +35,7 @@ public class CreatePokerSessionCommandHandlerTests : IDisposable
         _mockDateTimeProvider = new Mock<IDateTimeProvider>();
         _mockDateTimeProvider.Setup(d => d.Now).Returns(Instant.FromUtc(2026, 1, 15, 10, 0));
 
-        _handler = new CreatePokerSessionCommandHandler(_dbContext, _mockCurrentPrincipal.Object, _mockCurrentUser.Object, _mockDateTimeProvider.Object, _mockLogger.Object);
+        _handler = new CreatePokerSessionCommandHandler(_dbContext, _mockCurrentPrincipal.Object, _mockCurrentUser.Object, _mockDateTimeProvider.Object);
         _estimationScaleFaker = new EstimationScaleFaker();
     }
 

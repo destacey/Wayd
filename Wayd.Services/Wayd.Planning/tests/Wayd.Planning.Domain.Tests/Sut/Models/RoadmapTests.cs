@@ -2260,6 +2260,70 @@ public class RoadmapTests
 
     #endregion Events
 
+    #region SetChildrenOrder
+
+    [Fact]
+    public void SetChildrenOrder_WhenAnOrderIsBelowOne_ChangesNothing()
+    {
+        // Arrange — the invalid order is on the last activity, after the others would already have moved
+        var roadmap = SavedRoadmap();
+        var first = AddActivity(roadmap, "First", Days(1, 10));
+        var second = AddActivity(roadmap, "Second", Days(1, 10));
+        var third = AddActivity(roadmap, "Third", Days(1, 10));
+        var orders = (first.Order, second.Order, third.Order);
+
+        // Act
+        var result = roadmap.SetChildrenOrder(
+            new Dictionary<Guid, int> { [first.Id] = 3, [second.Id] = 1, [third.Id] = 0 }, As(EventOwnerId), Actor, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Order must be greater than 0.");
+        (first.Order, second.Order, third.Order).Should().Be(orders);
+        roadmap.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetChildrenOrder_AppliesTheOrderAndClosesGaps()
+    {
+        // Arrange
+        var roadmap = SavedRoadmap();
+        var first = AddActivity(roadmap, "First", Days(1, 10));
+        var second = AddActivity(roadmap, "Second", Days(1, 10));
+        var third = AddActivity(roadmap, "Third", Days(1, 10));
+
+        // Act
+        var result = roadmap.SetChildrenOrder(
+            new Dictionary<Guid, int> { [first.Id] = 30, [second.Id] = 10, [third.Id] = 20 }, As(EventOwnerId), Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        (first.Order, second.Order, third.Order).Should().Be((3, 1, 2));
+        roadmap.DomainEvents.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public void SetChildrenOrder_WhenAnActivityIsMissing_ChangesNothing()
+    {
+        // Arrange
+        var roadmap = SavedRoadmap();
+        var first = AddActivity(roadmap, "First", Days(1, 10));
+        var second = AddActivity(roadmap, "Second", Days(1, 10));
+        var orders = (first.Order, second.Order);
+
+        // Act
+        var result = roadmap.SetChildrenOrder(
+            new Dictionary<Guid, int> { [first.Id] = 2, [Guid.NewGuid()] = 1 }, As(EventOwnerId), Actor, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Not all child roadmaps provided were found.");
+        (first.Order, second.Order).Should().Be(orders);
+        roadmap.DomainEvents.Should().BeEmpty();
+    }
+
+    #endregion SetChildrenOrder
+
     //[Fact]
     //public void SetChildrenOrder_ForAll_WhenValidChildrenProvided_ShouldReturnSuccess()
     //{

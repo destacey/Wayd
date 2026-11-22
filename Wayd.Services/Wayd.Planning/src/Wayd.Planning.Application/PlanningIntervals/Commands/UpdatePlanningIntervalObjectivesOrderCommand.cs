@@ -20,8 +20,6 @@ public sealed class UpdatePlanningIntervalObjectivesOrderCommandValidator : Cust
 
 public sealed class UpdatePlanningIntervalObjectivesOrderCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<UpdatePlanningIntervalObjectivesOrderCommandHandler> logger) : ICommandHandler<UpdatePlanningIntervalObjectivesOrderCommand>
 {
-    private const string AppRequestName = nameof(UpdatePlanningIntervalObjectivesOrderCommand);
-
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -29,36 +27,28 @@ public sealed class UpdatePlanningIntervalObjectivesOrderCommandHandler(IPlannin
 
     public async Task<Result> Handle(UpdatePlanningIntervalObjectivesOrderCommand request, CancellationToken cancellationToken)
     {
-        try
+        var objectiveIds = request.Objectives.Keys.ToList();
+
+        var planningInterval = await _planningDbContext.PlanningIntervals
+            .Include(p => p.Objectives.Where(o => objectiveIds.Contains(o.Id)))
+            .FirstOrDefaultAsync(p => p.Id == request.PlanningIntervalId, cancellationToken);
+
+        if (planningInterval is null)
         {
-            var objectiveIds = request.Objectives.Keys.ToList();
-
-            var planningInterval = await _planningDbContext.PlanningIntervals
-                .Include(p => p.Objectives.Where(o => objectiveIds.Contains(o.Id)))
-                .FirstOrDefaultAsync(p => p.Id == request.PlanningIntervalId, cancellationToken);
-
-            if (planningInterval is null)
-            {
-                _logger.LogWarning("Planning Interval {PlanningIntervalId} not found.", request.PlanningIntervalId);
-                return Result.Failure($"Planning Interval {request.PlanningIntervalId} not found.");
-            }
-
-            var result = planningInterval.UpdateObjectivesOrder(request.Objectives,
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                _logger.LogWarning("Not all objectives provided were found. {Error}", result.Error);
-                return Result.Failure("Not all objectives provided were found.");
-            }
-
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
+            _logger.LogWarning("Planning Interval {PlanningIntervalId} not found.", request.PlanningIntervalId);
+            return Result.Failure($"Planning Interval {request.PlanningIntervalId} not found.");
         }
-        catch (Exception ex)
+
+        var result = planningInterval.UpdateObjectivesOrder(request.Objectives,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogWarning("Not all objectives provided were found. {Error}", result.Error);
+            return Result.Failure("Not all objectives provided were found.");
         }
+
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
     }
 }

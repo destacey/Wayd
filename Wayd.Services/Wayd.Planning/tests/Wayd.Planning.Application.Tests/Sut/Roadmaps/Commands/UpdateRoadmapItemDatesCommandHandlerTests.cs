@@ -99,12 +99,16 @@ public class UpdateRoadmapItemDatesCommandHandlerTests : IDisposable
         var dates = OneOf<IUpsertRoadmapActivityDateRange, IUpsertRoadmapMilestoneDate, IUpsertRoadmapTimeboxDateRange>
             .FromT0(new UpsertActivityDateRange(new LocalDateRange(_today, _today.PlusDays(5))));
         var command = new UpdateRoadmapItemDatesCommand(roadmap.Id, parentResult.Value.Id, dates);
+        var parentRange = parentResult.Value.DateRange;
+        var childRange = childResult.Value.DateRange;
 
         // Act
         var result = await handler.Handle(command, TestContext.Current.CancellationToken);
 
-        // Assert - rejected and nothing persisted
+        // Assert - rejected, both ranges as they were, and nothing persisted
         result.IsFailure.Should().BeTrue();
+        parentResult.Value.DateRange.Should().Be(parentRange);
+        childResult.Value.DateRange.Should().Be(childRange);
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 

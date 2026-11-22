@@ -49,6 +49,55 @@ public sealed class IncidentSeveritySetTests
     }
 
     [Fact]
+    public void ReplaceLevels_WhenTwoLevelsSwapNames_FailsAndChangesNothing()
+    {
+        // Arrange
+        var set = IncidentSeveritySet.CreateCustom("Custom", null, Levels("A", "B", "C")).Value;
+        var (a, b) = (set.Levels[0], set.Levels[1]);
+
+        // Act
+        var result = set.ReplaceLevels(
+            [(a.Id, "B", a.Color), (b.Id, "A", b.Color), (set.Levels[2].Id, "Renamed", set.Levels[2].Color)],
+            new HashSet<Guid>());
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Levels cannot swap names in one change. Rename one of them to a new name first.");
+        set.Levels.Select(l => l.Name).Should().Equal("A", "B", "C");
+    }
+
+    [Fact]
+    public void ReplaceLevels_WhenRenamesFormAChain_Succeeds()
+    {
+        // Arrange — B moves to a new name, so A can take B's
+        var set = IncidentSeveritySet.CreateCustom("Custom", null, Levels("A", "B")).Value;
+        var (a, b) = (set.Levels[0], set.Levels[1]);
+
+        // Act
+        var result = set.ReplaceLevels([(a.Id, "B", a.Color), (b.Id, "C", b.Color)], new HashSet<Guid>());
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        set.Levels.Select(l => l.Name).Should().Equal("B", "C");
+    }
+
+    [Fact]
+    public void ReplaceLevels_WhenALevelIsUnknown_FailsAndChangesNothing()
+    {
+        // Arrange
+        var set = IncidentSeveritySet.CreateCustom("Custom", null, Levels("A", "B")).Value;
+        var unknownId = Guid.NewGuid();
+
+        // Act
+        var result = set.ReplaceLevels([(set.Levels[0].Id, "Renamed", set.Levels[0].Color), (unknownId, "X", "#000000")], new HashSet<Guid>());
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be($"Level '{unknownId}' does not belong to this severity set.");
+        set.Levels.Select(l => l.Name).Should().Equal("A", "B");
+    }
+
+    [Fact]
     public void ReplaceLevels_WhenAddingLevel_KeepsTheNewLevel()
     {
         // Arrange

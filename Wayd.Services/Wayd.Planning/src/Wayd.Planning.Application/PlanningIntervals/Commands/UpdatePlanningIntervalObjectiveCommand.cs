@@ -68,46 +68,35 @@ public sealed class UpdatePlanningIntervalObjectiveCommandHandler(IPlanningDbCon
 
     public async Task<Result<int>> Handle(UpdatePlanningIntervalObjectiveCommand request, CancellationToken cancellationToken)
     {
-        try
+        var planningInterval = await _planningDbContext.PlanningIntervals
+            .Include(pi => pi.Objectives.Where(o => o.Id == request.PlanningIntervalObjectiveId))
+            .FirstOrDefaultAsync(p => p.Id == request.PlanningIntervalId, cancellationToken);
+
+        if (planningInterval is null)
         {
-            var planningInterval = await _planningDbContext.PlanningIntervals
-                .Include(pi => pi.Objectives.Where(o => o.Id == request.PlanningIntervalObjectiveId))
-                .FirstOrDefaultAsync(p => p.Id == request.PlanningIntervalId, cancellationToken);
-
-            if (planningInterval is null)
-            {
-                _logger.LogWarning("Planning Interval {PlanningIntervalId} not found.", request.PlanningIntervalId);
-                return Result.Failure<int>($"Planning Interval {request.PlanningIntervalId} not found.");
-            }
-
-            var updateResult = planningInterval.UpdateObjective(
-                request.PlanningIntervalObjectiveId,
-                request.Name,
-                request.Description,
-                request.Status,
-                request.Progress,
-                request.StartDate,
-                request.TargetDate,
-                request.IsStretch,
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                _dateTimeProvider.Now);
-            if (updateResult.IsFailure)
-            {
-                _logger.LogError("Unable to update PI objective {PlanningIntervalObjectiveId}.  Error: {Error}", request.PlanningIntervalObjectiveId, updateResult.Error);
-                return Result.Failure<int>($"Unable to update PI objective.  Error: {updateResult.Error}");
-            }
-
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success(updateResult.Value.Key);
+            _logger.LogWarning("Planning Interval {PlanningIntervalId} not found.", request.PlanningIntervalId);
+            return Result.Failure<int>($"Planning Interval {request.PlanningIntervalId} not found.");
         }
-        catch (Exception ex)
+
+        var updateResult = planningInterval.UpdateObjective(
+            request.PlanningIntervalObjectiveId,
+            request.Name,
+            request.Description,
+            request.Status,
+            request.Progress,
+            request.StartDate,
+            request.TargetDate,
+            request.IsStretch,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            _dateTimeProvider.Now);
+        if (updateResult.IsFailure)
         {
-            var requestName = request.GetType().Name;
-
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-
-            return Result.Failure<int>($"Wayd Request: Exception for Request {requestName}");
+            _logger.LogError("Unable to update PI objective {PlanningIntervalObjectiveId}.  Error: {Error}", request.PlanningIntervalObjectiveId, updateResult.Error);
+            return Result.Failure<int>($"Unable to update PI objective.  Error: {updateResult.Error}");
         }
+
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(updateResult.Value.Key);
     }
 }

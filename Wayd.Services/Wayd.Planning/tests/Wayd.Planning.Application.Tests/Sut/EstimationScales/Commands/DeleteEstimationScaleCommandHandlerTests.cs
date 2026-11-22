@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using Wayd.Planning.Application.EstimationScales.Commands;
+﻿using Wayd.Planning.Application.EstimationScales.Commands;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Tests.Data;
 using Moq;
@@ -16,7 +15,6 @@ public class DeleteEstimationScaleCommandHandlerTests : IDisposable
 {
     private readonly FakePlanningDbContext _dbContext;
     private readonly DeleteEstimationScaleCommandHandler _handler;
-    private readonly Mock<ILogger<DeleteEstimationScaleCommandHandler>> _mockLogger;
     private readonly Mock<ICurrentUser> _currentUser = new();
     private readonly Mock<IDispatcher> _dispatcher = new();
     private readonly TestingDateTimeProvider _dateTimeProvider = new(new FakeClock(Now));
@@ -26,9 +24,8 @@ public class DeleteEstimationScaleCommandHandlerTests : IDisposable
     public DeleteEstimationScaleCommandHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _mockLogger = new Mock<ILogger<DeleteEstimationScaleCommandHandler>>();
 
-        _handler = new DeleteEstimationScaleCommandHandler(_dbContext, _currentUser.Object, _dateTimeProvider, _dispatcher.Object, _mockLogger.Object);
+        _handler = new DeleteEstimationScaleCommandHandler(_dbContext, _currentUser.Object, _dateTimeProvider, _dispatcher.Object);
     }
 
     [Fact]

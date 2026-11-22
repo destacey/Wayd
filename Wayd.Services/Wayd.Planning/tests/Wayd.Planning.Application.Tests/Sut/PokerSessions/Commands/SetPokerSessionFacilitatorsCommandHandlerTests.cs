@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Moq;
 using Wayd.Planning.Application.PokerSessions.Commands;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
@@ -17,7 +16,7 @@ public class SetPokerSessionFacilitatorsCommandHandlerTests : IDisposable
 
     public SetPokerSessionFacilitatorsCommandHandlerTests()
     {
-        _handler = new SetPokerSessionFacilitatorsCommandHandler(_dbContext, _access, _mockNotifier.Object, new Mock<ILogger<SetPokerSessionFacilitatorsCommandHandler>>().Object);
+        _handler = new SetPokerSessionFacilitatorsCommandHandler(_dbContext, _access, _mockNotifier.Object);
     }
 
     [Fact]

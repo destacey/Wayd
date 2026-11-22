@@ -126,6 +126,26 @@ public sealed class IncidentSeveritySet : BaseAuditableEntity
         }
 
         var existingById = _levels.ToDictionary(l => l.Id);
+
+        // Every refusal comes before the first change, so a refused edit leaves the scale as it was.
+        var unknownId = levels.Select(l => l.Id).OfType<Guid>().FirstOrDefault(id => !existingById.ContainsKey(id));
+        if (unknownId != Guid.Empty)
+        {
+            return Result.Failure($"Level '{unknownId}' does not belong to this severity set.");
+        }
+
+        var keptIds = levels.Select(l => l.Id).OfType<Guid>().ToHashSet();
+        var removedInUse = _levels.FirstOrDefault(l => !keptIds.Contains(l.Id) && levelIdsInUse.Contains(l.Id));
+        if (removedInUse is not null)
+        {
+            return Result.Failure($"Cannot remove level '{removedInUse.Name}' while an incident still uses it.");
+        }
+
+        if (RenamesFormACycle(levels.Where(l => l.Id is not null).Select(l => (existingById[l.Id!.Value].Name, l.Name.Trim()))))
+        {
+            return Result.Failure("Levels cannot swap names in one change. Rename one of them to a new name first.");
+        }
+
         var requestedIds = new HashSet<Guid>();
 
         for (var i = 0; i < levels.Count; i++)
@@ -145,11 +165,7 @@ public sealed class IncidentSeveritySet : BaseAuditableEntity
                 continue;
             }
 
-            if (!existingById.TryGetValue(id.Value, out var level))
-            {
-                return Result.Failure($"Level '{id}' does not belong to this severity set.");
-            }
-
+            var level = existingById[id.Value];
             level.Rename(name);
             level.SetSortOrder(i);
             level.SetColor(color);
@@ -158,16 +174,38 @@ public sealed class IncidentSeveritySet : BaseAuditableEntity
 
         foreach (var removed in _levels.Where(l => !requestedIds.Contains(l.Id)).ToList())
         {
-            if (levelIdsInUse.Contains(removed.Id))
-            {
-                return Result.Failure(
-                    $"Cannot remove level '{removed.Name}' while an incident still uses it.");
-            }
-
             _levels.Remove(removed);
         }
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Whether the renames include a cycle, such as two levels swapping names. Names are unique within a scale,
+    /// and the database cannot order updates that each need the other's old name freed first; a chain of renames
+    /// it can order.
+    /// </summary>
+    private static bool RenamesFormACycle(IEnumerable<(string From, string To)> renames)
+    {
+        var renameTo = renames
+            .Where(r => !string.Equals(r.From, r.To, StringComparison.OrdinalIgnoreCase))
+            .ToDictionary(r => r.From, r => r.To, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var start in renameTo.Keys)
+        {
+            var current = start;
+            for (var steps = 0; steps < renameTo.Count && renameTo.TryGetValue(current, out var next); steps++)
+            {
+                if (string.Equals(next, start, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                current = next;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Deactivates a custom scale that is not the organization default.</summary>

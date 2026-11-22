@@ -13,8 +13,6 @@ public sealed class ActivateRoadmapCommandValidator : AbstractValidator<Activate
 
 public sealed class ActivateRoadmapCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<ActivateRoadmapCommandHandler> logger) : ICommandHandler<ActivateRoadmapCommand>
 {
-    private const string AppRequestName = nameof(ActivateRoadmapCommand);
-
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -23,42 +21,29 @@ public sealed class ActivateRoadmapCommandHandler(IPlanningDbContext planningDbC
 
     public async Task<Result> Handle(ActivateRoadmapCommand request, CancellationToken cancellationToken)
     {
-        // Outside the try: this is a refusal, and the catch-all below would turn it into a
-        // generic failure, losing both the 403 and its explanation.
         var caller = await _currentPrincipal.ResolveRoadmapActor(cancellationToken);
 
-        try
+        var roadmap = await _planningDbContext.Roadmaps
+            .Include(x => x.Owners)
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+
+        if (roadmap is null)
         {
-            var roadmap = await _planningDbContext.Roadmaps
-                .Include(x => x.Owners)
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-
-            if (roadmap is null)
-            {
-                _logger.LogInformation("Roadmap {RoadmapId} not found.", request.Id);
-                return Result.Failure("Roadmap not found.");
-            }
-
-            var activateResult = roadmap.Activate(caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
-            if (activateResult.IsFailure)
-            {
-                // Reset the entity
-                await _planningDbContext.Entry(roadmap).ReloadAsync(cancellationToken);
-
-                _logger.LogError("Unable to activate Roadmap {RoadmapId}.  Error message: {Error}", request.Id, activateResult.Error);
-                return Result.Failure(activateResult.Error);
-            }
-
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Roadmap {RoadmapId} activated.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Roadmap {RoadmapId} not found.", request.Id);
+            return Result.Failure("Roadmap not found.");
         }
-        catch (Exception ex)
+
+        var activateResult = roadmap.Activate(caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
+        if (activateResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to activate Roadmap {RoadmapId}.  Error message: {Error}", request.Id, activateResult.Error);
+            return Result.Failure(activateResult.Error);
         }
+
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Roadmap {RoadmapId} activated.", request.Id);
+
+        return Result.Success();
     }
 }

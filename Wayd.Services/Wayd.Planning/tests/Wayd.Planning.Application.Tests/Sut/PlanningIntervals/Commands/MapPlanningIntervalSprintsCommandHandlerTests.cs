@@ -124,6 +124,37 @@ public class MapPlanningIntervalSprintsCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_ShouldFail_WhenTheSprintIsMappedInAnotherPlanningInterval()
+    {
+        // Arrange — a sprint is mapped in one planning interval at most, a unique index the aggregate cannot see
+        var piDates = new LocalDateRange(new LocalDate(2024, 1, 1), new LocalDate(2024, 3, 31));
+        var teamId = Guid.NewGuid();
+        var other = new PlanningIntervalFaker().WithDateRange(piDates).WithTeams(teamId).WithIterations(piDates, 2, "Iteration ").Generate();
+        var planningInterval = _planningIntervalFaker.WithDateRange(piDates).WithTeams(teamId).WithIterations(piDates, 2, "Iteration ").Generate();
+        var sprint = _sprintFaker.AsSprint().WithTeamId(teamId).Generate();
+        other.MapSprintToIteration(other.Iterations.First().Id, sprint, EventActor.System, Now).IsSuccess.Should().BeTrue();
+
+        _dbContext.AddPlanningInterval(other);
+        _dbContext.AddPlanningInterval(planningInterval);
+        _dbContext.AddPlanningSprint(sprint);
+        _dbContext.AddPlanningIntervalIterationSprints(other.IterationSprints);
+
+        var command = new MapPlanningIntervalSprintsCommand(
+            planningInterval.Id,
+            teamId,
+            new Dictionary<Guid, Guid?> { { planningInterval.Iterations.First().Id, sprint.Id } });
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be($"Sprint {sprint.Name} is already mapped in another Planning Interval.");
+        planningInterval.IterationSprints.Should().BeEmpty();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Handle_ShouldUnmapSprints_WhenNullSprintIdProvided()
     {
         // Arrange

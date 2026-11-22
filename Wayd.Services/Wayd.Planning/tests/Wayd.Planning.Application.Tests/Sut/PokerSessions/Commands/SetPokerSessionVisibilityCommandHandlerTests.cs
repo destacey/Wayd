@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Moq;
 using Wayd.Common.Domain.Enums;
 using Wayd.Planning.Application.PokerSessions.Commands;
@@ -19,7 +18,7 @@ public class SetPokerSessionVisibilityCommandHandlerTests : IDisposable
 
     public SetPokerSessionVisibilityCommandHandlerTests()
     {
-        _handler = new SetPokerSessionVisibilityCommandHandler(_dbContext, _access, _mockNotifier.Object, new Mock<ILogger<SetPokerSessionVisibilityCommandHandler>>().Object);
+        _handler = new SetPokerSessionVisibilityCommandHandler(_dbContext, _access, _mockNotifier.Object);
     }
 
     [Fact]

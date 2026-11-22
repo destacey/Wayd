@@ -76,8 +76,6 @@ ICurrentUser currentUser,
 IDateTimeProvider dateTimeProvider,
 ILogger<MapPlanningIntervalSprintsCommandHandler> logger) : ICommandHandler<MapPlanningIntervalSprintsCommand>
 {
-    private const string AppRequestName = nameof(MapPlanningIntervalSprintsCommand);
-
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -85,68 +83,72 @@ ILogger<MapPlanningIntervalSprintsCommandHandler> logger) : ICommandHandler<MapP
 
     public async Task<Result> Handle(MapPlanningIntervalSprintsCommand request, CancellationToken cancellationToken)
     {
-        try
+        // Load the Planning Interval with necessary relationships
+        var planningInterval = await _planningDbContext.PlanningIntervals
+            .Include(pi => pi.Teams)
+            .Include(pi => pi.Iterations)
+            .Include(pi => pi.IterationSprints)
+                .ThenInclude(its => its.Sprint)
+            .SingleOrDefaultAsync(pi => pi.Id == request.PlanningIntervalId, cancellationToken);
+
+        if (planningInterval is null)
         {
-            // Load the Planning Interval with necessary relationships
-            var planningInterval = await _planningDbContext.PlanningIntervals
-                .Include(pi => pi.Teams)
-                .Include(pi => pi.Iterations)
-                .Include(pi => pi.IterationSprints)
-                    .ThenInclude(its => its.Sprint)
-                .SingleOrDefaultAsync(pi => pi.Id == request.PlanningIntervalId, cancellationToken);
+            _logger.LogWarning("Planning Interval {PlanningIntervalId} not found.", request.PlanningIntervalId);
+            return Result.Failure($"Planning Interval {request.PlanningIntervalId} not found.");
+        }
 
-            if (planningInterval is null)
-            {
-                _logger.LogWarning("Planning Interval {PlanningIntervalId} not found.", request.PlanningIntervalId);
-                return Result.Failure($"Planning Interval {request.PlanningIntervalId} not found.");
-            }
-
-            // Verify team belongs to the PI
-            if (!planningInterval.Teams.Any(t => t.TeamId == request.TeamId))
-            {
-                _logger.LogWarning("Team {TeamId} is not part of Planning Interval {PlanningIntervalId}.",
-                    request.TeamId, request.PlanningIntervalId);
-                return Result.Failure($"Team {request.TeamId} is not part of Planning Interval {request.PlanningIntervalId}.");
-            }
-
-            // Get all sprint IDs that need to be loaded (non-null values)
-            var sprintIds = request.IterationSprintMappings.Values
-                .Where(id => id.HasValue)
-                .Select(id => id!.Value)
-                .Distinct()
-                .ToList();
-
-            // Load all requested sprints
-            var sprints = await _planningDbContext.PlanningSprints
-                .Where(i => sprintIds.Contains(i.Id))
-                .ToDictionaryAsync(i => i.Id, i => i, cancellationToken);
-
-            // Let the domain handle all business logic and validation
-            var syncResult = planningInterval.SyncTeamSprintMappings(
-                request.TeamId,
-                request.IterationSprintMappings,
-                sprints,
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                _dateTimeProvider.Now);
-
-            if (syncResult.IsFailure)
-            {
-                _logger.LogWarning("Failed to sync sprints for team {TeamId} in Planning Interval {PlanningIntervalId}: {Error}",
-                    request.TeamId, request.PlanningIntervalId, syncResult.Error);
-                return syncResult;
-            }
-
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Successfully synced sprints for team {TeamId} in Planning Interval {PlanningIntervalId}.",
+        // Verify team belongs to the PI
+        if (!planningInterval.Teams.Any(t => t.TeamId == request.TeamId))
+        {
+            _logger.LogWarning("Team {TeamId} is not part of Planning Interval {PlanningIntervalId}.",
                 request.TeamId, request.PlanningIntervalId);
+            return Result.Failure($"Team {request.TeamId} is not part of Planning Interval {request.PlanningIntervalId}.");
+        }
 
-            return Result.Success();
-        }
-        catch (Exception ex)
+        // Get all sprint IDs that need to be loaded (non-null values)
+        var sprintIds = request.IterationSprintMappings.Values
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+
+        // Load all requested sprints
+        var sprints = await _planningDbContext.PlanningSprints
+            .Where(i => sprintIds.Contains(i.Id))
+            .ToDictionaryAsync(i => i.Id, i => i, cancellationToken);
+
+        // A sprint is mapped in one planning interval at most, a unique index the aggregate cannot see past its own
+        // mappings, so one mapped elsewhere is refused here rather than at the database.
+        var mappedElsewhere = await _planningDbContext.PlanningIntervalIterationSprints
+            .Where(m => sprintIds.Contains(m.SprintId) && m.PlanningIntervalId != request.PlanningIntervalId)
+            .Select(m => (Guid?)m.SprintId)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (mappedElsewhere is { } sprintId)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            var name = sprints.TryGetValue(sprintId, out var sprint) ? sprint.Name : sprintId.ToString();
+            return Result.Failure($"Sprint {name} is already mapped in another Planning Interval.");
         }
+
+        // Let the domain handle all business logic and validation
+        var syncResult = planningInterval.SyncTeamSprintMappings(
+            request.TeamId,
+            request.IterationSprintMappings,
+            sprints,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            _dateTimeProvider.Now);
+
+        if (syncResult.IsFailure)
+        {
+            _logger.LogWarning("Failed to sync sprints for team {TeamId} in Planning Interval {PlanningIntervalId}: {Error}",
+                request.TeamId, request.PlanningIntervalId, syncResult.Error);
+            return syncResult;
+        }
+
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Successfully synced sprints for team {TeamId} in Planning Interval {PlanningIntervalId}.",
+            request.TeamId, request.PlanningIntervalId);
+
+        return Result.Success();
     }
 }

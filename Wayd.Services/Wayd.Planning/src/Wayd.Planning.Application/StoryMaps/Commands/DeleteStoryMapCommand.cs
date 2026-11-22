@@ -18,43 +18,33 @@ public sealed class DeleteStoryMapCommandValidator : CustomValidator<DeleteStory
 }
 
 /// <summary>Soft-deletes the map and tells its live viewers it is gone.</summary>
-public sealed class DeleteStoryMapCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<DeleteStoryMapCommandHandler> logger) : ICommandHandler<DeleteStoryMapCommand>
+public sealed class DeleteStoryMapCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier) : ICommandHandler<DeleteStoryMapCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
-    private readonly ILogger<DeleteStoryMapCommandHandler> _logger = logger;
 
     /// <summary>Deletes the map, refusing a caller who does not manage it.</summary>
     public async Task<Result> Handle(DeleteStoryMapCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var map = await _planningDbContext.StoryMaps
-                .IncludeAccess()
-                .FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken);
+        var map = await _planningDbContext.StoryMaps
+            .IncludeAccess()
+            .FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken);
 
-            if (map is null)
-                return Result.Failure(StoryMap.NotFoundError);
+        if (map is null)
+            return Result.Failure(StoryMap.NotFoundError);
 
-            var actor = await _access.ResolveActor(map, cancellationToken);
+        var actor = await _access.ResolveActor(map, cancellationToken);
 
-            var canDelete = map.CanDelete(actor);
-            if (canDelete.IsFailure)
-                return canDelete;
+        var canDelete = map.CanDelete(actor);
+        if (canDelete.IsFailure)
+            return canDelete;
 
-            // StoryMap is soft-deletable; the DbContext converts the Remove into a soft delete.
-            _planningDbContext.StoryMaps.Remove(map);
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-            await _notifier.NotifyMapDeleted(request.Id);
+        // StoryMap is soft-deletable; the DbContext converts the Remove into a soft delete.
+        _planningDbContext.StoryMaps.Remove(map);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _notifier.NotifyMapDeleted(request.Id);
 
-            return Result.Success();
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success();
     }
 }

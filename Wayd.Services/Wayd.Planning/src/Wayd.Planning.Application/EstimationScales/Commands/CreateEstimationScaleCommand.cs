@@ -27,37 +27,27 @@ public sealed class CreateEstimationScaleCommandValidator : CustomValidator<Crea
     }
 }
 
-public sealed class CreateEstimationScaleCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<CreateEstimationScaleCommandHandler> logger) : ICommandHandler<CreateEstimationScaleCommand, ObjectIdAndKey>
+public sealed class CreateEstimationScaleCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider) : ICommandHandler<CreateEstimationScaleCommand, ObjectIdAndKey>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ILogger<CreateEstimationScaleCommandHandler> _logger = logger;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateEstimationScaleCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var scaleResult = EstimationScale.Create(
-                request.Name,
-                request.Description,
-                request.Values.Select(v => v.ToValue()),
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                _dateTimeProvider.Now);
+        var scaleResult = EstimationScale.Create(
+            request.Name,
+            request.Description,
+            request.Values.Select(v => v.ToValue()),
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            _dateTimeProvider.Now);
 
-            if (scaleResult.IsFailure)
-                return Result.Failure<ObjectIdAndKey>(scaleResult.Error);
+        if (scaleResult.IsFailure)
+            return Result.Failure<ObjectIdAndKey>(scaleResult.Error);
 
-            await _planningDbContext.EstimationScales.AddAsync(scaleResult.Value, cancellationToken);
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _planningDbContext.EstimationScales.AddAsync(scaleResult.Value, cancellationToken);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            return new ObjectIdAndKey(scaleResult.Value.Id, scaleResult.Value.Key);
-        }
-        catch (Exception ex)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure<ObjectIdAndKey>($"Wayd Request: Exception for Request {requestName}");
-        }
+        return new ObjectIdAndKey(scaleResult.Value.Id, scaleResult.Value.Key);
     }
 }

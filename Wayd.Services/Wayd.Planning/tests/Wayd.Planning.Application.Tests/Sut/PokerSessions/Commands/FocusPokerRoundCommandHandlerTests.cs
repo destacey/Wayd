@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Wayd.Common.Domain.Enums;
 using Wayd.Planning.Application.PokerSessions.Commands;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
@@ -15,7 +14,6 @@ public class FocusPokerRoundCommandHandlerTests : IDisposable
     private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly FocusPokerRoundCommandHandler _handler;
-    private readonly Mock<ILogger<FocusPokerRoundCommandHandler>> _mockLogger;
     private readonly Mock<IPokerSessionNotifier> _mockNotifier;
 
     private readonly PokerSessionFaker _sessionFaker;
@@ -23,10 +21,9 @@ public class FocusPokerRoundCommandHandlerTests : IDisposable
     public FocusPokerRoundCommandHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _mockLogger = new Mock<ILogger<FocusPokerRoundCommandHandler>>();
         _mockNotifier = new Mock<IPokerSessionNotifier>();
 
-        _handler = new FocusPokerRoundCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new FocusPokerRoundCommandHandler(_dbContext, _access, _mockNotifier.Object);
         _sessionFaker = new PokerSessionFaker();
     }
 

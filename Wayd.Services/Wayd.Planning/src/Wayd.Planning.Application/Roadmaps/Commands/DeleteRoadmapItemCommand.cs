@@ -25,40 +25,27 @@ public sealed class DeleteRoadmapItemCommandHandler(IPlanningDbContext planningD
 
     public async Task<Result> Handle(DeleteRoadmapItemCommand request, CancellationToken cancellationToken)
     {
-        // Outside the try: this is a refusal, and the catch-all below would turn it into a
-        // generic failure, losing both the 403 and its explanation.
         var caller = await _currentPrincipal.ResolveRoadmapActor(cancellationToken);
 
-        try
+        var roadmap = await _planningDbContext.Roadmaps
+            .Include(x => x.Owners)
+            .Include(x => x.Items)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(r => r.Id == request.RoadmapId, cancellationToken);
+
+        if (roadmap is null)
+            return Result.Failure("Roadmap not found");
+
+        var deleteResult = roadmap.DeleteItem(request.ActivityId, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
+        if (deleteResult.IsFailure)
         {
-            var roadmap = await _planningDbContext.Roadmaps
-                .Include(x => x.Owners)
-                .Include(x => x.Items)
-                .AsSplitQuery()
-                .FirstOrDefaultAsync(r => r.Id == request.RoadmapId, cancellationToken);
-
-            if (roadmap is null)
-                return Result.Failure("Roadmap not found");
-
-            var deleteResult = roadmap.DeleteItem(request.ActivityId, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
-            if (deleteResult.IsFailure)
-            {
-                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", request.GetType().Name, deleteResult.Error);
-                return Result.Failure(deleteResult.Error);
-            }
-
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
+            _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", request.GetType().Name, deleteResult.Error);
+            return Result.Failure(deleteResult.Error);
         }
-        catch (Exception ex)
-        {
-            var requestName = request.GetType().Name;
 
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success();
     }
 }
 

@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Wayd.Planning.Application.PokerSessions.Commands;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
 using Wayd.Planning.Application.Tests.Infrastructure;
@@ -14,7 +13,6 @@ public class UpdatePokerRoundDescriptionCommandHandlerTests : IDisposable
     private readonly FakePokerSessionAccess _access = new();
     private readonly FakePlanningDbContext _dbContext;
     private readonly UpdatePokerRoundDescriptionCommandHandler _handler;
-    private readonly Mock<ILogger<UpdatePokerRoundDescriptionCommandHandler>> _mockLogger;
     private readonly Mock<IPokerSessionNotifier> _mockNotifier;
 
     private readonly PokerSessionFaker _sessionFaker;
@@ -22,10 +20,9 @@ public class UpdatePokerRoundDescriptionCommandHandlerTests : IDisposable
     public UpdatePokerRoundDescriptionCommandHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _mockLogger = new Mock<ILogger<UpdatePokerRoundDescriptionCommandHandler>>();
         _mockNotifier = new Mock<IPokerSessionNotifier>();
 
-        _handler = new UpdatePokerRoundDescriptionCommandHandler(_dbContext, _access, _mockNotifier.Object, _mockLogger.Object);
+        _handler = new UpdatePokerRoundDescriptionCommandHandler(_dbContext, _access, _mockNotifier.Object);
         _sessionFaker = new PokerSessionFaker();
     }
 

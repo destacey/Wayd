@@ -16,7 +16,6 @@ public static class RoadmapAccess
 
     /// <summary>
     /// The caller as a <see cref="RoadmapActor"/>. Commands using this must be marked <c>IRequireLinkedEmployee</c>.
-    /// Call it outside a handler's catch-all, so the refusal reaches the caller as a 403.
     /// </summary>
     /// <exception cref="ForbiddenException">Thrown via <c>LinkedEmployeeRequired</c> when the caller has no linked employee.</exception>
     public static async Task<RoadmapActor> ResolveRoadmapActor(this ICurrentPrincipal currentPrincipal, CancellationToken cancellationToken)

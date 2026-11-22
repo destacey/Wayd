@@ -41,70 +41,59 @@ public sealed class CreatePokerSessionCommandHandler(
     IPlanningDbContext planningDbContext,
     ICurrentPrincipal currentPrincipal,
     ICurrentUser currentUser,
-    IDateTimeProvider dateTimeProvider,
-    ILogger<CreatePokerSessionCommandHandler> logger) : ICommandHandler<CreatePokerSessionCommand, ObjectIdAndKey>
+    IDateTimeProvider dateTimeProvider) : ICommandHandler<CreatePokerSessionCommand, ObjectIdAndKey>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ILogger<CreatePokerSessionCommandHandler> _logger = logger;
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreatePokerSessionCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-            if (employeeId is null)
-                LinkedEmployeeRequired.Throw();
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        if (employeeId is null)
+            LinkedEmployeeRequired.Throw();
 
-            var scale = await _planningDbContext.EstimationScales
-                .Include(s => s.Versions)
-                .FirstOrDefaultAsync(s => s.Id == request.EstimationScaleId, cancellationToken);
+        var scale = await _planningDbContext.EstimationScales
+            .Include(s => s.Versions)
+            .FirstOrDefaultAsync(s => s.Id == request.EstimationScaleId, cancellationToken);
 
-            if (scale is null)
-                return Result.Failure<ObjectIdAndKey>("Estimation scale not found.");
+        if (scale is null)
+            return Result.Failure<ObjectIdAndKey>("Estimation scale not found.");
 
-            IReadOnlyCollection<Guid> facilitatorIds = [employeeId.Value, .. request.FacilitatorIds ?? []];
-            var invitedEmployeeIds = request.InvitedEmployeeIds ?? [];
-            var invitedTeamIds = request.InvitedTeamIds ?? [];
+        IReadOnlyCollection<Guid> facilitatorIds = [employeeId.Value, .. request.FacilitatorIds ?? []];
+        var invitedEmployeeIds = request.InvitedEmployeeIds ?? [];
+        var invitedTeamIds = request.InvitedTeamIds ?? [];
 
-            var exist = Result.Combine(
-                await _planningDbContext.EnsureEmployeesExist([.. facilitatorIds, .. invitedEmployeeIds], cancellationToken),
-                await _planningDbContext.EnsureTeamsExist(invitedTeamIds, cancellationToken));
-            if (exist.IsFailure)
-                return Result.Failure<ObjectIdAndKey>(exist.Error);
+        var exist = Result.Combine(
+            await _planningDbContext.EnsureEmployeesExist([.. facilitatorIds, .. invitedEmployeeIds], cancellationToken),
+            await _planningDbContext.EnsureTeamsExist(invitedTeamIds, cancellationToken));
+        if (exist.IsFailure)
+            return Result.Failure<ObjectIdAndKey>(exist.Error);
 
-            var sessionResult = PokerSession.Create(
-                request.Name,
-                scale,
-                request.Visibility,
-                employeeId.Value,
-                _dateTimeProvider.Now);
+        var sessionResult = PokerSession.Create(
+            request.Name,
+            scale,
+            request.Visibility,
+            employeeId.Value,
+            _dateTimeProvider.Now);
 
-            if (sessionResult.IsFailure)
-                return Result.Failure<ObjectIdAndKey>(sessionResult.Error);
+        if (sessionResult.IsFailure)
+            return Result.Failure<ObjectIdAndKey>(sessionResult.Error);
 
-            var session = sessionResult.Value;
+        var session = sessionResult.Value;
 
-            // The creator facilitates the new session, which is all these two need.
-            var creator = new PokerSessionActor(employeeId.Value, _currentUser.GetUserId(), false, new HashSet<Guid>());
-            var setUp = Result.Combine(
-                session.SetFacilitators(facilitatorIds, creator),
-                session.SetInvitees(invitedEmployeeIds, invitedTeamIds, creator));
-            if (setUp.IsFailure)
-                return Result.Failure<ObjectIdAndKey>(setUp.Error);
+        // The creator facilitates the new session, which is all these two need.
+        var creator = new PokerSessionActor(employeeId.Value, _currentUser.GetUserId(), false, new HashSet<Guid>());
+        var setUp = Result.Combine(
+            session.SetFacilitators(facilitatorIds, creator),
+            session.SetInvitees(invitedEmployeeIds, invitedTeamIds, creator));
+        if (setUp.IsFailure)
+            return Result.Failure<ObjectIdAndKey>(setUp.Error);
 
-            await _planningDbContext.PokerSessions.AddAsync(session, cancellationToken);
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _planningDbContext.PokerSessions.AddAsync(session, cancellationToken);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            return new ObjectIdAndKey(session.Id, session.Key);
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure<ObjectIdAndKey>($"Wayd Request: Exception for Request {requestName}");
-        }
+        return new ObjectIdAndKey(session.Id, session.Key);
     }
 }

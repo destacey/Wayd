@@ -21,42 +21,32 @@ public sealed class SetStoryMapEditAccessCommandValidator : CustomValidator<SetS
 }
 
 /// <summary>Changes who can edit a public map and tells live viewers to refetch what they may do.</summary>
-public sealed class SetStoryMapEditAccessCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier, ILogger<SetStoryMapEditAccessCommandHandler> logger) : ICommandHandler<SetStoryMapEditAccessCommand>
+public sealed class SetStoryMapEditAccessCommandHandler(IPlanningDbContext planningDbContext, IStoryMapAccess access, IStoryMapNotifier notifier) : ICommandHandler<SetStoryMapEditAccessCommand>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly IStoryMapAccess _access = access;
     private readonly IStoryMapNotifier _notifier = notifier;
-    private readonly ILogger<SetStoryMapEditAccessCommandHandler> _logger = logger;
 
     /// <summary>Saves the edit access, refusing a caller who does not manage the map.</summary>
     public async Task<Result> Handle(SetStoryMapEditAccessCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var map = await _planningDbContext.StoryMaps
-                .IncludeAccess()
-                .FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken);
+        var map = await _planningDbContext.StoryMaps
+            .IncludeAccess()
+            .FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken);
 
-            if (map is null)
-                return Result.Failure(StoryMap.NotFoundError);
+        if (map is null)
+            return Result.Failure(StoryMap.NotFoundError);
 
-            var actor = await _access.ResolveActor(map, cancellationToken);
+        var actor = await _access.ResolveActor(map, cancellationToken);
 
-            var result = map.SetEditAccess(request.EditAccess, actor);
-            if (result.IsFailure)
-                return result;
+        var result = map.SetEditAccess(request.EditAccess, actor);
+        if (result.IsFailure)
+            return result;
 
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            await _notifier.NotifyAccessChanged(map.Id);
+        await _notifier.NotifyAccessChanged(map.Id);
 
-            return Result.Success();
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success();
     }
 }

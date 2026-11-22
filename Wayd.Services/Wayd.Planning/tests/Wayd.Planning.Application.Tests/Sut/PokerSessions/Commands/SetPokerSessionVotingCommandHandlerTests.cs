@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
 using Wayd.Planning.Application.PokerSessions.Commands;
@@ -28,7 +27,7 @@ public class SetPokerSessionVotingCommandHandlerTests : IDisposable
         _dbContext.AddEmployee(new EmployeeFaker().WithId(_voter.EmployeeId).Generate());
         _dbContext.AddEstimationScale(_scale);
 
-        _handler = new SetPokerSessionVotingCommandHandler(_dbContext, _access, _mockNotifier.Object, new Mock<ILogger<SetPokerSessionVotingCommandHandler>>().Object);
+        _handler = new SetPokerSessionVotingCommandHandler(_dbContext, _access, _mockNotifier.Object);
     }
 
     [Fact]

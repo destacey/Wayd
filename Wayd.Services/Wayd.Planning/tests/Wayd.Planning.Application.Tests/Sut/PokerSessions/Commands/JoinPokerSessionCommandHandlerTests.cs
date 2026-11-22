@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
@@ -33,7 +32,7 @@ public class JoinPokerSessionCommandHandlerTests : IDisposable
         _dbContext.AddEmployee(new EmployeeFaker().WithId(_voter.EmployeeId).Generate());
         _dbContext.AddEstimationScale(_scale);
 
-        _handler = new JoinPokerSessionCommandHandler(_dbContext, _access, dateTimeProvider.Object, _mockNotifier.Object, new Mock<ILogger<JoinPokerSessionCommandHandler>>().Object);
+        _handler = new JoinPokerSessionCommandHandler(_dbContext, _access, dateTimeProvider.Object, _mockNotifier.Object);
     }
 
     [Fact]

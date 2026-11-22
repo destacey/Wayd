@@ -45,62 +45,52 @@ public sealed class CreateStoryMapCommandValidator : CustomValidator<CreateStory
 }
 
 /// <summary>Creates the map with the caller as its first owner, plus the owners and editors the command names.</summary>
-public sealed class CreateStoryMapCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal, ILogger<CreateStoryMapCommandHandler> logger) : ICommandHandler<CreateStoryMapCommand, ObjectIdAndKey>
+public sealed class CreateStoryMapCommandHandler(IPlanningDbContext planningDbContext, ICurrentPrincipal currentPrincipal) : ICommandHandler<CreateStoryMapCommand, ObjectIdAndKey>
 {
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
-    private readonly ILogger<CreateStoryMapCommandHandler> _logger = logger;
 
     /// <summary>Creates the map, refusing owners or editors who do not exist.</summary>
     /// <exception cref="ForbiddenException">Thrown via <c>LinkedEmployeeRequired</c> when the caller has no linked employee.</exception>
     public async Task<Result<ObjectIdAndKey>> Handle(CreateStoryMapCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-            if (employeeId is null)
-                LinkedEmployeeRequired.Throw();
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        if (employeeId is null)
+            LinkedEmployeeRequired.Throw();
 
-            IReadOnlyCollection<Guid> ownerIds = [employeeId.Value, .. request.OwnerIds ?? []];
-            var editorIds = request.EditorIds ?? [];
-            var editorTeamIds = request.EditorTeamIds ?? [];
+        IReadOnlyCollection<Guid> ownerIds = [employeeId.Value, .. request.OwnerIds ?? []];
+        var editorIds = request.EditorIds ?? [];
+        var editorTeamIds = request.EditorTeamIds ?? [];
 
-            var exist = Result.Combine(
-                await _planningDbContext.EnsureEmployeesExist([.. ownerIds, .. editorIds], cancellationToken),
-                await _planningDbContext.EnsureTeamsExist(editorTeamIds, cancellationToken));
-            if (exist.IsFailure)
-                return Result.Failure<ObjectIdAndKey>(exist.Error);
+        var exist = Result.Combine(
+            await _planningDbContext.EnsureEmployeesExist([.. ownerIds, .. editorIds], cancellationToken),
+            await _planningDbContext.EnsureTeamsExist(editorTeamIds, cancellationToken));
+        if (exist.IsFailure)
+            return Result.Failure<ObjectIdAndKey>(exist.Error);
 
-            var mapResult = StoryMap.Create(
-                request.Name,
-                request.Description,
-                employeeId.Value,
-                request.Visibility,
-                request.EditAccess);
+        var mapResult = StoryMap.Create(
+            request.Name,
+            request.Description,
+            employeeId.Value,
+            request.Visibility,
+            request.EditAccess);
 
-            if (mapResult.IsFailure)
-                return Result.Failure<ObjectIdAndKey>(mapResult.Error);
+        if (mapResult.IsFailure)
+            return Result.Failure<ObjectIdAndKey>(mapResult.Error);
 
-            var map = mapResult.Value;
+        var map = mapResult.Value;
 
-            // The creator owns the new map, which is all these two need.
-            var creator = new StoryMapActor(employeeId.Value, false, new HashSet<Guid>());
-            var setUp = Result.Combine(
-                map.SetOwners(ownerIds, creator),
-                map.SetEditors(editorIds, editorTeamIds, creator));
-            if (setUp.IsFailure)
-                return Result.Failure<ObjectIdAndKey>(setUp.Error);
+        // The creator owns the new map, which is all these two need.
+        var creator = new StoryMapActor(employeeId.Value, false, new HashSet<Guid>());
+        var setUp = Result.Combine(
+            map.SetOwners(ownerIds, creator),
+            map.SetEditors(editorIds, editorTeamIds, creator));
+        if (setUp.IsFailure)
+            return Result.Failure<ObjectIdAndKey>(setUp.Error);
 
-            await _planningDbContext.StoryMaps.AddAsync(map, cancellationToken);
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await _planningDbContext.StoryMaps.AddAsync(map, cancellationToken);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            return new ObjectIdAndKey(map.Id, map.Key);
-        }
-        catch (Exception ex) when (ex is not ForbiddenException)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure<ObjectIdAndKey>($"Wayd Request: Exception for Request {requestName}");
-        }
+        return new ObjectIdAndKey(map.Id, map.Key);
     }
 }

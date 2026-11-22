@@ -54,8 +54,6 @@ public sealed class CreatePlanningIntervalObjectiveCommandValidator : CustomVali
 
 public sealed class CreatePlanningIntervalObjectiveCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<CreatePlanningIntervalObjectiveCommandHandler> logger) : ICommandHandler<CreatePlanningIntervalObjectiveCommand, ObjectIdAndKey>
 {
-    private const string AppRequestName = nameof(CreatePlanningIntervalObjectiveCommand);
-
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -63,52 +61,44 @@ public sealed class CreatePlanningIntervalObjectiveCommandHandler(IPlanningDbCon
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreatePlanningIntervalObjectiveCommand request, CancellationToken cancellationToken)
     {
-        try
+        var planningInterval = await _planningDbContext.PlanningIntervals
+            .Include(p => p.Teams)
+            .FirstOrDefaultAsync(p => p.Id == request.PlanningIntervalId, cancellationToken);
+        if (planningInterval is null)
         {
-            var planningInterval = await _planningDbContext.PlanningIntervals
-                .Include(p => p.Teams)
-                .FirstOrDefaultAsync(p => p.Id == request.PlanningIntervalId, cancellationToken);
-            if (planningInterval is null)
-            {
-                _logger.LogError("Planning Interval {PlanningIntervalId} not found.", request.PlanningIntervalId);
-                return Result.Failure<ObjectIdAndKey>("Planning Interval not found.");
-            }
-
-            if (planningInterval.ObjectivesLocked)
-            {
-                _logger.LogError("Objectives are locked for the Planning Interval {PlanningIntervalId}", request.PlanningIntervalId);
-                return Result.Failure<ObjectIdAndKey>("Objectives are locked for the Planning Interval");
-            }
-
-            var team = await _planningDbContext.PlanningTeams
-                .AsNoTracking()
-                .FirstOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
-            if (team is null)
-            {
-                _logger.LogError("Team {TeamId} not found.", request.TeamId);
-                return Result.Failure<ObjectIdAndKey>("Team not found.");
-            }
-
-            var result = planningInterval.CreateObjective(team, request.Name, request.Description, request.IsStretch, request.StartDate, request.TargetDate, request.Order,
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                _logger.LogError("Unable to create PI objective for Planning Interval {PlanningIntervalId}.  Error: {Error}", request.PlanningIntervalId, result.Error);
-                return Result.Failure<ObjectIdAndKey>($"Unable to create PI objective.  Error: {result.Error}");
-            }
-
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-            var piObjective = result.Value;
-
-            _logger.LogInformation("Planning Interval Objective {PlanningIntervalObjectiveId} created with Key {PlanningIntervalObjectiveKey}.", piObjective.Id, piObjective.Key);
-
-            return new ObjectIdAndKey(piObjective.Id, piObjective.Key);
+            _logger.LogError("Planning Interval {PlanningIntervalId} not found.", request.PlanningIntervalId);
+            return Result.Failure<ObjectIdAndKey>("Planning Interval not found.");
         }
-        catch (Exception ex)
+
+        if (planningInterval.ObjectivesLocked)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<ObjectIdAndKey>($"Error handling {AppRequestName} command.");
+            _logger.LogError("Objectives are locked for the Planning Interval {PlanningIntervalId}", request.PlanningIntervalId);
+            return Result.Failure<ObjectIdAndKey>("Objectives are locked for the Planning Interval");
         }
+
+        var team = await _planningDbContext.PlanningTeams
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
+        if (team is null)
+        {
+            _logger.LogError("Team {TeamId} not found.", request.TeamId);
+            return Result.Failure<ObjectIdAndKey>("Team not found.");
+        }
+
+        var result = planningInterval.CreateObjective(team, request.Name, request.Description, request.IsStretch, request.StartDate, request.TargetDate, request.Order,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        if (result.IsFailure)
+        {
+            _logger.LogError("Unable to create PI objective for Planning Interval {PlanningIntervalId}.  Error: {Error}", request.PlanningIntervalId, result.Error);
+            return Result.Failure<ObjectIdAndKey>($"Unable to create PI objective.  Error: {result.Error}");
+        }
+
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        var piObjective = result.Value;
+
+        _logger.LogInformation("Planning Interval Objective {PlanningIntervalObjectiveId} created with Key {PlanningIntervalObjectiveKey}.", piObjective.Id, piObjective.Key);
+
+        return new ObjectIdAndKey(piObjective.Id, piObjective.Key);
     }
 }

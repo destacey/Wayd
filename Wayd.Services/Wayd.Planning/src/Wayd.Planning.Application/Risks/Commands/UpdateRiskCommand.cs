@@ -60,48 +60,38 @@ public sealed class UpdateRiskCommandHandler : ICommandHandler<UpdateRiskCommand
 
     public async Task<Result<int>> Handle(UpdateRiskCommand request, CancellationToken cancellationToken)
     {
-        try
+        var risk = await _planningDbContext.Risks
+            .FirstOrDefaultAsync(r => r.Id == request.Id && r.TeamId == request.TeamId, cancellationToken);
+        if (risk is null)
+            return Result.Failure<int>("Risk not found.");
+
+        // The assignee is a foreign key, so an unknown one is refused here rather than at the database.
+        var assigneeExists = await _planningDbContext.EnsureEmployeesExist(request.AssigneeId is { } assigneeId ? [assigneeId] : [], cancellationToken);
+        if (assigneeExists.IsFailure)
+            return Result.Failure<int>(assigneeExists.Error);
+
+        var updateResult = risk.Update(
+            request.Summary,
+            request.Description,
+            request.Status,
+            request.Category,
+            request.Impact,
+            request.Likelihood,
+            request.AssigneeId,
+            request.FollowUpDate,
+            request.Response,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            _dateTimeProvider.Now
+            );
+
+        if (updateResult.IsFailure)
         {
-            var risk = await _planningDbContext.Risks
-                .FirstOrDefaultAsync(r => r.Id == request.Id && r.TeamId == request.TeamId, cancellationToken);
-            if (risk is null)
-                return Result.Failure<int>("Risk not found.");
-
-            var updateResult = risk.Update(
-                request.Summary,
-                request.Description,
-                request.Status,
-                request.Category,
-                request.Impact,
-                request.Likelihood,
-                request.AssigneeId,
-                request.FollowUpDate,
-                request.Response,
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                _dateTimeProvider.Now
-                );
-
-            if (updateResult.IsFailure)
-            {
-                // Reset the entity
-                await _planningDbContext.Entry(risk).ReloadAsync(cancellationToken);
-                risk.ClearDomainEvents();
-
-                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", request.GetType().Name, updateResult.Error);
-                return Result.Failure<int>(updateResult.Error);
-            }
-
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success(risk.Key);
+            _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", request.GetType().Name, updateResult.Error);
+            return Result.Failure<int>(updateResult.Error);
         }
-        catch (Exception ex)
-        {
-            var requestName = request.GetType().Name;
 
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-            return Result.Failure<int>($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success(risk.Key);
     }
 }

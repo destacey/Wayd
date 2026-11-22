@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using Wayd.Planning.Application.EstimationScales.Commands;
+﻿using Wayd.Planning.Application.EstimationScales.Commands;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Tests.Data;
 using Moq;
@@ -15,7 +14,6 @@ public class SetEstimationScaleActiveStatusCommandHandlerTests : IDisposable
 {
     private readonly FakePlanningDbContext _dbContext;
     private readonly SetEstimationScaleActiveStatusCommandHandler _handler;
-    private readonly Mock<ILogger<SetEstimationScaleActiveStatusCommandHandler>> _mockLogger;
     private readonly Mock<ICurrentUser> _currentUser = new();
     private readonly TestingDateTimeProvider _dateTimeProvider = new(new FakeClock(Now));
 
@@ -24,9 +22,8 @@ public class SetEstimationScaleActiveStatusCommandHandlerTests : IDisposable
     public SetEstimationScaleActiveStatusCommandHandlerTests()
     {
         _dbContext = new FakePlanningDbContext();
-        _mockLogger = new Mock<ILogger<SetEstimationScaleActiveStatusCommandHandler>>();
 
-        _handler = new SetEstimationScaleActiveStatusCommandHandler(_dbContext, _currentUser.Object, _dateTimeProvider, _mockLogger.Object);
+        _handler = new SetEstimationScaleActiveStatusCommandHandler(_dbContext, _currentUser.Object, _dateTimeProvider);
     }
 
     [Fact]

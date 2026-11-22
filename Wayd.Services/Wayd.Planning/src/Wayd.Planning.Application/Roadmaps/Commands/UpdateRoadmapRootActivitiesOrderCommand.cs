@@ -33,50 +33,36 @@ public sealed class UpdateRoadmapRootActivitiesOrderCommandHandler(IPlanningDbCo
 
     public async Task<Result> Handle(UpdateRoadmapRootActivitiesOrderCommand request, CancellationToken cancellationToken)
     {
-        // Outside the try: this is a refusal, and the catch-all below would turn it into a
-        // generic failure, losing both the 403 and its explanation.
         var caller = await _currentPrincipal.ResolveRoadmapActor(cancellationToken);
 
-        try
+        var roadmap = await _planningDbContext.Roadmaps
+            .Include(x => x.Owners)
+            .Include(x => x.Items)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(r => r.Id == request.RoadmapId, cancellationToken);
+
+        if (roadmap is null)
+            return Result.Failure($"Roadmap with id {request.RoadmapId} not found");
+
+
+        var rootActivities = roadmap.Items.OfType<RoadmapActivity>().Where(x => x.ParentId is null).ToList();
+        if (rootActivities.Count != request.ChildrenOrder.Count)
         {
-            var roadmap = await _planningDbContext.Roadmaps
-                .Include(x => x.Owners)
-                .Include(x => x.Items)
-                .AsSplitQuery()
-                .FirstOrDefaultAsync(r => r.Id == request.RoadmapId, cancellationToken);
-
-            if (roadmap is null)
-                return Result.Failure($"Roadmap with id {request.RoadmapId} not found");
-
-
-            var rootActivities = roadmap.Items.OfType<RoadmapActivity>().Where(x => x.ParentId is null).ToList();
-            if (rootActivities.Count != request.ChildrenOrder.Count)
-            {
-                var missingRoadmapActivities = request.ChildrenOrder.Keys.Except(rootActivities.Select(o => o.Id));
-                _logger.LogWarning("Not all root roadmap activities provided were found for roadmap {RoadmapId}. The following root roadmap activities were not found: {RoadmapActivityIds}", roadmap.Id, missingRoadmapActivities);
-                return Result.Failure("Not all root roadmap activities provided were found.");
-            }
-
-            var updateResult = roadmap.SetChildrenOrder(request.ChildrenOrder, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
-            if (updateResult.IsFailure)
-            {
-                // Reset the entity
-                await _planningDbContext.Entry(roadmap).ReloadAsync(cancellationToken);
-                roadmap.ClearDomainEvents();
-
-                _logger.LogError("Failure for Request {CommandName}.  Error message: {Error}", AppRequestName, updateResult.Error);
-                return Result.Failure(updateResult.Error);
-            }
-
-            await _planningDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
+            var missingRoadmapActivities = request.ChildrenOrder.Keys.Except(rootActivities.Select(o => o.Id));
+            _logger.LogWarning("Not all root roadmap activities provided were found for roadmap {RoadmapId}. The following root roadmap activities were not found: {RoadmapActivityIds}", roadmap.Id, missingRoadmapActivities);
+            return Result.Failure("Not all root roadmap activities provided were found.");
         }
-        catch (Exception ex)
+
+        var updateResult = roadmap.SetChildrenOrder(request.ChildrenOrder, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
+        if (updateResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Failure for Request {CommandName}.  Error message: {Error}", AppRequestName, updateResult.Error);
+            return Result.Failure(updateResult.Error);
         }
+
+        await _planningDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
     }
 }
 

@@ -11,51 +11,39 @@ public sealed record ActivateConnectionCommand(Guid Id) : ICommand;
 public sealed class ActivateConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
     ICurrentUser currentUser,
-    IDateTimeProvider dateTimeProvider,
-    ILogger<ActivateConnectionCommandHandler> logger) : ICommandHandler<ActivateConnectionCommand>
+    IDateTimeProvider dateTimeProvider) : ICommandHandler<ActivateConnectionCommand>
 {
-    private const string AppRequestName = nameof(ActivateConnectionCommandHandler);
-
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ILogger<ActivateConnectionCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ActivateConnectionCommand request, CancellationToken cancellationToken)
     {
-        try
+        var connection = await _appIntegrationDbContext.Connections
+            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+        if (connection is null)
+            return Result.Failure($"Connection {request.Id} not found.");
+
+        // PeopleSync is single-source by design: only one PeopleSync connection may be active
+        // at a time. Activating a second one would let two sources upsert into the same
+        // Employee table with different source-IDs and split the same person into two rows.
+        if (connection.Connector.HasCapability(ConnectorCapability.People) && !connection.IsActive)
         {
-            var connection = await _appIntegrationDbContext.Connections
-                .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
-            if (connection is null)
-                return Result.Failure($"Connection {request.Id} not found.");
+            var existing = await _appIntegrationDbContext.Connections
+                .Where(c => c.Id != connection.Id && c.IsActive && !c.IsDeleted)
+                .ToListAsync(cancellationToken);
 
-            // PeopleSync is single-source by design: only one PeopleSync connection may be active
-            // at a time. Activating a second one would let two sources upsert into the same
-            // Employee table with different source-IDs and split the same person into two rows.
-            if (connection.Connector.HasCapability(ConnectorCapability.People) && !connection.IsActive)
-            {
-                var existing = await _appIntegrationDbContext.Connections
-                    .Where(c => c.Id != connection.Id && c.IsActive && !c.IsDeleted)
-                    .ToListAsync(cancellationToken);
-
-                var conflicting = existing.FirstOrDefault(c => c.Connector.HasCapability(ConnectorCapability.People));
-                if (conflicting is not null)
-                    return Result.Failure($"Another PeopleSync connection ({conflicting.Name}) is already active. Deactivate it before activating this one.");
-            }
-
-            var result = connection.Activate(ConnectionActivatableArgs.Create(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now));
-            if (result.IsFailure)
-                return result;
-
-            await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
+            var conflicting = existing.FirstOrDefault(c => c.Connector.HasCapability(ConnectorCapability.People));
+            if (conflicting is not null)
+                return Result.Failure($"Another PeopleSync connection ({conflicting.Name}) is already active. Deactivate it before activating this one.");
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
-            return Result.Failure($"Wayd Request: Exception for Request {AppRequestName}");
-        }
+
+        var result = connection.Activate(ConnectionActivatableArgs.Create(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now));
+        if (result.IsFailure)
+            return result;
+
+        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
     }
 }

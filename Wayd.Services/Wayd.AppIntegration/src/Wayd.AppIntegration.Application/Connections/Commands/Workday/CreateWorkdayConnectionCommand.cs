@@ -54,61 +54,49 @@ public sealed class CreateWorkdayConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
-    IWorkdayConnectionInitializer initializer,
-    ILogger<CreateWorkdayConnectionCommandHandler> logger)
+    IWorkdayConnectionInitializer initializer)
     : ICommandHandler<CreateWorkdayConnectionCommand, Guid>
 {
-    private const string AppRequestName = nameof(CreateWorkdayConnectionCommandHandler);
-
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IWorkdayConnectionInitializer _initializer = initializer;
-    private readonly ILogger<CreateWorkdayConnectionCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(CreateWorkdayConnectionCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            Instant timestamp = _dateTimeProvider.Now;
+        Instant timestamp = _dateTimeProvider.Now;
 
-            // Map the API-level input list to the domain WorkdayOrgExclusion. Fully qualified
-            // because Common.Application also exports a WorkdayOrgExclusion record (the runtime
-            // shape passed to the SOAP service) — same name, parallel types across layers.
-            var exclusions = request.OrgExclusions?
-                .Select(e => new Wayd.AppIntegration.Domain.Models.Workday.WorkdayOrgExclusion(e.OrganizationTypeId, e.OrganizationReference, e.DisplayName))
-                .ToList();
+        // Map the API-level input list to the domain WorkdayOrgExclusion. Fully qualified
+        // because Common.Application also exports a WorkdayOrgExclusion record (the runtime
+        // shape passed to the SOAP service) — same name, parallel types across layers.
+        var exclusions = request.OrgExclusions?
+            .Select(e => new Wayd.AppIntegration.Domain.Models.Workday.WorkdayOrgExclusion(e.OrganizationTypeId, e.OrganizationReference, e.DisplayName))
+            .ToList();
 
-            var config = new WorkdayConnectionConfiguration(
-                request.WsdlUrl,
-                request.IsuUsername,
-                request.IsuPassword,
-                request.WorkerKey,
-                request.IncludeInactive,
-                request.MatchBy,
-                request.UseUserIdAsEmailFallback,
-                request.UsePreferredName,
-                request.NormalizeNameCasing,
-                request.DepartmentOrganizationTypeId,
-                exclusions);
+        var config = new WorkdayConnectionConfiguration(
+            request.WsdlUrl,
+            request.IsuUsername,
+            request.IsuPassword,
+            request.WorkerKey,
+            request.IncludeInactive,
+            request.MatchBy,
+            request.UseUserIdAsEmailFallback,
+            request.UsePreferredName,
+            request.NormalizeNameCasing,
+            request.DepartmentOrganizationTypeId,
+            exclusions);
 
-            // Create the connection first with IsValidConfiguration = false so the row exists even
-            // if the probe is slow or fails — admins shouldn't lose typed config.
-            var connection = WorkdayConnection.Create(request.Name, request.Description, config, configurationIsValid: false, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), timestamp);
-            await _appIntegrationDbContext.WorkdayConnections.AddAsync(connection, cancellationToken);
-            await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+        // Create the connection first with IsValidConfiguration = false so the row exists even
+        // if the probe is slow or fails — admins shouldn't lose typed config.
+        var connection = WorkdayConnection.Create(request.Name, request.Description, config, configurationIsValid: false, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), timestamp);
+        await _appIntegrationDbContext.WorkdayConnections.AddAsync(connection, cancellationToken);
+        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
 
-            // Run the init probe and persist the structured result.
-            await RunInitProbe(connection, cancellationToken);
-            await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+        // Run the init probe and persist the structured result.
+        await RunInitProbe(connection, cancellationToken);
+        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
 
-            return Result.Success(connection.Id);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName}");
-        }
+        return Result.Success(connection.Id);
     }
 
     private async Task RunInitProbe(WorkdayConnection connection, CancellationToken cancellationToken)

@@ -270,6 +270,7 @@ public sealed class PeopleSyncRunner(
         }
         catch (Exception ex)
         {
+            // Recorded on the run, so sync history shows the failure rather than a run left in progress.
             _logger.LogError(ex, "Unhandled exception while running people sync for connection {ConnectionId}.", connectionId);
             details.Errors.Add(ErrorMessages.UnexpectedInRun);
             run.MarkFailed(_clock.Now, ErrorMessages.UnexpectedInRun);

@@ -38,45 +38,35 @@ public sealed class UpdateTeamsConnectionCommandHandler(
 
     public async Task<Result<Guid>> Handle(UpdateTeamsConnectionCommand request, CancellationToken cancellationToken)
     {
-        try
+        var connection = await appIntegrationDbContext.TeamsConnections
+            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+        if (connection is null)
+            return Result.Failure<Guid>("Teams connection not found.");
+
+        var clientSecret = ConnectionSecret.Replacement(request.ClientSecret, connection.Configuration!.ClientSecret);
+        var configurationIsValid = true;
+
+        var updateResult = connection.Update(
+            request.Name,
+            request.Description,
+            request.TenantId,
+            request.ClientId,
+            clientSecret,
+            configurationIsValid,
+            EventActor.User(currentUser.GetUserId(), currentUser.GetEmployeeId()),
+            dateTimeProvider.Now);
+
+        if (updateResult.IsFailure)
         {
-            var connection = await appIntegrationDbContext.TeamsConnections
-                .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
-            if (connection is null)
-                return Result.Failure<Guid>("Teams connection not found.");
-
-            var clientSecret = ConnectionSecret.Replacement(request.ClientSecret, connection.Configuration!.ClientSecret);
-            var configurationIsValid = true;
-
-            var updateResult = connection.Update(
-                request.Name,
-                request.Description,
-                request.TenantId,
-                request.ClientId,
-                clientSecret,
-                configurationIsValid,
-                EventActor.User(currentUser.GetUserId(), currentUser.GetEmployeeId()),
-                dateTimeProvider.Now);
-
-            if (updateResult.IsFailure)
-            {
-                await appIntegrationDbContext.Entry(connection).ReloadAsync(cancellationToken);
-                connection.ClearDomainEvents();
-                logger.LogError(
-                    "Wayd Request: Failure for Request {Name}.  Error message: {Error}",
-                    AppRequestName,
-                    updateResult.Error);
-                return Result.Failure<Guid>(updateResult.Error);
-            }
-
-            await appIntegrationDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success(connection.Id);
+            logger.LogInformation(
+                "Wayd Request: Failure for Request {Name}.  Error message: {Error}",
+                AppRequestName,
+                updateResult.Error);
+            return Result.Failure<Guid>(updateResult.Error);
         }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName}");
-        }
+
+        await appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(connection.Id);
     }
 }

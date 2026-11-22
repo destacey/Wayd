@@ -280,13 +280,17 @@ public class AzureDevOpsBoardsConnectionTests
         var connection = AzureDevOpsBoardsConnection.Create("Boards", null, "system-id",
             new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT"), true, null, Actor, _dateTimeProvider.Now);
 
+        var eventsBefore = connection.DomainEvents.Count;
+
         // Act
-        var result = connection.Update("Boards", null, "OtherOrg", null, true, Actor, _dateTimeProvider.Now);
+        var result = connection.Update("Renamed", null, "OtherOrg", null, true, Actor, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(Connection.CredentialsRequiredMessage("personal access token"));
+        connection.Name.Should().Be("Boards");
         connection.Configuration.Organization.Should().Be("TestOrg");
+        connection.DomainEvents.Should().HaveCount(eventsBefore);
     }
 
     [Fact]

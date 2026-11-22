@@ -48,8 +48,6 @@ public sealed class CreateAzureDevOpsConnectionCommandValidator : CustomValidato
 
 public sealed class CreateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<CreateAzureDevOpsConnectionCommandHandler> logger, IAzureDevOpsService azureDevOpsService) : ICommandHandler<CreateAzureDevOpsConnectionCommand, Guid>
 {
-    private const string AppRequestName = nameof(CreateAzureDevOpsConnectionCommandHandler);
-
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -58,32 +56,23 @@ public sealed class CreateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbC
 
     public async Task<Result<Guid>> Handle(CreateAzureDevOpsConnectionCommand request, CancellationToken cancellationToken)
     {
-        try
+        Instant timestamp = _dateTimeProvider.Now;
+        var config = new AzureDevOpsBoardsConnectionConfiguration(request.Organization, request.PersonalAccessToken);
+
+        var systemIdResult = await _azureDevOpsService.GetSystemId(new AzureDevOpsConnectionContext(config.Organization, config.PersonalAccessToken), cancellationToken);
+        if (systemIdResult.IsFailure)
         {
-            Instant timestamp = _dateTimeProvider.Now;
-            var config = new AzureDevOpsBoardsConnectionConfiguration(request.Organization, request.PersonalAccessToken);
-
-            var systemIdResult = await _azureDevOpsService.GetSystemId(new AzureDevOpsConnectionContext(config.Organization, config.PersonalAccessToken), cancellationToken);
-            if (systemIdResult.IsFailure)
-            {
-                _logger.LogWarning("Unable to get system id for Azure DevOps connection for organization {Organization}. {Error}", request.Organization, systemIdResult.Error);
-            }
-            var systemId = systemIdResult.IsSuccess ? systemIdResult.Value : null;
-
-            var connection = AzureDevOpsBoardsConnection.Create(request.Name, request.Description, systemId, config, systemIdResult.IsSuccess, null, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), timestamp);
-
-            await _appIntegrationDbContext.AzureDevOpsBoardsConnections.AddAsync(connection, cancellationToken);
-
-            await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success(connection.Id);
+            _logger.LogWarning("Unable to get system id for Azure DevOps connection for organization {Organization}. {Error}", request.Organization, systemIdResult.Error);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
+        var systemId = systemIdResult.IsSuccess ? systemIdResult.Value : null;
 
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName}");
-        }
+        var connection = AzureDevOpsBoardsConnection.Create(request.Name, request.Description, systemId, config, systemIdResult.IsSuccess, null, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), timestamp);
+
+        await _appIntegrationDbContext.AzureDevOpsBoardsConnections.AddAsync(connection, cancellationToken);
+
+        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(connection.Id);
     }
 }
 

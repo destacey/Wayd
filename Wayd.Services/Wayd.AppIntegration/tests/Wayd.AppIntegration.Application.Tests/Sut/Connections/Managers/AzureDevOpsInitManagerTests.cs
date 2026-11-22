@@ -339,7 +339,7 @@ public class AzureDevOpsInitManagerTests
     }
 
     [Fact]
-    public async Task SyncOrganizationConfiguration_WhenExceptionThrown_ReturnsFailure()
+    public async Task SyncOrganizationConfiguration_WhenExceptionThrown_Propagates()
     {
         // Arrange
         var connectionId = Guid.CreateVersion7();
@@ -351,10 +351,10 @@ public class AzureDevOpsInitManagerTests
             .ThrowsAsync(new InvalidOperationException("Unexpected error"));
 
         // Act
-        var result = await _sut.SyncOrganizationConfiguration(connectionId, CancellationToken.None);
+        var act = () => _sut.SyncOrganizationConfiguration(connectionId, TestContext.Current.CancellationToken);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("Unexpected error");
     }
 
     #endregion

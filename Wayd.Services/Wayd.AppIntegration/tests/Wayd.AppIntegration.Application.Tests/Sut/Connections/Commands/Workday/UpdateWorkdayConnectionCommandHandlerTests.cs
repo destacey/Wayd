@@ -120,7 +120,8 @@ public class UpdateWorkdayConnectionCommandHandlerTests
     {
         // Arrange
         var connection = CreateConnection();
-        var command = CreateCommand(connection.Id, isuPassword: null,
+        var eventsBefore = connection.DomainEvents.Count;
+        var command = CreateCommand(connection.Id, isuPassword: null, name: "Renamed",
             wsdlUrl: "https://attacker.example.com/ccx/service/acme_corp/Staffing/v46.1");
 
         // Act
@@ -129,6 +130,9 @@ public class UpdateWorkdayConnectionCommandHandlerTests
         // Assert
         result.IsFailure.Should().BeTrue();
         _probedPassword.Should().BeNull("the stored password must not be sent to a host it was not entered for");
+        connection.Name.Should().Be("Workday");
+        connection.Configuration!.WsdlUrl.Should().Be(WsdlUrl);
+        connection.DomainEvents.Should().HaveCount(eventsBefore);
         _db.SaveChangesCallCount.Should().Be(0);
     }
 

@@ -103,11 +103,6 @@ public sealed class WorkSyncRunner(
                 _cancellationRequested(_logger, null);
                 throw;
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "WorkSyncRunner failed unexpectedly.");
-                throw;
-            }
         }
     }
 
@@ -256,6 +251,7 @@ public sealed class WorkSyncRunner(
         }
         catch (Exception ex)
         {
+            // Recorded on the run, so sync history shows the failure, and the next connection still syncs.
             _logger.LogError(ex, "Unhandled exception while syncing connection {ConnectionId}.", connectionId);
             run.MarkFailed(_clock.Now, ErrorMessages.UnexpectedInRun);
             await SaveRun(run, workspaceDetails, CancellationToken.None);
@@ -275,6 +271,7 @@ public sealed class WorkSyncRunner(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            // Recorded against this workspace; the connection's other workspaces still sync.
             _logger.LogError(ex, "Unhandled exception while syncing workspace {WorkspaceId}.", target.InternalWorkspaceId);
             return WorkspaceSyncDetail.FromFailure(target, ErrorMessages.UnexpectedInRun);
         }
@@ -551,6 +548,7 @@ public sealed class WorkSyncRunner(
             }
             catch (Exception ex)
             {
+                // The details are diagnostics; the run's outcome is still saved without them.
                 _logger.LogWarning(ex, "Failed to serialize per-workspace details for SyncRun {SyncRunId}.", run.Id);
             }
         }
@@ -561,6 +559,8 @@ public sealed class WorkSyncRunner(
         }
         catch (Exception ex)
         {
+            // Sync history is bookkeeping: the sync's outcome is already decided, and a throw here would make
+            // Hangfire's retry run the whole sync again.
             _logger.LogError(ex, "Failed to persist SyncRun {SyncRunId} updates.", run.Id);
         }
     }

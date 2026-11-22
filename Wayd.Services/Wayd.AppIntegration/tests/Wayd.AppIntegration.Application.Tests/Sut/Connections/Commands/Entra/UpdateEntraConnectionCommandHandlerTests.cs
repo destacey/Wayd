@@ -108,14 +108,17 @@ public class UpdateEntraConnectionCommandHandlerTests
     {
         // Arrange
         var connection = CreateConnection();
-        var command = CreateCommand(connection.Id, clientSecret: null, tenantId: "another-tenant");
+        var eventsBefore = connection.DomainEvents.Count;
+        var command = CreateCommand(connection.Id, clientSecret: null, name: "Renamed", tenantId: "another-tenant");
 
         // Act
         var result = await _sut.Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
+        connection.Name.Should().Be("Entra");
         connection.Configuration.TenantId.Should().Be(TenantId);
+        connection.DomainEvents.Should().HaveCount(eventsBefore);
         _db.SaveChangesCallCount.Should().Be(0);
     }
 

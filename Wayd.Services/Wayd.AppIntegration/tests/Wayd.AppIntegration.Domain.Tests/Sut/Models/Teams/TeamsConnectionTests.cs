@@ -22,6 +22,7 @@ public sealed class TeamsConnectionTests
     {
         // Arrange
         var connection = Create();
+        var eventsBefore = connection.DomainEvents.Count;
 
         // Act
         var result = Update(connection, tenantId, clientId, clientSecret: null);
@@ -29,7 +30,10 @@ public sealed class TeamsConnectionTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(Connection.CredentialsRequiredMessage("client secret"));
+        connection.Name.Should().Be("People", "the refused update would have renamed it to Chat");
         connection.Configuration.TenantId.Should().Be("tenant-1");
+        connection.Configuration.ClientId.Should().Be("client-1");
+        connection.DomainEvents.Should().HaveCount(eventsBefore);
     }
 
     [Fact]

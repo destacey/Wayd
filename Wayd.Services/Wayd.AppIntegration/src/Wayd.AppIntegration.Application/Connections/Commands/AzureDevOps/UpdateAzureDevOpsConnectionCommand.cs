@@ -58,59 +58,46 @@ public sealed class UpdateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbC
 
     public async Task<Result<Guid>> Handle(UpdateAzureDevOpsConnectionCommand request, CancellationToken cancellationToken)
     {
-        try
+        var connection = await _appIntegrationDbContext.AzureDevOpsBoardsConnections
+            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+        if (connection is null)
+            return Result.Failure<Guid>("Azure DevOps connection not found.");
+
+        var newPat = ConnectionSecret.Replacement(request.PersonalAccessToken, connection.Configuration!.PersonalAccessToken);
+
+        // Before the connection test, which sends the token to the organization being saved.
+        var credentialsResult = connection.CheckCredentialsFor(request.Organization, newPat);
+        if (credentialsResult.IsFailure)
+            return Result.Failure<Guid>(credentialsResult.Error);
+
+        var config = new AzureDevOpsBoardsConnectionConfiguration(request.Organization, newPat ?? connection.Configuration.PersonalAccessToken);
+
+        var systemIdAndTestResult = await _azureDevOpsService.GetSystemId(new AzureDevOpsConnectionContext(config.Organization, config.PersonalAccessToken), cancellationToken);
+        if (systemIdAndTestResult.IsFailure)
         {
-            var connection = await _appIntegrationDbContext.AzureDevOpsBoardsConnections
-                .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
-            if (connection is null)
-                return Result.Failure<Guid>("Azure DevOps connection not found.");
-
-            var newPat = ConnectionSecret.Replacement(request.PersonalAccessToken, connection.Configuration!.PersonalAccessToken);
-
-            // Before the connection test, which sends the token to the organization being saved.
-            var credentialsResult = connection.CheckCredentialsFor(request.Organization, newPat);
-            if (credentialsResult.IsFailure)
-                return Result.Failure<Guid>(credentialsResult.Error);
-
-            var config = new AzureDevOpsBoardsConnectionConfiguration(request.Organization, newPat ?? connection.Configuration.PersonalAccessToken);
-
-            var systemIdAndTestResult = await _azureDevOpsService.GetSystemId(new AzureDevOpsConnectionContext(config.Organization, config.PersonalAccessToken), cancellationToken);
-            if (systemIdAndTestResult.IsFailure)
-            {
-                _logger.LogWarning("Unable to get system id for Azure DevOps connection for organization {Organization}. {Error}", request.Organization, systemIdAndTestResult.Error);
-            }
-            else if (string.IsNullOrWhiteSpace(connection.SystemId))
-            {
-                var setSystemIdResult = connection.SetSystemId(systemIdAndTestResult.Value);
-                if (setSystemIdResult.IsFailure)
-                {
-                    _logger.LogError("Error setting system id for connection {ConnectionId} to {SystemId}. {Error}", connection.Id, systemIdAndTestResult.Value, setSystemIdResult.Error);
-                }
-            }
-
-            var configurationIsValid = systemIdAndTestResult.IsSuccess && !string.IsNullOrWhiteSpace(connection.SystemId);
-
-            var updateResult = connection.Update(request.Name, request.Description, request.Organization, newPat, configurationIsValid, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            if (updateResult.IsFailure)
-            {
-                // Reset the entity
-                await _appIntegrationDbContext.Entry(connection).ReloadAsync(cancellationToken);
-                connection.ClearDomainEvents();
-
-                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", AppRequestName, updateResult.Error);
-                return Result.Failure<Guid>(updateResult.Error);
-            }
-
-            await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success(connection.Id);
+            _logger.LogWarning("Unable to get system id for Azure DevOps connection for organization {Organization}. {Error}", request.Organization, systemIdAndTestResult.Error);
         }
-        catch (Exception ex)
+        else if (string.IsNullOrWhiteSpace(connection.SystemId))
         {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
-
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName}");
+            var setSystemIdResult = connection.SetSystemId(systemIdAndTestResult.Value);
+            if (setSystemIdResult.IsFailure)
+            {
+                _logger.LogError("Error setting system id for connection {ConnectionId} to {SystemId}. {Error}", connection.Id, systemIdAndTestResult.Value, setSystemIdResult.Error);
+            }
         }
+
+        var configurationIsValid = systemIdAndTestResult.IsSuccess && !string.IsNullOrWhiteSpace(connection.SystemId);
+
+        var updateResult = connection.Update(request.Name, request.Description, request.Organization, newPat, configurationIsValid, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        if (updateResult.IsFailure)
+        {
+            _logger.LogInformation("Wayd Request: Failure for Request {Name}.  Error message: {Error}", AppRequestName, updateResult.Error);
+            return Result.Failure<Guid>(updateResult.Error);
+        }
+
+        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(connection.Id);
     }
 }
 

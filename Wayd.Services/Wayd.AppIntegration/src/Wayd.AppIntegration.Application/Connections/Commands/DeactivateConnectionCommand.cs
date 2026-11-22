@@ -11,37 +11,25 @@ public sealed record DeactivateConnectionCommand(Guid Id) : ICommand;
 public sealed class DeactivateConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
     ICurrentUser currentUser,
-    IDateTimeProvider dateTimeProvider,
-    ILogger<DeactivateConnectionCommandHandler> logger) : ICommandHandler<DeactivateConnectionCommand>
+    IDateTimeProvider dateTimeProvider) : ICommandHandler<DeactivateConnectionCommand>
 {
-    private const string AppRequestName = nameof(DeactivateConnectionCommandHandler);
-
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ILogger<DeactivateConnectionCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeactivateConnectionCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var connection = await _appIntegrationDbContext.Connections
-                .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
-            if (connection is null)
-                return Result.Failure($"Connection {request.Id} not found.");
+        var connection = await _appIntegrationDbContext.Connections
+            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+        if (connection is null)
+            return Result.Failure($"Connection {request.Id} not found.");
 
-            var result = connection.Deactivate(ConnectionActivatableArgs.Create(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now));
-            if (result.IsFailure)
-                return result;
+        var result = connection.Deactivate(ConnectionActivatableArgs.Create(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now));
+        if (result.IsFailure)
+            return result;
 
-            await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
-            return Result.Failure($"Wayd Request: Exception for Request {AppRequestName}");
-        }
+        return Result.Success();
     }
 }

@@ -65,37 +65,28 @@ public sealed class CreateTeamCommandHandler : ICommandHandler<CreateTeamCommand
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateTeamCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var scheduling = await _schedulingSettings.Get(cancellationToken);
-            var general = await _generalSettings.Get(cancellationToken);
+        var scheduling = await _schedulingSettings.Get(cancellationToken);
+        var general = await _generalSettings.Get(cancellationToken);
 
-            // Create team with default operating model (Kanban + Count)
-            var team = Team.Create(
-                request.Name,
-                request.Code,
-                request.Description,
-                request.ActiveDate,
-                Methodology.Kanban,
-                SizingMethod.Count,
-                general.TimeZone,
-                scheduling.DefaultCommitmentGraceDays,
-                scheduling.DefaultWorkingWeek(),
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                _dateTimeProvider.Now);
+        // Create team with default operating model (Kanban + Count)
+        var team = Team.Create(
+            request.Name,
+            request.Code,
+            request.Description,
+            request.ActiveDate,
+            Methodology.Kanban,
+            SizingMethod.Count,
+            general.TimeZone,
+            scheduling.DefaultCommitmentGraceDays,
+            scheduling.DefaultWorkingWeek(),
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            _dateTimeProvider.Now);
 
-            await _organizationDbContext.Teams.AddAsync(team, cancellationToken);
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
+        await _organizationDbContext.Teams.AddAsync(team, cancellationToken);
+        await _organizationDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogDebug("{RequestName}: created Team with Id {TeamId}, Key {TeamKey}, and Code {TeamCode}", RequestName, team.Id, team.Key, team.Code.Value);
+        _logger.LogDebug("{RequestName}: created Team with Id {TeamId}, Key {TeamKey}, and Code {TeamCode}", RequestName, team.Id, team.Key, team.Code.Value);
 
-            return Result.Success(new ObjectIdAndKey(team.Id, team.Key));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception for request {RequestName}", RequestName);
-
-            return Result.Failure<ObjectIdAndKey>($"Exception for request {RequestName}");
-        }
+        return Result.Success(new ObjectIdAndKey(team.Id, team.Key));
     }
 }

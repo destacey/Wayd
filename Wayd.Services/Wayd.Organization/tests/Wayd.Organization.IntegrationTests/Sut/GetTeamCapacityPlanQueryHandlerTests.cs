@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Interfaces;
@@ -399,7 +398,7 @@ public sealed class GetTeamCapacityPlanQueryHandlerTests(SqlServerDbContextFixtu
     {
         var currentUser = new Mock<ICurrentUser>();
         currentUser.Setup(u => u.GetUserId()).Returns("user-1");
-        return new(context, new Mock<IDispatcher>().Object, currentUser.Object, Administrator(), Clock(), Calendar(), NullLogger<ChangeEmployeeAllocationsCommandHandler>.Instance);
+        return new(context, new Mock<IDispatcher>().Object, currentUser.Object, Administrator(), Clock(), Calendar());
     }
 
     /// <summary>A caller with every permission, linked to no employee.</summary>

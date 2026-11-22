@@ -62,24 +62,15 @@ public sealed class CreateTeamOfTeamsCommandHandler : ICommandHandler<CreateTeam
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateTeamOfTeamsCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var general = await _generalSettings.Get(cancellationToken);
+        var general = await _generalSettings.Get(cancellationToken);
 
-            var team = TeamOfTeams.Create(request.Name, request.Code, request.Description, request.ActiveDate, general.TimeZone, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            await _organizationDbContext.TeamOfTeams.AddAsync(team, cancellationToken);
+        var team = TeamOfTeams.Create(request.Name, request.Code, request.Description, request.ActiveDate, general.TimeZone, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        await _organizationDbContext.TeamOfTeams.AddAsync(team, cancellationToken);
 
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
+        await _organizationDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogDebug("{RequestName}: created Team of Teams with Id {TeamId}, Key {TeamKey}, and Code {TeamCode}", RequestName, team.Id, team.Key, team.Code.Value);
+        _logger.LogDebug("{RequestName}: created Team of Teams with Id {TeamId}, Key {TeamKey}, and Code {TeamCode}", RequestName, team.Id, team.Key, team.Code.Value);
 
-            return Result.Success(new ObjectIdAndKey(team.Id, team.Key));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception for request {RequestName}", RequestName);
-
-            return Result.Failure<ObjectIdAndKey>($"Exception for request {RequestName}");
-        }
+        return Result.Success(new ObjectIdAndKey(team.Id, team.Key));
     }
 }

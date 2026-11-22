@@ -23,42 +23,30 @@ public sealed class RemoveEmployeeTimeAwayCommandHandler(
     IOrganizationDbContext organizationDbContext,
     ICurrentUser currentUser,
     ICurrentPrincipal currentPrincipal,
-    IDateTimeProvider dateTimeProvider,
-    ILogger<RemoveEmployeeTimeAwayCommandHandler> logger)
+    IDateTimeProvider dateTimeProvider)
     : ICommandHandler<RemoveEmployeeTimeAwayCommand>
 {
-    private const string AppRequestName = nameof(RemoveEmployeeTimeAwayCommand);
-
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ILogger<RemoveEmployeeTimeAwayCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(RemoveEmployeeTimeAwayCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            // Before anything is read about the employee, so a caller cannot learn which ids exist.
-            if (!await _currentPrincipal.CanManageTimeAway(_organizationDbContext, request.EmployeeId, cancellationToken))
-                return Result.Failure(TimeAwayAuthorization.NotAllowedError);
+        // Before anything is read about the employee, so a caller cannot learn which ids exist.
+        if (!await _currentPrincipal.CanManageTimeAway(_organizationDbContext, request.EmployeeId, cancellationToken))
+            return Result.Failure(TimeAwayAuthorization.NotAllowedError);
 
-            if (!await _organizationDbContext.Employees.AnyAsync(e => e.Id == request.EmployeeId, cancellationToken))
-                return Result.Failure($"Employee {request.EmployeeId} not found.");
+        if (!await _organizationDbContext.Employees.AnyAsync(e => e.Id == request.EmployeeId, cancellationToken))
+            return Result.Failure($"Employee {request.EmployeeId} not found.");
 
-            var (capacity, isNew) = await EmployeeCapacityRecords.LoadOrCreate(_organizationDbContext, request.EmployeeId, CapacityPart.TimeAway, cancellationToken);
+        var (capacity, isNew) = await EmployeeCapacityRecords.LoadOrCreate(_organizationDbContext, request.EmployeeId, CapacityPart.TimeAway, cancellationToken);
 
-            var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
-            var result = capacity.RemoveTimeAway(request.TimeAwayId, actor, _dateTimeProvider.Now);
-            if (result.IsFailure)
-                return result;
+        var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
+        var result = capacity.RemoveTimeAway(request.TimeAwayId, actor, _dateTimeProvider.Now);
+        if (result.IsFailure)
+            return result;
 
-            return await EmployeeCapacityRecords.Save(_organizationDbContext, capacity, isNew, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command for employee {EmployeeId} and time away {TimeAwayId}.", AppRequestName, request.EmployeeId, request.TimeAwayId);
-            return Result.Failure($"Error handling {AppRequestName} command.");
-        }
+        return await EmployeeCapacityRecords.Save(_organizationDbContext, capacity, isNew, cancellationToken);
     }
 }

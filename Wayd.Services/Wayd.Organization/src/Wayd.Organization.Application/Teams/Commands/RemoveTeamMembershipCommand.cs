@@ -35,39 +35,32 @@ public sealed class RemoveTeamMembershipCommandHandler : ICommandHandler<RemoveT
 
     public async Task<Result> Handle(RemoveTeamMembershipCommand request, CancellationToken cancellationToken)
     {
-        try
+        var team = await _organizationDbContext.Teams
+            .Include(t => t.ParentMemberships)
+                .ThenInclude(m => m.Target)
+            .AsNoTracking() // needed until the EF Core bug below is fixed
+            .SingleOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
+        if (team is null)
+            return Result.Failure("Team not found.");
+
+        var result = team.RemoveTeamMembership(request.TeamMembershipId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        if (result.IsFailure)
         {
-            Team team = await _organizationDbContext.Teams
-                .Include(t => t.ParentMemberships)
-                    .ThenInclude(m => m.Target)
-                .AsNoTracking() // needed until the EF Core bug below is fixed
-                .SingleAsync(t => t.Id == request.TeamId);
-
-            var result = team.RemoveTeamMembership(request.TeamMembershipId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                _logger.LogError("{RequestName}: failed to remove Team Membership {TeamMembershipId} for Team {TeamId}. Error: {Error}", RequestName, request.TeamMembershipId, request.TeamId, result.Error);
-                return result;
-            }
-
-            // The team was loaded untracked, and SaveChanges drains events only from tracked entities, so track
-            // it or the removal leaves no activity. Entry().State tracks that one entity, not its graph.
-            _organizationDbContext.Entry(team).State = EntityState.Unchanged;
-
-            // Cleans up deleted team memberships.  This is needed because of a bug in EF Core 7.x.
-            _organizationDbContext.Entry(result.Value).State = EntityState.Deleted;
-
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogDebug("{RequestName}: removed Team Membership {TeamMembershipId} for Team of Teams {TeamId}", RequestName, request.TeamMembershipId, request.TeamId);
-
-            return Result.Success();
+            _logger.LogError("{RequestName}: failed to remove Team Membership {TeamMembershipId} for Team {TeamId}. Error: {Error}", RequestName, request.TeamMembershipId, request.TeamId, result.Error);
+            return result;
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception for request {RequestName}", RequestName);
 
-            return Result.Failure<int>($"Exception for request {RequestName}");
-        }
+        // The team was loaded untracked, and SaveChanges drains events only from tracked entities, so track
+        // it or the removal leaves no activity. Entry().State tracks that one entity, not its graph.
+        _organizationDbContext.Entry(team).State = EntityState.Unchanged;
+
+        // Cleans up deleted team memberships.  This is needed because of a bug in EF Core 7.x.
+        _organizationDbContext.Entry(result.Value).State = EntityState.Deleted;
+
+        await _organizationDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug("{RequestName}: removed Team Membership {TeamMembershipId} for Team of Teams {TeamId}", RequestName, request.TeamMembershipId, request.TeamId);
+
+        return Result.Success();
     }
 }

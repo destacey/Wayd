@@ -2,7 +2,6 @@ using Wayd.Common.Domain.Settings;
 using Wayd.Common.Application.SystemSettings;
 using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.Organization;
@@ -249,7 +248,7 @@ public sealed class EmployeeTimeAwayHandlerTests(SqlServerDbContextFixture fixtu
         Result result;
         await using (var context = _fixture.CreateContext())
         {
-            var handler = new ChangeEmployeeHolidayCalendarCommandHandler(context, CurrentUser(), Administrator(seeded.OutsiderId), Clock(), NullLogger<ChangeEmployeeHolidayCalendarCommandHandler>.Instance);
+            var handler = new ChangeEmployeeHolidayCalendarCommandHandler(context, CurrentUser(), Administrator(seeded.OutsiderId), Clock());
             result = await handler.Handle(new ChangeEmployeeHolidayCalendarCommand(seeded.EmployeeId, calendarId), cancellationToken);
         }
 
@@ -292,13 +291,13 @@ public sealed class EmployeeTimeAwayHandlerTests(SqlServerDbContextFixture fixtu
     }
 
     private static RecordEmployeeTimeAwayCommandHandler RecordHandler(WaydDbContext context, ICurrentPrincipal principal) =>
-        new(context, CurrentUser(), principal, Clock(), NullLogger<RecordEmployeeTimeAwayCommandHandler>.Instance);
+        new(context, CurrentUser(), principal, Clock());
 
     private static ChangeEmployeeTimeAwayCommandHandler ChangeHandler(WaydDbContext context, ICurrentPrincipal principal) =>
-        new(context, CurrentUser(), principal, Clock(), NullLogger<ChangeEmployeeTimeAwayCommandHandler>.Instance);
+        new(context, CurrentUser(), principal, Clock());
 
     private static RemoveEmployeeTimeAwayCommandHandler RemoveHandler(WaydDbContext context, ICurrentPrincipal principal) =>
-        new(context, CurrentUser(), principal, Clock(), NullLogger<RemoveEmployeeTimeAwayCommandHandler>.Instance);
+        new(context, CurrentUser(), principal, Clock());
 
     /// <summary>A caller linked to the employee, holding no permission.</summary>
     private static ICurrentPrincipal Employee(Guid employeeId)

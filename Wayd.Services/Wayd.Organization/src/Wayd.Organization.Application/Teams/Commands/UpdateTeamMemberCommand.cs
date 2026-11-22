@@ -21,8 +21,6 @@ public sealed class UpdateTeamMemberCommandHandler(
     ILogger<UpdateTeamMemberCommandHandler> logger)
     : ICommandHandler<UpdateTeamMemberCommand>
 {
-    private const string AppRequestName = nameof(UpdateTeamMemberCommand);
-
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -31,42 +29,38 @@ public sealed class UpdateTeamMemberCommandHandler(
 
     public async Task<Result> Handle(UpdateTeamMemberCommand request, CancellationToken cancellationToken)
     {
-        try
+        var team = await _organizationDbContext.BaseTeams
+            .Include(t => t.Members)
+            .SingleOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
+        if (team is null)
         {
-            var team = await _organizationDbContext.BaseTeams
-                .Include(t => t.Members)
-                .SingleOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
-            if (team is null)
-            {
-                _logger.LogInformation("Team with Id {TeamId} not found.", request.TeamId);
-                return Result.Failure("Team not found.");
-            }
-
-            var employee = await _waydDbContext.Employees
-                .SingleOrDefaultAsync(e => e.Id == request.EmployeeId, cancellationToken);
-            if (employee is null)
-            {
-                _logger.LogInformation("Employee with Id {EmployeeId} not found.", request.EmployeeId);
-                return Result.Failure("Employee not found.");
-            }
-
-            var result = team.UpdateMemberRoles(employee, request.RoleIds, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                _logger.LogError("Error updating roles for employee {EmployeeId} on team {TeamId}. Error: {Error}", request.EmployeeId, request.TeamId, result.Error);
-                return result;
-            }
-
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Team member {EmployeeId} updated on team {TeamId}.", request.EmployeeId, request.TeamId);
-
-            return Result.Success();
+            _logger.LogInformation("Team with Id {TeamId} not found.", request.TeamId);
+            return Result.Failure("Team not found.");
         }
-        catch (Exception ex)
+
+        var employee = await _waydDbContext.Employees
+            .SingleOrDefaultAsync(e => e.Id == request.EmployeeId, cancellationToken);
+        if (employee is null)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogInformation("Employee with Id {EmployeeId} not found.", request.EmployeeId);
+            return Result.Failure("Employee not found.");
         }
+
+        var rolesCheck = await TeamMemberRoleIds.CheckExist(_organizationDbContext, request.RoleIds, cancellationToken);
+        if (rolesCheck.IsFailure)
+            return rolesCheck;
+
+        var result = team.UpdateMemberRoles(employee, request.RoleIds, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        if (result.IsFailure)
+        {
+            _logger.LogError("Error updating roles for employee {EmployeeId} on team {TeamId}. Error: {Error}", request.EmployeeId, request.TeamId, result.Error);
+            return result;
+        }
+
+        await _organizationDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Team member {EmployeeId} updated on team {TeamId}.", request.EmployeeId, request.TeamId);
+
+        return Result.Success();
     }
 }

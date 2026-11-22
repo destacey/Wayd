@@ -712,10 +712,10 @@ public sealed class EmployeeAllocationHandlerTests(SqlServerDbContextFixture fix
     }
 
     private static ChangeEmployeeAllocationsCommandHandler ChangeHandler(WaydDbContext context, ICurrentPrincipal principal, params Guid[] memberOf) =>
-        new(context, Dispatcher(memberOf), CurrentUser(), principal, Clock(), Calendar(), NullLogger<ChangeEmployeeAllocationsCommandHandler>.Instance);
+        new(context, Dispatcher(memberOf), CurrentUser(), principal, Clock(), Calendar());
 
     private static MoveEmployeeAllocationCommandHandler MoveHandler(WaydDbContext context, ICurrentPrincipal principal, params Guid[] memberOf) =>
-        new(context, Dispatcher(memberOf), CurrentUser(), principal, Clock(), Calendar(), NullLogger<MoveEmployeeAllocationCommandHandler>.Instance);
+        new(context, Dispatcher(memberOf), CurrentUser(), principal, Clock(), Calendar());
 
     private static EmployeeDeactivatedAllocationHandler DeactivationHandler(WaydDbContext context)
     {

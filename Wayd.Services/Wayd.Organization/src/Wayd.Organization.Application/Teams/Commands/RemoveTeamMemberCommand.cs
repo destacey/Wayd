@@ -18,8 +18,6 @@ public sealed class RemoveTeamMemberCommandHandler(
     ILogger<RemoveTeamMemberCommandHandler> logger)
     : ICommandHandler<RemoveTeamMemberCommand>
 {
-    private const string AppRequestName = nameof(RemoveTeamMemberCommand);
-
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -27,35 +25,27 @@ public sealed class RemoveTeamMemberCommandHandler(
 
     public async Task<Result> Handle(RemoveTeamMemberCommand request, CancellationToken cancellationToken)
     {
-        try
+        var team = await _organizationDbContext.BaseTeams
+            .Include(t => t.Members)
+            .SingleOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
+
+        if (team is null)
         {
-            var team = await _organizationDbContext.BaseTeams
-                .Include(t => t.Members)
-                .SingleOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
-
-            if (team is null)
-            {
-                _logger.LogInformation("Team with Id {TeamId} not found.", request.TeamId);
-                return Result.Failure("Team not found.");
-            }
-
-            var result = team.RemoveMember(request.EmployeeId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                _logger.LogError("Error removing member {EmployeeId} from team {TeamId}. Error: {Error}", request.EmployeeId, request.TeamId, result.Error);
-                return result;
-            }
-
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Employee {EmployeeId} removed from team {TeamId}.", request.EmployeeId, request.TeamId);
-
-            return Result.Success();
+            _logger.LogInformation("Team with Id {TeamId} not found.", request.TeamId);
+            return Result.Failure("Team not found.");
         }
-        catch (Exception ex)
+
+        var result = team.RemoveMember(request.EmployeeId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Error removing member {EmployeeId} from team {TeamId}. Error: {Error}", request.EmployeeId, request.TeamId, result.Error);
+            return result;
         }
+
+        await _organizationDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Employee {EmployeeId} removed from team {TeamId}.", request.EmployeeId, request.TeamId);
+
+        return Result.Success();
     }
 }

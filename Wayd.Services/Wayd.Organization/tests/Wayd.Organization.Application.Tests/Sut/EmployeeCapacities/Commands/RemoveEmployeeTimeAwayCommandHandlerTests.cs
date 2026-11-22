@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NodaTime;
 using NodaTime.Testing;
@@ -43,8 +42,7 @@ public class RemoveEmployeeTimeAwayCommandHandlerTests : IDisposable
             _dbContext,
             currentUser.Object,
             TestPrincipal.LinkedTo(callerEmployeeId),
-            _dateTimeProvider,
-            NullLogger<RemoveEmployeeTimeAwayCommandHandler>.Instance);
+            _dateTimeProvider);
     }
 
     /// <summary>An employee reporting to the manager, with one stretch of time away.</summary>

@@ -31,34 +31,29 @@ public sealed class AddTeamMembershipCommandHandler(IOrganizationDbContext organ
 
     public async Task<Result> Handle(AddTeamMembershipCommand request, CancellationToken cancellationToken)
     {
-        try
+        var team = await _organizationDbContext.Teams
+            .Include(t => t.ParentMemberships)
+            .SingleOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
+        if (team is null)
+            return Result.Failure("Team not found.");
+
+        var parentTeam = await _organizationDbContext.TeamOfTeams
+            .SingleOrDefaultAsync(t => t.Id == request.ParentTeamId, cancellationToken);
+        if (parentTeam is null)
+            return Result.Failure("Parent team of teams not found.");
+
+        var now = _dateTimeProvider.Now;
+        var result = team.AddTeamMembership(parentTeam, request.DateRange, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), now);
+        if (result.IsFailure)
         {
-            var team = await _organizationDbContext.Teams
-                .Include(t => t.ParentMemberships)
-                .SingleAsync(t => t.Id == request.TeamId, cancellationToken: cancellationToken);
-
-            var parentTeam = await _organizationDbContext.TeamOfTeams
-                .SingleAsync(t => t.Id == request.ParentTeamId, cancellationToken: cancellationToken);
-
-            var now = _dateTimeProvider.Now;
-            var result = team.AddTeamMembership(parentTeam, request.DateRange, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), now);
-            if (result.IsFailure)
-            {
-                _logger.LogError("{RequestName}: failed to add Team Membership for Team {TeamId} and ParentTeamId {ParentTeamId}. Error: {Error}", RequestName, request.TeamId, request.ParentTeamId, result.Error);
-                return result;
-            }
-
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogDebug("{RequestName}: added Team Membership {TeamMembershipId} for Team {TeamId} and ParentTeamId {ParentTeamId}", RequestName, result.Value.Id, request.TeamId, request.ParentTeamId);
-
-            return Result.Success();
+            _logger.LogError("{RequestName}: failed to add Team Membership for Team {TeamId} and ParentTeamId {ParentTeamId}. Error: {Error}", RequestName, request.TeamId, request.ParentTeamId, result.Error);
+            return result;
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception for request {RequestName}", RequestName);
 
-            return Result.Failure<int>($"Exception for request {RequestName}");
-        }
+        await _organizationDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug("{RequestName}: added Team Membership {TeamMembershipId} for Team {TeamId} and ParentTeamId {ParentTeamId}", RequestName, result.Value.Id, request.TeamId, request.ParentTeamId);
+
+        return Result.Success();
     }
 }

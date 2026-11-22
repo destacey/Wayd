@@ -31,35 +31,26 @@ public sealed class UpdateTeamMembershipCommandHandler(IOrganizationDbContext or
 
     public async Task<Result> Handle(UpdateTeamMembershipCommand request, CancellationToken cancellationToken)
     {
-        try
+        var team = await _organizationDbContext.TeamOfTeams
+            .Include(t => t.ParentMemberships)
+                .ThenInclude(m => m.Target)
+            .SingleOrDefaultAsync(t => t.Id == request.TeamId, cancellationToken);
+        if (team is null)
+            return Result.Failure("Team of teams not found.");
+
+        await TeamOfTeamsDescendants.Load(_organizationDbContext, team, cancellationToken);
+
+        var result = team.UpdateTeamMembership(request.TeamMembershipId, request.DateRange, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        if (result.IsFailure)
         {
-            TeamOfTeams team = await _organizationDbContext.TeamOfTeams
-                .Include(t => t.ParentMemberships)
-                    .ThenInclude(m => m.Target)
-                .SingleAsync(t => t.Id == request.TeamId, cancellationToken: cancellationToken);
-
-            await TeamOfTeamsDescendants.Load(_organizationDbContext, team, cancellationToken);
-
-            var result = team.UpdateTeamMembership(request.TeamMembershipId, request.DateRange, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                _logger.LogError("{RequestName}: failed to update Team Membership {TeamMembershipId} for Team of Teams {TeamId}. Error: {Error}", RequestName, request.TeamMembershipId, request.TeamId, result.Error);
-                return result;
-            }
-
-            await _organizationDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogDebug("{RequestName}: updated Team Membership {TeamMembershipId} for Team of Teams {TeamId}", RequestName, request.TeamMembershipId, request.TeamId);
-
-            return Result.Success();
+            _logger.LogError("{RequestName}: failed to update Team Membership {TeamMembershipId} for Team of Teams {TeamId}. Error: {Error}", RequestName, request.TeamMembershipId, request.TeamId, result.Error);
+            return result;
         }
-        catch (Exception ex)
-        {
-            var requestName = request.GetType().Name;
 
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
+        await _organizationDbContext.SaveChangesAsync(cancellationToken);
 
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        _logger.LogDebug("{RequestName}: updated Team Membership {TeamMembershipId} for Team of Teams {TeamId}", RequestName, request.TeamMembershipId, request.TeamId);
+
+        return Result.Success();
     }
 }

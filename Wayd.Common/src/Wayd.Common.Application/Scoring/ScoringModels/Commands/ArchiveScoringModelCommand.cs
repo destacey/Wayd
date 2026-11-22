@@ -19,7 +19,6 @@ public sealed class ArchiveScoringModelCommandHandler(
     ILogger<ArchiveScoringModelCommandHandler> logger)
     : ICommandHandler<ArchiveScoringModelCommand>
 {
-    private const string AppRequestName = nameof(ArchiveScoringModelCommand);
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -27,33 +26,25 @@ public sealed class ArchiveScoringModelCommandHandler(
 
     public async Task<Result> Handle(ArchiveScoringModelCommand request, CancellationToken cancellationToken)
     {
-        try
+        var model = await _waydDbContext.ScoringModels
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+        if (model is null)
         {
-            var model = await _waydDbContext.ScoringModels
-                .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
-            if (model is null)
-            {
-                _logger.LogInformation("Scoring Model {ScoringModelId} not found.", request.Id);
-                return Result.Failure("Scoring Model not found.");
-            }
-
-            var archiveResult = model.Archive(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            if (archiveResult.IsFailure)
-            {
-                _logger.LogError("Unable to archive Scoring Model {ScoringModelId}.  Error message: {Error}", request.Id, archiveResult.Error);
-                return Result.Failure(archiveResult.Error);
-            }
-
-            await _waydDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Scoring Model {ScoringModelId} archived.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Scoring Model {ScoringModelId} not found.", request.Id);
+            return Result.Failure("Scoring Model not found.");
         }
-        catch (Exception ex)
+
+        var archiveResult = model.Archive(EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        if (archiveResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to archive Scoring Model {ScoringModelId}.  Error message: {Error}", request.Id, archiveResult.Error);
+            return Result.Failure(archiveResult.Error);
         }
+
+        await _waydDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Scoring Model {ScoringModelId} archived.", request.Id);
+
+        return Result.Success();
     }
 }

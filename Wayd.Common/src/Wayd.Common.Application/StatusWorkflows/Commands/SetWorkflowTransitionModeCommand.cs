@@ -24,8 +24,6 @@ public sealed class SetWorkflowTransitionModeCommandHandler(
     ILogger<SetWorkflowTransitionModeCommandHandler> logger)
     : ICommandHandler<SetWorkflowTransitionModeCommand>
 {
-    private const string AppRequestName = nameof(SetWorkflowTransitionModeCommand);
-
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -33,34 +31,26 @@ public sealed class SetWorkflowTransitionModeCommandHandler(
 
     public async Task<Result> Handle(SetWorkflowTransitionModeCommand request, CancellationToken cancellationToken)
     {
-        try
+        var workflow = await _dbContext.StatusWorkflows
+            .FirstOrDefaultAsync(w => w.Id == request.WorkflowId, cancellationToken);
+
+        if (workflow is null)
         {
-            var workflow = await _dbContext.StatusWorkflows
-                .FirstOrDefaultAsync(w => w.Id == request.WorkflowId, cancellationToken);
-
-            if (workflow is null)
-            {
-                _logger.LogInformation("Status Workflow {WorkflowId} not found.", request.WorkflowId);
-                return Result.Failure("Status workflow not found.");
-            }
-
-            var result = workflow.SetTransitionMode(request.Mode, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                _logger.LogInformation(
-                    "Unable to change the transition mode of Status Workflow {WorkflowId}. Error message: {Error}",
-                    request.WorkflowId, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
+            _logger.LogInformation("Status Workflow {WorkflowId} not found.", request.WorkflowId);
+            return Result.Failure("Status workflow not found.");
         }
-        catch (Exception ex)
+
+        var result = workflow.SetTransitionMode(request.Mode, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogInformation(
+                "Unable to change the transition mode of Status Workflow {WorkflowId}. Error message: {Error}",
+                request.WorkflowId, result.Error);
+            return Result.Failure(result.Error);
         }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
     }
 }

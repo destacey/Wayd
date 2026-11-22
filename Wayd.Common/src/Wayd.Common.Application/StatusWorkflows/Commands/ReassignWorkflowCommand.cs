@@ -45,8 +45,6 @@ public sealed class ReassignWorkflowCommandHandler(
     IWorkflowOwnerAvailability ownerAvailability)
     : ICommandHandler<ReassignWorkflowCommand, int>
 {
-    private const string AppRequestName = nameof(ReassignWorkflowCommand);
-
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly IEnumerable<IStatusRecordMigrator> _migrators = migrators;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -57,141 +55,133 @@ public sealed class ReassignWorkflowCommandHandler(
 
     public async Task<Result<int>> Handle(ReassignWorkflowCommand request, CancellationToken cancellationToken)
     {
-        try
+        var assignment = await _dbContext.WorkflowAssignments
+            .Include(a => a.Scheme)
+                .ThenInclude(s => s!.Entries)
+            .FirstOrDefaultAsync(a => a.Id == request.AssignmentId, cancellationToken);
+
+        // The remap refuses a target of another owner type, so the assignment alone decides whether
+        // the reassignment touches a hidden one.
+        if (assignment is null || !await _ownerAvailability.IsAvailable(assignment.OwnerType, cancellationToken))
         {
-            var assignment = await _dbContext.WorkflowAssignments
-                .Include(a => a.Scheme)
-                    .ThenInclude(s => s!.Entries)
-                .FirstOrDefaultAsync(a => a.Id == request.AssignmentId, cancellationToken);
+            _logger.LogInformation("Workflow Assignment {AssignmentId} not found.", request.AssignmentId);
+            return Result.Failure<int>("Workflow assignment not found.");
+        }
 
-            // The remap refuses a target of another owner type, so the assignment alone decides whether
-            // the reassignment touches a hidden one.
-            if (assignment is null || !await _ownerAvailability.IsAvailable(assignment.OwnerType, cancellationToken))
+        var scheme = assignment.Scheme!;
+
+        // A scheme with entries sends record types to several workflows, so one workflow cannot replace it;
+        // its scope moves to another scheme instead.
+        if (!scheme.IsImplicit)
+        {
+            return Result.Failure<int>("This scope follows a workflow scheme. Assign it another scheme instead.");
+        }
+
+        var current = await _dbContext.StatusWorkflows
+            .Include(w => w.Statuses)
+            .FirstOrDefaultAsync(w => w.Id == scheme.DefaultWorkflowId, cancellationToken);
+
+        var target = await _dbContext.StatusWorkflows
+            .Include(w => w.Statuses)
+            .FirstOrDefaultAsync(w => w.Id == request.TargetWorkflowId, cancellationToken);
+
+        if (current is null || target is null)
+        {
+            return Result.Failure<int>("Status workflow not found.");
+        }
+
+        // Already there: an interrupted migration that is re-run reaches this, and it has to be a
+        // no-op rather than a failure. Checked before AutoMap, which refuses to map a workflow to
+        // itself — so without this the resumability the batching is built for would not exist.
+        if (scheme.DefaultWorkflowId == target.Id)
+        {
+            _logger.LogInformation(
+                "{OwnerType} is already assigned to workflow {WorkflowId}; nothing to migrate.",
+                assignment.OwnerType, target.Id);
+
+            return Result.Success(0);
+        }
+
+        // Recomputed rather than carried across from the preview: a remap is a value, not a
+        // process, and AutoMap is pure over two loaded workflows. The operator's decisions are
+        // then layered on top, which also lets Resolve override an automatic choice.
+        var remap = StatusRemap.AutoMap(current, target);
+        if (remap.IsFailure)
+        {
+            return Result.Failure<int>(remap.Error);
+        }
+
+        foreach (var decision in request.Decisions)
+        {
+            var status = target.Statuses.FirstOrDefault(s => s.Id == decision.ToStatusId);
+            if (status is null)
             {
-                _logger.LogInformation("Workflow Assignment {AssignmentId} not found.", request.AssignmentId);
-                return Result.Failure<int>("Workflow assignment not found.");
+                return Result.Failure<int>("A chosen status does not belong to the workflow being moved to.");
             }
 
-            var scheme = assignment.Scheme!;
-
-            // A scheme with entries sends record types to several workflows, so one workflow cannot replace it;
-            // its scope moves to another scheme instead.
-            if (!scheme.IsImplicit)
+            var resolved = remap.Value.Resolve(decision.FromStatusId, status);
+            if (resolved.IsFailure)
             {
-                return Result.Failure<int>("This scope follows a workflow scheme. Assign it another scheme instead.");
+                return Result.Failure<int>(resolved.Error);
             }
+        }
 
-            var current = await _dbContext.StatusWorkflows
-                .Include(w => w.Statuses)
-                .FirstOrDefaultAsync(w => w.Id == scheme.DefaultWorkflowId, cancellationToken);
+        if (!remap.Value.IsComplete)
+        {
+            var unresolved = string.Join(", ", remap.Value.Unresolved.Select(s => s.Name));
 
-            var target = await _dbContext.StatusWorkflows
-                .Include(w => w.Statuses)
-                .FirstOrDefaultAsync(w => w.Id == request.TargetWorkflowId, cancellationToken);
+            return Result.Failure<int>(
+                $"These statuses have nowhere to go: {unresolved}. Map every status before reassigning.");
+        }
 
-            if (current is null || target is null)
-            {
-                return Result.Failure<int>("Status workflow not found.");
-            }
+        var migrator = _migrators.FirstOrDefault(m =>
+            string.Equals(m.OwnerType, assignment.OwnerType, StringComparison.OrdinalIgnoreCase));
 
-            // Already there: an interrupted migration that is re-run reaches this, and it has to be a
-            // no-op rather than a failure. Checked before AutoMap, which refuses to map a workflow to
-            // itself — so without this the resumability the batching is built for would not exist.
-            if (scheme.DefaultWorkflowId == target.Id)
-            {
-                _logger.LogInformation(
-                    "{OwnerType} is already assigned to workflow {WorkflowId}; nothing to migrate.",
-                    assignment.OwnerType, target.Id);
+        if (migrator is null)
+        {
+            // Refused rather than skipped: a missing migrator would leave every record on the old
+            // workflow while the assignment claimed otherwise, which is worse than not moving.
+            _logger.LogError("No record migrator is registered for owner type {OwnerType}.", assignment.OwnerType);
+            return Result.Failure<int>($"No records can be migrated for {assignment.OwnerType}.");
+        }
 
-                return Result.Success(0);
-            }
+        // Read per scope rather than from the claim snapshot, which a personal access token
+        // freezes for its whole lifetime. Every migrated record's transition freezes this value,
+        // so a stale one would misattribute the whole migration permanently.
+        var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
+        var actor = EventActor.User(_currentUser.GetUserId(), employeeId);
+        var now = _dateTimeProvider.Now;
 
-            // Recomputed rather than carried across from the preview: a remap is a value, not a
-            // process, and AutoMap is pure over two loaded workflows. The operator's decisions are
-            // then layered on top, which also lets Resolve override an automatic choice.
-            var remap = StatusRemap.AutoMap(current, target);
-            if (remap.IsFailure)
-            {
-                return Result.Failure<int>(remap.Error);
-            }
+        var migrated = await migrator.Migrate(remap.Value, assignment.ScopeId, actor, now, cancellationToken);
+        if (migrated.IsFailure)
+        {
+            return Result.Failure<int>(migrated.Error);
+        }
 
-            foreach (var decision in request.Decisions)
-            {
-                var status = target.Statuses.FirstOrDefault(s => s.Id == decision.ToStatusId);
-                if (status is null)
-                {
-                    return Result.Failure<int>("A chosen status does not belong to the workflow being moved to.");
-                }
+        // Last, so a failure above leaves the assignment pointing at the workflow the records are
+        // still on.
+        var targetScheme = await _dbContext.ImplicitSchemeFor(target, actor, now, cancellationToken);
+        if (targetScheme.IsFailure)
+        {
+            return Result.Failure<int>(targetScheme.Error);
+        }
 
-                var resolved = remap.Value.Resolve(decision.FromStatusId, status);
-                if (resolved.IsFailure)
-                {
-                    return Result.Failure<int>(resolved.Error);
-                }
-            }
-
-            if (!remap.Value.IsComplete)
-            {
-                var unresolved = string.Join(", ", remap.Value.Unresolved.Select(s => s.Name));
-
-                return Result.Failure<int>(
-                    $"These statuses have nowhere to go: {unresolved}. Map every status before reassigning.");
-            }
-
-            var migrator = _migrators.FirstOrDefault(m =>
-                string.Equals(m.OwnerType, assignment.OwnerType, StringComparison.OrdinalIgnoreCase));
-
-            if (migrator is null)
-            {
-                // Refused rather than skipped: a missing migrator would leave every record on the old
-                // workflow while the assignment claimed otherwise, which is worse than not moving.
-                _logger.LogError("No record migrator is registered for owner type {OwnerType}.", assignment.OwnerType);
-                return Result.Failure<int>($"No records can be migrated for {assignment.OwnerType}.");
-            }
-
-            // Read per scope rather than from the claim snapshot, which a personal access token
-            // freezes for its whole lifetime. Every migrated record's transition freezes this value,
-            // so a stale one would misattribute the whole migration permanently.
-            var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
-            var actor = EventActor.User(_currentUser.GetUserId(), employeeId);
-            var now = _dateTimeProvider.Now;
-
-            var migrated = await migrator.Migrate(remap.Value, assignment.ScopeId, actor, now, cancellationToken);
-            if (migrated.IsFailure)
-            {
-                return Result.Failure<int>(migrated.Error);
-            }
-
-            // Last, so a failure above leaves the assignment pointing at the workflow the records are
-            // still on.
-            var targetScheme = await _dbContext.ImplicitSchemeFor(target, actor, now, cancellationToken);
-            if (targetScheme.IsFailure)
-            {
-                return Result.Failure<int>(targetScheme.Error);
-            }
-
-            var reassigned = assignment.ReassignTo(targetScheme.Value, target, [remap.Value], actor, now);
-            if (reassigned.IsFailure)
-            {
-                assignment.ClearDomainEvents();
-
-                _logger.LogInformation(
-                    "Unable to reassign {OwnerType}. Error message: {Error}", assignment.OwnerType, reassigned.Error);
-                return Result.Failure<int>(reassigned.Error);
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
+        var reassigned = assignment.ReassignTo(targetScheme.Value, target, [remap.Value], actor, now);
+        if (reassigned.IsFailure)
+        {
+            assignment.ClearDomainEvents();
 
             _logger.LogInformation(
-                "{OwnerType} reassigned to workflow {WorkflowId}; {Count} record(s) migrated.",
-                assignment.OwnerType, target.Id, migrated.Value);
+                "Unable to reassign {OwnerType}. Error message: {Error}", assignment.OwnerType, reassigned.Error);
+            return Result.Failure<int>(reassigned.Error);
+        }
 
-            return Result.Success(migrated.Value);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<int>($"Error handling {AppRequestName} command.");
-        }
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "{OwnerType} reassigned to workflow {WorkflowId}; {Count} record(s) migrated.",
+            assignment.OwnerType, target.Id, migrated.Value);
+
+        return Result.Success(migrated.Value);
     }
 }

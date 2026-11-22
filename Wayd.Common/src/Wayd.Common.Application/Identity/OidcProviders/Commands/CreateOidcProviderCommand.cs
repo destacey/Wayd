@@ -123,50 +123,42 @@ public sealed class CreateOidcProviderCommandHandler(
 
     public async Task<Result<OidcProviderDto>> Handle(CreateOidcProviderCommand request, CancellationToken cancellationToken)
     {
-        try
+        var result = OidcProvider.Create(
+            name: request.Name,
+            displayName: request.DisplayName,
+            providerType: request.ProviderType,
+            authority: request.Authority,
+            clientId: request.ClientId,
+            audience: request.Audience,
+            scopes: request.Scopes ?? [],
+            allowedTenantIds: request.AllowedTenantIds,
+            clockSkewSeconds: request.ClockSkewSeconds,
+            isEnabled: request.IsEnabled,
+            actor: EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            timestamp: _dateTimeProvider.Now,
+            registrationPolicy: RegistrationPolicy.FromFlat(
+                request.AllowAutoRegistration,
+                request.RequireEmployeeRecord,
+                request.DefaultRoleId));
+
+        if (result.IsFailure)
         {
-            var result = OidcProvider.Create(
-                name: request.Name,
-                displayName: request.DisplayName,
-                providerType: request.ProviderType,
-                authority: request.Authority,
-                clientId: request.ClientId,
-                audience: request.Audience,
-                scopes: request.Scopes ?? [],
-                allowedTenantIds: request.AllowedTenantIds,
-                clockSkewSeconds: request.ClockSkewSeconds,
-                isEnabled: request.IsEnabled,
-                actor: EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                timestamp: _dateTimeProvider.Now,
-                registrationPolicy: RegistrationPolicy.FromFlat(
-                    request.AllowAutoRegistration,
-                    request.RequireEmployeeRecord,
-                    request.DefaultRoleId));
-
-            if (result.IsFailure)
-            {
-                return Result.Failure<OidcProviderDto>(result.Error);
-            }
-
-            var provider = result.Value;
-            _dbContext.OidcProviders.Add(provider);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            // Drop the all-enabled cache entry so the new provider shows up on
-            // the next /api/auth/providers request without waiting out the TTL.
-            _registry.InvalidateAll();
-
-            _logger.LogInformation(
-                "Created OIDC provider {ProviderId} ({Name}, type {ProviderType}).",
-                provider.Id, provider.Name, provider.ProviderType);
-
-            return Result.Success(ToDto(provider));
+            return Result.Failure<OidcProviderDto>(result.Error);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to create OIDC provider {Name}.", request.Name);
-            return Result.Failure<OidcProviderDto>("Failed to create OIDC provider.");
-        }
+
+        var provider = result.Value;
+        _dbContext.OidcProviders.Add(provider);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        // Drop the all-enabled cache entry so the new provider shows up on
+        // the next /api/auth/providers request without waiting out the TTL.
+        _registry.InvalidateAll();
+
+        _logger.LogInformation(
+            "Created OIDC provider {ProviderId} ({Name}, type {ProviderType}).",
+            provider.Id, provider.Name, provider.ProviderType);
+
+        return Result.Success(ToDto(provider));
     }
 
     private static OidcProviderDto ToDto(OidcProvider p) => new()

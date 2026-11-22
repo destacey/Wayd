@@ -15,36 +15,26 @@ public sealed class DeleteEmployeeCommandValidator : CustomValidator<DeleteEmplo
 
 public sealed class DeleteEmployeeCommandHandler(IWaydDbContext waydDbContext, ILogger<DeleteEmployeeCommandHandler> logger) : ICommandHandler<DeleteEmployeeCommand>
 {
-    private const string AppRequestName = nameof(DeleteEmployeeCommand);
-
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
     private readonly ILogger<DeleteEmployeeCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeleteEmployeeCommand request, CancellationToken cancellationToken)
     {
-        try
+        var employee = await _waydDbContext.Employees
+            .Include(e => e.DirectReports)
+            .FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
+        if (employee is null)
         {
-            var employee = await _waydDbContext.Employees
-                .Include(e => e.DirectReports)
-                .FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
-            if (employee is null)
-            {
-                _logger.LogWarning("Employee with ID {EmployeeId} not found for deletion.", request.Id);
-                return Result.Failure("Employee not found.");
-            }
-
-            _waydDbContext.Employees.Remove(employee);
-
-            await _waydDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Employee {EmployeeId} deleted successfully. Name: {EmployeeName}, Email: {EmployeeEmail}", request.Id, employee.Name, employee.Email);
-
-            return Result.Success();
+            _logger.LogWarning("Employee with ID {EmployeeId} not found for deletion.", request.Id);
+            return Result.Failure("Employee not found.");
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
-        }
+
+        _waydDbContext.Employees.Remove(employee);
+
+        await _waydDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Employee {EmployeeId} deleted successfully. Name: {EmployeeName}, Email: {EmployeeEmail}", request.Id, employee.Name, employee.Email);
+
+        return Result.Success();
     }
 }

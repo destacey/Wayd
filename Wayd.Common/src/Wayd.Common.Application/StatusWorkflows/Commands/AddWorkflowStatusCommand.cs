@@ -28,8 +28,6 @@ public sealed class AddWorkflowStatusCommandHandler(
     ILogger<AddWorkflowStatusCommandHandler> logger)
     : ICommandHandler<AddWorkflowStatusCommand, Guid>
 {
-    private const string AppRequestName = nameof(AddWorkflowStatusCommand);
-
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -37,37 +35,29 @@ public sealed class AddWorkflowStatusCommandHandler(
 
     public async Task<Result<Guid>> Handle(AddWorkflowStatusCommand request, CancellationToken cancellationToken)
     {
-        try
+        // Every status mutation runs through the aggregate, so its collection must be loaded: it
+        // enforces name and alias uniqueness across siblings that a lone status cannot see.
+        var workflow = await _dbContext.StatusWorkflows
+            .Include(w => w.Statuses)
+            .FirstOrDefaultAsync(w => w.Id == request.WorkflowId, cancellationToken);
+
+        if (workflow is null)
         {
-            // Every status mutation runs through the aggregate, so its collection must be loaded: it
-            // enforces name and alias uniqueness across siblings that a lone status cannot see.
-            var workflow = await _dbContext.StatusWorkflows
-                .Include(w => w.Statuses)
-                .FirstOrDefaultAsync(w => w.Id == request.WorkflowId, cancellationToken);
-
-            if (workflow is null)
-            {
-                _logger.LogInformation("Status Workflow {WorkflowId} not found.", request.WorkflowId);
-                return Result.Failure<Guid>("Status workflow not found.");
-            }
-
-            var result = workflow.AddStatus(request.Name, request.Description, request.Category, request.Alias, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                _logger.LogInformation(
-                    "Unable to add a status to Status Workflow {WorkflowId}. Error message: {Error}",
-                    request.WorkflowId, result.Error);
-                return Result.Failure<Guid>(result.Error);
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success(result.Value.Id);
+            _logger.LogInformation("Status Workflow {WorkflowId} not found.", request.WorkflowId);
+            return Result.Failure<Guid>("Status workflow not found.");
         }
-        catch (Exception ex)
+
+        var result = workflow.AddStatus(request.Name, request.Description, request.Category, request.Alias, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<Guid>($"Error handling {AppRequestName} command.");
+            _logger.LogInformation(
+                "Unable to add a status to Status Workflow {WorkflowId}. Error message: {Error}",
+                request.WorkflowId, result.Error);
+            return Result.Failure<Guid>(result.Error);
         }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(result.Value.Id);
     }
 }

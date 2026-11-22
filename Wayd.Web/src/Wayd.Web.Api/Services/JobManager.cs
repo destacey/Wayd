@@ -1,3 +1,4 @@
+using CSharpFunctionalExtensions;
 using Hangfire;
 using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.AppIntegration.Domain.Models;
@@ -222,31 +223,30 @@ public class JobManager(
         var asOf = _dateTimeProvider.Now;
         var teams = await _dispatcher.Send(new GetSimpleTeamsQuery(), cancellationToken);
 
-        var planningSyncResult = await _dispatcher.Send(new SyncPlanningTeamsCommand(teams, asOf), cancellationToken);
-        if (planningSyncResult.IsFailure)
-        {
-            _logger.LogError("Failed to sync planning teams: {Error}", planningSyncResult.Error);
-        }
-
-        var ppmSyncResult = await _dispatcher.Send(new SyncPpmTeamsCommand(teams, asOf), cancellationToken);
-        if (ppmSyncResult.IsFailure)
-        {
-            _logger.LogError("Failed to sync PPM teams: {Error}", ppmSyncResult.Error);
-        }
-
-        var productSyncResult = await _dispatcher.Send(new SyncProductTeamsCommand(teams, asOf), cancellationToken);
-        if (productSyncResult.IsFailure)
-        {
-            _logger.LogError("Failed to sync product teams: {Error}", productSyncResult.Error);
-        }
-
-        var workSyncResult = await _dispatcher.Send(new SyncWorkTeamsCommand(teams, asOf), cancellationToken);
-        if (workSyncResult.IsFailure)
-        {
-            _logger.LogError("Failed to sync work teams: {Error}", workSyncResult.Error);
-        }
+        // Each copy is synced on its own, so one module's failure never leaves the others stale.
+        await SyncTeamCopy("planning", () => _dispatcher.Send(new SyncPlanningTeamsCommand(teams, asOf), cancellationToken));
+        await SyncTeamCopy("PPM", () => _dispatcher.Send(new SyncPpmTeamsCommand(teams, asOf), cancellationToken));
+        await SyncTeamCopy("product", () => _dispatcher.Send(new SyncProductTeamsCommand(teams, asOf), cancellationToken));
+        await SyncTeamCopy("work", () => _dispatcher.Send(new SyncWorkTeamsCommand(teams, asOf), cancellationToken));
 
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncTeams));
+    }
+
+    /// <summary>Runs one module's sync of the team copies, logging a failure or exception so the next module's still runs.</summary>
+    private async Task SyncTeamCopy(string module, Func<Task<Result>> sync)
+    {
+        try
+        {
+            var result = await sync();
+            if (result.IsFailure)
+            {
+                _logger.LogError("Failed to sync {Module} teams: {Error}", module, result.Error);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "Failed to sync {Module} teams", module);
+        }
     }
 
     [DisableConcurrentExecution(60 * 30)]

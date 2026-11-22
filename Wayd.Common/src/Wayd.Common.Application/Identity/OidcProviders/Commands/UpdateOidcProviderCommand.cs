@@ -87,50 +87,42 @@ public sealed class UpdateOidcProviderCommandHandler(
 
     public async Task<Result> Handle(UpdateOidcProviderCommand request, CancellationToken cancellationToken)
     {
-        try
+        var provider = await _dbContext.OidcProviders
+            .SingleOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+
+        if (provider is null)
         {
-            var provider = await _dbContext.OidcProviders
-                .SingleOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
-
-            if (provider is null)
-            {
-                return Result.Failure("Provider not found.");
-            }
-
-            var updateResult = provider.Update(
-                displayName: request.DisplayName,
-                authority: request.Authority,
-                clientId: request.ClientId,
-                audience: request.Audience,
-                scopes: request.Scopes ?? [],
-                allowedTenantIds: request.AllowedTenantIds,
-                clockSkewSeconds: request.ClockSkewSeconds,
-                isEnabled: request.IsEnabled,
-                actor: EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                timestamp: _dateTimeProvider.Now,
-                registrationPolicy: RegistrationPolicy.FromFlat(
-                    request.AllowAutoRegistration,
-                    request.RequireEmployeeRecord,
-                    request.DefaultRoleId));
-
-            if (updateResult.IsFailure)
-            {
-                return updateResult;
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            // The provider name is the cache key. Invalidate by name so the
-            // next exchange/listing reflects the new config immediately.
-            _registry.Invalidate(provider.Name);
-
-            _logger.LogInformation("Updated OIDC provider {ProviderId} ({Name}).", provider.Id, provider.Name);
-            return Result.Success();
+            return Result.Failure("Provider not found.");
         }
-        catch (Exception ex)
+
+        var updateResult = provider.Update(
+            displayName: request.DisplayName,
+            authority: request.Authority,
+            clientId: request.ClientId,
+            audience: request.Audience,
+            scopes: request.Scopes ?? [],
+            allowedTenantIds: request.AllowedTenantIds,
+            clockSkewSeconds: request.ClockSkewSeconds,
+            isEnabled: request.IsEnabled,
+            actor: EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            timestamp: _dateTimeProvider.Now,
+            registrationPolicy: RegistrationPolicy.FromFlat(
+                request.AllowAutoRegistration,
+                request.RequireEmployeeRecord,
+                request.DefaultRoleId));
+
+        if (updateResult.IsFailure)
         {
-            _logger.LogError(ex, "Failed to update OIDC provider {ProviderId}.", request.Id);
-            return Result.Failure("Failed to update OIDC provider.");
+            return updateResult;
         }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        // The provider name is the cache key. Invalidate by name so the
+        // next exchange/listing reflects the new config immediately.
+        _registry.Invalidate(provider.Name);
+
+        _logger.LogInformation("Updated OIDC provider {ProviderId} ({Name}).", provider.Id, provider.Name);
+        return Result.Success();
     }
 }

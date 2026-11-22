@@ -11,8 +11,7 @@ namespace Wayd.Common.Application.Tests.Sut.StatusWorkflows.Commands;
 public sealed class ChangeWorkflowSchemeDefaultCommandHandlerTests : WorkflowSchemeHandlerTestBase
 {
     private ChangeWorkflowSchemeDefaultCommandHandler CreateSut(params IRecordTypeStatusMigrator[] migrators) =>
-        new(DbContext, migrators, CurrentUser.Object, Mock.Of<ICurrentPrincipal>(), DateTimeProvider.Object,
-            Logger<ChangeWorkflowSchemeDefaultCommandHandler>(), OwnerAvailability);
+        new(DbContext, migrators, CurrentUser.Object, Mock.Of<ICurrentPrincipal>(), DateTimeProvider.Object, OwnerAvailability);
 
     [Fact]
     public async Task Handle_ShouldMoveRecordsFollowingTheDefault_LeavingTypesWithAnEntryAlone()

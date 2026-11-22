@@ -30,58 +30,49 @@ public sealed class EvaluateScoringModelQueryHandler(
     ILogger<EvaluateScoringModelQueryHandler> logger)
     : IQueryHandler<EvaluateScoringModelQuery, Result<ScoringModelEvaluationDto>>
 {
-    private const string AppRequestName = nameof(EvaluateScoringModelQuery);
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
     private readonly ILogger<EvaluateScoringModelQueryHandler> _logger = logger;
 
     public async Task<Result<ScoringModelEvaluationDto>> Handle(EvaluateScoringModelQuery request, CancellationToken cancellationToken)
     {
-        try
+        // Raw token values are supplied, so scales/levels aren't needed — only criteria and outputs.
+        var model = await _waydDbContext.ScoringModels
+            .Include(x => x.Criteria)
+            .Include(x => x.Outputs)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+        if (model is null)
         {
-            // Raw token values are supplied, so scales/levels aren't needed — only criteria and outputs.
-            var model = await _waydDbContext.ScoringModels
-                .Include(x => x.Criteria)
-                .Include(x => x.Outputs)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
-            if (model is null)
-            {
-                _logger.LogInformation("Scoring Model {ScoringModelId} not found.", request.Id);
-                return Result.Failure<ScoringModelEvaluationDto>("Scoring Model not found.");
-            }
-
-            var ratingValuesByCriterionId = request.CriterionValues
-                .GroupBy(cv => cv.CriterionId)
-                .ToDictionary(g => g.Key, g => g.Last().Value);
-
-            var result = model.CalculateScore(ratingValuesByCriterionId);
-            if (result.IsFailure)
-            {
-                return Result.Failure<ScoringModelEvaluationDto>(result.Error);
-            }
-
-            var outputs = model.Outputs
-                .OrderBy(o => o.Order)
-                .Select(o => new ScoringModelOutputValueDto
-                {
-                    Token = o.Token,
-                    Name = o.Name,
-                    Value = result.Value.OutputValues[o.Token],
-                    IsPrimary = o.IsPrimary,
-                    Order = o.Order,
-                })
-                .ToList();
-
-            return Result.Success(new ScoringModelEvaluationDto
-            {
-                PrimaryValue = result.Value.PrimaryValue,
-                Outputs = outputs,
-            });
+            _logger.LogInformation("Scoring Model {ScoringModelId} not found.", request.Id);
+            return Result.Failure<ScoringModelEvaluationDto>("Scoring Model not found.");
         }
-        catch (Exception ex)
+
+        var ratingValuesByCriterionId = request.CriterionValues
+            .GroupBy(cv => cv.CriterionId)
+            .ToDictionary(g => g.Key, g => g.Last().Value);
+
+        var result = model.CalculateScore(ratingValuesByCriterionId);
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {QueryName} query.", AppRequestName);
-            return Result.Failure<ScoringModelEvaluationDto>($"Error handling {AppRequestName} query.");
+            return Result.Failure<ScoringModelEvaluationDto>(result.Error);
         }
+
+        var outputs = model.Outputs
+            .OrderBy(o => o.Order)
+            .Select(o => new ScoringModelOutputValueDto
+            {
+                Token = o.Token,
+                Name = o.Name,
+                Value = result.Value.OutputValues[o.Token],
+                IsPrimary = o.IsPrimary,
+                Order = o.Order,
+            })
+            .ToList();
+
+        return Result.Success(new ScoringModelEvaluationDto
+        {
+            PrimaryValue = result.Value.PrimaryValue,
+            Outputs = outputs,
+        });
     }
 }

@@ -22,68 +22,53 @@ public sealed class RemoveInvalidEmployeeCommandHandler : ICommandHandler<Remove
 
     public async Task<Result<int>> Handle(RemoveInvalidEmployeeCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var employee = await _waydDbContext.Employees
-                .Include(e => e.DirectReports)
-                .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
-            if (employee is null || string.IsNullOrWhiteSpace(employee.EmployeeNumber))
-                return Result.Failure<int>("Employee not found.");
+        var employee = await _waydDbContext.Employees
+            .Include(e => e.DirectReports)
+            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+        if (employee is null || string.IsNullOrWhiteSpace(employee.EmployeeNumber))
+            return Result.Failure<int>("Employee not found.");
 
-            var objectId = employee.EmployeeNumber;
-            var actor = EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId());
+        var objectId = employee.EmployeeNumber;
+        var actor = EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId());
 
-            var updateResult = employee.Update(
-                employee.Name,
-                employee.EmployeeNumber,
-                employee.HireDate,
-                employee.Email,
-                employee.JobTitle,
-                employee.Department,
-                employee.OfficeLocation,
-                null,
-                false,  // this command should not change IsActive
-                employee.EmployeeType,
-                actor,
-                _dateTimeProvider.Now
-                );
+        var updateResult = employee.Update(
+            employee.Name,
+            employee.EmployeeNumber,
+            employee.HireDate,
+            employee.Email,
+            employee.JobTitle,
+            employee.Department,
+            employee.OfficeLocation,
+            null,
+            false,  // this command should not change IsActive
+            employee.EmployeeType,
+            actor,
+            _dateTimeProvider.Now
+            );
 
-            if (updateResult.IsFailure)
-            {
-                // Reset the entity
-                await _waydDbContext.Entry(employee).ReloadAsync(cancellationToken);
-                employee.ClearDomainEvents();
-
-                var requestName = request.GetType().Name;
-                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", requestName, updateResult.Error);
-                return Result.Failure<int>(updateResult.Error);
-            }
-
-            foreach (var report in employee.DirectReports)
-            {
-                report.UpdateManagerId(null, actor, _dateTimeProvider.Now);
-            }
-
-            // One save, so the removal and the blacklist entry commit with the changes recorded on the way there.
-            employee.Delete(actor, _dateTimeProvider.Now);
-            _waydDbContext.Employees.Remove(employee);
-
-            _waydDbContext.ExternalEmployeeBlacklistItems.Add(new ExternalEmployeeBlacklistItem { ObjectId = objectId });
-            await _waydDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("The invalid employee {EmployeeId} with employee number {EmployeeNumber} has been deleted", request.Id, objectId);
-            _logger.LogInformation("Object Id {EmployeeNumber} has been added to the ExternalEmployeeBlacklistItems list.", objectId);
-
-            return Result.Success(employee.Key);
-        }
-        catch (Exception ex)
+        if (updateResult.IsFailure)
         {
             var requestName = request.GetType().Name;
-
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-
-            return Result.Failure<int>($"Wayd Request: Exception for Request {requestName}");
+            _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", requestName, updateResult.Error);
+            return Result.Failure<int>(updateResult.Error);
         }
+
+        foreach (var report in employee.DirectReports)
+        {
+            report.UpdateManagerId(null, actor, _dateTimeProvider.Now);
+        }
+
+        // One save, so the removal and the blacklist entry commit with the changes recorded on the way there.
+        employee.Delete(actor, _dateTimeProvider.Now);
+        _waydDbContext.Employees.Remove(employee);
+
+        _waydDbContext.ExternalEmployeeBlacklistItems.Add(new ExternalEmployeeBlacklistItem { ObjectId = objectId });
+        await _waydDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("The invalid employee {EmployeeId} with employee number {EmployeeNumber} has been deleted", request.Id, objectId);
+        _logger.LogInformation("Object Id {EmployeeNumber} has been added to the ExternalEmployeeBlacklistItems list.", objectId);
+
+        return Result.Success(employee.Key);
     }
 }
 

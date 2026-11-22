@@ -22,45 +22,33 @@ public sealed class CloneWorkflowSchemeCommandHandler(
     IStatusWorkflowDbContext dbContext,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
-    ILogger<CloneWorkflowSchemeCommandHandler> logger,
     IWorkflowOwnerAvailability ownerAvailability)
     : ICommandHandler<CloneWorkflowSchemeCommand, Guid>
 {
-    private const string AppRequestName = nameof(CloneWorkflowSchemeCommand);
-
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
-    private readonly ILogger<CloneWorkflowSchemeCommandHandler> _logger = logger;
     private readonly IWorkflowOwnerAvailability _ownerAvailability = ownerAvailability;
 
     public async Task<Result<Guid>> Handle(CloneWorkflowSchemeCommand request, CancellationToken cancellationToken)
     {
-        try
+        var source = await _dbContext.StatusWorkflowSchemes
+            .Include(s => s.Entries)
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+        if (source is null || source.IsImplicit || !await _ownerAvailability.IsAvailable(source.OwnerType, cancellationToken))
         {
-            var source = await _dbContext.StatusWorkflowSchemes
-                .Include(s => s.Entries)
-                .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
-            if (source is null || source.IsImplicit || !await _ownerAvailability.IsAvailable(source.OwnerType, cancellationToken))
-            {
-                return Result.Failure<Guid>("Workflow scheme not found.");
-            }
-
-            var clone = source.Clone(request.Name, request.Description, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
-            if (clone.IsFailure)
-            {
-                return Result.Failure<Guid>(clone.Error);
-            }
-
-            _dbContext.StatusWorkflowSchemes.Add(clone.Value);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success(clone.Value.Id);
+            return Result.Failure<Guid>("Workflow scheme not found.");
         }
-        catch (Exception ex)
+
+        var clone = source.Clone(request.Name, request.Description, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+        if (clone.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<Guid>($"Error handling {AppRequestName} command.");
+            return Result.Failure<Guid>(clone.Error);
         }
+
+        _dbContext.StatusWorkflowSchemes.Add(clone.Value);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(clone.Value.Id);
     }
 }

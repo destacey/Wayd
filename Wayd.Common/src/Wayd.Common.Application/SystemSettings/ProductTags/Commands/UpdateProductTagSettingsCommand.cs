@@ -7,29 +7,17 @@ public sealed record UpdateProductTagSettingsCommand(bool AllowsFreeTags) : ICom
 
 public sealed class UpdateProductTagSettingsCommandHandler(
     ISystemSettingsStore store,
-    ICurrentUser currentUser,
-    ILogger<UpdateProductTagSettingsCommandHandler> logger)
+    ICurrentUser currentUser)
     : ICommandHandler<UpdateProductTagSettingsCommand>
 {
-    private const string AppRequestName = nameof(UpdateProductTagSettingsCommand);
-
     private readonly ISystemSettingsStore _store = store;
     private readonly ICurrentUser _currentUser = currentUser;
-    private readonly ILogger<UpdateProductTagSettingsCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateProductTagSettingsCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            return await _store.Save(
-                new ProductTagSettings { AllowsFreeTags = request.AllowsFreeTags },
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
-        }
+        return await _store.Save(
+            new ProductTagSettings { AllowsFreeTags = request.AllowsFreeTags },
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            cancellationToken);
     }
 }

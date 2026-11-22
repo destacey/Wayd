@@ -12,8 +12,7 @@ namespace Wayd.Common.Application.Tests.Sut.StatusWorkflows.Commands;
 public sealed class AssignWorkflowSchemeCommandHandlerTests : WorkflowSchemeHandlerTestBase
 {
     private AssignWorkflowSchemeCommandHandler CreateSut(params IRecordTypeStatusMigrator[] migrators) =>
-        new(DbContext, migrators, CurrentUser.Object, Mock.Of<ICurrentPrincipal>(), DateTimeProvider.Object,
-            Logger<AssignWorkflowSchemeCommandHandler>(), OwnerAvailability);
+        new(DbContext, migrators, CurrentUser.Object, Mock.Of<ICurrentPrincipal>(), DateTimeProvider.Object, OwnerAvailability);
 
     [Fact]
     public async Task Handle_ToAClone_ShouldChangeOnlyThatScope_AndMoveNothing()

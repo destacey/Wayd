@@ -26,8 +26,6 @@ public sealed class RemoveScoringScaleCommandHandler(
     ILogger<RemoveScoringScaleCommandHandler> logger)
     : ICommandHandler<RemoveScoringScaleCommand>
 {
-    private const string AppRequestName = nameof(RemoveScoringScaleCommand);
-
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -35,35 +33,27 @@ public sealed class RemoveScoringScaleCommandHandler(
 
     public async Task<Result> Handle(RemoveScoringScaleCommand request, CancellationToken cancellationToken)
     {
-        try
+        var model = await _waydDbContext.ScoringModels
+            .Include(x => x.Scales)
+            .Include(x => x.Criteria)
+            .FirstOrDefaultAsync(r => r.Id == request.ScoringModelId, cancellationToken);
+        if (model is null)
         {
-            var model = await _waydDbContext.ScoringModels
-                .Include(x => x.Scales)
-                .Include(x => x.Criteria)
-                .FirstOrDefaultAsync(r => r.Id == request.ScoringModelId, cancellationToken);
-            if (model is null)
-            {
-                _logger.LogInformation("Scoring Model {ScoringModelId} not found.", request.ScoringModelId);
-                return Result.Failure("Scoring Model not found.");
-            }
-
-            var removeResult = model.RemoveScale(request.ScaleId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            if (removeResult.IsFailure)
-            {
-                _logger.LogError("Unable to remove scale from Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, removeResult.Error);
-                return Result.Failure(removeResult.Error);
-            }
-
-            await _waydDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Scale {ScaleId} removed from Scoring Model {ScoringModelId}.", request.ScaleId, request.ScoringModelId);
-
-            return Result.Success();
+            _logger.LogInformation("Scoring Model {ScoringModelId} not found.", request.ScoringModelId);
+            return Result.Failure("Scoring Model not found.");
         }
-        catch (Exception ex)
+
+        var removeResult = model.RemoveScale(request.ScaleId, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        if (removeResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to remove scale from Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, removeResult.Error);
+            return Result.Failure(removeResult.Error);
         }
+
+        await _waydDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Scale {ScaleId} removed from Scoring Model {ScoringModelId}.", request.ScaleId, request.ScoringModelId);
+
+        return Result.Success();
     }
 }

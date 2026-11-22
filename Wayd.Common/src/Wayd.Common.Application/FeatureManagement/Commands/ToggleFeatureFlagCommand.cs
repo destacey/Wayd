@@ -24,33 +24,24 @@ public sealed class ToggleFeatureFlagCommandHandler(
 
     public async Task<Result> Handle(ToggleFeatureFlagCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var featureFlag = await _dbContext.FeatureFlags
-                .FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken);
+        var featureFlag = await _dbContext.FeatureFlags
+            .FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken);
 
-            if (featureFlag is null)
-                return Result.Failure($"Feature flag with id {request.Id} not found.");
+        if (featureFlag is null)
+            return Result.Failure($"Feature flag with id {request.Id} not found.");
 
-            if (featureFlag.IsArchived)
-                return Result.Failure("An archived feature flag is no longer defined in code and cannot be turned on or off.");
+        if (featureFlag.IsArchived)
+            return Result.Failure("An archived feature flag is no longer defined in code and cannot be turned on or off.");
 
-            featureFlag.Toggle(request.IsEnabled);
+        featureFlag.Toggle(request.IsEnabled);
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
-            _cacheInvalidator.InvalidateCache();
+        _cacheInvalidator.InvalidateCache();
 
-            _logger.LogInformation("Feature flag toggled: {FeatureFlagName} (Id: {FeatureFlagId}) to {IsEnabled}",
-                featureFlag.Name, featureFlag.Id, request.IsEnabled);
+        _logger.LogInformation("Feature flag toggled: {FeatureFlagName} (Id: {FeatureFlagId}) to {IsEnabled}",
+            featureFlag.Name, featureFlag.Id, request.IsEnabled);
 
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
-            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
-        }
+        return Result.Success();
     }
 }

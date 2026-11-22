@@ -36,8 +36,6 @@ public sealed class UpdateScoringScaleLevelCommandHandler(
     ILogger<UpdateScoringScaleLevelCommandHandler> logger)
     : ICommandHandler<UpdateScoringScaleLevelCommand>
 {
-    private const string AppRequestName = nameof(UpdateScoringScaleLevelCommand);
-
     private readonly IWaydDbContext _waydDbContext = waydDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -45,34 +43,26 @@ public sealed class UpdateScoringScaleLevelCommandHandler(
 
     public async Task<Result> Handle(UpdateScoringScaleLevelCommand request, CancellationToken cancellationToken)
     {
-        try
+        var model = await _waydDbContext.ScoringModels
+            .Include(x => x.Scales).ThenInclude(s => s.Levels)
+            .FirstOrDefaultAsync(r => r.Id == request.ScoringModelId, cancellationToken);
+        if (model is null)
         {
-            var model = await _waydDbContext.ScoringModels
-                .Include(x => x.Scales).ThenInclude(s => s.Levels)
-                .FirstOrDefaultAsync(r => r.Id == request.ScoringModelId, cancellationToken);
-            if (model is null)
-            {
-                _logger.LogInformation("Scoring Model {ScoringModelId} not found.", request.ScoringModelId);
-                return Result.Failure("Scoring Model not found.");
-            }
-
-            var updateResult = model.UpdateScaleLevel(request.ScaleId, request.LevelId, request.Label, request.Value, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
-            if (updateResult.IsFailure)
-            {
-                _logger.LogError("Unable to update rating level on Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, updateResult.Error);
-                return Result.Failure(updateResult.Error);
-            }
-
-            await _waydDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Rating level {LevelId} updated on scale {ScaleId} on Scoring Model {ScoringModelId}.", request.LevelId, request.ScaleId, request.ScoringModelId);
-
-            return Result.Success();
+            _logger.LogInformation("Scoring Model {ScoringModelId} not found.", request.ScoringModelId);
+            return Result.Failure("Scoring Model not found.");
         }
-        catch (Exception ex)
+
+        var updateResult = model.UpdateScaleLevel(request.ScaleId, request.LevelId, request.Label, request.Value, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        if (updateResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to update rating level on Scoring Model {ScoringModelId}.  Error message: {Error}", request.ScoringModelId, updateResult.Error);
+            return Result.Failure(updateResult.Error);
         }
+
+        await _waydDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Rating level {LevelId} updated on scale {ScaleId} on Scoring Model {ScoringModelId}.", request.LevelId, request.ScaleId, request.ScoringModelId);
+
+        return Result.Success();
     }
 }

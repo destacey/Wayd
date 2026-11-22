@@ -42,8 +42,6 @@ public sealed class SetWorkflowTransitionsCommandHandler(
     ILogger<SetWorkflowTransitionsCommandHandler> logger)
     : ICommandHandler<SetWorkflowTransitionsCommand>
 {
-    private const string AppRequestName = nameof(SetWorkflowTransitionsCommand);
-
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly ITransitionConditionChecker _conditionChecker = conditionChecker;
     private readonly ICurrentUser _currentUser = currentUser;
@@ -52,59 +50,51 @@ public sealed class SetWorkflowTransitionsCommandHandler(
 
     public async Task<Result> Handle(SetWorkflowTransitionsCommand request, CancellationToken cancellationToken)
     {
-        try
+        // Both collections must be loaded: the statuses to check each transition's ends against, and
+        // the transitions so the ones kept retain their identity rather than being re-added. Their
+        // conditions likewise, or every kept condition would read as new and be inserted twice.
+        var workflow = await _dbContext.StatusWorkflows
+            .Include(w => w.Statuses)
+            .Include(w => w.Transitions)
+                .ThenInclude(t => t.Conditions)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(w => w.Id == request.WorkflowId, cancellationToken);
+
+        if (workflow is null)
         {
-            // Both collections must be loaded: the statuses to check each transition's ends against, and
-            // the transitions so the ones kept retain their identity rather than being re-added. Their
-            // conditions likewise, or every kept condition would read as new and be inserted twice.
-            var workflow = await _dbContext.StatusWorkflows
-                .Include(w => w.Statuses)
-                .Include(w => w.Transitions)
-                    .ThenInclude(t => t.Conditions)
-                .AsSplitQuery()
-                .FirstOrDefaultAsync(w => w.Id == request.WorkflowId, cancellationToken);
-
-            if (workflow is null)
-            {
-                _logger.LogInformation("Status Workflow {WorkflowId} not found.", request.WorkflowId);
-                return Result.Failure("Status workflow not found.");
-            }
-
-            // Only an editable draft is asked, so a workflow that cannot change is refused for that
-            // reason rather than for a condition it could never have taken anyway.
-            var unavailable = workflow.IsSystem || workflow.State != StatusWorkflowState.Draft
-                ? null
-                : UnavailableAddition(workflow, request.Transitions);
-            if (unavailable is { } kind)
-            {
-                _logger.LogInformation(
-                    "Unable to change the transitions of Status Workflow {WorkflowId}: nothing evaluates {Condition}.",
-                    request.WorkflowId, kind);
-                return Result.Failure($"A transition cannot require {kind.DescribeMissing()} yet: nothing can check it.");
-            }
-
-            var result = workflow.SetTransitions(
-                [.. request.Transitions.Select(t => new WorkflowTransitionDefinition(t.FromStatusId, t.ToStatusId, t.Conditions))],
-                EventActor.User(_currentUser.GetUserId()),
-                _dateTimeProvider.Now);
-
-            if (result.IsFailure)
-            {
-                _logger.LogInformation(
-                    "Unable to change the transitions of Status Workflow {WorkflowId}. Error message: {Error}",
-                    request.WorkflowId, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
+            _logger.LogInformation("Status Workflow {WorkflowId} not found.", request.WorkflowId);
+            return Result.Failure("Status workflow not found.");
         }
-        catch (Exception ex)
+
+        // Only an editable draft is asked, so a workflow that cannot change is refused for that
+        // reason rather than for a condition it could never have taken anyway.
+        var unavailable = workflow.IsSystem || workflow.State != StatusWorkflowState.Draft
+            ? null
+            : UnavailableAddition(workflow, request.Transitions);
+        if (unavailable is { } kind)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogInformation(
+                "Unable to change the transitions of Status Workflow {WorkflowId}: nothing evaluates {Condition}.",
+                request.WorkflowId, kind);
+            return Result.Failure($"A transition cannot require {kind.DescribeMissing()} yet: nothing can check it.");
         }
+
+        var result = workflow.SetTransitions(
+            [.. request.Transitions.Select(t => new WorkflowTransitionDefinition(t.FromStatusId, t.ToStatusId, t.Conditions))],
+            EventActor.User(_currentUser.GetUserId()),
+            _dateTimeProvider.Now);
+
+        if (result.IsFailure)
+        {
+            _logger.LogInformation(
+                "Unable to change the transitions of Status Workflow {WorkflowId}. Error message: {Error}",
+                request.WorkflowId, result.Error);
+            return Result.Failure(result.Error);
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
     }
 
     /// <summary>

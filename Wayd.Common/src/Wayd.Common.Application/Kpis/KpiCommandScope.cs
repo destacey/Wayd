@@ -141,9 +141,8 @@ public sealed class KpiCommandScope(
         }
     }
 
-    // SQL Server: 2601 = unique index, 2627 = unique constraint, 547 = foreign key — a category deleted while a KPI
-    // was being given it, or given a KPI while being deleted, after each request's own check passed. Read without
-    // naming SqlException, which the application layers do not reference.
+    // A foreign key fails when a category is deleted while a KPI is being given it, or given a KPI while being
+    // deleted, after each request's own check passed.
     private static bool IsCollision(DbUpdateException exception) =>
-        exception.InnerException?.GetType().GetProperty("Number")?.GetValue(exception.InnerException) is 2601 or 2627 or 547;
+        DbUpdateErrors.IsUniqueViolation(exception) || DbUpdateErrors.IsForeignKeyViolation(exception);
 }

@@ -63,8 +63,6 @@ public sealed class UpdatePersonalAccessTokenCommandHandler(
     IDateTimeProvider dateTimeProvider,
     ILogger<UpdatePersonalAccessTokenCommandHandler> logger) : ICommandHandler<UpdatePersonalAccessTokenCommand>
 {
-    private const string AppRequestName = nameof(UpdatePersonalAccessTokenCommand);
-
     private readonly IWaydDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -72,55 +70,47 @@ public sealed class UpdatePersonalAccessTokenCommandHandler(
 
     public async Task<Result> Handle(UpdatePersonalAccessTokenCommand request, CancellationToken cancellationToken)
     {
-        try
+        var userIdString = _currentUser.GetUserId();
+        var now = _dateTimeProvider.Now;
+        var actor = EventActor.User(userIdString, _currentUser.GetEmployeeId());
+
+        var token = await _dbContext.PersonalAccessTokens
+            .FirstOrDefaultAsync(t => t.Id == request.TokenId && t.UserId == userIdString, cancellationToken);
+
+        if (token == null)
         {
-            var userIdString = _currentUser.GetUserId();
-            var now = _dateTimeProvider.Now;
-            var actor = EventActor.User(userIdString, _currentUser.GetEmployeeId());
-
-            var token = await _dbContext.PersonalAccessTokens
-                .FirstOrDefaultAsync(t => t.Id == request.TokenId && t.UserId == userIdString, cancellationToken);
-
-            if (token == null)
-            {
-                _logger.LogWarning(
-                    "Attempt to update personal access token failed. Token not found or no permission. UserId: {UserId}, TokenId: {TokenId}",
-                    userIdString, request.TokenId);
-                return Result.Failure("Token not found or you do not have permission to update it.");
-            }
-
-            // Update name if it has changed
-            if (token.Name != request.Name)
-            {
-                var nameUpdateResult = token.UpdateName(request.Name, actor, now);
-                if (nameUpdateResult.IsFailure)
-                {
-                    return nameUpdateResult;
-                }
-            }
-
-            // Update expiration if it has changed
-            if (token.ExpiresAt != request.ExpiresAt)
-            {
-                var expirationUpdateResult = token.UpdateExpiresAt(request.ExpiresAt, actor, now);
-                if (expirationUpdateResult.IsFailure)
-                {
-                    return expirationUpdateResult;
-                }
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation(
-                "Personal access token updated. UserId: {UserId}, TokenId: {TokenId}, TokenName: {TokenName}, ExpiresAt: {ExpiresAt}",
-                userIdString, token.Id, token.Name, token.ExpiresAt);
-
-            return Result.Success();
+            _logger.LogWarning(
+                "Attempt to update personal access token failed. Token not found or no permission. UserId: {UserId}, TokenId: {TokenId}",
+                userIdString, request.TokenId);
+            return Result.Failure("Token not found or you do not have permission to update it.");
         }
-        catch (Exception ex)
+
+        // Update name if it has changed
+        if (token.Name != request.Name)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            var nameUpdateResult = token.UpdateName(request.Name, actor, now);
+            if (nameUpdateResult.IsFailure)
+            {
+                return nameUpdateResult;
+            }
         }
+
+        // Update expiration if it has changed
+        if (token.ExpiresAt != request.ExpiresAt)
+        {
+            var expirationUpdateResult = token.UpdateExpiresAt(request.ExpiresAt, actor, now);
+            if (expirationUpdateResult.IsFailure)
+            {
+                return expirationUpdateResult;
+            }
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Personal access token updated. UserId: {UserId}, TokenId: {TokenId}, TokenName: {TokenName}, ExpiresAt: {ExpiresAt}",
+            userIdString, token.Id, token.Name, token.ExpiresAt);
+
+        return Result.Success();
     }
 }

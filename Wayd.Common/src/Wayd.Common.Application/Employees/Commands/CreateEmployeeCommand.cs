@@ -108,43 +108,32 @@ public sealed class CreateEmployeeCommandHandler : ICommandHandler<CreateEmploye
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateEmployeeCommand request, CancellationToken cancellationToken)
     {
-        try
+        if (request.ManagerId.HasValue
+            && await _waydDbContext.Employees.AllAsync(e => e.Id != request.ManagerId.Value, cancellationToken))
         {
-            if (request.ManagerId.HasValue
-                && await _waydDbContext.Employees.AllAsync(e => e.Id != request.ManagerId.Value, cancellationToken))
-            {
-                _logger.LogWarning("Wayd Request: Unable to find manager {ManagerId} while creating employee {EmployeeNumber}", request.ManagerId.Value, request.EmployeeNumber);
-                return Result.Failure<ObjectIdAndKey>("Manager not found.");
-            }
-
-            var employee = Employee.Create(
-                request.Name,
-                request.EmployeeNumber,
-                request.HireDate,
-                request.Email,
-                request.JobTitle,
-                request.Department,
-                request.OfficeLocation,
-                request.ManagerId,
-                true,
-                employeeType: null,
-                EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-                _dateTimeProvider.Now
-                );
-
-            await _waydDbContext.Employees.AddAsync(employee, cancellationToken);
-
-            await _waydDbContext.SaveChangesAsync(cancellationToken);
-
-            return new ObjectIdAndKey(employee.Id, employee.Key);
+            _logger.LogWarning("Wayd Request: Unable to find manager {ManagerId} while creating employee {EmployeeNumber}", request.ManagerId.Value, request.EmployeeNumber);
+            return Result.Failure<ObjectIdAndKey>("Manager not found.");
         }
-        catch (Exception ex)
-        {
-            var requestName = request.GetType().Name;
 
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
+        var employee = Employee.Create(
+            request.Name,
+            request.EmployeeNumber,
+            request.HireDate,
+            request.Email,
+            request.JobTitle,
+            request.Department,
+            request.OfficeLocation,
+            request.ManagerId,
+            true,
+            employeeType: null,
+            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
+            _dateTimeProvider.Now
+            );
 
-            return Result.Failure<ObjectIdAndKey>($"Wayd Request: Exception for Request {requestName}");
-        }
+        await _waydDbContext.Employees.AddAsync(employee, cancellationToken);
+
+        await _waydDbContext.SaveChangesAsync(cancellationToken);
+
+        return new ObjectIdAndKey(employee.Id, employee.Key);
     }
 }

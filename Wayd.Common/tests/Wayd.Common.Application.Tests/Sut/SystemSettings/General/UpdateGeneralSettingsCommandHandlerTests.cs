@@ -1,6 +1,5 @@
 using CSharpFunctionalExtensions;
 using FluentAssertions;
-using Microsoft.Extensions.Logging.Abstractions;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Application.SystemSettings.General.Commands;
@@ -22,7 +21,7 @@ public class UpdateGeneralSettingsCommandHandlerTests
     }
 
     private UpdateGeneralSettingsCommandHandler CreateHandler() =>
-        new(_store.Object, _currentUser.Object, NullLogger<UpdateGeneralSettingsCommandHandler>.Instance);
+        new(_store.Object, _currentUser.Object);
 
     [Fact]
     public async Task Handle_SavesTheTrimmedTimeZoneAsTheCurrentUser()

@@ -26,8 +26,6 @@ public sealed class ReorderWorkflowStatusesCommandHandler(
     ILogger<ReorderWorkflowStatusesCommandHandler> logger)
     : ICommandHandler<ReorderWorkflowStatusesCommand>
 {
-    private const string AppRequestName = nameof(ReorderWorkflowStatusesCommand);
-
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -35,39 +33,31 @@ public sealed class ReorderWorkflowStatusesCommandHandler(
 
     public async Task<Result> Handle(ReorderWorkflowStatusesCommand request, CancellationToken cancellationToken)
     {
-        try
+        // Every status mutation runs through the aggregate, so its collection must be loaded: it
+        // enforces name and alias uniqueness across siblings that a lone status cannot see.
+        var workflow = await _dbContext.StatusWorkflows
+            .Include(w => w.Statuses)
+            .FirstOrDefaultAsync(w => w.Id == request.WorkflowId, cancellationToken);
+
+        if (workflow is null)
         {
-            // Every status mutation runs through the aggregate, so its collection must be loaded: it
-            // enforces name and alias uniqueness across siblings that a lone status cannot see.
-            var workflow = await _dbContext.StatusWorkflows
-                .Include(w => w.Statuses)
-                .FirstOrDefaultAsync(w => w.Id == request.WorkflowId, cancellationToken);
-
-            if (workflow is null)
-            {
-                _logger.LogInformation("Status Workflow {WorkflowId} not found.", request.WorkflowId);
-                return Result.Failure("Status workflow not found.");
-            }
-
-            var result = workflow.ReorderStatuses(request.OrderedStatusIds, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                workflow.ClearDomainEvents();
-
-                _logger.LogInformation(
-                    "Unable to change statuses on Status Workflow {WorkflowId}. Error message: {Error}",
-                    request.WorkflowId, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
+            _logger.LogInformation("Status Workflow {WorkflowId} not found.", request.WorkflowId);
+            return Result.Failure("Status workflow not found.");
         }
-        catch (Exception ex)
+
+        var result = workflow.ReorderStatuses(request.OrderedStatusIds, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            workflow.ClearDomainEvents();
+
+            _logger.LogInformation(
+                "Unable to change statuses on Status Workflow {WorkflowId}. Error message: {Error}",
+                request.WorkflowId, result.Error);
+            return Result.Failure(result.Error);
         }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
     }
 }

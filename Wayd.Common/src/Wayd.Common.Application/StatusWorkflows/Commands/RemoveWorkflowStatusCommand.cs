@@ -20,8 +20,6 @@ public sealed class RemoveWorkflowStatusCommandHandler(
     ILogger<RemoveWorkflowStatusCommandHandler> logger)
     : ICommandHandler<RemoveWorkflowStatusCommand>
 {
-    private const string AppRequestName = nameof(RemoveWorkflowStatusCommand);
-
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -29,45 +27,37 @@ public sealed class RemoveWorkflowStatusCommandHandler(
 
     public async Task<Result> Handle(RemoveWorkflowStatusCommand request, CancellationToken cancellationToken)
     {
-        try
+        // Every status mutation runs through the aggregate, so its collection must be loaded: it
+        // enforces name and alias uniqueness across siblings that a lone status cannot see.
+        // Transitions too: removing a status removes the transitions touching it, and the database
+        // refuses to delete a status a transition still references. Their conditions so the change
+        // records what went with them.
+        var workflow = await _dbContext.StatusWorkflows
+            .Include(w => w.Statuses)
+            .Include(w => w.Transitions)
+                .ThenInclude(t => t.Conditions)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(w => w.Id == request.WorkflowId, cancellationToken);
+
+        if (workflow is null)
         {
-            // Every status mutation runs through the aggregate, so its collection must be loaded: it
-            // enforces name and alias uniqueness across siblings that a lone status cannot see.
-            // Transitions too: removing a status removes the transitions touching it, and the database
-            // refuses to delete a status a transition still references. Their conditions so the change
-            // records what went with them.
-            var workflow = await _dbContext.StatusWorkflows
-                .Include(w => w.Statuses)
-                .Include(w => w.Transitions)
-                    .ThenInclude(t => t.Conditions)
-                .AsSplitQuery()
-                .FirstOrDefaultAsync(w => w.Id == request.WorkflowId, cancellationToken);
-
-            if (workflow is null)
-            {
-                _logger.LogInformation("Status Workflow {WorkflowId} not found.", request.WorkflowId);
-                return Result.Failure("Status workflow not found.");
-            }
-
-            var result = workflow.RemoveStatus(request.StatusId, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
-            if (result.IsFailure)
-            {
-                workflow.ClearDomainEvents();
-
-                _logger.LogInformation(
-                    "Unable to change statuses on Status Workflow {WorkflowId}. Error message: {Error}",
-                    request.WorkflowId, result.Error);
-                return Result.Failure(result.Error);
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return Result.Success();
+            _logger.LogInformation("Status Workflow {WorkflowId} not found.", request.WorkflowId);
+            return Result.Failure("Status workflow not found.");
         }
-        catch (Exception ex)
+
+        var result = workflow.RemoveStatus(request.StatusId, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+        if (result.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            workflow.ClearDomainEvents();
+
+            _logger.LogInformation(
+                "Unable to change statuses on Status Workflow {WorkflowId}. Error message: {Error}",
+                request.WorkflowId, result.Error);
+            return Result.Failure(result.Error);
         }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
     }
 }

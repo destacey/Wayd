@@ -103,7 +103,9 @@ types, never a bare `catch (Exception)`:
 
 A catch may also turn one specific, expected exception into a `CustomException`: a `DbUpdateException` from a
 unique index that is itself the check — two concurrent writes of the same link or key — becomes a
-`ConflictException`. Filter for that exception alone, never `Exception`, and let every other failure propagate.
+`ConflictException`. Filter for that exception alone, never `Exception`, and let every other failure propagate. In
+the application layers, `DbUpdateErrors` (`Wayd.Common.Application.Persistence`) recognises a unique or foreign-key
+violation.
 
 A business-rule failure needs no undo. An aggregate method checks every rule before it assigns anything, so a
 rejected call leaves the entity and its pending events as they were, and the handler returns the failure

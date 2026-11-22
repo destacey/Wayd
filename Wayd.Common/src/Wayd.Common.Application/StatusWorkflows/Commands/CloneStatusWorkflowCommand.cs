@@ -29,8 +29,6 @@ public sealed class CloneStatusWorkflowCommandHandler(
     IWorkflowOwnerAvailability ownerAvailability)
     : ICommandHandler<CloneStatusWorkflowCommand, Guid>
 {
-    private const string AppRequestName = nameof(CloneStatusWorkflowCommand);
-
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -39,36 +37,28 @@ public sealed class CloneStatusWorkflowCommandHandler(
 
     public async Task<Result<Guid>> Handle(CloneStatusWorkflowCommand request, CancellationToken cancellationToken)
     {
-        try
+        // Statuses and transitions must be included or the clone comes back without them — copying
+        // them is the point.
+        var workflow = await _dbContext.StatusWorkflows
+            .Include(w => w.Statuses)
+            .Include(w => w.Transitions)
+                .ThenInclude(t => t.Conditions)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(w => w.Id == request.Id, cancellationToken);
+
+        if (workflow is null || !await _ownerAvailability.IsAvailable(workflow.OwnerType, cancellationToken))
         {
-            // Statuses and transitions must be included or the clone comes back without them — copying
-            // them is the point.
-            var workflow = await _dbContext.StatusWorkflows
-                .Include(w => w.Statuses)
-                .Include(w => w.Transitions)
-                    .ThenInclude(t => t.Conditions)
-                .AsSplitQuery()
-                .FirstOrDefaultAsync(w => w.Id == request.Id, cancellationToken);
-
-            if (workflow is null || !await _ownerAvailability.IsAvailable(workflow.OwnerType, cancellationToken))
-            {
-                _logger.LogInformation("Status Workflow {WorkflowId} not found.", request.Id);
-                return Result.Failure<Guid>("Status workflow not found.");
-            }
-
-            var clone = workflow.Clone(request.Name, request.Description, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
-
-            _dbContext.StatusWorkflows.Add(clone);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Status Workflow {WorkflowId} cloned to {CloneId}.", request.Id, clone.Id);
-
-            return Result.Success(clone.Id);
+            _logger.LogInformation("Status Workflow {WorkflowId} not found.", request.Id);
+            return Result.Failure<Guid>("Status workflow not found.");
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<Guid>($"Error handling {AppRequestName} command.");
-        }
+
+        var clone = workflow.Clone(request.Name, request.Description, EventActor.User(_currentUser.GetUserId()), _dateTimeProvider.Now);
+
+        _dbContext.StatusWorkflows.Add(clone);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Status Workflow {WorkflowId} cloned to {CloneId}.", request.Id, clone.Id);
+
+        return Result.Success(clone.Id);
     }
 }

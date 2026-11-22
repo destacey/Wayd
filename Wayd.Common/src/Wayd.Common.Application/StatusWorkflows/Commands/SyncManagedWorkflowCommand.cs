@@ -105,10 +105,5 @@ public sealed class SyncManagedWorkflowCommandHandler(
             _logger.LogWarning(ex, "{CommandName}: the save failed at the database.", AppRequestName);
             return Result.Failure<Guid>(ManagedSyncCollision.Message("workflow", request.ExternalKey));
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<Guid>($"Error handling {AppRequestName} command.");
-        }
     }
 }

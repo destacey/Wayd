@@ -87,10 +87,5 @@ public sealed class SyncManagedRecordTypeCommandHandler(
             _logger.LogWarning(ex, "{CommandName}: the save failed at the database.", AppRequestName);
             return Result.Failure<Guid>(ManagedSyncCollision.Message("record type", request.ExternalKey));
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<Guid>($"Error handling {AppRequestName} command.");
-        }
     }
 }

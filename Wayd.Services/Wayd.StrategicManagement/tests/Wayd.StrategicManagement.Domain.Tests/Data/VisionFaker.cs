@@ -54,7 +54,8 @@ public static class VisionFakerExtensions
     }
 
     /// <summary>
-    /// Generates an active Vision that started 10 days ago.
+    /// Generates an active Vision that started 10 days ago, from a fresh faker: the With* rules would otherwise stay on
+    /// <paramref name="faker"/> and every vision it generates afterwards would be active too.
     /// </summary>
     /// <param name="faker"></param>
     /// <param name="dateTimeProvider"></param>
@@ -64,14 +65,15 @@ public static class VisionFakerExtensions
         var now = dateTimeProvider?.Now ?? DateTime.UtcNow.ToInstant();
         var defaultActiveInstant = now.Plus(Duration.FromDays(-10));
 
-        return faker
+        return new VisionFaker()
             .WithState(VisionState.Active)
             .WithDates(new FlexibleInstantRange(defaultActiveInstant))
             .Generate();
     }
 
     /// <summary>
-    /// Generates an archived Vision that started 20 days ago and ended 10 days ago.
+    /// Generates an archived Vision that started 20 days ago and ended 10 days ago, from a fresh faker: the With* rules
+    /// would otherwise stay on <paramref name="faker"/> and every vision it generates afterwards would be archived too.
     /// </summary>
     /// <param name="faker"></param>
     /// <param name="dateTimeProvider"></param>
@@ -82,7 +84,7 @@ public static class VisionFakerExtensions
         var defaultActiveInstant = now.Plus(Duration.FromDays(-20));
         var defaultArchivedInstant = defaultActiveInstant.Plus(Duration.FromDays(10));
 
-        return faker
+        return new VisionFaker()
             .WithState(VisionState.Archived)
             .WithDates(new FlexibleInstantRange(defaultActiveInstant, defaultArchivedInstant))
             .Generate();

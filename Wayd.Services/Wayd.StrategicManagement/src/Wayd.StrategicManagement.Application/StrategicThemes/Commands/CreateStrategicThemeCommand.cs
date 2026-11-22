@@ -16,6 +16,7 @@ public sealed class CreateStrategicThemeCommandValidator : AbstractValidator<Cre
             .MaximumLength(64);
 
         RuleFor(x => x.Description)
+            .NotEmpty()
             .MaximumLength(1024);
     }
 }

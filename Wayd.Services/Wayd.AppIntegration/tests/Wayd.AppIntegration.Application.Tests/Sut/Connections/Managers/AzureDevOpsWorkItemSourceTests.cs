@@ -1009,6 +1009,88 @@ public class AzureDevOpsWorkItemSourceTests
     }
 
     [Fact]
+    public async Task SyncWorkItems_WhenAStepThrows_DegradesTheWorkspaceAndRunsTheRest()
+    {
+        // Arrange
+        _sut.Bind(BuildDescriptor());
+        StubWorkItemSubSteps();
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetDependencyLinkChanges(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new List<IExternalWorkItemLink> { Mock.Of<IExternalWorkItemLink>() }));
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<SyncExternalWorkItemDependencyChangesCommand>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("dependency save failed"));
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetDeletedWorkItemIds(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new[] { 1, 2 }));
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<DeleteExternalWorkItemsCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(2));
+        var target = new WorkspaceSyncTarget(
+            Guid.CreateVersion7(), Guid.CreateVersion7(), "Project", "key", WorkItemSyncFilters.Empty);
+
+        // Act
+        var result = await _sut.SyncWorkItems(target, SyncType.Differential, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.HadPartialFailure.Should().BeTrue();
+        result.Value.PartialFailureMessage.Should().Contain("deps-sync");
+        result.Value.DependencyLinkChangesProcessed.Should().Be(0);
+        result.Value.DeletedWorkItemsProcessed.Should().Be(2, "the steps after the one that threw still run");
+    }
+
+    [Fact]
+    public async Task SyncWorkItems_WhenCancelled_StopsTheSync()
+    {
+        // Arrange
+        _sut.Bind(BuildDescriptor());
+        StubWorkItemSubSteps();
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetDependencyLinkChanges(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new List<IExternalWorkItemLink> { Mock.Of<IExternalWorkItemLink>() }));
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<SyncExternalWorkItemDependencyChangesCommand>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+        var target = new WorkspaceSyncTarget(
+            Guid.CreateVersion7(), Guid.CreateVersion7(), "Project", "key", WorkItemSyncFilters.Empty);
+
+        // Act
+        var act = () => _sut.SyncWorkItems(target, SyncType.Differential, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _mocker.GetMock<IAzureDevOpsService>().Verify(
+            s => s.GetDeletedWorkItemIds(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task SyncWorkItems_WhenTheDeleteStepThrows_DegradesTheWorkspace()
+    {
+        // Arrange
+        _sut.Bind(BuildDescriptor());
+        StubWorkItemSubSteps();
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetDeletedWorkItemIds(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new[] { 1, 2 }));
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<DeleteExternalWorkItemsCommand>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("delete failed"));
+        var target = new WorkspaceSyncTarget(
+            Guid.CreateVersion7(), Guid.CreateVersion7(), "Project", "key", WorkItemSyncFilters.Empty);
+
+        // Act
+        var result = await _sut.SyncWorkItems(target, SyncType.Differential, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.HadPartialFailure.Should().BeTrue();
+        result.Value.PartialFailureMessage.Should().Contain("deleted-sync");
+        result.Value.DeletedWorkItemsProcessed.Should().Be(0);
+    }
+
+    [Fact]
     public async Task SyncWorkItems_AllSubStepsSucceed_ReturnsAggregatedCounters()
     {
         var descriptor = BuildDescriptor();

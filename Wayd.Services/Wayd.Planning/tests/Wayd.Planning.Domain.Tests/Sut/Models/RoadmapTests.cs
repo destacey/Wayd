@@ -2324,6 +2324,228 @@ public class RoadmapTests
 
     #endregion SetChildrenOrder
 
+    #region Parent cycles
+
+    private const string ParentCycleError = "Unable to move the Roadmap Item under itself or one of its own descendants.";
+
+    [Fact]
+    public void MoveActivity_UnderItsOwnChild_FailsAndChangesNothing()
+    {
+        // Arrange
+        var roadmap = SavedRoadmap();
+        var parent = AddActivity(roadmap, "Parent", Days(1, 30));
+        var child = AddActivity(roadmap, "Child", Days(2, 10), parent.Id);
+        var orders = (parent.Order, child.Order);
+
+        // Act
+        var result = roadmap.MoveActivity(parent.Id, child.Id, 1, As(EventOwnerId), Actor, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(ParentCycleError);
+        parent.Parent.Should().BeNull();
+        parent.Children.Should().ContainSingle().Which.Should().BeSameAs(child);
+        child.Parent.Should().BeSameAs(parent);
+        child.Children.Should().BeEmpty();
+        (parent.Order, child.Order).Should().Be(orders);
+        roadmap.Items.Where(i => i.ParentId is null).Should().ContainSingle().Which.Should().BeSameAs(parent);
+        roadmap.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void MoveActivity_UnderItsOwnGrandchild_FailsAndChangesNothing()
+    {
+        // Arrange
+        var roadmap = SavedRoadmap();
+        var parent = AddActivity(roadmap, "Parent", Days(1, 30));
+        var child = AddActivity(roadmap, "Child", Days(2, 20), parent.Id);
+        var grandchild = AddActivity(roadmap, "Grandchild", Days(3, 10), child.Id);
+        var orders = (parent.Order, child.Order, grandchild.Order);
+
+        // Act
+        var result = roadmap.MoveActivity(parent.Id, grandchild.Id, 1, As(EventOwnerId), Actor, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(ParentCycleError);
+        parent.Parent.Should().BeNull();
+        parent.Children.Should().ContainSingle().Which.Should().BeSameAs(child);
+        child.Children.Should().ContainSingle().Which.Should().BeSameAs(grandchild);
+        grandchild.Parent.Should().BeSameAs(child);
+        grandchild.Children.Should().BeEmpty();
+        (parent.Order, child.Order, grandchild.Order).Should().Be(orders);
+        roadmap.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void MoveActivity_ANestedActivityUnderItsOwnChild_LeavesItInItsParent()
+    {
+        // Arrange — B already has a parent, so a refusal made after it was detached from A would show here
+        var roadmap = SavedRoadmap();
+        var a = AddActivity(roadmap, "A", Days(1, 30));
+        var b = AddActivity(roadmap, "B", Days(2, 20), a.Id);
+        var c = AddActivity(roadmap, "C", Days(3, 10), b.Id);
+        var orders = (a.Order, b.Order, c.Order);
+
+        // Act
+        var result = roadmap.MoveActivity(b.Id, c.Id, 1, As(EventOwnerId), Actor, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(ParentCycleError);
+        b.ParentId.Should().Be(a.Id);
+        b.Parent.Should().BeSameAs(a);
+        a.Children.Should().ContainSingle().Which.Should().BeSameAs(b);
+        b.Children.Should().ContainSingle().Which.Should().BeSameAs(c);
+        (a.Order, b.Order, c.Order).Should().Be(orders);
+        roadmap.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void UpdateActivity_WithItsOwnDescendantAsParent_FailsAndChangesNothing()
+    {
+        // Arrange — the update also renames and redates, so a partly applied update would show here
+        var roadmap = SavedRoadmap();
+        var parent = AddActivity(roadmap, "Parent", Days(1, 30));
+        var child = AddActivity(roadmap, "Child", Days(2, 20), parent.Id);
+        var grandchild = AddActivity(roadmap, "Grandchild", Days(3, 10), child.Id);
+        var ranges = (parent.DateRange, child.DateRange, grandchild.DateRange);
+
+        // Act
+        var result = roadmap.UpdateActivity(parent.Id, ActivityUpsert("Renamed", Days(5, 40), grandchild.Id), As(EventOwnerId), Actor, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(ParentCycleError);
+        parent.Name.Should().Be("Parent");
+        parent.ParentId.Should().BeNull();
+        child.ParentId.Should().Be(parent.Id);
+        grandchild.ParentId.Should().Be(child.Id);
+        (parent.DateRange, child.DateRange, grandchild.DateRange).Should().Be(ranges);
+        roadmap.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void MoveActivity_UpToItsGrandparent_Succeeds()
+    {
+        // Arrange — moving up the activity's own chain is not a loop
+        var roadmap = SavedRoadmap();
+        var a = AddActivity(roadmap, "A", Days(1, 30));
+        var b = AddActivity(roadmap, "B", Days(2, 20), a.Id);
+        var c = AddActivity(roadmap, "C", Days(3, 10), b.Id);
+
+        // Act
+        var result = roadmap.MoveActivity(c.Id, a.Id, 1, As(EventOwnerId), Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        c.ParentId.Should().Be(a.Id);
+        b.Children.Should().BeEmpty();
+        a.Children.Should().BeEquivalentTo(new BaseRoadmapItem[] { b, c });
+    }
+
+    [Fact]
+    public void MoveActivity_WithItsSubtreeIntoADeeperBranch_Succeeds()
+    {
+        // Arrange — the mover has a child, and the target sits three levels down another branch
+        var roadmap = SavedRoadmap();
+        var x = AddActivity(roadmap, "X", Days(1, 30));
+        var x1 = AddActivity(roadmap, "X1", Days(2, 10), x.Id);
+        var y = AddActivity(roadmap, "Y", Days(1, 30));
+        var y1 = AddActivity(roadmap, "Y1", Days(2, 20), y.Id);
+        var y2 = AddActivity(roadmap, "Y2", Days(3, 15), y1.Id);
+
+        // Act
+        var result = roadmap.MoveActivity(x.Id, y2.Id, 1, As(EventOwnerId), Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        x.ParentId.Should().Be(y2.Id);
+        y2.Children.Should().ContainSingle().Which.Should().BeSameAs(x);
+        x.Children.Should().ContainSingle().Which.Should().BeSameAs(x1);
+        var moved = roadmap.DomainEvents.OfType<RoadmapItemMovedEvent>().Should().ContainSingle().Subject;
+        moved.ItemId.Should().Be(x.Id);
+        moved.ParentId.Should().Be(y2.Id);
+    }
+
+    [Fact]
+    public void MoveActivity_UnderASiblingsChild_Succeeds()
+    {
+        // Arrange — a descendant of another activity is a valid parent; only the mover's own subtree is refused
+        var roadmap = SavedRoadmap();
+        var first = AddActivity(roadmap, "First", Days(1, 30));
+        var second = AddActivity(roadmap, "Second", Days(1, 30));
+        var secondsChild = AddActivity(roadmap, "Second's child", Days(2, 20), second.Id);
+
+        // Act
+        var result = roadmap.MoveActivity(first.Id, secondsChild.Id, 1, As(EventOwnerId), Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        first.ParentId.Should().Be(secondsChild.Id);
+        first.Parent.Should().BeSameAs(secondsChild);
+        secondsChild.Children.Should().ContainSingle().Which.Should().BeSameAs(first);
+        roadmap.DomainEvents.OfType<RoadmapItemMovedEvent>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public void MoveActivity_UnderAnActivityNotOnTheRoadmap_SaysItDoesNotExist()
+    {
+        // Arrange
+        var roadmap = SavedRoadmap();
+        var activity = AddActivity(roadmap, "Activity", Days(1, 10));
+
+        // Act
+        var result = roadmap.MoveActivity(activity.Id, Guid.NewGuid(), 1, As(EventOwnerId), Actor, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Roadmap Activity does not exist on this roadmap.");
+        activity.ParentId.Should().BeNull();
+    }
+
+    [Fact]
+    public void MoveActivity_IntoAChainThatAlreadyLoops_Fails()
+    {
+        // Arrange — A and B point at each other, as data saved before moves were checked could
+        var roadmap = SavedRoadmap();
+        var a = AddActivity(roadmap, "A", Days(1, 30));
+        var b = AddActivity(roadmap, "B", Days(1, 30));
+        var mover = AddActivity(roadmap, "Mover", Days(2, 10));
+        a.SetPrivate(x => x.ParentId, b.Id);
+        b.SetPrivate(x => x.ParentId, a.Id);
+
+        // Act
+        var result = roadmap.MoveActivity(mover.Id, a.Id, 1, As(EventOwnerId), Actor, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Unable to move the Roadmap Item because the Roadmap's items already loop back on themselves and need repair. Contact an administrator.");
+        mover.ParentId.Should().BeNull();
+        roadmap.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void MoveActivity_UnderAnActivityWhoseAncestorIsNotLoaded_Fails()
+    {
+        // Arrange — the target's parent is not among the roadmap's items, so the chain cannot be followed to its root
+        var roadmap = SavedRoadmap();
+        var target = AddActivity(roadmap, "Target", Days(1, 30));
+        var mover = AddActivity(roadmap, "Mover", Days(2, 10));
+        target.SetPrivate(x => x.ParentId, Guid.NewGuid());
+
+        // Act
+        var result = roadmap.MoveActivity(mover.Id, target.Id, 1, As(EventOwnerId), Actor, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Unable to move the Roadmap Item because the Roadmap's items could not be read in full. Reload and try again.");
+        mover.ParentId.Should().BeNull();
+        roadmap.DomainEvents.Should().BeEmpty();
+    }
+
+    #endregion Parent cycles
+
     //[Fact]
     //public void SetChildrenOrder_ForAll_WhenValidChildrenProvided_ShouldReturnSuccess()
     //{

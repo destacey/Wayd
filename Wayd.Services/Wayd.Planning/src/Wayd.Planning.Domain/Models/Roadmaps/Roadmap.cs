@@ -634,9 +634,18 @@ public sealed class Roadmap : BaseAuditableEntity, ILocalSchedule, IHasIdAndKey
             parentActivity = parentActivityResult.Value;
         }
 
+        var parentChanged = item.ParentId != roadmapItem.ParentId;
+        if (parentChanged)
+        {
+            var cycleCheck = CheckNoParentCycle(itemId, item.ParentId);
+            if (cycleCheck.IsFailure)
+            {
+                return cycleCheck;
+            }
+        }
+
         var before = SnapshotItems();
 
-        var parentChanged = item.ParentId != roadmapItem.ParentId;
         var updateRootActivitiesOrder = parentChanged && (item.ParentId is null || roadmapItem.ParentId is null);
 
         var updateResult = updateFunc(roadmapItem, item, parentActivity);
@@ -735,6 +744,39 @@ public sealed class Roadmap : BaseAuditableEntity, ILocalSchedule, IHasIdAndKey
     }
 
     /// <summary>
+    /// Refuses a new parent that is the item itself or one of its descendants. That would close a loop in the parent
+    /// chain, and everything that walks the tree (date roll-ups, descendant lookups, subtree shifts) would then
+    /// recurse until the process overflows its stack. Walks <see cref="BaseRoadmapItem.ParentId"/> through this
+    /// Roadmap's items rather than the loaded navigations, and refuses when an ancestor is missing, so an item
+    /// list that was not fully loaded cannot let a loop through.
+    /// </summary>
+    private Result CheckNoParentCycle(Guid itemId, Guid? newParentId)
+    {
+        var parentIdOf = _items.ToDictionary(i => i.Id, i => i.ParentId);
+        var visited = new HashSet<Guid>();
+
+        for (var current = newParentId; current is { } ancestorId; current = parentIdOf[ancestorId])
+        {
+            if (ancestorId == itemId)
+            {
+                return Result.Failure("Unable to move the Roadmap Item under itself or one of its own descendants.");
+            }
+
+            if (!parentIdOf.ContainsKey(ancestorId))
+            {
+                return Result.Failure("Unable to move the Roadmap Item because the Roadmap's items could not be read in full. Reload and try again.");
+            }
+
+            if (!visited.Add(ancestorId))
+            {
+                return Result.Failure("Unable to move the Roadmap Item because the Roadmap's items already loop back on themselves and need repair. Contact an administrator.");
+            }
+        }
+
+        return Result.Success();
+    }
+
+    /// <summary>
     /// Moves an Activity to a new parent Activity and sets the new order.
     /// </summary>
     public Result MoveActivity(Guid activityId, Guid? newParentId, int newOrder, RoadmapActor caller, EventActor actor, Instant timestamp)
@@ -763,11 +805,7 @@ public sealed class Roadmap : BaseAuditableEntity, ILocalSchedule, IHasIdAndKey
             return Result.Failure("Order must be greater than 0.");
         }
 
-        var before = SnapshotItems();
-
-        var oldParentId = activity.ParentId;
-
-        // Handle moving to a new parent
+        RoadmapActivity? newParent = null;
         if (newParentId.HasValue)
         {
             var newParentResult = GetActivity(newParentId.Value);
@@ -776,7 +814,22 @@ public sealed class Roadmap : BaseAuditableEntity, ILocalSchedule, IHasIdAndKey
                 return Result.Failure(newParentResult.Error);
             }
 
-            var newParent = newParentResult.Value;
+            newParent = newParentResult.Value;
+        }
+
+        var cycleCheck = CheckNoParentCycle(activityId, newParentId);
+        if (cycleCheck.IsFailure)
+        {
+            return cycleCheck;
+        }
+
+        var before = SnapshotItems();
+
+        var oldParentId = activity.ParentId;
+
+        // Handle moving to a new parent
+        if (newParent is not null)
+        {
             var changeParentResult = activity.ChangeParent(newParent);
             if (changeParentResult.IsFailure)
             {

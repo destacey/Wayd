@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Application.Models;
+﻿using Wayd.ProjectPortfolioManagement.Application.Common;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.Common.Domain.Events;
@@ -81,6 +82,9 @@ public sealed class CreateProgramCommandHandler(
         }
 
         var roles = GetRoles(request);
+        var peopleExist = await _ppmDbContext.EnsureEmployeesExist(roles.Values.SelectMany(ids => ids), cancellationToken);
+        if (peopleExist.IsFailure)
+            return Result.Failure<ObjectIdAndKey>(peopleExist.Error);
 
         var createResult = portfolio.CreateProgram(
                 request.Name,

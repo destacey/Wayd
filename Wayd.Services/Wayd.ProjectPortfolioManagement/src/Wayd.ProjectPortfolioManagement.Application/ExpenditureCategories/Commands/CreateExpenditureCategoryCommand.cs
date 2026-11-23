@@ -32,34 +32,24 @@ public sealed class CreateExpenditureCategoryCommandHandler(
     ILogger<CreateExpenditureCategoryCommandHandler> logger)
     : ICommandHandler<CreateExpenditureCategoryCommand, int>
 {
-    private const string AppRequestName = nameof(CreateExpenditureCategoryCommand);
-
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<CreateExpenditureCategoryCommandHandler> _logger = logger;
 
     public async Task<Result<int>> Handle(CreateExpenditureCategoryCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var expenditureCategory = ExpenditureCategory.Create(
-                request.Name,
-                request.Description,
-                request.IsCapitalizable,
-                request.RequiresDepreciation,
-                request.AccountingCode
-                );
+        var expenditureCategory = ExpenditureCategory.Create(
+            request.Name,
+            request.Description,
+            request.IsCapitalizable,
+            request.RequiresDepreciation,
+            request.AccountingCode
+            );
 
-            await _projectPortfolioManagementDbContext.ExpenditureCategories.AddAsync(expenditureCategory, cancellationToken);
-            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
+        await _projectPortfolioManagementDbContext.ExpenditureCategories.AddAsync(expenditureCategory, cancellationToken);
+        await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Expenditure Category {ExpenditureCategoryId} created.", expenditureCategory.Id);
+        _logger.LogInformation("Expenditure Category {ExpenditureCategoryId} created.", expenditureCategory.Id);
 
-            return Result.Success(expenditureCategory.Id);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<int>($"Error handling {AppRequestName} command.");
-        }
+        return Result.Success(expenditureCategory.Id);
     }
 }

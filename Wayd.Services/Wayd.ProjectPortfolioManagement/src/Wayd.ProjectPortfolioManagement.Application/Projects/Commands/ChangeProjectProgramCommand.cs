@@ -66,10 +66,6 @@ public sealed class ChangeProjectProgramCommandHandler(IProjectPortfolioManageme
             var changeResult = portfolio!.ChangeProjectProgram(actor, project.Id, request.ProgramId, _dateTimeProvider.Now);
             if (changeResult.IsFailure)
             {
-                // Reset the entity
-                await _projectPortfolioManagementDbContext.Entry(project).ReloadAsync(cancellationToken);
-                project.ClearDomainEvents();
-
                 _logger.LogError("Unable to change the program for project {ProjectId}.  Error message: {Error}", request.Id, changeResult.Error);
                 return Result.Failure(changeResult.Error);
             }
@@ -83,11 +79,6 @@ public sealed class ChangeProjectProgramCommandHandler(IProjectPortfolioManageme
         catch (DbUpdateConcurrencyException)
         {
             return Result.Failure(ProjectSaves.StaleError);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
         }
     }
 }

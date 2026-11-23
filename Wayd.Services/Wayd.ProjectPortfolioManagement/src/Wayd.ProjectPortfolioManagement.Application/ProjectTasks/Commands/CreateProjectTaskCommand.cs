@@ -1,4 +1,5 @@
-﻿using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Models;
+﻿using Wayd.ProjectPortfolioManagement.Application.Common;
+using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 
 namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
@@ -97,95 +98,88 @@ public sealed class CreateProjectTaskCommandHandler(
     ILogger<CreateProjectTaskCommandHandler> logger)
     : ICommandHandler<CreateProjectTaskCommand, ProjectTaskIdAndKey>
 {
-    private const string AppRequestName = nameof(CreateProjectTaskCommand);
-
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly ILogger<CreateProjectTaskCommandHandler> _logger = logger;
 
     public async Task<Result<ProjectTaskIdAndKey>> Handle(CreateProjectTaskCommand request, CancellationToken cancellationToken)
     {
-        try
+        var deliverableIds = request.DeliverableIds?.Distinct().ToList() ?? [];
+
+        // Load the project with stages and tasks so the domain can resolve parentId, and only the named
+        // deliverables to link the task to.
+        var project = await _ppmDbContext.Projects
+            .AsSplitQuery()
+            .Include(p => p.Stages)
+            .Include(p => p.Tasks)
+            .Include(p => p.Deliverables.Where(d => deliverableIds.Contains(d.Id)))
+            .FirstOrDefaultAsync(p => p.Id == request.ProjectId, cancellationToken);
+        if (project is null)
         {
-            var deliverableIds = request.DeliverableIds?.Distinct().ToList() ?? [];
-
-            // Load the project with stages and tasks so the domain can resolve parentId, and only the named
-            // deliverables to link the task to.
-            var project = await _ppmDbContext.Projects
-                .AsSplitQuery()
-                .Include(p => p.Stages)
-                .Include(p => p.Tasks)
-                .Include(p => p.Deliverables.Where(d => deliverableIds.Contains(d.Id)))
-                .FirstOrDefaultAsync(p => p.Id == request.ProjectId, cancellationToken);
-            if (project is null)
-            {
-                _logger.LogInformation("Project with Id {ProjectId} not found.", request.ProjectId);
-                return Result.Failure<ProjectTaskIdAndKey>("Project not found.");
-            }
-
-            var roles = GetRoles(request);
-
-            // Get the next task key number atomically using a database query with row locking
-            // This uses UPDLOCK and ROWLOCK to prevent race conditions when multiple tasks are created concurrently
-            // Alternatively, we would need to include existing tasks in the project aggregate and get the number there
-            var nextNumber = await _ppmDbContext.Database
-                .SqlQuery<int>($@"
-                    SELECT ISNULL(MAX([Number]), 0) + 1 AS [Value]
-                    FROM [Ppm].[ProjectTasks] WITH (UPDLOCK, ROWLOCK)
-                    WHERE [ProjectId] = {request.ProjectId}")
-                .FirstOrDefaultAsync(cancellationToken);
-
-            // Create the task through the project
-            var createResult = project.CreateTask(
-                nextNumber,
-                request.Name,
-                request.Description,
-                request.Type,
-                request.Status,
-                request.Priority,
-                request.Progress,
-                request.ParentId,
-                request.PlannedDateRange,
-                request.PlannedDate,
-                request.EstimatedEffortHours,
-                roles
-            );
-
-            if (createResult.IsFailure)
-            {
-                _logger.LogError("Error creating task {TaskName} for project {ProjectId}. Error: {Error}",
-                    request.Name, request.ProjectId, createResult.Error);
-                return Result.Failure<ProjectTaskIdAndKey>(createResult.Error);
-            }
-
-            var task = createResult.Value;
-
-            // Created last among its siblings, then moved into place in the same save, so no reader sees it last.
-            if (request.Order.HasValue)
-            {
-                var placeResult = project.ChangeTaskPlacement(task.Id, request.ParentId, request.Order);
-                if (placeResult.IsFailure)
-                    return Result.Failure<ProjectTaskIdAndKey>(placeResult.Error);
-            }
-
-            if (deliverableIds.Count > 0)
-            {
-                var linkResult = project.SetTaskDeliverables(task.Id, deliverableIds);
-                if (linkResult.IsFailure)
-                    return Result.Failure<ProjectTaskIdAndKey>(linkResult.Error);
-            }
-
-            await _ppmDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Project task {TaskId} created with Key {TaskKey} for project {ProjectId}.",
-                task.Id, task.Key.Value, request.ProjectId);
-
-            return Result.Success(new ProjectTaskIdAndKey(task.Id, task.Key.Value));
+            _logger.LogInformation("Project with Id {ProjectId} not found.", request.ProjectId);
+            return Result.Failure<ProjectTaskIdAndKey>("Project not found.");
         }
-        catch (Exception ex)
+
+        var roles = GetRoles(request);
+        var peopleExist = await _ppmDbContext.EnsureEmployeesExist(roles.Values.SelectMany(ids => ids), cancellationToken);
+        if (peopleExist.IsFailure)
+            return Result.Failure<ProjectTaskIdAndKey>(peopleExist.Error);
+
+        // Get the next task key number atomically using a database query with row locking
+        // This uses UPDLOCK and ROWLOCK to prevent race conditions when multiple tasks are created concurrently
+        // Alternatively, we would need to include existing tasks in the project aggregate and get the number there
+        var nextNumber = await _ppmDbContext.Database
+            .SqlQuery<int>($@"
+                SELECT ISNULL(MAX([Number]), 0) + 1 AS [Value]
+                FROM [Ppm].[ProjectTasks] WITH (UPDLOCK, ROWLOCK)
+                WHERE [ProjectId] = {request.ProjectId}")
+            .FirstOrDefaultAsync(cancellationToken);
+
+        // Create the task through the project
+        var createResult = project.CreateTask(
+            nextNumber,
+            request.Name,
+            request.Description,
+            request.Type,
+            request.Status,
+            request.Priority,
+            request.Progress,
+            request.ParentId,
+            request.PlannedDateRange,
+            request.PlannedDate,
+            request.EstimatedEffortHours,
+            roles
+        );
+
+        if (createResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<ProjectTaskIdAndKey>($"Error handling {AppRequestName} command.");
+            _logger.LogError("Error creating task {TaskName} for project {ProjectId}. Error: {Error}",
+                request.Name, request.ProjectId, createResult.Error);
+            return Result.Failure<ProjectTaskIdAndKey>(createResult.Error);
         }
+
+        var task = createResult.Value;
+
+        // Created last among its siblings, then moved into place in the same save, so no reader sees it last.
+        if (request.Order.HasValue)
+        {
+            var placeResult = project.ChangeTaskPlacement(task.Id, request.ParentId, request.Order);
+            if (placeResult.IsFailure)
+                return Result.Failure<ProjectTaskIdAndKey>(placeResult.Error);
+        }
+
+        if (deliverableIds.Count > 0)
+        {
+            var linkResult = project.SetTaskDeliverables(task.Id, deliverableIds);
+            if (linkResult.IsFailure)
+                return Result.Failure<ProjectTaskIdAndKey>(linkResult.Error);
+        }
+
+        await _ppmDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Project task {TaskId} created with Key {TaskKey} for project {ProjectId}.",
+            task.Id, task.Key.Value, request.ProjectId);
+
+        return Result.Success(new ProjectTaskIdAndKey(task.Id, task.Key.Value));
     }
 
     private static Dictionary<TaskRole, HashSet<Guid>> GetRoles(CreateProjectTaskCommand request)

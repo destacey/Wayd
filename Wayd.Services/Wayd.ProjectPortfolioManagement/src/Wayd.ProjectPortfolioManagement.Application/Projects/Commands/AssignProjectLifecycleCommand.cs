@@ -79,10 +79,5 @@ public sealed class AssignProjectLifecycleCommandHandler(
         {
             return Result.Failure(ProjectSaves.StaleError);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
-        }
     }
 }

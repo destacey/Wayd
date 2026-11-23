@@ -509,7 +509,10 @@ public class ProjectLifecycleTests
             ("Stage A", "First"),
             ("Stage B", "Second")
         ]);
-        var invalidIds = new List<Guid> { lifecycle.Stages.First().Id, Guid.NewGuid() };
+        var stageB = lifecycle.Stages.Single(s => s.Name == "Stage B");
+        var orders = lifecycle.Stages.Select(s => (s.Id, s.Order)).ToList();
+        // The known id comes first and would be renumbered before the unknown one is reached.
+        var invalidIds = new List<Guid> { stageB.Id, Guid.NewGuid() };
 
         // Act
         var result = lifecycle.ReorderStages(invalidIds);
@@ -517,6 +520,7 @@ public class ProjectLifecycleTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not found");
+        lifecycle.Stages.Select(s => (s.Id, s.Order)).Should().Equal(orders);
     }
 
     [Fact]

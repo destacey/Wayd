@@ -28,43 +28,33 @@ public sealed class UpdateProjectLifecycleCommandHandler(
     ILogger<UpdateProjectLifecycleCommandHandler> logger)
     : ICommandHandler<UpdateProjectLifecycleCommand>
 {
-    private const string AppRequestName = nameof(UpdateProjectLifecycleCommand);
-
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<UpdateProjectLifecycleCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateProjectLifecycleCommand request, CancellationToken cancellationToken)
     {
-        try
+        var lifecycle = await _projectPortfolioManagementDbContext.ProjectLifecycles
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+        if (lifecycle is null)
         {
-            var lifecycle = await _projectPortfolioManagementDbContext.ProjectLifecycles
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-            if (lifecycle is null)
-            {
-                _logger.LogInformation("Project Lifecycle {ProjectLifecycleId} not found.", request.Id);
-                return Result.Failure("Project Lifecycle not found.");
-            }
-
-            var updateResult = lifecycle.Update(
-                request.Name,
-                request.Description
-                );
-            if (updateResult.IsFailure)
-            {
-                _logger.LogError("Unable to update Project Lifecycle {ProjectLifecycleId}.  Error message: {Error}", lifecycle.Id, updateResult.Error);
-                return Result.Failure(updateResult.Error);
-            }
-
-            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Project Lifecycle {ProjectLifecycleId} updated.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Project Lifecycle {ProjectLifecycleId} not found.", request.Id);
+            return Result.Failure("Project Lifecycle not found.");
         }
-        catch (Exception ex)
+
+        var updateResult = lifecycle.Update(
+            request.Name,
+            request.Description
+            );
+        if (updateResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to update Project Lifecycle {ProjectLifecycleId}.  Error message: {Error}", lifecycle.Id, updateResult.Error);
+            return Result.Failure(updateResult.Error);
         }
+
+        await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Project Lifecycle {ProjectLifecycleId} updated.", request.Id);
+
+        return Result.Success();
     }
 }

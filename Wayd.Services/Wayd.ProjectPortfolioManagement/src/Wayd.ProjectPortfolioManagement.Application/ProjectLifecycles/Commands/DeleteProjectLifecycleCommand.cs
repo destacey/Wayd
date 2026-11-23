@@ -16,39 +16,30 @@ public sealed class DeleteProjectLifecycleCommandHandler(
     ILogger<DeleteProjectLifecycleCommandHandler> logger)
     : ICommandHandler<DeleteProjectLifecycleCommand>
 {
-    private const string AppRequestName = nameof(DeleteProjectLifecycleCommand);
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<DeleteProjectLifecycleCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeleteProjectLifecycleCommand request, CancellationToken cancellationToken)
     {
-        try
+        var lifecycle = await _projectPortfolioManagementDbContext.ProjectLifecycles
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+        if (lifecycle is null)
         {
-            var lifecycle = await _projectPortfolioManagementDbContext.ProjectLifecycles
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-            if (lifecycle is null)
-            {
-                _logger.LogInformation("Project Lifecycle {ProjectLifecycleId} not found.", request.Id);
-                return Result.Failure("Project Lifecycle not found.");
-            }
-
-            if (!lifecycle.CanBeDeleted())
-            {
-                _logger.LogInformation("Project Lifecycle {ProjectLifecycleId} cannot be deleted.", request.Id);
-                return Result.Failure("Project Lifecycle cannot be deleted.");
-            }
-
-            _projectPortfolioManagementDbContext.ProjectLifecycles.Remove(lifecycle);
-            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Project Lifecycle {ProjectLifecycleId} deleted.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Project Lifecycle {ProjectLifecycleId} not found.", request.Id);
+            return Result.Failure("Project Lifecycle not found.");
         }
-        catch (Exception ex)
+
+        if (!lifecycle.CanBeDeleted())
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogInformation("Project Lifecycle {ProjectLifecycleId} cannot be deleted.", request.Id);
+            return Result.Failure("Project Lifecycle cannot be deleted.");
         }
+
+        _projectPortfolioManagementDbContext.ProjectLifecycles.Remove(lifecycle);
+        await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Project Lifecycle {ProjectLifecycleId} deleted.", request.Id);
+
+        return Result.Success();
     }
 }

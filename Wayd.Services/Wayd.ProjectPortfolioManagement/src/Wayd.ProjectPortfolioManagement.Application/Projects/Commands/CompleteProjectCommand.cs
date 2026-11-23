@@ -51,10 +51,6 @@ public sealed class CompleteProjectCommandHandler(
             var completeResult = project.Complete(actor, project.AncestryRoles(), _dateTimeProvider.Now);
             if (completeResult.IsFailure)
             {
-                // Reset the entity
-                await _projectPortfolioManagementDbContext.Entry(project).ReloadAsync(cancellationToken);
-                project.ClearDomainEvents();
-
                 _logger.LogError("Unable to complete Project {ProjectId}.  Error message: {Error}", request.Id, completeResult.Error);
                 return Result.Failure(completeResult.Error);
             }
@@ -70,11 +66,6 @@ public sealed class CompleteProjectCommandHandler(
             // Another change to the project or its deliverables saved first — possibly reopening a deliverable
             // this check saw as closed.
             return Result.Failure(ProjectSaves.StaleError);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
         }
     }
 }

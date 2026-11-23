@@ -72,6 +72,36 @@ public abstract class StatusTrackedEntity : StatusHoldingEntity
     protected Result ApplyStatus(StatusRef status, EventActor actor, Instant timestamp, string? reason = null) =>
         ApplyStatus(status, actor, timestamp, reason, enforceTransitions: true);
 
+    /// <summary>
+    /// Whether the workflow allows a move to <paramref name="status"/> from the current status, without making it:
+    /// the checks <see cref="ApplyStatus(StatusRef, EventActor, Instant, string?)"/> applies, for a caller that
+    /// moves several records and must refuse before moving any.
+    /// </summary>
+    protected Result CheckStatusMove(StatusRef status, string? reason)
+    {
+        Guard.Against.Null(status, nameof(status));
+
+        if (!HasStatus || status.StatusId == StatusId)
+        {
+            return Result.Success();
+        }
+
+        if (status.AllowedFrom is { } allowedFrom && !allowedFrom.Contains(StatusId))
+        {
+            return Result.Failure($"The workflow does not allow a move from '{StatusName}' to '{status.Name}'.");
+        }
+
+        var missing = status.ConditionsFor(StatusId)
+            .Where(kind => !IsMet(kind, status, reason))
+            .Order()
+            .Select(kind => kind.DescribeMissing())
+            .ToList();
+
+        return missing.Count > 0
+            ? Result.Failure($"Moving from '{StatusName}' to '{status.Name}' needs {string.Join(" and ", missing)}.")
+            : Result.Success();
+    }
+
     private Result ApplyStatus(StatusRef status, EventActor actor, Instant timestamp, string? reason, bool enforceTransitions)
     {
         Guard.Against.Null(status, nameof(status));
@@ -84,22 +114,12 @@ public abstract class StatusTrackedEntity : StatusHoldingEntity
             return Result.Success();
         }
 
-        if (enforceTransitions && !isInitial)
+        if (enforceTransitions)
         {
-            if (status.AllowedFrom is { } allowedFrom && !allowedFrom.Contains(StatusId))
+            var allowed = CheckStatusMove(status, reason);
+            if (allowed.IsFailure)
             {
-                return Result.Failure($"The workflow does not allow a move from '{StatusName}' to '{status.Name}'.");
-            }
-
-            var missing = status.ConditionsFor(StatusId)
-                .Where(kind => !IsMet(kind, status, reason))
-                .Order()
-                .Select(kind => kind.DescribeMissing())
-                .ToList();
-
-            if (missing.Count > 0)
-            {
-                return Result.Failure($"Moving from '{StatusName}' to '{status.Name}' needs {string.Join(" and ", missing)}.");
+                return allowed;
             }
         }
 

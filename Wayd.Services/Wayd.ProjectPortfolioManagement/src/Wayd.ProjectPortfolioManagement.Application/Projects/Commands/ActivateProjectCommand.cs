@@ -49,10 +49,6 @@ public sealed class ActivateProjectCommandHandler(
             var activateResult = project.Activate(actor, project.AncestryRoles(), _dateTimeProvider.Now);
             if (activateResult.IsFailure)
             {
-                // Reset the entity
-                await _projectPortfolioManagementDbContext.Entry(project).ReloadAsync(cancellationToken);
-                project.ClearDomainEvents();
-
                 _logger.LogError("Unable to activate Project {ProjectId}.  Error message: {Error}", request.Id, activateResult.Error);
                 return Result.Failure(activateResult.Error);
             }
@@ -66,11 +62,6 @@ public sealed class ActivateProjectCommandHandler(
         catch (DbUpdateConcurrencyException)
         {
             return Result.Failure(ProjectSaves.StaleError);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
         }
     }
 }

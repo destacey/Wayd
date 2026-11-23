@@ -204,15 +204,16 @@ public sealed class ProjectLifecycle : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("Duplicate stage IDs are not allowed.");
         }
 
+        // Every id is resolved before any stage is renumbered, so a refusal leaves the order as it was.
+        var unknownIds = orderedStageIds.Where(id => !_stages.Any(s => s.Id == id)).ToList();
+        if (unknownIds.Count > 0)
+        {
+            return Result.Failure($"Stage with ID '{unknownIds[0]}' not found.");
+        }
+
         for (int i = 0; i < orderedStageIds.Count; i++)
         {
-            var stage = _stages.FirstOrDefault(p => p.Id == orderedStageIds[i]);
-            if (stage is null)
-            {
-                return Result.Failure($"Stage with ID '{orderedStageIds[i]}' not found.");
-            }
-
-            stage.Order = i + 1;
+            _stages.First(s => s.Id == orderedStageIds[i]).Order = i + 1;
         }
 
         return Result.Success();

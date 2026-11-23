@@ -18,47 +18,38 @@ public sealed class DeleteExpenditureCategoryCommandHandler(
     ILogger<DeleteExpenditureCategoryCommandHandler> logger)
     : ICommandHandler<DeleteExpenditureCategoryCommand>
 {
-    private const string AppRequestName = nameof(DeleteExpenditureCategoryCommand);
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<DeleteExpenditureCategoryCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(DeleteExpenditureCategoryCommand request, CancellationToken cancellationToken)
     {
-        try
+        var expenditureCategory = await _projectPortfolioManagementDbContext.ExpenditureCategories
+            .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
+        if (expenditureCategory is null)
         {
-            var expenditureCategory = await _projectPortfolioManagementDbContext.ExpenditureCategories
-                .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);
-            if (expenditureCategory is null)
-            {
-                _logger.LogInformation("Expenditure Category {ExpenditureCategoryId} not found.", request.Id);
-                return Result.Failure("Expenditure Category not found.");
-            }
-
-            if (!expenditureCategory.CanBeDeleted())
-            {
-                _logger.LogInformation("Expenditure Category {ExpenditureCategoryId} cannot be deleted.", request.Id);
-                return Result.Failure("Expenditure Category cannot be deleted.");
-            }
-
-            // Projects are assigned only Active categories, but nothing in the schema stops a project holding
-            // a Proposed one, and deleting it would then fail on the foreign key.
-            if (await _projectPortfolioManagementDbContext.Projects.AnyAsync(p => p.ExpenditureCategoryId == request.Id, cancellationToken))
-            {
-                _logger.LogInformation("Expenditure Category {ExpenditureCategoryId} is used by a project and cannot be deleted.", request.Id);
-                return Result.Failure("Expenditure Category is used by a project and cannot be deleted.");
-            }
-
-            _projectPortfolioManagementDbContext.ExpenditureCategories.Remove(expenditureCategory);
-            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Expenditure Category {ExpenditureCategoryId} deleted.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Expenditure Category {ExpenditureCategoryId} not found.", request.Id);
+            return Result.Failure("Expenditure Category not found.");
         }
-        catch (Exception ex)
+
+        if (!expenditureCategory.CanBeDeleted())
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<ObjectIdAndKey>($"Error handling {AppRequestName} command.");
+            _logger.LogInformation("Expenditure Category {ExpenditureCategoryId} cannot be deleted.", request.Id);
+            return Result.Failure("Expenditure Category cannot be deleted.");
         }
+
+        // Projects are assigned only Active categories, but nothing in the schema stops a project holding
+        // a Proposed one, and deleting it would then fail on the foreign key.
+        if (await _projectPortfolioManagementDbContext.Projects.AnyAsync(p => p.ExpenditureCategoryId == request.Id, cancellationToken))
+        {
+            _logger.LogInformation("Expenditure Category {ExpenditureCategoryId} is used by a project and cannot be deleted.", request.Id);
+            return Result.Failure("Expenditure Category is used by a project and cannot be deleted.");
+        }
+
+        _projectPortfolioManagementDbContext.ExpenditureCategories.Remove(expenditureCategory);
+        await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Expenditure Category {ExpenditureCategoryId} deleted.", request.Id);
+
+        return Result.Success();
     }
 }

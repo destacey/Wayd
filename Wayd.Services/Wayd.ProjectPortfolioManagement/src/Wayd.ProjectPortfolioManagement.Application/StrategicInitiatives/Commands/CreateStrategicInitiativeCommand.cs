@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Application.Models;
+﻿using Wayd.ProjectPortfolioManagement.Application.Common;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Events;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 
@@ -41,8 +42,6 @@ public sealed class CreateStrategicInitiativeCommandHandler(
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<CreateStrategicInitiativeCommand, ObjectIdAndKey>
 {
-    private const string AppRequestName = nameof(CreateStrategicInitiativeCommand);
-
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ILogger<CreateStrategicInitiativeCommandHandler> _logger = logger;
@@ -50,45 +49,40 @@ public sealed class CreateStrategicInitiativeCommandHandler(
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateStrategicInitiativeCommand request, CancellationToken cancellationToken)
     {
-        try
+        var portfolio = await _projectPortfolioManagementDbContext.Portfolios
+                .Include(p => p.StrategicInitiatives)
+                .FirstOrDefaultAsync(p => p.Id == request.PortfolioId, cancellationToken);
+        if (portfolio == null)
         {
-            var portfolio = await _projectPortfolioManagementDbContext.Portfolios
-                    .Include(p => p.StrategicInitiatives)
-                    .FirstOrDefaultAsync(p => p.Id == request.PortfolioId, cancellationToken);
-            if (portfolio == null)
-            {
-                _logger.LogInformation("Portfolio with Id {PortfolioId} not found.", request.PortfolioId);
-                return Result.Failure<ObjectIdAndKey>("Portfolio not found.");
-            }
-
-            var roles = GetRoles(request);
-
-            var createResult = portfolio.CreateStrategicInitiative(
-                request.Name,
-                request.Description,
-                request.DateRange,
-                roles,
-                EventActor.User(_currentUser.GetUserId()),
-                _dateTimeProvider.Now);
-            if (createResult.IsFailure)
-            {
-                _logger.LogError("Error creating strategic initiative {StrategicInitiativeName} for Portfolio {PortfolioId}. Error message: {Error}", request.Name, request.PortfolioId, createResult.Error);
-                return Result.Failure<ObjectIdAndKey>(createResult.Error);
-            }
-
-            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            var strategicInitiative = createResult.Value;
-
-            _logger.LogInformation("Strategic Initiative {StrategicInitiativeId} created with Key {StrategicInitiativeKey}.", strategicInitiative.Id, strategicInitiative.Key);
-
-            return new ObjectIdAndKey(strategicInitiative.Id, strategicInitiative.Key);
+            _logger.LogInformation("Portfolio with Id {PortfolioId} not found.", request.PortfolioId);
+            return Result.Failure<ObjectIdAndKey>("Portfolio not found.");
         }
-        catch (Exception ex)
+
+        var roles = GetRoles(request);
+        var peopleExist = await _projectPortfolioManagementDbContext.EnsureEmployeesExist(roles.Values.SelectMany(ids => ids), cancellationToken);
+        if (peopleExist.IsFailure)
+            return Result.Failure<ObjectIdAndKey>(peopleExist.Error);
+
+        var createResult = portfolio.CreateStrategicInitiative(
+            request.Name,
+            request.Description,
+            request.DateRange,
+            roles,
+            EventActor.User(_currentUser.GetUserId()),
+            _dateTimeProvider.Now);
+        if (createResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<ObjectIdAndKey>($"Error handling {AppRequestName} command.");
+            _logger.LogError("Error creating strategic initiative {StrategicInitiativeName} for Portfolio {PortfolioId}. Error message: {Error}", request.Name, request.PortfolioId, createResult.Error);
+            return Result.Failure<ObjectIdAndKey>(createResult.Error);
         }
+
+        await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        var strategicInitiative = createResult.Value;
+
+        _logger.LogInformation("Strategic Initiative {StrategicInitiativeId} created with Key {StrategicInitiativeKey}.", strategicInitiative.Id, strategicInitiative.Key);
+
+        return new ObjectIdAndKey(strategicInitiative.Id, strategicInitiative.Key);
     }
 
     private static Dictionary<StrategicInitiativeRole, HashSet<Guid>> GetRoles(CreateStrategicInitiativeCommand request)

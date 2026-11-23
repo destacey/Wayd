@@ -28,41 +28,31 @@ public sealed class AddProjectLifecycleStageCommandHandler(
     ILogger<AddProjectLifecycleStageCommandHandler> logger)
     : ICommandHandler<AddProjectLifecycleStageCommand, Guid>
 {
-    private const string AppRequestName = nameof(AddProjectLifecycleStageCommand);
-
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<AddProjectLifecycleStageCommandHandler> _logger = logger;
 
     public async Task<Result<Guid>> Handle(AddProjectLifecycleStageCommand request, CancellationToken cancellationToken)
     {
-        try
+        var lifecycle = await _projectPortfolioManagementDbContext.ProjectLifecycles
+            .Include(x => x.Stages)
+            .FirstOrDefaultAsync(r => r.Id == request.LifecycleId, cancellationToken);
+        if (lifecycle is null)
         {
-            var lifecycle = await _projectPortfolioManagementDbContext.ProjectLifecycles
-                .Include(x => x.Stages)
-                .FirstOrDefaultAsync(r => r.Id == request.LifecycleId, cancellationToken);
-            if (lifecycle is null)
-            {
-                _logger.LogInformation("Project Lifecycle {ProjectLifecycleId} not found.", request.LifecycleId);
-                return Result.Failure<Guid>("Project Lifecycle not found.");
-            }
-
-            var addResult = lifecycle.AddStage(request.Name, request.Description);
-            if (addResult.IsFailure)
-            {
-                _logger.LogError("Unable to add stage to Project Lifecycle {ProjectLifecycleId}.  Error message: {Error}", request.LifecycleId, addResult.Error);
-                return Result.Failure<Guid>(addResult.Error);
-            }
-
-            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Stage {StageId} added to Project Lifecycle {ProjectLifecycleId}.", addResult.Value.Id, request.LifecycleId);
-
-            return Result.Success(addResult.Value.Id);
+            _logger.LogInformation("Project Lifecycle {ProjectLifecycleId} not found.", request.LifecycleId);
+            return Result.Failure<Guid>("Project Lifecycle not found.");
         }
-        catch (Exception ex)
+
+        var addResult = lifecycle.AddStage(request.Name, request.Description);
+        if (addResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure<Guid>($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to add stage to Project Lifecycle {ProjectLifecycleId}.  Error message: {Error}", request.LifecycleId, addResult.Error);
+            return Result.Failure<Guid>(addResult.Error);
         }
+
+        await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Stage {StageId} added to Project Lifecycle {ProjectLifecycleId}.", addResult.Value.Id, request.LifecycleId);
+
+        return Result.Success(addResult.Value.Id);
     }
 }

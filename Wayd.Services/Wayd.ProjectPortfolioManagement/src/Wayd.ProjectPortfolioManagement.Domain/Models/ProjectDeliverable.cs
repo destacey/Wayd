@@ -155,7 +155,11 @@ public sealed class ProjectDeliverable : StatusTrackedEntity
     /// <param name="status">A status of the workflow governing the deliverable, resolved by the caller.</param>
     /// <param name="reason">Why; required where <see cref="NeedsReason"/> says so.</param>
     /// <param name="actorEmployeeId">The acting employee, recorded as the acceptor; null for the system.</param>
-    internal Result MoveTo(StatusRef status, string? reason, Guid? actorEmployeeId, EventActor actor, Instant timestamp)
+    /// <summary>
+    /// Whether <see cref="MoveTo"/> would accept the move, without making it, so a caller moving several
+    /// deliverables refuses before it moves any.
+    /// </summary>
+    internal Result CanMoveTo(StatusRef status, string? reason)
     {
         Guard.Against.Null(status, nameof(status));
 
@@ -164,6 +168,15 @@ public sealed class ProjectDeliverable : StatusTrackedEntity
 
         if (NeedsReason(status.Category) && string.IsNullOrWhiteSpace(reason))
             return Result.Failure($"Moving a deliverable to '{status.Name}' needs a reason.");
+
+        return CheckStatusMove(status, reason.NullIfWhiteSpacePlusTrim());
+    }
+
+    internal Result MoveTo(StatusRef status, string? reason, Guid? actorEmployeeId, EventActor actor, Instant timestamp)
+    {
+        var allowed = CanMoveTo(status, reason);
+        if (allowed.IsFailure)
+            return allowed;
 
         var applied = ApplyStatus(status, actor, timestamp, reason.NullIfWhiteSpacePlusTrim());
         if (applied.IsFailure)

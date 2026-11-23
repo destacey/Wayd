@@ -49,10 +49,6 @@ public sealed class ApproveProjectCommandHandler(
             var approveResult = project.Approve(actor, project.AncestryRoles(), _dateTimeProvider.Now);
             if (approveResult.IsFailure)
             {
-                // Reset the entity
-                await _projectPortfolioManagementDbContext.Entry(project).ReloadAsync(cancellationToken);
-                project.ClearDomainEvents();
-
                 _logger.LogError("Unable to approve Project {ProjectId}.  Error message: {Error}", request.Id, approveResult.Error);
                 return Result.Failure(approveResult.Error);
             }
@@ -66,11 +62,6 @@ public sealed class ApproveProjectCommandHandler(
         catch (DbUpdateConcurrencyException)
         {
             return Result.Failure(ProjectSaves.StaleError);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
         }
     }
 }

@@ -80,9 +80,6 @@ public sealed class UpdateProjectHealthCheckCommandHandler(
 
         if (updateResult.IsFailure)
         {
-            await _ppmDbContext.Entry(project).ReloadAsync(cancellationToken);
-            project.ClearDomainEvents();
-
             _logger.LogError("Unable to update health check {HealthCheckId} on project {ProjectId}. Error: {Error}", request.HealthCheckId, request.ProjectId, updateResult.Error);
             return Result.Failure<ProjectHealthCheckDetailsDto>(updateResult.Error);
         }

@@ -866,6 +866,13 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
             foreach (var deliverable in open)
             {
+                var allowed = deliverable.CanMoveTo(descopedStatus, CanceledDeliverableReason);
+                if (allowed.IsFailure)
+                    return allowed;
+            }
+
+            foreach (var deliverable in open)
+            {
                 var moved = MoveDeliverable(deliverable, descopedStatus, CanceledDeliverableReason, actor, timestamp);
                 if (moved.IsFailure)
                     return moved;

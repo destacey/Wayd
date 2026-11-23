@@ -66,10 +66,6 @@ public sealed class ChangeProjectKeyCommandHandler(
             var changeResult = project.ChangeKey(actor, project.AncestryRoles(), newKey, _dateTimeProvider.Now);
             if (changeResult.IsFailure)
             {
-                // Reset the entity
-                await _projectPortfolioManagementDbContext.Entry(project).ReloadAsync(cancellationToken);
-                project.ClearDomainEvents();
-
                 _logger.LogError("Unable to change the key for project {ProjectId}.  Error message: {Error}", request.Id, changeResult.Error);
                 return Result.Failure(changeResult.Error);
             }
@@ -83,11 +79,6 @@ public sealed class ChangeProjectKeyCommandHandler(
         catch (DbUpdateConcurrencyException)
         {
             return Result.Failure(ProjectSaves.StaleError);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
         }
     }
 }

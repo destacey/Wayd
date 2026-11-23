@@ -36,50 +36,40 @@ public sealed class UpdateProjectTaskPlacementCommandHandler(
     ILogger<UpdateProjectTaskPlacementCommandHandler> logger)
     : ICommandHandler<UpdateProjectTaskPlacementCommand>
 {
-    private const string AppRequestName = nameof(UpdateProjectTaskPlacementCommand);
-
     private readonly IProjectPortfolioManagementDbContext _ppmDbContext = ppmDbContext;
     private readonly ILogger<UpdateProjectTaskPlacementCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateProjectTaskPlacementCommand request, CancellationToken cancellationToken)
     {
-        try
+        var taskExists = await _ppmDbContext.ProjectTasks
+        .AnyAsync(t => t.Id == request.TaskId, cancellationToken);
+        if (!taskExists)
         {
-            var taskExists = await _ppmDbContext.ProjectTasks
-            .AnyAsync(t => t.Id == request.TaskId, cancellationToken);
-            if (!taskExists)
-            {
-                _logger.LogInformation("Project Task {TaskId} not found.", request.TaskId);
-                return Result.Failure($"Project Task not found.");
-            }
-
-            var project = await _ppmDbContext.Projects
-                .Include(p => p.Stages)
-                .Include(p => p.Tasks)
-                .FirstOrDefaultAsync(p => p.Id == request.ProjectId, cancellationToken);
-            if (project is null)
-            {
-                _logger.LogInformation("Project {ProjectId} not found.", request.ProjectId);
-                return Result.Failure($"Project {request.ProjectId} not found.");
-            }
-
-            var changeResult = project.ChangeTaskPlacement(request.TaskId, request.ParentId, request.Order);
-            if (changeResult.IsFailure)
-            {
-                _logger.LogError("Error changing placement for task {TaskId}. Error: {Error}", request.TaskId, changeResult.Error);
-                return changeResult;
-            }
-
-            await _ppmDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Successfully changed placement for task {TaskId} and parent {ParentId}.", request.TaskId, request.ParentId);
-
-            return Result.Success();
+            _logger.LogInformation("Project Task {TaskId} not found.", request.TaskId);
+            return Result.Failure($"Project Task not found.");
         }
-        catch (Exception ex)
+
+        var project = await _ppmDbContext.Projects
+            .Include(p => p.Stages)
+            .Include(p => p.Tasks)
+            .FirstOrDefaultAsync(p => p.Id == request.ProjectId, cancellationToken);
+        if (project is null)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogInformation("Project {ProjectId} not found.", request.ProjectId);
+            return Result.Failure($"Project {request.ProjectId} not found.");
         }
+
+        var changeResult = project.ChangeTaskPlacement(request.TaskId, request.ParentId, request.Order);
+        if (changeResult.IsFailure)
+        {
+            _logger.LogError("Error changing placement for task {TaskId}. Error: {Error}", request.TaskId, changeResult.Error);
+            return changeResult;
+        }
+
+        await _ppmDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Successfully changed placement for task {TaskId} and parent {ParentId}.", request.TaskId, request.ParentId);
+
+        return Result.Success();
     }
 }

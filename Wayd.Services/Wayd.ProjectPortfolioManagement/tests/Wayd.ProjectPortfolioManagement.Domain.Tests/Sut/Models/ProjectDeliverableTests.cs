@@ -619,6 +619,29 @@ public sealed class ProjectDeliverableTests
     }
 
     [Fact]
+    public void Cancel_WhenALaterDeliverableCannotBeDescoped_ChangesNothing()
+    {
+        // Arrange — the workflow allows Descoped only from Not started, so the in-progress one refuses
+        var project = ActiveProject();
+        var notStarted = Add(project, "Not started");
+        var inProgress = Add(project, "In progress");
+        Move(project, inProgress, _statuses.InProgress);
+        var revision = project.Revision;
+        var restrictedDescoped = _statuses.Descoped with { AllowedFrom = new HashSet<Guid> { _statuses.NotStarted.StatusId } };
+
+        // Act
+        var result = project.Cancel(Owner, NoProjectAncestry(), Now, descopedStatus: restrictedDescoped);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("does not allow a move");
+        project.Status.Should().Be(ProjectStatus.Active);
+        notStarted.StatusId.Should().Be(_statuses.NotStarted.StatusId);
+        inProgress.StatusId.Should().Be(_statuses.InProgress.StatusId);
+        project.Revision.Should().Be(revision);
+    }
+
+    [Fact]
     public void Cancel_WhenNoDeliverableOpen_NeedsNoDescopedStatus()
     {
         // Arrange

@@ -16,45 +16,32 @@ public sealed class ActivateProjectLifecycleCommandHandler(
     ILogger<ActivateProjectLifecycleCommandHandler> logger)
     : ICommandHandler<ActivateProjectLifecycleCommand>
 {
-    private const string AppRequestName = nameof(ActivateProjectLifecycleCommand);
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
     private readonly ILogger<ActivateProjectLifecycleCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(ActivateProjectLifecycleCommand request, CancellationToken cancellationToken)
     {
-        try
+        var lifecycle = await _projectPortfolioManagementDbContext.ProjectLifecycles
+            .Include(x => x.Stages)
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+        if (lifecycle is null)
         {
-            var lifecycle = await _projectPortfolioManagementDbContext.ProjectLifecycles
-                .Include(x => x.Stages)
-                .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
-            if (lifecycle is null)
-            {
-                _logger.LogInformation("Project Lifecycle {ProjectLifecycleId} not found.", request.Id);
-                return Result.Failure("Project Lifecycle not found.");
-            }
-
-            var activateResult = lifecycle.Activate();
-            if (activateResult.IsFailure)
-            {
-                // Reset the entity
-                await _projectPortfolioManagementDbContext.Entry(lifecycle).ReloadAsync(cancellationToken);
-                lifecycle.ClearDomainEvents();
-
-                _logger.LogError("Unable to activate Project Lifecycle {ProjectLifecycleId}.  Error message: {Error}", request.Id, activateResult.Error);
-
-                return Result.Failure(activateResult.Error);
-            }
-
-            await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Project Lifecycle {ProjectLifecycleId} activated.", request.Id);
-
-            return Result.Success();
+            _logger.LogInformation("Project Lifecycle {ProjectLifecycleId} not found.", request.Id);
+            return Result.Failure("Project Lifecycle not found.");
         }
-        catch (Exception ex)
+
+        var activateResult = lifecycle.Activate();
+        if (activateResult.IsFailure)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
-            return Result.Failure($"Error handling {AppRequestName} command.");
+            _logger.LogError("Unable to activate Project Lifecycle {ProjectLifecycleId}.  Error message: {Error}", request.Id, activateResult.Error);
+
+            return Result.Failure(activateResult.Error);
         }
+
+        await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Project Lifecycle {ProjectLifecycleId} activated.", request.Id);
+
+        return Result.Success();
     }
 }

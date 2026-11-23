@@ -1,4 +1,6 @@
 ﻿using FluentAssertions;
+using Wayd.Common.Application.Exceptions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime.Extensions;
@@ -6,6 +8,7 @@ using NodaTime.Testing;
 using Wayd.Common.Application.Attachments;
 using Wayd.Common.Application.Interfaces;
 using Wayd.ProjectPortfolioManagement.Application.Common;
+using Wayd.ProjectPortfolioManagement.Application.Projects;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
@@ -101,6 +104,55 @@ public class UpdateProjectCommandHandlerTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         project.Name.Should().Be("Renamed");
         _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFail_WhenAStrategicThemeDoesNotExist()
+    {
+        // Arrange — each theme is a foreign key to the replica, so an unknown one would otherwise fail at the database
+        var project = ProjectWithPortfolio(ProjectRole.Owner);
+        _dbContext.AddProject(project);
+        var command = CommandFor(project) with { StrategicThemeIds = [Guid.NewGuid()] };
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("One or more Strategic Themes not found.");
+        project.StrategicThemeTags.Should().BeEmpty();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReportAStaleProject_WhenAnotherSaveChangedItFirst()
+    {
+        // Arrange
+        var project = ProjectWithPortfolio(ProjectRole.Owner);
+        _dbContext.AddProject(project);
+        _dbContext.SaveException = new DbUpdateConcurrencyException();
+
+        // Act
+        var result = await _handler.Handle(CommandFor(project), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(ProjectSaves.StaleError);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldLetAnyOtherSaveFailurePropagate()
+    {
+        // Arrange — only a concurrency conflict is an answer; anything else is a bug for the error handler
+        var project = ProjectWithPortfolio(ProjectRole.Owner);
+        _dbContext.AddProject(project);
+        _dbContext.SaveException = new InvalidOperationException("save failed");
+
+        // Act
+        var act = () => _handler.Handle(CommandFor(project), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("save failed");
     }
 
     [Fact]
@@ -256,7 +308,7 @@ public class UpdateProjectCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_ShouldFail_WhenUserHasNoLinkedEmployee()
+    public async Task Handle_ShouldBeForbidden_WhenUserHasNoLinkedEmployee()
     {
         // Arrange — every managed PPM action must be attributable to an employee.
         _mockCurrentPrincipal
@@ -267,10 +319,10 @@ public class UpdateProjectCommandHandlerTests : IDisposable
         _dbContext.AddProject(project);
 
         // Act
-        var result = await _handler.Handle(CommandFor(project), TestContext.Current.CancellationToken);
+        var act = () => _handler.Handle(CommandFor(project), TestContext.Current.CancellationToken);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
+        await act.Should().ThrowAsync<ForbiddenException>().WithMessage("*isn't linked to an employee record*");
         project.Name.Should().Be("Original");
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }

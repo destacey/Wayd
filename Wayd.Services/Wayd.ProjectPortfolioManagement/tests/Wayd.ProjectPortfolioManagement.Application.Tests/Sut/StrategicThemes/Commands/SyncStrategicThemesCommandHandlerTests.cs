@@ -88,4 +88,18 @@ public sealed class SyncStrategicThemesCommandHandlerTests : IDisposable
         // Assert
         _ppmContext.PpmStrategicThemes.Single(t => t.Id == id).State.Should().Be(StrategicThemeState.Archived);
     }
+
+    [Fact]
+    public async Task Handle_WhenTheSaveFails_LetsTheFailurePropagate()
+    {
+        // Arrange — a sync that swallowed this would report success with nothing written.
+        _ppmContext.SaveException = new InvalidOperationException("The database is unavailable.");
+
+        // Act
+        var act = () => _handler.Handle(new SyncStrategicThemesCommand([new StrategicThemeFaker().Generate()], Read), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("The database is unavailable.");
+        _ppmContext.SaveChangesCallCount.Should().Be(1);
+    }
 }

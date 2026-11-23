@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
@@ -8,6 +9,7 @@ using Wayd.Common.Application.Kpis;
 using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Events;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
+using Wayd.ProjectPortfolioManagement.Application.Projects;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
@@ -84,6 +86,22 @@ public sealed class DeleteProgramCommandHandlerTests : IDisposable
         _linkWriter.Verify(w => w.RemoveAll(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Never);
         _kpiWriter.Verify(w => w.RemoveAll(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<EventActor>(), It.IsAny<CancellationToken>()), Times.Never);
         _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReportAStaleSave_WhenAnotherSaveChangedAProjectFirst()
+    {
+        // Arrange
+        var program = SeedProgram(proposed: true);
+        _dbContext.SaveException = new DbUpdateConcurrencyException();
+
+        // Act
+        var result = await CreateHandler().Handle(new DeleteProgramCommand(program.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(ProjectSaves.StaleError);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     public void Dispose() => _dbContext.Dispose();

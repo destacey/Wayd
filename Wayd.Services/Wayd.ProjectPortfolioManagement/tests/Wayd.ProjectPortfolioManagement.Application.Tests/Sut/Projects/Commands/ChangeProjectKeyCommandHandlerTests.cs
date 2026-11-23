@@ -1,9 +1,11 @@
 ﻿using FluentAssertions;
-using Wayd.Common.Application.Exceptions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.Common;
+using Wayd.ProjectPortfolioManagement.Application.Projects;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Validators;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
@@ -90,6 +92,25 @@ public class ChangeProjectKeyCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_ShouldReportAStaleProject_WhenAnotherSaveChangedItFirst()
+    {
+        // Arrange
+        var project = _projectFaker.Generate();
+        _dbContext.AddProject(project);
+        _dbContext.SaveException = new DbUpdateConcurrencyException();
+
+        var command = new ChangeProjectKeyCommand(project.Id, new ProjectKey("CHANGED"));
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(ProjectSaves.StaleError);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
     public async Task Handle_ShouldThrowKeyTakenConflict_WhenAnotherProjectSavedTheKeyFirst()
     {
         // Arrange
@@ -105,6 +126,29 @@ public class ChangeProjectKeyCommandHandlerTests : IDisposable
         // Assert
         (await act.Should().ThrowAsync<ConflictException>()).WithMessage(ProjectKeyValidator.KeyTakenError);
         _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldBeForbidden_WhenUserHasNoLinkedEmployee()
+    {
+        // Arrange — every managed PPM action must be attributable to an employee.
+        _mockCurrentPrincipal
+            .Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid?)null);
+
+        var project = _projectFaker.Generate();
+        _dbContext.AddProject(project);
+        var originalKey = project.Key;
+
+        var command = new ChangeProjectKeyCommand(project.Id, new ProjectKey("CHANGED"));
+
+        // Act
+        var act = () => _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>().WithMessage("*isn't linked to an employee record*");
+        project.Key.Should().Be(originalKey);
+        _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 
     public void Dispose()

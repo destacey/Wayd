@@ -292,6 +292,17 @@ public sealed class StrategicInitiative : BaseAuditableEntity, IHasIdAndKey
         return Result.Success();
     }
 
+    /// <summary>
+    /// Unlinks every project, as part of deleting the initiative.
+    /// </summary>
+    /// <remarks>
+    /// The links reference the initiative with no database cascade (SQL Server refuses a second cascade path from
+    /// the portfolio, via its projects), so they must be removed before the initiative is. The caller must load
+    /// <see cref="StrategicInitiativeProjects"/>: unloaded, this clears nothing and the save fails on the foreign
+    /// key. Raises no event of its own: the deletion event is the fact.
+    /// </remarks>
+    internal void RemoveAllProjects() => _strategicInitiativeProjects.Clear();
+
     #endregion Projects
 
     /// <summary>

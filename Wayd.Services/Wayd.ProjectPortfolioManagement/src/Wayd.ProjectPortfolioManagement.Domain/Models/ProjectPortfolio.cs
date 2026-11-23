@@ -1027,6 +1027,7 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("The strategic initiative cannot be deleted.");
         }
 
+        strategicInitiative.RemoveAllProjects();
         _strategicInitiatives.Remove(strategicInitiative);
 
         AddDomainEvent(new StrategicInitiativeDeletedEvent(

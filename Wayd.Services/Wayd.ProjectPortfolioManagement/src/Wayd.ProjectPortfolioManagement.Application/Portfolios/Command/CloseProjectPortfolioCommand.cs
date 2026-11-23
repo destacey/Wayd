@@ -33,7 +33,11 @@ public sealed class CloseProjectPortfolioCommandHandler(
         var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
         var portfolio = await _projectPortfolioManagementDbContext.Portfolios
+            .AsSplitQuery()
             .Include(p => p.Roles)
+            // Close refuses while a program or project is open; unloaded, the children read as none.
+            .Include(p => p.Programs)
+            .Include(p => p.Projects)
             .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
         if (portfolio is null)
         {

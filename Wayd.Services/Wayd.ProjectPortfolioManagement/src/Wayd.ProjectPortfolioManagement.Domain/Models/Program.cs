@@ -323,7 +323,8 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     }
 
     /// <summary>
-    /// Marks the program as completed on behalf of an actor who must be authorized to manage it.
+    /// Marks the program as completed on behalf of an actor who must be authorized to manage it. Refused while
+    /// any project is open; needs <see cref="Projects"/> loaded.
     /// </summary>
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="ancestry">Role assignments on the parent portfolio.</param>
@@ -356,7 +357,8 @@ public sealed class Program : BaseAuditableEntity, IHasIdAndKey, ISimpleProgram
     }
 
     /// <summary>
-    /// Cancels the program on behalf of an actor who must be authorized to manage it.
+    /// Cancels the program on behalf of an actor who must be authorized to manage it. An active program is refused
+    /// while any project is open; needs <see cref="Projects"/> loaded.
     /// </summary>
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="ancestry">Role assignments on the parent portfolio.</param>

@@ -620,7 +620,8 @@ public sealed class ProjectPortfolio : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Closes the portfolio on behalf of an actor who must be authorized to manage it.
+    /// Closes the portfolio on behalf of an actor who must be authorized to manage it. Refused while any program or
+    /// project is open; needs <see cref="Programs"/> and <see cref="Projects"/> loaded.
     /// </summary>
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="endDate">The date the portfolio closes.</param>

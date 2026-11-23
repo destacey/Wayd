@@ -34,6 +34,8 @@ public sealed class CompleteProgramCommandHandler(
             .AsSplitQuery()
             .Include(p => p.Roles)
             .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
+            // An active program refuses to complete while a project is open; unloaded, the projects read as none.
+            .Include(p => p.Projects)
             .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
         if (program is null)
         {

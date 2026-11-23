@@ -88,4 +88,18 @@ public sealed class SyncPpmTeamsCommandHandlerTests : IDisposable
         // Assert
         _dbContext.PpmTeams.Single(t => t.Id == id).IsActive.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task Handle_WhenTheSaveFails_LetsTheFailurePropagate()
+    {
+        // Arrange — a sync that swallowed this would report success with nothing written.
+        _dbContext.SaveException = new InvalidOperationException("The database is unavailable.");
+
+        // Act
+        var act = () => _handler.Handle(new SyncPpmTeamsCommand([new PpmTeamFaker().Generate()], Read), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("The database is unavailable.");
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
 }

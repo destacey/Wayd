@@ -1446,6 +1446,28 @@ public class ProjectPortfolioTests
     }
 
     [Fact]
+    public void DeleteStrategicInitiative_WithLinkedProjects_UnlinksThemWithoutAnEventOfTheirOwn()
+    {
+        // Arrange
+        var portfolio = _portfolioFaker.AsActive(_dateTimeProvider);
+        var dateRange = new LocalDateRange(_dateTimeProvider.Now.InUtc().Date, _dateTimeProvider.Now.InUtc().Date.PlusDays(90));
+        var initiative = portfolio.CreateStrategicInitiative(
+            "Cloud Migration", "Move the estate", dateRange, null, EventActor.System, _dateTimeProvider.Now).Value;
+        initiative.AddProjects(2, _dateTimeProvider);
+        portfolio.ClearDomainEvents();
+        initiative.ClearDomainEvents();
+
+        // Act
+        var result = portfolio.DeleteStrategicInitiative(initiative.Id, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        initiative.StrategicInitiativeProjects.Should().BeEmpty();
+        initiative.DomainEvents.Should().BeEmpty();
+        portfolio.DomainEvents.OfType<StrategicInitiativeDeletedEvent>().Should().ContainSingle();
+    }
+
+    [Fact]
     public void DeleteStrategicInitiative_ShouldFail_WhenInitiativeIsNotInPortfolio()
     {
         // Arrange

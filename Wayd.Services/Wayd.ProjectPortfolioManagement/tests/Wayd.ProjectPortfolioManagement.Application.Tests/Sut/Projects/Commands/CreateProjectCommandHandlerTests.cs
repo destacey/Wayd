@@ -237,7 +237,7 @@ public class CreateProjectCommandHandlerTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Key.Should().NotBeNull();
-        _dbContext.SaveChangesCallCount.Should().Be(2); // one for project, one for lifecycle assignment
+        _dbContext.SaveChangesCallCount.Should().Be(1);
 
         var project = portfolio.Projects.First();
         project.ProjectLifecycleId.Should().Be(lifecycle.Id);
@@ -263,6 +263,9 @@ public class CreateProjectCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("Project Lifecycle not found.");
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+        portfolio.Projects.Should().BeEmpty();
+        _markdownAttachments.Verify(a => a.CopyForeign(It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<IReadOnlyList<string?>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -287,6 +290,9 @@ public class CreateProjectCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("Only active lifecycles");
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+        portfolio.Projects.Should().BeEmpty();
+        _markdownAttachments.Verify(a => a.CopyForeign(It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<IReadOnlyList<string?>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     public void Dispose()

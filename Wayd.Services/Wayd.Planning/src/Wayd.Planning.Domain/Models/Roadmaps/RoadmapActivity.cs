@@ -166,9 +166,15 @@ public sealed class RoadmapActivity : BaseRoadmapItem
     /// behavior used when a parent's date range is moved without changing its duration.
     /// </summary>
     /// <param name="days"></param>
-    internal void ShiftDates(int days)
+    internal void ShiftDates(int days) => ShiftDates(days, []);
+
+    /// <summary>
+    /// Shifts this Activity and its subtree, visiting each item once, so a parent chain saved with a loop in it ends
+    /// the shift instead of overflowing the stack.
+    /// </summary>
+    private void ShiftDates(int days, HashSet<Guid> visited)
     {
-        if (days == 0)
+        if (days == 0 || !visited.Add(Id))
         {
             return;
         }
@@ -180,7 +186,7 @@ public sealed class RoadmapActivity : BaseRoadmapItem
             switch (child)
             {
                 case RoadmapActivity activity:
-                    activity.ShiftDates(days);
+                    activity.ShiftDates(days, visited);
                     break;
                 case RoadmapTimebox timebox:
                     timebox.ShiftDates(days);
@@ -199,9 +205,15 @@ public sealed class RoadmapActivity : BaseRoadmapItem
     /// never shrunk below its own stored range. When the range changes, the new range bubbles up
     /// to ancestor Activities so the whole branch stays consistent up to the root.
     /// </summary>
-    internal void RecalculateDateRangeFromChildren()
+    internal void RecalculateDateRangeFromChildren() => RecalculateDateRangeFromChildren([]);
+
+    /// <summary>
+    /// Recalculates this Activity's range and bubbles up, visiting each Activity once, so a parent chain saved with a
+    /// loop in it ends the walk instead of relying on the ranges eventually stopping growing.
+    /// </summary>
+    private void RecalculateDateRangeFromChildren(HashSet<Guid> visited)
     {
-        if (_children.Count == 0)
+        if (_children.Count == 0 || !visited.Add(Id))
         {
             return;
         }
@@ -233,7 +245,7 @@ public sealed class RoadmapActivity : BaseRoadmapItem
 
         DateRange = new LocalDateRange(newStart, newEnd);
 
-        Parent?.RecalculateDateRangeFromChildren();
+        Parent?.RecalculateDateRangeFromChildren(visited);
     }
 
     /// <summary>
@@ -416,22 +428,30 @@ public sealed class RoadmapActivity : BaseRoadmapItem
     }
 
     /// <summary>
-    /// Gets the Roadmap Activity and all of its descendants.
+    /// Gets the ids of the Roadmap Activity and all of its descendants, in no particular order.
     /// </summary>
-    /// <returns></returns>
     internal List<Guid> GetSelfAndDescendants()
     {
-        var ids = new List<Guid> { Id };
+        // Walked with a visited set rather than recursively, so a parent chain saved with a loop in it ends the walk
+        // instead of overflowing the stack.
+        var ids = new List<Guid>();
+        var visited = new HashSet<Guid>();
+        var pending = new Stack<BaseRoadmapItem>([this]);
 
-        foreach (var child in _children)
+        while (pending.TryPop(out var item))
         {
-            if (child is RoadmapActivity roadmapActivity)
+            if (!visited.Add(item.Id))
             {
-                ids.AddRange(roadmapActivity.GetSelfAndDescendants());
+                continue;
             }
-            else
+
+            ids.Add(item.Id);
+            if (item is RoadmapActivity activity)
             {
-                ids.Add(child.Id);
+                foreach (var child in activity._children)
+                {
+                    pending.Push(child);
+                }
             }
         }
 

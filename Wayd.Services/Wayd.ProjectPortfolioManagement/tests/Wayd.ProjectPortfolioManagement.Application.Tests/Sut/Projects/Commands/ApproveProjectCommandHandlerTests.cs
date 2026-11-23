@@ -1,8 +1,10 @@
 ﻿using FluentAssertions;
 using Wayd.Common.Application.Exceptions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Interfaces;
 using Wayd.ProjectPortfolioManagement.Application.Common;
+using Wayd.ProjectPortfolioManagement.Application.Projects;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
@@ -213,28 +215,41 @@ public class ApproveProjectCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_ShouldFail_WhenProjectIsActive()
+    public async Task Handle_ShouldReportAStaleProject_WhenAnotherSaveChangedItFirst()
     {
         // Arrange
-        var project = _projectFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
+        var project = _projectFaker.AsProposed(_dateTimeProvider, Guid.NewGuid());
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, new ProjectLifecycleFaker().AsActiveWithStages(("Plan", "Planning")), _dateTimeProvider.Now);
         _dbContext.AddProject(project);
+        _dbContext.SaveException = new DbUpdateConcurrencyException();
 
         var command = new ApproveProjectCommand(project.Id);
 
-        // Act & Assert - the handler calls Entry().ReloadAsync() on failure which throws in fake context
-        var act = () => _handler.Handle(command, TestContext.Current.CancellationToken);
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
 
-        // The handler catches the NotImplementedException from Entry() and returns a generic error
-        var result = await act();
+        // Assert
         result.IsFailure.Should().BeTrue();
-        _dbContext.SaveChangesCallCount.Should().Be(0);
+        result.Error.Should().Be(ProjectSaves.StaleError);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 
-    [Fact]
-    public async Task Handle_ShouldFail_WhenProjectIsCompleted()
+    [Theory]
+    [InlineData(ProjectStatus.Approved)]
+    [InlineData(ProjectStatus.Active)]
+    [InlineData(ProjectStatus.Completed)]
+    [InlineData(ProjectStatus.Canceled)]
+    public async Task Handle_ShouldFail_WhenProjectIsNotProposed(ProjectStatus status)
     {
         // Arrange
-        var project = _projectFaker.AsCompleted(_dateTimeProvider, Guid.NewGuid());
+        var project = status switch
+        {
+            ProjectStatus.Approved => _projectFaker.AsApproved(_dateTimeProvider, Guid.NewGuid()),
+            ProjectStatus.Active => _projectFaker.AsActive(_dateTimeProvider, Guid.NewGuid()),
+            ProjectStatus.Completed => _projectFaker.AsCompleted(_dateTimeProvider, Guid.NewGuid()),
+            ProjectStatus.Canceled => _projectFaker.AsCanceled(_dateTimeProvider, Guid.NewGuid()),
+            _ => throw new ArgumentOutOfRangeException(nameof(status), status, null),
+        };
         _dbContext.AddProject(project);
 
         var command = new ApproveProjectCommand(project.Id);
@@ -242,42 +257,10 @@ public class ApproveProjectCommandHandlerTests : IDisposable
         // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
 
-        // Assert - handler catches NotImplementedException from Entry() and returns generic error
+        // Assert
         result.IsFailure.Should().BeTrue();
-        _dbContext.SaveChangesCallCount.Should().Be(0);
-    }
-
-    [Fact]
-    public async Task Handle_ShouldFail_WhenProjectIsCanceled()
-    {
-        // Arrange
-        var project = _projectFaker.AsCanceled(_dateTimeProvider, Guid.NewGuid());
-        _dbContext.AddProject(project);
-
-        var command = new ApproveProjectCommand(project.Id);
-
-        // Act
-        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
-
-        // Assert - handler catches NotImplementedException from Entry() and returns generic error
-        result.IsFailure.Should().BeTrue();
-        _dbContext.SaveChangesCallCount.Should().Be(0);
-    }
-
-    [Fact]
-    public async Task Handle_ShouldFail_WhenProjectIsAlreadyApproved()
-    {
-        // Arrange
-        var project = _projectFaker.AsApproved(_dateTimeProvider, Guid.NewGuid());
-        _dbContext.AddProject(project);
-
-        var command = new ApproveProjectCommand(project.Id);
-
-        // Act
-        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
-
-        // Assert - handler catches NotImplementedException from Entry() and returns generic error
-        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only proposed projects can be approved.");
+        project.Status.Should().Be(status);
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 

@@ -1,9 +1,11 @@
 using FluentAssertions;
 using Wayd.Common.Application.Exceptions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Application.Common;
+using Wayd.ProjectPortfolioManagement.Application.Projects;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
@@ -207,13 +209,33 @@ public class RevertProjectStatusCommandHandlerTests : IDisposable
 
         var command = new RevertProjectStatusCommand(project.Id, ProjectStatus.Completed, ARevertReason);
 
-        // Act — the handler calls Entry().ReloadAsync() on failure, which the fake context does not
-        // implement; the catch-all converts it to a failure result either way.
+        // Act
         var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("cannot be reverted to Completed");
+        project.Status.Should().Be(ProjectStatus.Active);
         _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReportAStaleProject_WhenAnotherSaveChangedItFirst()
+    {
+        // Arrange
+        var project = _projectFaker.AsCompleted(_dateTimeProvider, Guid.NewGuid());
+        _dbContext.AddProject(project);
+        _dbContext.SaveException = new DbUpdateConcurrencyException();
+
+        var command = new RevertProjectStatusCommand(project.Id, ProjectStatus.Active, ARevertReason);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(ProjectSaves.StaleError);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     [Fact]

@@ -1,7 +1,10 @@
 ﻿using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Interfaces;
 using Wayd.ProjectPortfolioManagement.Application.Common;
+using Wayd.ProjectPortfolioManagement.Application.Projects;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
@@ -147,6 +150,51 @@ public class AssignProjectLifecycleCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("active");
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReportAStaleProject_WhenAnotherSaveChangedItFirst()
+    {
+        // Arrange
+        var project = _projectFaker.AsProposed(_dateTimeProvider);
+        _dbContext.AddProject(project);
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Plan", "Planning"));
+        _dbContext.AddProjectLifecycle(lifecycle);
+        _dbContext.SaveException = new DbUpdateConcurrencyException();
+
+        var command = new AssignProjectLifecycleCommand(project.Id, lifecycle.Id);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(ProjectSaves.StaleError);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldBeForbidden_WhenUserHasNoLinkedEmployee()
+    {
+        // Arrange — every managed PPM action must be attributable to an employee.
+        _mockCurrentPrincipal
+            .Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid?)null);
+
+        var project = _projectFaker.AsProposed(_dateTimeProvider);
+        _dbContext.AddProject(project);
+        var lifecycle = _lifecycleFaker.AsActiveWithStages(("Plan", "Planning"));
+        _dbContext.AddProjectLifecycle(lifecycle);
+
+        var command = new AssignProjectLifecycleCommand(project.Id, lifecycle.Id);
+
+        // Act
+        var act = () => _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>().WithMessage("*isn't linked to an employee record*");
+        project.ProjectLifecycleId.Should().BeNull();
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 

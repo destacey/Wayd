@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
 using NodaTime.Testing;
+using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Application.Common;
@@ -67,5 +68,29 @@ public sealed class CloseProjectPortfolioCommandHandlerTests : IDisposable
         portfolio.Status.Should().Be(ProjectPortfolioStatus.Closed);
         portfolio.DateRange!.End.Should().Be(new LocalDate(2026, 5, 1));
         _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldBeForbidden_WhenUserHasNoLinkedEmployee()
+    {
+        // Arrange — every managed PPM action must be attributable to an employee.
+        _mockCurrentPrincipal
+            .Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid?)null);
+
+        var portfolio = new ProjectPortfolioFaker()
+            .WithStatus(ProjectPortfolioStatus.Active)
+            .WithDateRange(new FlexibleDateRange(new LocalDate(2026, 4, 1)))
+            .WithRoles(new Dictionary<ProjectPortfolioRole, HashSet<Guid>> { [ProjectPortfolioRole.Owner] = [_actorEmployeeId] })
+            .Generate();
+        _dbContext.AddPortfolio(portfolio);
+
+        // Act
+        var act = () => _handler.Handle(new CloseProjectPortfolioCommand(portfolio.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>().WithMessage("*isn't linked to an employee record*");
+        portfolio.Status.Should().Be(ProjectPortfolioStatus.Active);
+        _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 }

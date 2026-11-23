@@ -179,7 +179,10 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [EndpointDescription(
         "It starts in Proposed status. Approving it later requires an assigned lifecycle, and activating it requires a start and end date. `expenditureCategoryId` must be an Active category; ExpenditureCategories_GetOptions lists them. Role lists REPLACE the existing assignments for that role — they do not add to them. An omitted or empty list REMOVES everyone currently holding that role. Always read the current record first and pass back the full membership you intend to keep, including people you are not changing. Changes a record other people rely on, so confirm with the user before calling.")]
     [McpTool("Projects_Create", "Create project", Destructive = false)]
-    [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
+    [ProducesResponseType(typeof(ObjectIdAndKey), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateProjectRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(request.ToCreateProjectCommand(), cancellationToken);

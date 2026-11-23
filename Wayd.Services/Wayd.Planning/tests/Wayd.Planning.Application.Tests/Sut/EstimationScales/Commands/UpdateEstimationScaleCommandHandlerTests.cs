@@ -1,12 +1,14 @@
 ﻿using Moq;
 using NodaTime;
 using NodaTime.Testing;
+using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Events.Planning.EstimationScales;
 using Wayd.Planning.Application.EstimationScales.Commands;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Tests.Data;
 using Wayd.Tests.Shared;
+using Wayd.Tests.Shared.Infrastructure;
 
 namespace Wayd.Planning.Application.Tests.Sut.EstimationScales.Commands;
 
@@ -51,6 +53,25 @@ public class UpdateEstimationScaleCommandHandlerTests : IDisposable
         original.Values.Select(v => v.Value).Should().Equal("S", "M", "L", "?");
         scale.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<EstimationScaleVersionPublishedEvent>()
             .Which.PreviousVersionId.Should().Be(original.Id);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_WhenAnotherEditPublishedTheSameVersionNumber_ShouldThrowConflict()
+    {
+        // Arrange
+        var scale = new EstimationScaleFaker().WithName("Sizes").WithDescription(null).WithValues("S", "M", "L", "?").Generate();
+        _dbContext.AddEstimationScale(scale);
+        _dbContext.FailNextSaveWith = SaveFailures.UniqueKey();
+
+        var command = new UpdateEstimationScaleCommand(scale.Id, "Sizes", null, SizesWith("S", "M", "L", "XL"));
+
+        // Act
+        var act = () => _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        (await act.Should().ThrowAsync<ConflictException>())
+            .WithMessage(UpdateEstimationScaleCommandHandler.VersionConflictError);
         _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 

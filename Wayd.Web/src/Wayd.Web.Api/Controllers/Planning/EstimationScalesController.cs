@@ -70,6 +70,7 @@ public class EstimationScalesController(IDispatcher dispatcher) : ControllerBase
     [McpTool("EstimationScales_UpdateScale", "Update estimation scale")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Update(Guid id, [FromBody] UpdateEstimationScaleRequest request, CancellationToken cancellationToken)
     {

@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+﻿using Wayd.Common.Application.Exceptions;
+using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Validators;
 
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
@@ -79,6 +80,10 @@ public sealed class ChangeProjectKeyCommandHandler(
         catch (DbUpdateConcurrencyException)
         {
             return Result.Failure(ProjectSaves.StaleError);
+        }
+        catch (DbUpdateException ex) when (DbUpdateErrors.IsUniqueViolation(ex))
+        {
+            throw new ConflictException(ProjectKeyValidator.KeyTakenError);
         }
     }
 }

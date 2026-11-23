@@ -22,4 +22,7 @@ public interface IProjectPortfolioManagementDbContext : IWaydDbContext
     DbSet<StrategicInitiative> StrategicInitiatives { get; }
     DbSet<ProjectLifecycle> ProjectLifecycles { get; }
     DbSet<ProjectStage> ProjectStages { get; }
+
+    /// <summary>Opens a transaction over several saves; see <see cref="IUnitOfWork"/>.</summary>
+    Task<IUnitOfWork> BeginUnitOfWork(CancellationToken cancellationToken);
 }

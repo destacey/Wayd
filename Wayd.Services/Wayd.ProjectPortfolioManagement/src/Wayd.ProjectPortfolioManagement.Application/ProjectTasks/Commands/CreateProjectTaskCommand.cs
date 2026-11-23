@@ -105,6 +105,27 @@ public sealed class CreateProjectTaskCommandHandler(
     {
         var deliverableIds = request.DeliverableIds?.Distinct().ToList() ?? [];
 
+        // The number is MAX + 1, so creates on one project take turns: each holds an update lock on the project's
+        // row until its task is saved, which works for a project with no tasks yet and locks no task rows that a
+        // reorder or delete could be waiting on. The MAX is a separate statement because under read committed
+        // snapshot a statement reads as of when it started, and only one started after the lock sees the task the
+        // previous create saved. The project loads after it for the same reason.
+        await using var unitOfWork = await _ppmDbContext.BeginUnitOfWork(cancellationToken);
+
+        await _ppmDbContext.Database
+            .SqlQuery<Guid>($@"
+                SELECT [Id] AS [Value]
+                FROM [Ppm].[Projects] WITH (UPDLOCK, ROWLOCK)
+                WHERE [Id] = {request.ProjectId}")
+            .ToListAsync(cancellationToken);
+
+        var nextNumber = await _ppmDbContext.Database
+            .SqlQuery<int>($@"
+                SELECT ISNULL(MAX([Number]), 0) + 1 AS [Value]
+                FROM [Ppm].[ProjectTasks]
+                WHERE [ProjectId] = {request.ProjectId}")
+            .FirstOrDefaultAsync(cancellationToken);
+
         // Load the project with stages and tasks so the domain can resolve parentId, and only the named
         // deliverables to link the task to.
         var project = await _ppmDbContext.Projects
@@ -123,16 +144,6 @@ public sealed class CreateProjectTaskCommandHandler(
         var peopleExist = await _ppmDbContext.EnsureEmployeesExist(roles.Values.SelectMany(ids => ids), cancellationToken);
         if (peopleExist.IsFailure)
             return Result.Failure<ProjectTaskIdAndKey>(peopleExist.Error);
-
-        // Get the next task key number atomically using a database query with row locking
-        // This uses UPDLOCK and ROWLOCK to prevent race conditions when multiple tasks are created concurrently
-        // Alternatively, we would need to include existing tasks in the project aggregate and get the number there
-        var nextNumber = await _ppmDbContext.Database
-            .SqlQuery<int>($@"
-                SELECT ISNULL(MAX([Number]), 0) + 1 AS [Value]
-                FROM [Ppm].[ProjectTasks] WITH (UPDLOCK, ROWLOCK)
-                WHERE [ProjectId] = {request.ProjectId}")
-            .FirstOrDefaultAsync(cancellationToken);
 
         // Create the task through the project
         var createResult = project.CreateTask(
@@ -175,6 +186,7 @@ public sealed class CreateProjectTaskCommandHandler(
         }
 
         await _ppmDbContext.SaveChangesAsync(cancellationToken);
+        await unitOfWork.CommitAsync(cancellationToken);
 
         _logger.LogInformation("Project task {TaskId} created with Key {TaskKey} for project {ProjectId}.",
             task.Id, task.Key.Value, request.ProjectId);

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Options;
 using Moq;
 using Testcontainers.MsSql;
@@ -81,8 +82,13 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
     }
 
     /// <summary>Creates a fresh <see cref="WaydDbContext"/> against the container, with no-op collaborators.</summary>
-    public WaydDbContext CreateContext()
+    /// <param name="interceptors">EF interceptors to act during the context's saves, such as a competing request.</param>
+    public WaydDbContext CreateContext(params IInterceptor[] interceptors)
     {
+        var options = interceptors.Length == 0
+            ? _options
+            : new DbContextOptionsBuilder<WaydDbContext>(_options).AddInterceptors(interceptors).Options;
+
         var currentUser = new Mock<ICurrentUser>();
         currentUser.Setup(u => u.GetUserId()).Returns(UserId);
 
@@ -96,7 +102,7 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
         correlationId.SetupGet(c => c.CorrelationId).Returns("integration-test-correlation");
 
         return new WaydDbContext(
-            _options,
+            options,
             currentUser.Object,
             DateTimeProvider(),
             _databaseSettings,

@@ -7,9 +7,11 @@ using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.Common;
 using Wayd.ProjectPortfolioManagement.Application.Projects;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
+using Wayd.ProjectPortfolioManagement.Application.Projects.Validators;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
+using Wayd.Tests.Shared.Infrastructure;
 using Moq;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Projects.Commands;
@@ -105,6 +107,24 @@ public class ChangeProjectKeyCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(ProjectSaves.StaleError);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldThrowKeyTakenConflict_WhenAnotherProjectSavedTheKeyFirst()
+    {
+        // Arrange
+        var project = _projectFaker.Generate();
+        _dbContext.AddProject(project);
+        _dbContext.SaveException = SaveFailures.UniqueKey();
+
+        var command = new ChangeProjectKeyCommand(project.Id, new ProjectKey("CHANGED"));
+
+        // Act
+        var act = () => _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        (await act.Should().ThrowAsync<ConflictException>()).WithMessage(ProjectKeyValidator.KeyTakenError);
         _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 

@@ -8,6 +8,8 @@ using Moq;
 using Wayd.Common.Domain.Events;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using NodaTime;
+using Microsoft.EntityFrameworkCore;
+using Wayd.Tests.Shared.Infrastructure;
 
 namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Commands;
 
@@ -92,6 +94,49 @@ public class SubmitVoteCommandHandlerTests : IDisposable
         round.Votes.Should().HaveCount(1);
         round.Votes.First().Value.Should().Be("8");
         _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_WhenAnotherRequestSavedTheFirstVote_ShouldRetryAndSucceed()
+    {
+        // Arrange
+        var scale = new EstimationScaleFaker().Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
+        _dbContext.AddPokerSession(session);
+        session.AddRound("Story", null, PokerSessionActors.Facilitator);
+        var round = session.Rounds.First();
+        _dbContext.FailNextSaveWith = SaveFailures.UniqueKey();
+
+        // Act
+        var result = await _handler.Handle(new SubmitVoteCommand(session.Id, round.Id, "8"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        round.Votes.Should().ContainSingle().Which.Value.Should().Be("8");
+        _dbContext.SaveChangesCallCount.Should().Be(2);
+        _mockNotifier.Verify(n => n.NotifyVoteSubmitted(session.Id, round.Id, _currentUserId, "Test User"), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheSaveFailsForAnotherReason_ShouldNotRetry()
+    {
+        // Arrange
+        var scale = new EstimationScaleFaker().Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
+        _dbContext.AddPokerSession(session);
+        session.AddRound("Story", null, PokerSessionActors.Facilitator);
+        var round = session.Rounds.First();
+        _dbContext.FailNextSaveWith = SaveFailures.Truncation();
+
+        // Act
+        var act = () => _handler.Handle(new SubmitVoteCommand(session.Id, round.Id, "8"), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<DbUpdateException>();
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+        _mockNotifier.VerifyNoOtherCalls();
     }
 
     [Fact]

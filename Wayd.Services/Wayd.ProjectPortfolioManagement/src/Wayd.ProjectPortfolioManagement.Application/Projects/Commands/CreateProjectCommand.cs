@@ -7,7 +7,7 @@ using Wayd.ProjectPortfolioManagement.Application.Projects.Models;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Validators;
 using Wayd.ProjectPortfolioManagement.Domain;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
-
+using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
@@ -135,6 +135,27 @@ public sealed class CreateProjectCommandHandler(
                 return Result.Failure<ProjectIdAndKey>("Portfolio not found.");
             }
 
+            ProjectLifecycle? lifecycle = null;
+            if (request.ProjectLifecycleId.HasValue)
+            {
+                lifecycle = await _projectPortfolioManagementDbContext.ProjectLifecycles
+                    .Include(l => l.Stages)
+                    .FirstOrDefaultAsync(l => l.Id == request.ProjectLifecycleId.Value, cancellationToken);
+                if (lifecycle is null)
+                {
+                    _logger.LogInformation("Project Lifecycle {LifecycleId} not found.", request.ProjectLifecycleId);
+                    return Result.Failure<ProjectIdAndKey>("Project Lifecycle not found.");
+                }
+
+                // Checked again by AssignLifecycle, but refused here as well: CopyForeign below copies
+                // image files in storage immediately, and a later refusal would leave them orphaned.
+                if (lifecycle.State != ProjectLifecycleState.Active)
+                {
+                    _logger.LogInformation("Project Lifecycle {LifecycleId} is not active.", request.ProjectLifecycleId);
+                    return Result.Failure<ProjectIdAndKey>("Only active lifecycles can be assigned to projects.");
+                }
+            }
+
             var roles = GetRoles(request);
             var peopleExist = await _projectPortfolioManagementDbContext.EnsureEmployeesExist(roles.Values.SelectMany(ids => ids), cancellationToken);
             if (peopleExist.IsFailure)
@@ -176,6 +197,20 @@ public sealed class CreateProjectCommandHandler(
             }
 
             var project = createResult.Value;
+
+            // Assigned before the save, so a refused assignment leaves no project without its lifecycle.
+            if (lifecycle is not null)
+            {
+                // PpmActor.System: this runs as part of creating the project, so nobody holds a role on it
+                // yet. Authorization for creation is the caller's Permissions.Projects.Create claim.
+                var assignResult = project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle, _dateTimeProvider.Now);
+                if (assignResult.IsFailure)
+                {
+                    _logger.LogInformation("Unable to assign lifecycle {LifecycleId} to new project {ProjectKey}. Error: {Error}", lifecycle.Id, project.Key.Value, assignResult.Error);
+                    return Result.Failure<ProjectIdAndKey>(assignResult.Error);
+                }
+            }
+
             await _markdownAttachments.Claim(
                 PpmFollowOwners.Project.Key,
                 project.Id,
@@ -183,30 +218,6 @@ public sealed class CreateProjectCommandHandler(
                 cancellationToken);
 
             await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
-
-            if (request.ProjectLifecycleId.HasValue)
-            {
-                var lifecycle = await _projectPortfolioManagementDbContext.ProjectLifecycles
-                    .Include(l => l.Stages)
-                    .FirstOrDefaultAsync(l => l.Id == request.ProjectLifecycleId.Value, cancellationToken);
-
-                if (lifecycle is null)
-                {
-                    _logger.LogInformation("Project Lifecycle {LifecycleId} not found.", request.ProjectLifecycleId);
-                    return Result.Failure<ProjectIdAndKey>("Project Lifecycle not found.");
-                }
-
-                // PpmActor.System: this runs as part of creating the project, so nobody holds a role on it
-                // yet. Authorization for creation is the caller's Permissions.Projects.Create claim.
-                var assignResult = project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle, _dateTimeProvider.Now);
-                if (assignResult.IsFailure)
-                {
-                    _logger.LogWarning("Unable to assign lifecycle to project {ProjectId}. Error: {Error}", project.Id, assignResult.Error);
-                    return Result.Failure<ProjectIdAndKey>(assignResult.Error);
-                }
-
-                await _projectPortfolioManagementDbContext.SaveChangesAsync(cancellationToken);
-            }
 
             _logger.LogInformation("Project {ProjectId} created with Key {ProjectKey}.", project.Id, project.Key.Value);
 

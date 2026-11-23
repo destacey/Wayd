@@ -1,4 +1,5 @@
 ﻿using Wayd.Planning.Application.PokerSessions.Interfaces;
+using Wayd.Planning.Domain.Models.PlanningPoker;
 
 namespace Wayd.Planning.Application.PokerSessions.Commands;
 
@@ -25,6 +26,23 @@ public sealed class SubmitVoteCommandHandler(IPlanningDbContext planningDbContex
 
     public async Task<Result> Handle(SubmitVoteCommand request, CancellationToken cancellationToken)
     {
+        // A double-submitted first vote meets the earlier request's vote, or member row, at a unique index.
+        var submitted = await PokerSessionDuplicateSave.RetryOnce(_planningDbContext, () => Submit(request, cancellationToken));
+        if (submitted.IsFailure)
+            return Result.Failure(submitted.Error);
+
+        var (session, actor, joinedSession) = submitted.Value;
+        if (joinedSession)
+            await _notifier.NotifyMemberUpdated(session.Id, await _planningDbContext.MemberDto(session.FindMember(actor.EmployeeId)!, cancellationToken));
+
+        var participantName = currentUser.Name ?? "Unknown";
+        await _notifier.NotifyVoteSubmitted(session.Id, request.RoundId, actor.UserId, participantName);
+
+        return Result.Success();
+    }
+
+    private async Task<Result<(PokerSession Session, PokerSessionActor Actor, bool JoinedSession)>> Submit(SubmitVoteCommand request, CancellationToken cancellationToken)
+    {
         var session = await _planningDbContext.PokerSessions
             .IncludeAccess()
             .Include(s => s.Members)
@@ -33,7 +51,7 @@ public sealed class SubmitVoteCommandHandler(IPlanningDbContext planningDbContex
             .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
 
         if (session is null)
-            return Result.Failure("Poker session not found.");
+            return Result.Failure<(PokerSession, PokerSessionActor, bool)>("Poker session not found.");
 
         var actor = await _access.ResolveActor(session, cancellationToken);
 
@@ -43,17 +61,10 @@ public sealed class SubmitVoteCommandHandler(IPlanningDbContext planningDbContex
 
         var result = session.SubmitVote(request.RoundId, request.Value, version, actor, _dateTimeProvider.Now);
         if (result.IsFailure)
-            return Result.Failure(result.Error);
+            return Result.Failure<(PokerSession, PokerSessionActor, bool)>(result.Error);
 
         await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-        var joinedSession = result.Value;
-        if (joinedSession)
-            await _notifier.NotifyMemberUpdated(session.Id, await _planningDbContext.MemberDto(session.FindMember(actor.EmployeeId)!, cancellationToken));
-
-        var participantName = currentUser.Name ?? "Unknown";
-        await _notifier.NotifyVoteSubmitted(session.Id, request.RoundId, actor.UserId, participantName);
-
-        return Result.Success();
+        return (session, actor, result.Value);
     }
 }

@@ -3,6 +3,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
+using Wayd.ProjectPortfolioManagement.Domain.Models;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 using Wayd.ProjectPortfolioManagement.IntegrationTests.Infrastructure;
 
 namespace Wayd.ProjectPortfolioManagement.IntegrationTests.Sut;
@@ -86,6 +88,61 @@ public sealed class CreateProjectTaskCommandHandlerTests
             .Select(t => t.Id)
             .FirstAsync(ct);
         last.Should().Be(result.Value.Id);
+    }
+
+    /// <summary>
+    /// A Proposed project with one stage and, when <paramref name="withTasks"/>, the linked plan's three tasks;
+    /// without them there are no task rows for a create to lock on.
+    /// </summary>
+    private async Task<(Guid ProjectId, Guid StageId)> SeedProject(bool withTasks, CancellationToken ct)
+    {
+        if (withTasks)
+        {
+            var plan = await ProposedProjectWithLinkedPlan.Seed(_fixture, ct);
+            return (plan.ProjectId, await StageId(plan.ProjectId, ct));
+        }
+
+        var seed = await ActiveProjectWithDeliverable.Seed(_fixture, acceptTheDeliverable: false, ct, activateTheProject: false);
+        await using var context = _fixture.CreateContext();
+        var lifecycle = ProjectLifecycle.Create("Standard", "Standard delivery lifecycle", [("Delivery", "Delivery stage")]);
+        lifecycle.Activate();
+        await context.ProjectLifecycles.AddAsync(lifecycle, ct);
+        var project = await context.Projects.SingleAsync(p => p.Id == seed.ProjectId, ct);
+        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle, SqlServerDbContextFixture.FixedNow)
+            .IsSuccess.Should().BeTrue();
+        await context.SaveChangesAsync(ct);
+        return (project.Id, project.Stages.Single().Id);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Handle_CreatedConcurrently_GivesEachTaskItsOwnNumber(bool withTasks)
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var (projectId, stageId) = await SeedProject(withTasks, ct);
+        int existing;
+        await using (var context = _fixture.CreateContext())
+            existing = await context.ProjectTasks.CountAsync(t => t.ProjectId == projectId, ct);
+        const int creates = 8;
+
+        // Act
+        var results = await Task.WhenAll(Enumerable.Range(0, creates).Select(async _ =>
+        {
+            await using var context = _fixture.CreateContext();
+            return await new CreateProjectTaskCommandHandler(context, NullLogger<CreateProjectTaskCommandHandler>.Instance)
+                .Handle(Command(projectId, stageId, []), ct);
+        }));
+
+        // Assert
+        results.Should().AllSatisfy(r => r.IsSuccess.Should().BeTrue(r.IsFailure ? r.Error : null));
+        await using var verify = _fixture.CreateContext();
+        var numbers = await verify.ProjectTasks
+            .Where(t => t.ProjectId == projectId)
+            .Select(t => t.Number)
+            .ToListAsync(ct);
+        numbers.Should().BeEquivalentTo(Enumerable.Range(1, existing + creates));
     }
 
     [Fact]

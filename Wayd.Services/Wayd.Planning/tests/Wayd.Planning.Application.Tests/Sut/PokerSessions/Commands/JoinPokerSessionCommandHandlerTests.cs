@@ -9,6 +9,7 @@ using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Planning.Domain.Tests.Data;
+using Wayd.Tests.Shared.Infrastructure;
 
 namespace Wayd.Planning.Application.Tests.Sut.PokerSessions.Commands;
 
@@ -53,6 +54,24 @@ public class JoinPokerSessionCommandHandlerTests : IDisposable
         session.FindMember(_voter.EmployeeId).Should().NotBeNull();
         _dbContext.SaveChangesCallCount.Should().Be(1);
         _mockNotifier.Verify(n => n.NotifyMemberUpdated(session.Id, It.Is<PokerSessionMemberDto>(m => m.Employee.Id == _voter.EmployeeId)), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenAnotherRequestJoinedFirst_ShouldRetryAndReturnTheMember()
+    {
+        // Arrange
+        var session = new PokerSessionFaker().WithEstimationScale(_scale).Generate();
+        _dbContext.AddPokerSession(session);
+        _dbContext.FailNextSaveWith = SaveFailures.UniqueKey();
+
+        // Act
+        var result = await _handler.Handle(new JoinPokerSessionCommand(session.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.Employee.Id.Should().Be(_voter.EmployeeId);
+        session.Members.Should().ContainSingle(m => m.EmployeeId == _voter.EmployeeId);
+        _dbContext.SaveChangesCallCount.Should().Be(2);
     }
 
     [Fact]

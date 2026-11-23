@@ -292,6 +292,9 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     async Task<IUnitOfWork> IWorkDbContext.BeginUnitOfWork(CancellationToken cancellationToken) =>
         await BeginUnitOfWork(cancellationToken);
 
+    async Task<IUnitOfWork> IProjectPortfolioManagementDbContext.BeginUnitOfWork(CancellationToken cancellationToken) =>
+        await BeginUnitOfWork(cancellationToken);
+
     public IQueryable<WorkItem> SearchWorkItems(string searchTerm, WorkTypeTier? tier, int top)
     {
         var query = IsFtsAvailable()

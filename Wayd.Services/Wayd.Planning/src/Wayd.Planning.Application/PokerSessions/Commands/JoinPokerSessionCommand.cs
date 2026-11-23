@@ -1,5 +1,6 @@
 using Wayd.Planning.Application.PokerSessions.Dtos;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
+using Wayd.Planning.Domain.Models.PlanningPoker;
 
 namespace Wayd.Planning.Application.PokerSessions.Commands;
 
@@ -25,6 +26,17 @@ public sealed class JoinPokerSessionCommandHandler(IPlanningDbContext planningDb
 
     public async Task<Result<PokerSessionMemberDto>> Handle(JoinPokerSessionCommand request, CancellationToken cancellationToken)
     {
+        // A double join meets the earlier request's member row at a unique index; the retry finds it and joins nobody.
+        var joined = await PokerSessionDuplicateSave.RetryOnce(_planningDbContext, () => Join(request, cancellationToken));
+        if (joined.IsFailure)
+            return Result.Failure<PokerSessionMemberDto>(joined.Error);
+
+        var (actor, change) = joined.Value;
+        return await _notifier.NotifyMembershipChanged(_planningDbContext, request.Id, actor, change, cancellationToken);
+    }
+
+    private async Task<Result<(PokerSessionActor Actor, PokerSessionMembershipChange Change)>> Join(JoinPokerSessionCommand request, CancellationToken cancellationToken)
+    {
         var session = await _planningDbContext.PokerSessions
             .IncludeAccess()
             .Include(s => s.Members)
@@ -33,16 +45,16 @@ public sealed class JoinPokerSessionCommandHandler(IPlanningDbContext planningDb
             .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
 
         if (session is null)
-            return Result.Failure<PokerSessionMemberDto>("Poker session not found.");
+            return Result.Failure<(PokerSessionActor, PokerSessionMembershipChange)>("Poker session not found.");
 
         var actor = await _access.ResolveActor(session, cancellationToken);
 
         var result = session.Join(request.IsVoting, actor, _dateTimeProvider.Now);
         if (result.IsFailure)
-            return Result.Failure<PokerSessionMemberDto>(result.Error);
+            return Result.Failure<(PokerSessionActor, PokerSessionMembershipChange)>(result.Error);
 
         await _planningDbContext.SaveChangesAsync(cancellationToken);
 
-        return await _notifier.NotifyMembershipChanged(_planningDbContext, session.Id, actor, result.Value, cancellationToken);
+        return (actor, result.Value);
     }
 }

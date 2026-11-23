@@ -80,9 +80,21 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
     /// </summary>
     public int ConcurrencyConflictsToThrow { get; set; }
 
+    /// <summary>
+    /// An exception the next save throws instead of saving, as a real context does on a unique-index collision.
+    /// Cleared once thrown.
+    /// </summary>
+    public Exception? FailNextSaveWith { get; set; }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         SaveChangesCallCount++;
+
+        if (FailNextSaveWith is { } failure)
+        {
+            FailNextSaveWith = null;
+            throw failure;
+        }
 
         if (ConcurrencyConflictsToThrow > 0)
         {

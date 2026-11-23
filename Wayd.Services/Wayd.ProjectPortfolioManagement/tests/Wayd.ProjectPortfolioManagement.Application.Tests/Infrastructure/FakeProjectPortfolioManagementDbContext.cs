@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Identity;
@@ -86,6 +87,17 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
     /// first, which an in-memory fake cannot otherwise produce.
     /// </summary>
     public Exception? SaveException { get; set; }
+
+    /// <summary>A unit of work that commits nothing: the fake saves as it goes, with no transaction to group.</summary>
+    public Task<IUnitOfWork> BeginUnitOfWork(CancellationToken cancellationToken) =>
+        Task.FromResult<IUnitOfWork>(new FakeUnitOfWork());
+
+    private sealed class FakeUnitOfWork : IUnitOfWork
+    {
+        public Task CommitAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

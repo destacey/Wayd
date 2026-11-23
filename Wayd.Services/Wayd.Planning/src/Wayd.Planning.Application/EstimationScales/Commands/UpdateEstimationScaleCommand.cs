@@ -30,6 +30,9 @@ public sealed class UpdateEstimationScaleCommandValidator : CustomValidator<Upda
 
 public sealed class UpdateEstimationScaleCommandHandler(IPlanningDbContext planningDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider) : ICommandHandler<UpdateEstimationScaleCommand>
 {
+    /// <summary>The conflict when another edit published a version of the scale while this one was being saved.</summary>
+    public const string VersionConflictError = "The estimation scale was changed by someone else while you were editing it. Reload it and save again.";
+
     private readonly IPlanningDbContext _planningDbContext = planningDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -54,7 +57,15 @@ public sealed class UpdateEstimationScaleCommandHandler(IPlanningDbContext plann
         if (publishResult.IsFailure)
             return publishResult;
 
-        await _planningDbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _planningDbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (DbUpdateErrors.IsUniqueViolation(ex))
+        {
+            // Another edit published the same version number first; these values were never compared with its.
+            throw new ConflictException(VersionConflictError);
+        }
 
         return Result.Success();
     }

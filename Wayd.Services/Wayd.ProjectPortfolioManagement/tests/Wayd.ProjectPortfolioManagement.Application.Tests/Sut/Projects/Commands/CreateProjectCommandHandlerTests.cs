@@ -1,12 +1,15 @@
 ﻿using FluentAssertions;
+using Wayd.Common.Application.Exceptions;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Attachments;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
+using Wayd.ProjectPortfolioManagement.Application.Projects.Validators;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
+using Wayd.Tests.Shared.Infrastructure;
 using Moq;
 using NodaTime.Extensions;
 using NodaTime.Testing;
@@ -186,6 +189,28 @@ public class CreateProjectCommandHandlerTests : IDisposable
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(CreateProjectCommandHandler.ImageConflictError);
         _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldThrowKeyTakenConflict_WhenAnotherProjectSavedTheKeyFirst()
+    {
+        // Arrange
+        var portfolio = new ProjectPortfolioFaker().AsActive(_dateTimeProvider);
+        var expenditureCategory = new ExpenditureCategoryFaker().GenerateActive();
+        _dbContext.AddPortfolio(portfolio);
+        _dbContext.AddExpenditureCategory(expenditureCategory);
+        _dbContext.SaveException = SaveFailures.UniqueKey();
+
+        var command = new CreateProjectCommand(
+            "Test Project", "Description", null, null, new ProjectKey("TEST"), expenditureCategory.Id,
+            null, portfolio.Id, null, null, null, null, null, null, null);
+
+        // Act
+        var act = () => _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        (await act.Should().ThrowAsync<ConflictException>()).WithMessage(ProjectKeyValidator.KeyTakenError);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     [Fact]

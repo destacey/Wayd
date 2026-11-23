@@ -1,6 +1,7 @@
 using Wayd.ProjectPortfolioManagement.Application.Common;
 using Wayd.Common.Application.Attachments;
 using Wayd.Common.Domain.Enums.StrategicManagement;
+using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Models;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Validators;
@@ -210,6 +211,10 @@ public sealed class CreateProjectCommandHandler(
             _logger.LogInformation("Project {ProjectId} created with Key {ProjectKey}.", project.Id, project.Key.Value);
 
             return Result.Success(new ProjectIdAndKey(project.Id, project.Key));
+        }
+        catch (DbUpdateException ex) when (DbUpdateErrors.IsUniqueViolation(ex))
+        {
+            throw new ConflictException(ProjectKeyValidator.KeyTakenError);
         }
         catch (DbUpdateConcurrencyException)
         {

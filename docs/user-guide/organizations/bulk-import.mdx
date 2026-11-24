@@ -93,7 +93,7 @@ Employees
 - **Teams before hierarchy and staffing** — the [team hierarchy](#team-hierarchy-import) places teams under
   one another, and [staffing](#team-staffing-import) puts employees on teams, so both need the teams to exist.
 - **Roles must already exist** — the staffing import resolves each row's role **by name** and fails if it
-  does not exist. Create the [team member roles](./index.mdx#team-members) you intend to use before importing
+  does not exist or is inactive. Create the [team member roles](./index.mdx#team-members) you intend to use before importing
   staffing. (The [data-generation tool](../../contributing/tools/data-generation.mdx) creates any missing
   roles for you as a separate step before staffing.)
 
@@ -246,7 +246,7 @@ to give someone **multiple roles** on the same team, add multiple rows.
 |---|---|---|
 | `TeamCode` | Yes | The team or team of teams, by code. |
 | `EmployeeNumber` | Yes | The employee, by number. Must be an **active** employee. |
-| `RoleName` | Yes | A [team member role](./index.mdx#team-members), **by name** (case-insensitive). The role must already exist. Max 128 chars. |
+| `RoleName` | Yes | A [team member role](./index.mdx#team-members), **by name** (case-insensitive). The role must already exist and be active. Max 128 chars. |
 
 Rows add to whoever is already on the team: a person already a member gains the roles the file gives them.
 A row giving someone a role they already hold on that team is rejected, which fails the whole import.

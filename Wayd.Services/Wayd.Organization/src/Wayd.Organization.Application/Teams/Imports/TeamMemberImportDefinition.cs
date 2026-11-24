@@ -87,9 +87,9 @@ public sealed class TeamMemberImportDefinition(
             .Where(e => employeeNumbers.Contains(e.EmployeeNumber))
             .ToDictionaryAsync(e => e.EmployeeNumber, e => e, StringComparer.OrdinalIgnoreCase, cancellationToken);
 
-        var roleIdsByName = await _organizationDbContext.TeamMemberRoles
+        var rolesByName = await _organizationDbContext.TeamMemberRoles
             .Where(r => roleNames.Contains(r.Name))
-            .ToDictionaryAsync(r => r.Name, r => r.Id, StringComparer.OrdinalIgnoreCase, cancellationToken);
+            .ToDictionaryAsync(r => r.Name, r => r, StringComparer.OrdinalIgnoreCase, cancellationToken);
 
         foreach (var row in context.Accepted)
         {
@@ -99,8 +99,10 @@ public sealed class TeamMemberImportDefinition(
                 row.Failed($"No team was found with code '{data.TeamCode}'.");
             else if (!employeesByNumber.ContainsKey(data.EmployeeNumber.Trim()))
                 row.Failed($"No employee was found with number '{data.EmployeeNumber}'.");
-            else if (!roleIdsByName.ContainsKey(data.RoleName.Trim()))
+            else if (!rolesByName.TryGetValue(data.RoleName.Trim(), out var role))
                 row.Failed($"No team member role was found named '{data.RoleName}'. Roles are not created by this import.");
+            else if (!role.IsActive)
+                row.Failed($"Inactive roles cannot be assigned to team members. {role.Name} is inactive.");
         }
 
         // Grouped so an employee joins a team once carrying every role the file gives them, which is why
@@ -112,7 +114,7 @@ public sealed class TeamMemberImportDefinition(
         {
             var team = teamsByCode[group.Key.TeamCode];
             var employee = employeesByNumber[group.Key.EmployeeNumber];
-            var roleIds = group.Select(r => roleIdsByName[r.Data.RoleName.Trim()]).Distinct().ToList();
+            var roleIds = group.Select(r => rolesByName[r.Data.RoleName.Trim()].Id).Distinct().ToList();
 
             var added = team.AddMember(employee, roleIds, actor, timestamp);
 

@@ -26,8 +26,9 @@ public sealed class SubmitVoteCommandHandler(IPlanningDbContext planningDbContex
 
     public async Task<Result> Handle(SubmitVoteCommand request, CancellationToken cancellationToken)
     {
-        // A double-submitted first vote meets the earlier request's vote, or member row, at a unique index.
-        var submitted = await PokerSessionDuplicateSave.RetryOnce(_planningDbContext, () => Submit(request, cancellationToken));
+        // A double-submitted first vote meets the earlier request's vote, or member row, at a unique index; a vote
+        // racing a change to voting finds the member row changed, and the retry sees whether they still vote.
+        var submitted = await PokerSessionRacingSave.RetryOnce(_planningDbContext, () => Submit(request, cancellationToken));
         if (submitted.IsFailure)
             return Result.Failure(submitted.Error);
 
@@ -62,6 +63,9 @@ public sealed class SubmitVoteCommandHandler(IPlanningDbContext planningDbContex
         var result = session.SubmitVote(request.RoundId, request.Value, version, actor, _dateTimeProvider.Now);
         if (result.IsFailure)
             return Result.Failure<(PokerSession, PokerSessionActor, bool)>(result.Error);
+
+        if (!result.Value)
+            PokerSessionRacingSave.TouchMember(_planningDbContext, session.FindMember(actor.EmployeeId)!);
 
         await _planningDbContext.SaveChangesAsync(cancellationToken);
 

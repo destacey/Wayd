@@ -42,20 +42,30 @@ public sealed class SyncManagedRecordTypeCommandHandler(
         {
             // Registration, not availability: a feature flag hides an owner type from administration, but
             // its source still changes, and the sync keeps up with it.
-            if (WorkflowOwners.Resolve(request.OwnerType).IsFailure)
+            var owner = WorkflowOwners.Resolve(request.OwnerType);
+            if (owner.IsFailure)
             {
                 return Result.Failure<Guid>($"'{request.OwnerType}' is not a registered workflow owner type.");
             }
 
+            var ownerType = owner.Value.Key;
             var externalKey = request.ExternalKey.Trim();
             var actor = EventActor.Sync(null);
             var now = _dateTimeProvider.Now;
 
             var recordType = await _dbContext.RecordTypes
-                .FirstOrDefaultAsync(r => r.OwnerType == request.OwnerType && r.ExternalKey == externalKey, cancellationToken);
+                .FirstOrDefaultAsync(r => r.OwnerType == ownerType && r.ExternalKey == externalKey, cancellationToken);
+
+            // Checked before the type is touched: a refused rename must leave the tracked entity unchanged,
+            // or a later save on the same context would persist it.
+            var name = request.Name.Trim();
+            if (await RecordTypeNames.IsTaken(_dbContext, ownerType, name, exceptId: recordType?.Id, cancellationToken))
+            {
+                return Result.Failure<Guid>($"A record type named '{name}' already exists.");
+            }
 
             var result = recordType is null
-                ? RecordType.CreateManaged(request.OwnerType, request.Name, externalKey, actor, now)
+                ? RecordType.CreateManaged(ownerType, request.Name, externalKey, actor, now)
                 : recordType.SyncFromSource(request.Name, actor, now).Map(() => recordType);
 
             if (result.IsFailure)
@@ -67,12 +77,6 @@ public sealed class SyncManagedRecordTypeCommandHandler(
             }
 
             var synced = result.Value;
-            if (await RecordTypeNames.IsTaken(_dbContext, synced.OwnerType, synced.Name, exceptId: synced.Id, cancellationToken))
-            {
-                synced.ClearDomainEvents();
-                return Result.Failure<Guid>($"A record type named '{synced.Name}' already exists.");
-            }
-
             if (recordType is null)
             {
                 _dbContext.RecordTypes.Add(synced);

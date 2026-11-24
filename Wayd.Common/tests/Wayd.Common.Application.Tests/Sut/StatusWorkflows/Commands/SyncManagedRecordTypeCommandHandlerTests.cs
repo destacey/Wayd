@@ -4,6 +4,7 @@ using Wayd.Common.Application.StatusWorkflows.Commands;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Tests.Shared.Extensions;
 using Wayd.Tests.Shared.Infrastructure;
 
 namespace Wayd.Common.Application.Tests.Sut.StatusWorkflows.Commands;
@@ -23,6 +24,22 @@ public sealed class SyncManagedRecordTypeCommandHandlerTests : StatusWorkflowHan
     {
         var recordType = RecordType.CreateManaged(Synced.Key, name, externalKey, EventActor.Sync(null), Now).Value;
         DbContext.AddRecordType(recordType);
+
+        return recordType;
+    }
+
+    /// <summary>
+    /// A managed type as loaded after earlier syncs saved and then retired it: it has its
+    /// <see cref="RecordType.Key"/>, so its events go straight to <see cref="RecordType.DomainEvents"/>,
+    /// and none are pending.
+    /// </summary>
+    private RecordType SeedRetiredAsSaved(string externalKey, string name, int key)
+    {
+        var recordType = SeedManaged(externalKey, name);
+        recordType.SetPrivate(r => r.Key, key);
+        recordType.ClearPostPersistenceActions();
+        recordType.RetireFromSource(EventActor.Sync(null), Now);
+        recordType.ClearDomainEvents();
 
         return recordType;
     }
@@ -88,6 +105,57 @@ public sealed class SyncManagedRecordTypeCommandHandlerTests : StatusWorkflowHan
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("A record type named 'Bug' already exists.");
         DbContext.RecordTypes.Should().ContainSingle();
+        DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldLeaveTheTypeUnchanged_WhenTheNewNameIsTaken()
+    {
+        // Arrange
+        SeedManaged("conn-2:defect", "Defect");
+        var recordType = SeedRetiredAsSaved("conn-1:bug", "Bug", key: 7);
+
+        // Act
+        var result = await CreateSut().Handle(new SyncManagedRecordTypeCommand(Synced.Key, "conn-1:bug", " Defect "), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A record type named 'Defect' already exists.");
+        (recordType.Name, recordType.IsActive).Should().Be(("Bug", false));
+        recordType.DomainEvents.Should().BeEmpty();
+        DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldKeepTheTypeRetired_WhenAnotherActiveTypeTookItsNameMeanwhile()
+    {
+        // Arrange — a retired type does not hold its name, so another took it before the source brought this one back
+        var recordType = SeedRetiredAsSaved("conn-1:bug", "Bug", key: 7);
+        SeedManaged("conn-2:bug", "Bug");
+
+        // Act
+        var result = await CreateSut().Handle(new SyncManagedRecordTypeCommand(Synced.Key, "conn-1:bug", "Bug"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A record type named 'Bug' already exists.");
+        recordType.IsActive.Should().BeFalse();
+        recordType.DomainEvents.Should().BeEmpty();
+        DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFindTheNameTaken_WhenTheOwnerTypeIsPassedInAnotherForm()
+    {
+        // Arrange
+        SeedManaged("conn-2:bug", "Bug");
+
+        // Act
+        var result = await CreateSut().Handle(new SyncManagedRecordTypeCommand($" {Synced.Key.ToUpperInvariant()} ", "conn-1:bug", "Bug"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A record type named 'Bug' already exists.");
         DbContext.SaveChangesCallCount.Should().Be(0);
     }
 

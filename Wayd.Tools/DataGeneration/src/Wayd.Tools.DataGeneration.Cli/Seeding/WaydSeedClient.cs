@@ -161,6 +161,10 @@ public sealed class WaydSeedClient : IDisposable
     public async Task<ImportLimits> GetImportLimits(CancellationToken cancellationToken) =>
         new(await _api.Api.Imports.Definitions.GetAsync(cancellationToken: cancellationToken) ?? []);
 
+    /// <summary>Whether the token's own account is linked to an employee.</summary>
+    public async Task<bool> IsLinkedToEmployee(CancellationToken cancellationToken) =>
+        (await _api.Api.UserManagement.Profiles.GetAsync(cancellationToken: cancellationToken))?.Employee is not null;
+
     /// <summary>The provider a password-backed account signs in through.</summary>
     private const string LocalLoginProvider = "Wayd";
 
@@ -316,41 +320,105 @@ public sealed class WaydSeedClient : IDisposable
     /// before they land.
     /// </summary>
     /// <param name="expected">For each project, a request on a desk the seed administers and the deliverables it must hold.</param>
+    /// <param name="stallTimeout">How long to wait with no copy landing before giving up.</param>
     public async Task WaitForDemandProjectCopies(
         IReadOnlyCollection<(Guid RequestId, Guid ProjectId, IReadOnlyCollection<Guid> DeliverableIds)> expected,
-        TimeSpan timeout,
+        TimeSpan stallTimeout,
         CancellationToken cancellationToken)
     {
-        var deadline = DateTimeOffset.UtcNow + timeout;
-        var waiting = expected.ToList();
+        var missing = await WaitUntilAll([.. expected], IsCopied, stallTimeout, Task.Delay, cancellationToken);
+        if (missing > 0)
+            throw new SeedException($"Demand Management had not copied {missing} project(s) and their deliverables, and none had landed in the last {stallTimeout.TotalSeconds:0}s.");
+
+        async Task<bool> IsCopied((Guid RequestId, Guid ProjectId, IReadOnlyCollection<Guid> DeliverableIds) item, CancellationToken ct)
+        {
+            try
+            {
+                var copies = await _api.Api.DemandManagement.IntakeRequests[item.RequestId].Projects[item.ProjectId].Deliverables
+                    .GetAsync(cancellationToken: ct) ?? [];
+                var held = copies.Where(d => d.Id is not null).Select(d => d.Id!.Value).ToHashSet();
+                return item.DeliverableIds.All(held.Contains);
+            }
+            // A server error counts as not copied yet, so one failed check during a minutes-long wait under heavy
+            // import load does not end the seed; an error that persists ends in the stall message instead.
+            catch (ApiException ex) when (ex.ResponseStatusCode == 404 || ex.ResponseStatusCode >= 500)
+            {
+                return false;
+            }
+        }
+    }
+
+    /// <summary>The first wait between checks, and the one a check that finds progress goes back to.</summary>
+    private static readonly TimeSpan CopyCheckInitialWait = TimeSpan.FromSeconds(1);
+
+    /// <summary>The longest wait between checks.</summary>
+    private static readonly TimeSpan CopyCheckMaxWait = TimeSpan.FromSeconds(8);
+
+    /// <summary>
+    /// Waits until <paramref name="isDone"/> holds for every item, and answers how many it still did not hold for
+    /// once <paramref name="stallTimeout"/> has passed with none of them becoming done.
+    /// </summary>
+    /// <remarks>
+    /// Each round checks items in order and stops at the first that is not done, rather than asking after every
+    /// one: copies land in roughly the order their records were imported, so the rest of a round would mostly
+    /// confirm what the next round finds anyway, and every request counts against the API's per-user rate limit.
+    /// The wait doubles while nothing lands and drops back once something does.
+    /// <para>
+    /// A stall, not a total, ends it: a large import queues thousands of events, and how long they take depends on
+    /// what else the database is doing, while a copy that is never coming shows as nothing landing at all. Since a
+    /// round sees only the first item, a stall is confirmed by checking every remaining item; if any landed out of
+    /// order, the wait carries on. The timeout counts the waits, not the requests.
+    /// </para>
+    /// </remarks>
+    public static async Task<int> WaitUntilAll<T>(
+        IReadOnlyList<T> items,
+        Func<T, CancellationToken, Task<bool>> isDone,
+        TimeSpan stallTimeout,
+        Func<TimeSpan, CancellationToken, Task> delay,
+        CancellationToken cancellationToken)
+    {
+        var pending = new Queue<T>(items);
+        var sinceProgress = TimeSpan.Zero;
+        var wait = CopyCheckInitialWait;
 
         while (true)
         {
-            List<(Guid RequestId, Guid ProjectId, IReadOnlyCollection<Guid> DeliverableIds)> stillWaiting = [];
-            foreach (var item in waiting)
+            var progressed = false;
+            while (pending.Count > 0 && await isDone(pending.Peek(), cancellationToken))
             {
-                try
-                {
-                    var copies = await _api.Api.DemandManagement.IntakeRequests[item.RequestId].Projects[item.ProjectId].Deliverables
-                        .GetAsync(cancellationToken: cancellationToken) ?? [];
-                    var held = copies.Where(d => d.Id is not null).Select(d => d.Id!.Value).ToHashSet();
-                    if (!item.DeliverableIds.All(held.Contains))
-                        stillWaiting.Add(item);
-                }
-                catch (ApiException ex) when (ex.ResponseStatusCode == 404)
-                {
-                    stillWaiting.Add(item);
-                }
+                pending.Dequeue();
+                progressed = true;
             }
 
-            if (stillWaiting.Count == 0)
-                return;
+            if (pending.Count == 0)
+                return 0;
 
-            if (DateTimeOffset.UtcNow >= deadline)
-                throw new SeedException($"Demand Management had not copied {stillWaiting.Count} project(s) and their deliverables after {timeout.TotalSeconds:0}s.");
+            if (!progressed && sinceProgress >= stallTimeout)
+            {
+                var before = pending.Count;
+                var stillPending = new Queue<T>();
+                foreach (var item in pending)
+                {
+                    if (!await isDone(item, cancellationToken))
+                        stillPending.Enqueue(item);
+                }
 
-            waiting = stillWaiting;
-            await Task.Delay(PollInterval, cancellationToken);
+                pending = stillPending;
+                if (pending.Count == 0 || pending.Count == before)
+                    return pending.Count;
+
+                progressed = true;
+            }
+
+            if (progressed)
+            {
+                sinceProgress = TimeSpan.Zero;
+                wait = CopyCheckInitialWait;
+            }
+
+            await delay(wait, cancellationToken);
+            sinceProgress += wait;
+            wait = TimeSpan.FromTicks(Math.Min(wait.Ticks * 2, CopyCheckMaxWait.Ticks));
         }
     }
 

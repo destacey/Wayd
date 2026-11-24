@@ -213,6 +213,49 @@ public class SeedRunnerTests
     }
 
     [Fact]
+    public void Areas_DeclareEveryAreaWhoseImportRecordsTheTokensAccountAsAPerson()
+    {
+        // Arrange & Act — the incident import records the importer as who submitted each incident
+        var needing = SeedRunner.Areas.Where(a => a.NeedsLinkedEmployee).Select(a => a.Name);
+
+        // Assert
+        needing.Should().BeEquivalentTo([ProductManagementArea.Incidents]);
+    }
+
+    [Fact]
+    public void RequireLinkedEmployee_StopsTheSeed_WhenAnAreaNeedsOneAndTheAccountHasNone()
+    {
+        // Act
+        var require = () => SeedRunner.RequireLinkedEmployee(SeedRunner.Areas, isLinked: false);
+
+        // Assert
+        require.Should().Throw<SeedException>().WithMessage($"*linked to no employee*'{ProductManagementArea.Incidents}'*");
+    }
+
+    [Fact]
+    public void RequireLinkedEmployee_LetsTheSeedRun_WhenTheAccountIsLinked()
+    {
+        // Act
+        var require = () => SeedRunner.RequireLinkedEmployee(SeedRunner.Areas, isLinked: true);
+
+        // Assert
+        require.Should().NotThrow();
+    }
+
+    [Fact]
+    public void RequireLinkedEmployee_LetsTheSeedRun_WhenNoAreaThatWillRunNeedsOne()
+    {
+        // Arrange — a seed that generates no incidents
+        var notNeeding = SeedRunner.Areas.Where(a => !a.NeedsLinkedEmployee);
+
+        // Act
+        var require = () => SeedRunner.RequireLinkedEmployee(notNeeding, isLinked: false);
+
+        // Assert
+        require.Should().NotThrow();
+    }
+
+    [Fact]
     public void Areas_DeclareProductDependenciesAfterTheProductsTheyLink()
     {
         // Arrange & Act & Assert

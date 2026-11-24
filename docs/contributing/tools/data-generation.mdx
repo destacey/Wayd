@@ -113,9 +113,18 @@ an account. So the loop back to a working token is:
    to the log; see [First-Run Setup](../first-run-setup.mdx).
 2. **Create the first admin** at `<your-app-url>/setup`, or `POST /api/auth/setup` with the token. This
    account is created with no forced password change, so it is usable immediately.
-3. **Create a Personal Access Token** under Settings → Personal Access Tokens, or
-   `POST /api/user-management/personal-access-tokens`.
-4. **Seed** with that token. The seed then creates its own accounts on top of yours — see
+3. **Create a seeding account linked to an employee.** The incident import records the token's account as
+   who submitted each incident, so it refuses an account linked to no employee, and an account cannot link
+   itself. As the first admin, create an employee (`POST /api/organization/employees`), then a second
+   account linked to it: `POST /api/user-management/users` with `firstName`, `lastName`, `email`,
+   `loginProvider: "Wayd"`, a `password`, `roleNames: ["Admin"]` and the employee's id as `employeeId`. The
+   seed checks the link before posting anything. Skip this step if the seed generates no incidents.
+4. **Sign in as that account and change its password**, which a new account must do first
+   (`PUT /api/user-management/profiles/change-password`). The change ends every session, so sign in again.
+5. **Create a Personal Access Token** under Settings → Personal Access Tokens, or
+   `POST /api/user-management/personal-access-tokens`. That endpoint takes a signed-in session — the token
+   from `POST /api/auth/login` — and refuses another Personal Access Token.
+6. **Seed** with that token. The seed then creates its own accounts on top of yours — see
    [Sign-ins and roles](#sign-ins-and-roles) — so after this you can sign in as any of the generated
    people as well.
 

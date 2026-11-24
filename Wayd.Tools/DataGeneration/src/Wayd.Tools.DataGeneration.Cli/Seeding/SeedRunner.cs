@@ -93,11 +93,30 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
         context.ImportLimits = await _client.GetImportLimits(cancellationToken);
         context.ImportLimits.Require(areas.Select(a => a.BatchedImport).OfType<string>());
 
+        if (areas.Any(a => a.NeedsLinkedEmployee))
+            RequireLinkedEmployee(areas, await _client.IsLinkedToEmployee(cancellationToken));
+
         _log($"Submitting every file under import group {_client.SubmissionGroupId}.");
 
         foreach (var area in areas)
             await area.Run(context, cancellationToken);
 
         _log("Seed complete.");
+    }
+
+    /// <summary>
+    /// Fails when an area that will run records the token's account as a person and the account is linked to
+    /// no employee, naming those areas. An account cannot link itself, so the fix is a token from another one.
+    /// </summary>
+    public static void RequireLinkedEmployee(IEnumerable<ISeedArea> areas, bool isLinked)
+    {
+        var needing = areas.Where(a => a.NeedsLinkedEmployee).Select(a => $"'{a.Name}'").ToList();
+        if (needing.Count == 0 || isLinked)
+            return;
+
+        throw new SeedException(
+            $"This token's account is linked to no employee, which {string.Join(", ", needing)} needs. "
+            + "An account cannot link itself: create a second account linked to an employee, as an administrator, "
+            + "and seed with a token from it.");
     }
 }

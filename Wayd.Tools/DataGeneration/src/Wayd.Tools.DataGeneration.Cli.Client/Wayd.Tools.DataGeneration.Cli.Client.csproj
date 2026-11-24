@@ -42,6 +42,7 @@
     <KiotaIncludePath Include="/api/ppm/expenditure-categories#GET,POST" />
     <KiotaIncludePath Include="/api/ppm/project-lifecycles#GET,POST" />
     <KiotaIncludePath Include="/api/ppm/project-lifecycles/{id}/activate#POST" />
+    <KiotaIncludePath Include="/api/user-management/profiles#GET" />
     <KiotaIncludePath Include="/api/user-management/roles#GET,POST" />
     <KiotaIncludePath Include="/api/user-management/roles/{id}/permissions#PUT" />
     <KiotaIncludePath Include="/api/user-management/users#POST" />

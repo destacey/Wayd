@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using System;
+using Wayd.Tools.DataGeneration.Cli.Client.Api.UserManagement.Profiles;
 using Wayd.Tools.DataGeneration.Cli.Client.Api.UserManagement.Roles;
 using Wayd.Tools.DataGeneration.Cli.Client.Api.UserManagement.Users;
 namespace Wayd.Tools.DataGeneration.Cli.Client.Api.UserManagement
@@ -16,6 +17,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client.Api.UserManagement
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class UserManagementRequestBuilder : BaseRequestBuilder
     {
+        /// <summary>The profiles property</summary>
+        public global::Wayd.Tools.DataGeneration.Cli.Client.Api.UserManagement.Profiles.ProfilesRequestBuilder Profiles
+        {
+            get => new global::Wayd.Tools.DataGeneration.Cli.Client.Api.UserManagement.Profiles.ProfilesRequestBuilder(PathParameters, RequestAdapter);
+        }
         /// <summary>The roles property</summary>
         public global::Wayd.Tools.DataGeneration.Cli.Client.Api.UserManagement.Roles.RolesRequestBuilder Roles
         {

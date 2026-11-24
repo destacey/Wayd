@@ -1,5 +1,5 @@
 {
-  "descriptionHash": "CE7E40F4B3F6D6E717FAFA325B5CDA1E5DEC4FE7969305AEC59A0BBE1EF1E4D9921153A819F4F5EFECBBE825B15E4791C19BDC0D9905127177A1CAAFBD21FD37",
+  "descriptionHash": "A5C3FD7E15537F0A41F7E9DADF29891A958F8CF6A696E3D885DA10C663E497645E6E5B4C2F6EC6AC71478052A868E24A4BD6A1E4CC75533C6D516D12ABC38318",
   "descriptionLocation": "../../../../../Wayd.Web/src/Wayd.Web.Api/wwwroot/api/v1/specification.json",
   "lockFileVersion": "1.0.0",
   "kiotaVersion": "1.38.0",
@@ -48,6 +48,7 @@
     "/api/ppm/expenditure-categories#GET,POST",
     "/api/ppm/project-lifecycles#GET,POST",
     "/api/ppm/project-lifecycles/{id}/activate#POST",
+    "/api/user-management/profiles#GET",
     "/api/user-management/roles#GET,POST",
     "/api/user-management/roles/{id}/permissions#PUT",
     "/api/user-management/users#POST"

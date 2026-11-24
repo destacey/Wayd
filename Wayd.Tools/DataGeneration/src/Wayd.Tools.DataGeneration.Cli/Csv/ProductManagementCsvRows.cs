@@ -145,6 +145,13 @@ public sealed class IncidentCsvRow
     public required string Severity { get; init; }
     public required string Status { get; init; }
     public required Guid CommanderEmployeeId { get; init; }
+
+    /// <summary>
+    /// Who reported it. Written even when blank, which records the importer: the import refuses a file
+    /// without the column.
+    /// </summary>
+    public Guid? ReportedByEmployeeId { get; init; }
+
     public required string ProductIds { get; init; }
     public required string ReleaseIds { get; init; }
     public required string NoticedAt { get; init; }

@@ -162,8 +162,11 @@ public sealed class IntakeRequestOutcomesArea() : DemandManagementSeedArea(
     DemandManagementArea.IntakeRequestOutcomes, DemandManagementArea.IntakeRequests, PpmArea.Projects,
     PpmArea.ProjectDeliverables, OrganizationArea.Employees)
 {
-    /// <summary>How long the copies may take to catch up; they normally do within seconds.</summary>
-    private static readonly TimeSpan CopyTimeout = TimeSpan.FromMinutes(2);
+    /// <summary>
+    /// How long the wait goes on with no copy landing. A stall rather than a total: after a large seed the copies
+    /// take minutes to catch up, behind the thousands of events its imports raised.
+    /// </summary>
+    private static readonly TimeSpan CopyStallTimeout = TimeSpan.FromMinutes(2);
 
     public override string BatchedImport => "demand-management.intake-request-outcomes";
 
@@ -188,7 +191,7 @@ public sealed class IntakeRequestOutcomesArea() : DemandManagementSeedArea(
         }).ToList();
 
         context.Log($"Waiting for Demand Management's copies of {rows.Select(r => r.ProjectId).Distinct().Count()} projects...");
-        await context.Client.WaitForDemandProjectCopies(Expected(rows), CopyTimeout, cancellationToken);
+        await context.Client.WaitForDemandProjectCopies(Expected(rows), CopyStallTimeout, cancellationToken);
 
         var batches = Batch(context, rows, r => r.RequestId);
         context.Log($"Importing {rows.Count} intake request outcomes in {batches.Count} batch(es)...");

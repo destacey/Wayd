@@ -20,6 +20,7 @@ using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Web.Api.IntegrationTests.Infrastructure;
 using Wayd.Work.Application.Persistence;
 using Wolverine;
+using Wolverine.EntityFrameworkCore;
 using Wolverine.Persistence.Durability;
 using Wolverine.Persistence.Durability.DeadLetterManagement;
 using Wolverine.Runtime;
@@ -95,6 +96,91 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
         // System-actor attribution for auditable writes from an HTTP-less scope is pinned by
         // HangfireIdentityPropagationTests.Dispatch_FromScopeWithoutUser_StampsSystemActorOnAuditColumns,
         // which exercises the same CurrentUser/BaseDbContext path a durable handler scope uses.
+    }
+
+    [Fact]
+    public async Task DurableEvents_FromSeveralSavesOfOneContext_AreAllDelivered()
+    {
+        // Arrange — one scope, so one context and one scoped outbox, as an import run has. Each save commits and
+        // flushes the outbox; Wolverine's default sends only the first flush and drops the envelopes of later ones.
+        var ct = TestContext.Current.CancellationToken;
+
+        var (expenditureCategoryId, portfolioId) = await SeedProjectPrerequisites(ct);
+        List<Guid> projectIds = [];
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var ppm = scope.ServiceProvider.GetRequiredService<IProjectPortfolioManagementDbContext>();
+            var portfolio = await ppm.Portfolios.FirstAsync(p => p.Id == portfolioId, ct);
+
+            // Act — three projects, each in its own save, each raising ProjectCreatedEvent (durable).
+            for (var i = 0; i < 3; i++)
+            {
+                var key = $"M{Guid.NewGuid():N}"[..8].ToUpperInvariant();
+                var created = portfolio.CreateProject(
+                    $"Multi Save Project {i}", "Exercises several flushes of one outbox.", new ProjectKey(key),
+                    expenditureCategoryId, dateRange: null, programId: null, businessCase: null, expectedBenefits: null,
+                    roles: null, strategicThemes: null, Now, PpmActor.System);
+                Assert.True(created.IsSuccess, created.IsFailure ? created.Error : null);
+
+                await ppm.SaveChangesAsync(ct);
+                projectIds.Add(created.Value.Id);
+            }
+        }
+
+        // Assert — every save's event reaches its handler, not only the first.
+        foreach (var projectId in projectIds)
+        {
+            var replicated = await WaitForWorkProject(projectId, TimeSpan.FromSeconds(30), ct);
+            Assert.True(replicated, $"WorkProject {projectId} should be delivered, whichever save of the context raised it");
+        }
+    }
+
+    [Fact]
+    public async Task DurableEvent_FromASaveThatRolledBack_IsNotDeliveredByTheContextsNextSave()
+    {
+        // Arrange — one scope, so the rolled-back save and the one after it share the outbox
+        var ct = TestContext.Current.CancellationToken;
+
+        var (expenditureCategoryId, portfolioId) = await SeedProjectPrerequisites(ct);
+        Guid rolledBackId;
+        Guid committedId;
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var ppm = scope.ServiceProvider.GetRequiredService<IProjectPortfolioManagementDbContext>();
+            var outbox = (MessageBus)scope.ServiceProvider.GetRequiredService<IDbContextOutbox>();
+            var portfolio = await ppm.Portfolios.FirstAsync(p => p.Id == portfolioId, ct);
+
+            // Act — a save inside a unit of work that is never committed, then an ordinary save
+            await using (await ppm.BeginUnitOfWork(ct))
+            {
+                rolledBackId = CreateProject(portfolio, expenditureCategoryId, "Rolled Back Project");
+                await ppm.SaveChangesAsync(ct);
+            }
+
+            Assert.Empty(outbox.Outstanding);
+
+            committedId = CreateProject(portfolio, expenditureCategoryId, "Committed Project");
+            await ppm.SaveChangesAsync(ct);
+        }
+
+        // Assert — the committed project's event arrives; the rolled-back one's, which would have gone out in the
+        // same flush, does not
+        Assert.True(await WaitForWorkProject(committedId, TimeSpan.FromSeconds(30), ct), "the committed save's event should be delivered");
+        Assert.False(await WaitForWorkProject(rolledBackId, TimeSpan.FromSeconds(2), ct), "the rolled-back save's event should never be delivered");
+    }
+
+    private static Guid CreateProject(ProjectPortfolio portfolio, int expenditureCategoryId, string name)
+    {
+        var key = $"R{Guid.NewGuid():N}"[..8].ToUpperInvariant();
+        var created = portfolio.CreateProject(
+            name, "Exercises the outbox across a rollback.", new ProjectKey(key),
+            expenditureCategoryId, dateRange: null, programId: null, businessCase: null, expectedBenefits: null,
+            roles: null, strategicThemes: null, Now, PpmActor.System);
+        Assert.True(created.IsSuccess, created.IsFailure ? created.Error : null);
+
+        return created.Value.Id;
     }
 
     [Fact]

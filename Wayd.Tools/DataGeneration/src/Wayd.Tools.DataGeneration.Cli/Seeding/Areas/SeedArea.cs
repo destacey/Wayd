@@ -16,6 +16,8 @@ public abstract class SeedArea(string name, params string[] dependsOn) : ISeedAr
 
     public virtual string? BatchedImport => null;
 
+    public virtual bool NeedsLinkedEmployee => false;
+
     public abstract bool ShouldRun(SeedContext context);
 
     public abstract Task Run(SeedContext context, CancellationToken cancellationToken);

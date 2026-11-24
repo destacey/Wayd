@@ -1303,7 +1303,10 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// Deletes the task with the specified identifier if it has no child tasks or active dependencies.
     /// </summary>
     /// <remarks>A task cannot be deleted if it has child tasks or if it has active dependencies. Remove all
-    /// child tasks and dependencies before attempting to delete the task.</remarks>
+    /// child tasks and dependencies before attempting to delete the task. Requires the task's
+    /// <see cref="ProjectTask.Children"/>, <see cref="ProjectTask.Successors"/> and
+    /// <see cref="ProjectTask.Predecessors"/> to be loaded: unloaded, they read as empty and the task is deleted
+    /// when it should be refused.</remarks>
     /// <param name="taskId">The unique identifier of the task to delete.</param>
     /// <returns>A Result indicating whether the deletion was successful. Returns a failure result if the task does not exist,
     /// has child tasks, or has active dependencies.</returns>

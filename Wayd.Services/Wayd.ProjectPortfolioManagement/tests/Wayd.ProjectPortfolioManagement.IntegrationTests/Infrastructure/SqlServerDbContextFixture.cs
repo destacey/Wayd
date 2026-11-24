@@ -131,7 +131,8 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [StatusWorkflows].[StatusTransitions];", cancellationToken);
 
         // Ahead of the projects: neither cascades from them. A task's parent is a self-reference with no cascade
-        // either, which one statement removing every task at once satisfies.
+        // either, which one statement removing every task at once satisfies. Dependencies cascade from neither end.
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Ppm].[ProjectTaskDependencies];", cancellationToken);
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Ppm].[ProjectTasks];", cancellationToken);
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Ppm].[ProjectStages];", cancellationToken);
 

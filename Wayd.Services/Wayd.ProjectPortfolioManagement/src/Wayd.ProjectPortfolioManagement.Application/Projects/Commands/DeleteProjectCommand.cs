@@ -73,6 +73,14 @@ public sealed class DeleteProjectCommandHandler(IProjectPortfolioManagementDbCon
                 return Result.Failure(deleteResult.Error);
             }
 
+            // The database cascades a project's tasks but not their dependencies, so a cascade alone fails on the
+            // dependency foreign keys. Tracked, the tasks and every dependency between them are deleted by EF.
+            // Each dependency joins two tasks of one project, so its predecessor's successors reach all of them.
+            await _projectPortfolioManagementDbContext.ProjectTasks
+                .Where(t => t.ProjectId == project.Id)
+                .Include(t => t.Successors)
+                .LoadAsync(cancellationToken);
+
             // Channels, links and images have no foreign key to their record, so they would outlive the project.
             await _discussionWriter.DeleteChannel(PpmDiscussionChannels.Project.Key, project.Id, actor, cancellationToken);
             await _linkWriter.RemoveAll(PpmLinkOwners.Project.Key, project.Id, actor, cancellationToken);

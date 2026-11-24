@@ -12210,13 +12210,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectTask", "Predecessor")
                         .WithMany("Successors")
                         .HasForeignKey("PredecessorId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.ClientCascade)
                         .IsRequired();
 
                     b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectTask", "Successor")
                         .WithMany("Predecessors")
                         .HasForeignKey("SuccessorId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.ClientCascade)
                         .IsRequired();
 
                     b.Navigation("Predecessor");

@@ -993,17 +993,18 @@ public class ProjectTaskConfiguration : IEntityTypeConfiguration<ProjectTask>
             .HasForeignKey(a => a.ObjectId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Relationship to Dependencies (successors)
+        // Both ends cascade on the client only: SQL Server refuses two cascading foreign keys into the same
+        // table. EF deletes the dependencies it tracks along with a deleted task, so a delete must load every
+        // dependency on the tasks it removes, or the save fails on the foreign key.
         builder.HasMany(t => t.Successors)
             .WithOne(d => d.Predecessor)
             .HasForeignKey(d => d.PredecessorId)
-            .OnDelete(DeleteBehavior.NoAction);
+            .OnDelete(DeleteBehavior.ClientCascade);
 
-        // Relationship to Dependencies (predecessors)
         builder.HasMany(t => t.Predecessors)
             .WithOne(d => d.Successor)
             .HasForeignKey(d => d.SuccessorId)
-            .OnDelete(DeleteBehavior.NoAction);
+            .OnDelete(DeleteBehavior.ClientCascade);
     }
 }
 

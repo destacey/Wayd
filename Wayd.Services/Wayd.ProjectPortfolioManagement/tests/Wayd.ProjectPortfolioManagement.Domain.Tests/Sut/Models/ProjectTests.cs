@@ -3684,4 +3684,78 @@ public class ProjectTests
     }
 
     #endregion Date Rollup Tests
+
+    #region DeleteTask Tests
+
+    private static ProjectTask CreateTask(Project project, int number, Guid parentId) =>
+        project.CreateTask(number, $"Task {number}", null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, parentId, null, null, null, null).Value;
+
+    [Fact]
+    public void DeleteTask_ShouldFail_WhenTaskNotFound()
+    {
+        // Arrange
+        var (project, _) = CreateProjectWithLifecycle(("Plan", "Planning"));
+
+        // Act
+        var result = project.DeleteTask(Guid.NewGuid());
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Task not found.");
+    }
+
+    [Fact]
+    public void DeleteTask_ShouldFail_WhenTaskHasChildren()
+    {
+        // Arrange
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var parent = CreateTask(project, 1, stages[0].Id);
+        CreateTask(project, 2, parent.Id);
+
+        // Act
+        var result = project.DeleteTask(parent.Id);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Cannot delete a task with children. Delete child tasks first.");
+        project.Tasks.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void DeleteTask_ShouldFail_WhenTaskHasAnActiveDependency()
+    {
+        // Arrange
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var predecessor = CreateTask(project, 1, stages[0].Id);
+        var successor = CreateTask(project, 2, stages[0].Id);
+        predecessor.AddDependency(successor);
+
+        // Act
+        var result = project.DeleteTask(predecessor.Id);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Cannot delete a task with active dependencies. Remove dependencies first.");
+        project.Tasks.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void DeleteTask_ShouldSucceed_WhenTaskHasOnlyRemovedDependencies()
+    {
+        // Arrange
+        var (project, stages) = CreateProjectWithLifecycle(("Plan", "Planning"));
+        var predecessor = CreateTask(project, 1, stages[0].Id);
+        var successor = CreateTask(project, 2, stages[0].Id);
+        predecessor.AddDependency(successor);
+        predecessor.RemoveDependency(successor.Id, _dateTimeProvider.Now);
+
+        // Act
+        var result = project.DeleteTask(predecessor.Id);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.Tasks.Should().ContainSingle().Which.Id.Should().Be(successor.Id);
+    }
+
+    #endregion DeleteTask Tests
 }

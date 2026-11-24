@@ -1,13 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using Wayd.Common.Domain.Events;
-using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Models;
 using Wayd.Infrastructure.Persistence.Context;
-using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
-using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 using Wayd.ProjectPortfolioManagement.IntegrationTests.Infrastructure;
-using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
+using static Wayd.ProjectPortfolioManagement.IntegrationTests.Infrastructure.ProposedProjectWithStage;
 
 namespace Wayd.ProjectPortfolioManagement.IntegrationTests.Sut;
 
@@ -218,64 +214,8 @@ public sealed class ProjectTaskHierarchyTests(SqlServerDbContextFixture fixture)
 
     private static ProjectTask TaskIn(Project project, Guid taskId) => project.Tasks.Single(t => t.Id == taskId);
 
-    private static ProjectTask CreateTask(Project project, int number, string name, Guid parentId, FlexibleDateRange? dates)
-    {
-        var result = project.CreateTask(
-            nextNumber: number,
-            name: name,
-            description: null,
-            type: ProjectTaskType.Task,
-            status: TaskStatus.NotStarted,
-            priority: TaskPriority.Medium,
-            progress: null,
-            parentId: parentId,
-            plannedDateRange: dates,
-            plannedDate: null,
-            estimatedEffortHours: null,
-            roles: null);
-
-        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
-        return result.Value;
-    }
-
     private static FlexibleDateRange Range(int startDay, int endDay) =>
         new(Day0.PlusDays(startDay), Day0.PlusDays(endDay));
 
-    /// <summary>A project in an active portfolio, following a one-stage lifecycle so tasks can be created.</summary>
-    private async Task<(Guid ProjectId, Guid StageId)> Seed(CancellationToken ct)
-    {
-        await _fixture.ResetPpmData(ct);
-        await using var context = _fixture.CreateContext();
-
-        var category = ExpenditureCategory.Create("Capital", "Capital spend", isCapitalizable: true, requiresDepreciation: true);
-        await context.ExpenditureCategories.AddAsync(category, ct);
-
-        var lifecycle = ProjectLifecycle.Create("Standard", "Standard delivery lifecycle", [("Delivery", "Delivery stage")]);
-        lifecycle.Activate();
-        await context.ProjectLifecycles.AddAsync(lifecycle, ct);
-
-        var portfolio = ProjectPortfolio.Create(
-            "Delivery", "Delivery portfolio", null, EventActor.System, SqlServerDbContextFixture.FixedNow);
-        await context.Portfolios.AddAsync(portfolio, ct);
-        await context.SaveChangesAsync(ct);
-
-        portfolio.Activate(PpmActor.System, SqlServerDbContextFixture.FixedNow.InUtc().Date, SqlServerDbContextFixture.FixedNow);
-        var project = portfolio.CreateProject(
-            "Gemini",
-            "Gemini description",
-            new ProjectKey("GEMINI"),
-            category.Id,
-            dateRange: null,
-            programId: null,
-            businessCase: null,
-            expectedBenefits: null,
-            roles: null,
-            strategicThemes: null,
-            SqlServerDbContextFixture.FixedNow,
-            PpmActor.System).Value;
-        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle, SqlServerDbContextFixture.FixedNow);
-        await context.SaveChangesAsync(ct);
-
-        return (project.Id, project.Stages.Single().Id);
-    }
+    private Task<ProposedProjectWithStage> Seed(CancellationToken ct) => ProposedProjectWithStage.Seed(_fixture, ct);
 }

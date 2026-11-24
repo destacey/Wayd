@@ -1092,6 +1092,50 @@ public class UserServiceTests
 
     #endregion
 
+    #region GetUserIdsForEmployees
+
+    [Fact]
+    public async Task GetUserIdsForEmployees_ReturnsTheUsersLinkedToThoseEmployees()
+    {
+        // Arrange
+        var linkedEmployee = Guid.NewGuid();
+        var otherLinkedEmployee = Guid.NewGuid();
+        var unlinkedEmployee = Guid.NewGuid();
+        var linked = CreateUser("user-linked", "linked");
+        linked.EmployeeId = linkedEmployee;
+        var otherLinked = CreateUser("user-other-linked", "other-linked");
+        otherLinked.EmployeeId = otherLinkedEmployee;
+        var someoneElse = CreateUser("user-someone-else", "someone-else");
+        someoneElse.EmployeeId = Guid.NewGuid();
+        var noEmployee = CreateUser("user-no-employee", "no-employee");
+        _mockUserManager.Setup(x => x.Users)
+            .Returns(new[] { linked, otherLinked, someoneElse, noEmployee }.AsQueryable().BuildMockDbSet().Object);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetUserIdsForEmployees([linkedEmployee, otherLinkedEmployee, unlinkedEmployee], TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeEquivalentTo(["user-linked", "user-other-linked"]);
+    }
+
+    [Fact]
+    public async Task GetUserIdsForEmployees_WithNoEmployees_ReadsNothing()
+    {
+        // Arrange
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetUserIdsForEmployees([], TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeEmpty();
+        _mockUserManager.Verify(x => x.Users, Times.Never);
+    }
+
+    #endregion
+
     #region GetEmployeeIdAsync
 
     [Fact]

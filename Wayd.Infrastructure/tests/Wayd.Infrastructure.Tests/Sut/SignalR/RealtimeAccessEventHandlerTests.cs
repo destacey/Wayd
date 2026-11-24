@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Events.Identity;
 using Wayd.Common.Domain.Identity;
 using Wayd.Infrastructure.SignalR;
@@ -7,7 +9,7 @@ using Wayd.Infrastructure.SignalR;
 namespace Wayd.Infrastructure.Tests.Sut.SignalR;
 
 /// <summary>
-/// Covers which account and role changes <see cref="RealtimeAccessEventHandler"/> rechecks real-time access for,
+/// Covers which account, role and desk membership changes <see cref="RealtimeAccessEventHandler"/> rechecks real-time access for,
 /// and that a failed recheck never fails the change that triggered it.
 /// </summary>
 public class RealtimeAccessEventHandlerTests
@@ -87,6 +89,70 @@ public class RealtimeAccessEventHandlerTests
         // Assert
         _revoker.Verify(r => r.EvictUser("user-1"), Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_DeskMembersChanged_WithMembersRemoved_RechecksTheRemovedEmployees()
+    {
+        // Arrange
+        var leaving = Guid.NewGuid();
+        var staying = Guid.NewGuid();
+        var @event = DeskMembersChanged(
+            added: [],
+            removed: [new IntakeDeskMemberDetails(leaving, IntakeDeskRole.Agent)],
+            roleChanges: [],
+            members: [new IntakeDeskMemberDetails(staying, IntakeDeskRole.Admin)]);
+
+        // Act
+        await CreateSut().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        _revoker.Verify(
+            r => r.RecheckEmployees(It.Is<IReadOnlyCollection<Guid>>(ids => ids.SequenceEqual(new[] { leaving })), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _revoker.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task Handle_DeskMembersChanged_WithOnlyAdditionsAndRoleChanges_RechecksNothing()
+    {
+        // Arrange — every role on a desk facilitates its sessions, so only leaving the desk takes access away.
+        var promoted = Guid.NewGuid();
+        var joining = Guid.NewGuid();
+        var @event = DeskMembersChanged(
+            added: [new IntakeDeskMemberDetails(joining, IntakeDeskRole.Agent)],
+            removed: [],
+            roleChanges: [new IntakeDeskRoleChange(promoted, IntakeDeskRole.Agent, IntakeDeskRole.Admin)],
+            members: [new IntakeDeskMemberDetails(promoted, IntakeDeskRole.Admin), new IntakeDeskMemberDetails(joining, IntakeDeskRole.Agent)]);
+
+        // Act
+        await CreateSut().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        _revoker.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task Handle_DeskMembersChanged_WhenTheRecheckFails_DoesNotThrow()
+    {
+        // Arrange — the membership change has already been saved.
+        _revoker
+            .Setup(r => r.RecheckEmployees(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("hub unavailable"));
+        var @event = DeskMembersChanged([], [new IntakeDeskMemberDetails(Guid.NewGuid(), IntakeDeskRole.Agent)], [], []);
+
+        // Act
+        var act = () => CreateSut().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().NotThrowAsync();
+    }
+
+    private static IntakeDeskMembersChangedEvent DeskMembersChanged(
+        IReadOnlyList<IntakeDeskMemberDetails> added,
+        IReadOnlyList<IntakeDeskMemberDetails> removed,
+        IReadOnlyList<IntakeDeskRoleChange> roleChanges,
+        IReadOnlyList<IntakeDeskMemberDetails> members) =>
+        new(Guid.NewGuid(), 1, added, removed, roleChanges, members, EventActor.System, Now);
 
     [Fact]
     public async Task Handle_WhenTheRecheckFails_DoesNotThrow()

@@ -306,6 +306,32 @@ public class PokerSessionAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task CanUserAccess_HostedSession_OffTheDeskButInvited_ShouldStillAdmit()
+    {
+        // Arrange — leaving a desk rechecks the session in full, so an invite of its own keeps them connected.
+        var session = AddPrivateSession(f => f.WithDeskHost(_deskId).WithFacilitators(Guid.NewGuid()).WithInvitedEmployees(_employeeId));
+
+        // Act
+        var canAccess = await _access.CanUserAccess(session.Id, UserId, TestContext.Current.CancellationToken);
+
+        // Assert
+        canAccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CanUserAccess_HostedSession_OffTheDeskButAFacilitator_ShouldStillAdmit()
+    {
+        // Arrange — whoever started a desk's session is stored as one of its facilitators, and stays one.
+        var session = AddPrivateSession(f => f.WithDeskHost(_deskId).WithFacilitators(_employeeId));
+
+        // Act
+        var canAccess = await _access.CanUserAccess(session.Id, UserId, TestContext.Current.CancellationToken);
+
+        // Assert
+        canAccess.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task ManagesHost_KindNoModuleAnswersFor_ShouldBeFalse()
     {
         // Arrange

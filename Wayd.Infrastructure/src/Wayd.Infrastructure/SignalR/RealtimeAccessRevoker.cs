@@ -38,6 +38,12 @@ public interface IRealtimeAccessRevoker
     /// <summary><see cref="RecheckUsers"/> for everyone holding the role.</summary>
     Task RecheckRoleMembers(string roleId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// <see cref="RecheckUsers"/> for the accounts linked to the employees, after a change recorded against
+    /// employees (such as leaving an intake desk) takes access away. An employee with no account holds nothing.
+    /// </summary>
+    Task RecheckEmployees(IReadOnlyCollection<Guid> employeeIds, CancellationToken cancellationToken);
+
     /// <summary>Evicts every connection the user has, whatever they hold.</summary>
     Task EvictUser(string userId);
 }
@@ -77,6 +83,16 @@ internal sealed class RealtimeAccessRevoker(
         var members = await _userService.GetUsersWithRole(roleId, cancellationToken);
 
         await RecheckUsers([.. members.Select(u => u.Id)], cancellationToken);
+    }
+
+    public async Task RecheckEmployees(IReadOnlyCollection<Guid> employeeIds, CancellationToken cancellationToken)
+    {
+        if (employeeIds.Count == 0)
+            return;
+
+        var userIds = await _userService.GetUserIdsForEmployees(employeeIds, cancellationToken);
+
+        await RecheckUsers(userIds, cancellationToken);
     }
 
     public async Task EvictUser(string userId)

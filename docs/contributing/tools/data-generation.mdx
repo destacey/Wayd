@@ -263,9 +263,10 @@ Every account is created with the same password, which the recipe states:
 The password must satisfy Wayd's password rules — at least 8 characters, with an uppercase letter, a
 lowercase letter and a digit; the schema states the 8-character minimum.
 
-One password for all of them is deliberate — switching between people to check a rule is the point. Wayd
-prompts each account to change it at first sign-in; that is a client-side prompt rather than something the
-API enforces, so the account works immediately either way.
+One password for all of them is deliberate — switching between people to check a rule is the point. It is
+a temporary password, though: each account must change it at first sign-in, and until it does the API
+refuses every request except changing the password and signing out. So change it the first time you sign
+in as each person — to one second password you reuse for all of them — and the account works from then on.
 
 `--skip-users` turns the area off, and `--user-password` overrides the password for one run.
 

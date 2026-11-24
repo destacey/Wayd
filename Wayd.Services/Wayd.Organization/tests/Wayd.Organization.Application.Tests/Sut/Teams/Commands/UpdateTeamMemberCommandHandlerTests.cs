@@ -151,6 +151,101 @@ public class UpdateTeamMemberCommandHandlerTests : IDisposable
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 
+    [Fact]
+    public async Task Handle_ShouldFail_WhenANewRoleIsInactive()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var employee = _employeeFaker.Generate();
+        _dbContext.AddTeam(team);
+        _dbContext.AddEmployee(employee);
+        var heldRoleId = AddRole();
+        team.AddMember(employee, [heldRoleId], EventActor.System, _dateTimeProvider.Now);
+        var inactiveRole = new TeamMemberRoleFaker().WithName("Archivist").AsInactive().Generate();
+        _dbContext.AddTeamMemberRole(inactiveRole);
+
+        // Act
+        var result = await _handler.Handle(new UpdateTeamMemberCommand(team.Id, employee.Id, [heldRoleId, inactiveRole.Id]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Inactive roles cannot be assigned to team members. Archivist is inactive.");
+        team.Members.Where(m => !m.IsDeleted).Select(m => m.RoleId).Should().BeEquivalentTo([heldRoleId]);
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldKeepAHeldRole_WhenItHasSinceBeenDeactivated()
+    {
+        // Arrange — the member holds a role that was deactivated after it was given; an update that leaves
+        // it in place while adding another is not refused
+        var team = _teamFaker.Generate();
+        var employee = _employeeFaker.Generate();
+        _dbContext.AddTeam(team);
+        _dbContext.AddEmployee(employee);
+        var deactivatedRole = new TeamMemberRoleFaker().Generate();
+        _dbContext.AddTeamMemberRole(deactivatedRole);
+        team.AddMember(employee, [deactivatedRole.Id], EventActor.System, _dateTimeProvider.Now);
+        deactivatedRole.Deactivate();
+        var newRoleId = AddRole();
+
+        // Act
+        var result = await _handler.Handle(new UpdateTeamMemberCommand(team.Id, employee.Id, [deactivatedRole.Id, newRoleId]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        team.Members.Where(m => !m.IsDeleted).Select(m => m.RoleId).Should().BeEquivalentTo([deactivatedRole.Id, newRoleId]);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFail_WhenRestoringARemovedRoleThatIsNowInactive()
+    {
+        // Arrange — the member once held the role, but that membership row is soft-deleted, so it is not held
+        var team = _teamFaker.Generate();
+        var employee = _employeeFaker.Generate();
+        _dbContext.AddTeam(team);
+        _dbContext.AddEmployee(employee);
+        var keptRoleId = AddRole();
+        var removedRole = new TeamMemberRoleFaker().WithName("Archivist").Generate();
+        _dbContext.AddTeamMemberRole(removedRole);
+        team.AddMember(employee, [keptRoleId, removedRole.Id], EventActor.System, _dateTimeProvider.Now);
+        team.UpdateMemberRoles(employee, [keptRoleId], EventActor.System, _dateTimeProvider.Now);
+        removedRole.Deactivate();
+
+        // Act
+        var result = await _handler.Handle(new UpdateTeamMemberCommand(team.Id, employee.Id, [keptRoleId, removedRole.Id]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Inactive roles cannot be assigned to team members. Archivist is inactive.");
+        team.Members.Where(m => !m.IsDeleted).Select(m => m.RoleId).Should().BeEquivalentTo([keptRoleId]);
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldRemoveARole_WhenTheMemberAlsoHoldsADeactivatedRole()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var employee = _employeeFaker.Generate();
+        _dbContext.AddTeam(team);
+        _dbContext.AddEmployee(employee);
+        var deactivatedRole = new TeamMemberRoleFaker().Generate();
+        _dbContext.AddTeamMemberRole(deactivatedRole);
+        var droppedRoleId = AddRole();
+        team.AddMember(employee, [deactivatedRole.Id, droppedRoleId], EventActor.System, _dateTimeProvider.Now);
+        deactivatedRole.Deactivate();
+
+        // Act
+        var result = await _handler.Handle(new UpdateTeamMemberCommand(team.Id, employee.Id, [deactivatedRole.Id]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        team.Members.Where(m => !m.IsDeleted).Select(m => m.RoleId).Should().BeEquivalentTo([deactivatedRole.Id]);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
     /// <summary>Adds a team member role to the context and returns its id.</summary>
     private Guid AddRole()
     {

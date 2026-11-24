@@ -71,6 +71,8 @@ not give the team any of the person's time: time is an allocation, changed with 
   roles; a role they already hold on that team is refused.
 - **Update replaces the member's roles.** Roles left out are removed, so read `*_GetMembers` first and send every
   role they keep. At least one role; to take someone off the team, use `*_RemoveMember`.
+- **An inactive role is refused**, naming the role, on Add and for any role Update gives the member. A role the
+  member already holds stays valid after it is deactivated, so an Update that keeps it is not refused.
 - **Remove** takes away every role the person holds there. It does not touch their allocations.
 - A team of teams' members are only the people on it directly, not the members of its teams.
 

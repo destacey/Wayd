@@ -163,6 +163,24 @@ public sealed class TeamMemberImportDefinitionTests : IDisposable
     }
 
     [Fact]
+    public async Task AddMembers_RejectsARowNamingAnInactiveRole()
+    {
+        // Arrange
+        var team = SeedTeam("PAY");
+        SeedEmployee("E-1001");
+        SeedRole("Archivist").Deactivate();
+
+        // Act
+        var result = await Run(new ImportTeamMemberDto("PAY", "E-1001", "Archivist"));
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().Be("Inactive roles cannot be assigned to team members. Archivist is inactive.");
+        team.Members.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task AddMembers_KeepsTheGoodRowsWhenOneIsRejected()
     {
         // Arrange — the pass reports per row; the runner is what turns a rejection into a failed run,

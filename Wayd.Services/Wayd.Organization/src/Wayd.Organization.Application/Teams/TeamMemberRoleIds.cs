@@ -6,19 +6,33 @@
 /// </summary>
 internal static class TeamMemberRoleIds
 {
-    /// <summary>Fails naming the first of <paramref name="roleIds"/> that is not a team member role.</summary>
-    public static async Task<Result> CheckExist(IOrganizationDbContext organizationDbContext, IReadOnlyCollection<Guid> roleIds, CancellationToken cancellationToken)
+    /// <summary>
+    /// Fails naming the first of <paramref name="roleIds"/> that is not a team member role, or that is inactive and
+    /// not among <paramref name="heldRoleIds"/>. A role the member already holds stays valid after it is deactivated,
+    /// so an update that leaves it in place is not refused.
+    /// </summary>
+    public static async Task<Result> CheckAssignable(
+        IOrganizationDbContext organizationDbContext,
+        IReadOnlyCollection<Guid> roleIds,
+        IReadOnlySet<Guid> heldRoleIds,
+        CancellationToken cancellationToken)
     {
         var requested = roleIds.Distinct().ToList();
-        var found = await organizationDbContext.TeamMemberRoles
+        var roles = await organizationDbContext.TeamMemberRoles
             .Where(r => requested.Contains(r.Id))
-            .Select(r => r.Id)
+            .Select(r => new { r.Id, r.Name, r.IsActive })
             .ToListAsync(cancellationToken);
 
-        var missing = requested.Except(found).ToList();
+        foreach (var roleId in requested)
+        {
+            var role = roles.Find(r => r.Id == roleId);
+            if (role is null)
+                return Result.Failure($"Team member role {roleId} not found.");
 
-        return missing.Count == 0
-            ? Result.Success()
-            : Result.Failure($"Team member role {missing[0]} not found.");
+            if (!role.IsActive && !heldRoleIds.Contains(roleId))
+                return Result.Failure($"Inactive roles cannot be assigned to team members. {role.Name} is inactive.");
+        }
+
+        return Result.Success();
     }
 }

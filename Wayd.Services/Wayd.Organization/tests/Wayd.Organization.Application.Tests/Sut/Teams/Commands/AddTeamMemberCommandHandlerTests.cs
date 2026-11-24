@@ -210,6 +210,50 @@ public class AddTeamMemberCommandHandlerTests : IDisposable
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 
+    [Fact]
+    public async Task Handle_ShouldFail_WhenARoleIsInactive()
+    {
+        // Arrange
+        var team = _teamFaker.Generate();
+        var employee = _employeeFaker.Generate();
+        _dbContext.AddTeam(team);
+        _dbContext.AddEmployee(employee);
+        var inactiveRole = new TeamMemberRoleFaker().WithName("Archivist").AsInactive().Generate();
+        _dbContext.AddTeamMemberRole(inactiveRole);
+
+        // Act
+        var result = await _handler.Handle(new AddTeamMemberCommand(team.Id, employee.Id, [AddRole(), inactiveRole.Id]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Inactive roles cannot be assigned to team members. Archivist is inactive.");
+        team.Members.Should().BeEmpty();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReportTheRoleAsInactive_WhenTheMemberAlreadyHoldsIt()
+    {
+        // Arrange — the inactive check runs before the domain's duplicate check, so the caller learns the
+        // role cannot be given at all rather than that it is already held
+        var team = _teamFaker.Generate();
+        var employee = _employeeFaker.Generate();
+        _dbContext.AddTeam(team);
+        _dbContext.AddEmployee(employee);
+        var role = new TeamMemberRoleFaker().WithName("Archivist").Generate();
+        _dbContext.AddTeamMemberRole(role);
+        team.AddMember(employee, [role.Id], EventActor.System, _dateTimeProvider.Now);
+        role.Deactivate();
+
+        // Act
+        var result = await _handler.Handle(new AddTeamMemberCommand(team.Id, employee.Id, [role.Id]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Inactive roles cannot be assigned to team members. Archivist is inactive.");
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
     /// <summary>Adds a team member role to the context and returns its id.</summary>
     private Guid AddRole()
     {

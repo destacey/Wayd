@@ -48,7 +48,7 @@ public sealed class AddTeamMemberCommandHandler(
             return Result.Failure("Employee not found.");
         }
 
-        var rolesCheck = await TeamMemberRoleIds.CheckExist(_organizationDbContext, request.RoleIds, cancellationToken);
+        var rolesCheck = await TeamMemberRoleIds.CheckAssignable(_organizationDbContext, request.RoleIds, new HashSet<Guid>(), cancellationToken);
         if (rolesCheck.IsFailure)
             return rolesCheck;
 

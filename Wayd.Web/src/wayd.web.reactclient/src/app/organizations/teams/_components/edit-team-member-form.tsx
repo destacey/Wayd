@@ -61,7 +61,18 @@ const EditTeamMemberForm = ({ teamId, teamType, member, onFormComplete, onFormCa
       permission: 'Permissions.Teams.Update',
     })
 
-  const roleSelectOptions = roleOptions?.map((r) => ({ label: r.name, value: r.id })) ?? []
+  // The active-roles list omits a role deactivated after the member was given it. The API keeps such a
+  // role valid while the member holds it, so it stays an option, marked, rather than showing as a bare id.
+  const activeRoleIds = new Set(roleOptions?.map((r) => r.id))
+  const roleSelectOptions = [
+    ...(roleOptions?.map((r) => ({ label: r.name, value: r.id })) ?? []),
+    ...member.roles
+      .filter((r) => !activeRoleIds.has(r.id))
+      .map((r) => ({
+        label: roleOptions ? `${r.name} (inactive)` : r.name,
+        value: r.id,
+      })),
+  ]
 
   return (
     <Modal

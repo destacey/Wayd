@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using NodaTime;
 using Wayd.Planning.Application.PokerSessions.Commands;
@@ -49,6 +50,43 @@ public class SetPokerSessionVotingCommandHandlerTests : IDisposable
         _dbContext.SaveChangesCallCount.Should().Be(1);
         _mockNotifier.Verify(n => n.NotifyVoteWithdrawn(session.Id, round.Id, _voter.UserId), Times.Once);
         _mockNotifier.Verify(n => n.NotifyMemberUpdated(session.Id, It.Is<PokerSessionMemberDto>(m => !m.IsVoting)), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_OnAConcurrencyConflict_ShouldRetryOnce()
+    {
+        // Arrange
+        var session = new PokerSessionFaker().WithEstimationScale(_scale).Generate();
+        session.Join(true, _voter, Now);
+        _dbContext.AddPokerSession(session);
+        _dbContext.ConcurrencyConflictsToThrow = 1;
+
+        // Act
+        var result = await _handler.Handle(new SetPokerSessionVotingCommand(session.Id, false), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.IsVoting.Should().BeFalse();
+        _dbContext.SaveChangesCallCount.Should().Be(2);
+        _mockNotifier.Verify(n => n.NotifyMemberUpdated(session.Id, It.Is<PokerSessionMemberDto>(m => !m.IsVoting)), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_OnASecondConcurrencyConflict_ShouldThrow()
+    {
+        // Arrange
+        var session = new PokerSessionFaker().WithEstimationScale(_scale).Generate();
+        session.Join(true, _voter, Now);
+        _dbContext.AddPokerSession(session);
+        _dbContext.ConcurrencyConflictsToThrow = 2;
+
+        // Act
+        var act = () => _handler.Handle(new SetPokerSessionVotingCommand(session.Id, false), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<DbUpdateConcurrencyException>();
+        _dbContext.SaveChangesCallCount.Should().Be(2);
+        _mockNotifier.VerifyNoOtherCalls();
     }
 
     [Fact]

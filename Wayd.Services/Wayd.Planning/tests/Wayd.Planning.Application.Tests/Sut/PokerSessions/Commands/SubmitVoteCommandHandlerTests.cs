@@ -119,6 +119,49 @@ public class SubmitVoteCommandHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_OnAConcurrencyConflict_ShouldRetryOnce()
+    {
+        // Arrange
+        var scale = new EstimationScaleFaker().Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
+        _dbContext.AddPokerSession(session);
+        session.AddRound("Story", null, PokerSessionActors.Facilitator);
+        var round = session.Rounds.First();
+        _dbContext.ConcurrencyConflictsToThrow = 1;
+
+        // Act
+        var result = await _handler.Handle(new SubmitVoteCommand(session.Id, round.Id, "8"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        round.Votes.Should().ContainSingle().Which.Value.Should().Be("8");
+        _dbContext.SaveChangesCallCount.Should().Be(2);
+        _mockNotifier.Verify(n => n.NotifyVoteSubmitted(session.Id, round.Id, _currentUserId, "Test User"), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_OnASecondConcurrencyConflict_ShouldThrow()
+    {
+        // Arrange
+        var scale = new EstimationScaleFaker().Generate();
+        _dbContext.AddEstimationScale(scale);
+        var session = _sessionFaker.WithStatus(PokerSessionStatus.Active).WithEstimationScale(scale).Generate();
+        _dbContext.AddPokerSession(session);
+        session.AddRound("Story", null, PokerSessionActors.Facilitator);
+        var round = session.Rounds.First();
+        _dbContext.ConcurrencyConflictsToThrow = 2;
+
+        // Act
+        var act = () => _handler.Handle(new SubmitVoteCommand(session.Id, round.Id, "8"), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<DbUpdateConcurrencyException>();
+        _dbContext.SaveChangesCallCount.Should().Be(2);
+        _mockNotifier.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task Handle_WhenTheSaveFailsForAnotherReason_ShouldNotRetry()
     {
         // Arrange

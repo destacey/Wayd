@@ -5003,6 +5003,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<DateTime>("JoinedOn")
                         .HasColumnType("datetime2");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.HasKey("PokerSessionId", "EmployeeId");
 
                     b.HasIndex("EmployeeId");

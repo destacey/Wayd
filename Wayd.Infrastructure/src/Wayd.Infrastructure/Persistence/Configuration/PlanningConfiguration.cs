@@ -812,6 +812,11 @@ public class PokerSessionMemberConfig : IEntityTypeConfiguration<PokerSessionMem
         builder.Property(m => m.IsVoting).IsRequired();
         builder.Property(m => m.JoinedOn).IsRequired();
 
+        // One person's voting and votes in the session hang on this row: turning voting off writes it, and so does a
+        // vote (PokerSessionRacingSave.TouchMember), so of the two racing, the one that saves second fails here and
+        // is retried.
+        builder.Property<byte[]>("Version").IsRowVersion();
+
         builder.HasOne(m => m.Employee)
             .WithMany()
             .HasForeignKey(m => m.EmployeeId)

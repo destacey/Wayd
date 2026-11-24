@@ -64,4 +64,40 @@ public sealed class SubmitVoteCommandHandlerTests
         notifier.Verify(n => n.NotifyVoteSubmitted(seed.SessionId, seed.RoundId, seed.Voter.UserId, "Ada Lovelace"), Times.Once);
         notifier.Verify(n => n.NotifyMemberUpdated(seed.SessionId, It.IsAny<Application.PokerSessions.Dtos.PokerSessionMemberDto>()), Times.Never);
     }
+
+    [Fact]
+    public async Task Handle_WhenTurningVotingOffSavedFirst_RefusesTheVote()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var seed = await PokerSeed.ActiveSessionWithVotingMember(_fixture, ct);
+        var access = new Mock<IPokerSessionAccess>();
+        access.Setup(a => a.ResolveActor(It.IsAny<PokerSession>(), It.IsAny<CancellationToken>())).ReturnsAsync(seed.Voter);
+        var notifier = new Mock<IPokerSessionNotifier>();
+        var competitor = new CompetingSave(async token =>
+        {
+            await using var other = _fixture.CreateContext();
+            var set = await new SetPokerSessionVotingCommandHandler(other, access.Object, Mock.Of<IPokerSessionNotifier>())
+                .Handle(new SetPokerSessionVotingCommand(seed.SessionId, false), token);
+            set.IsSuccess.Should().BeTrue(set.IsFailure ? set.Error : null);
+        });
+
+        // Act
+        CSharpFunctionalExtensions.Result result;
+        await using (var context = _fixture.CreateContext(competitor))
+        {
+            result = await new SubmitVoteCommandHandler(context, access.Object, SqlServerDbContextFixture.DateTimeProvider(), Mock.Of<ICurrentUser>(), notifier.Object)
+                .Handle(new SubmitVoteCommand(seed.SessionId, seed.RoundId, "M"), ct);
+        }
+
+        // Assert
+        competitor.Made.Should().BeTrue();
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not voting");
+        await using var verify = _fixture.CreateContext();
+        var saved = await PokerSeed.Load(verify, seed.SessionId, ct);
+        saved.Members.Should().ContainSingle().Which.IsVoting.Should().BeFalse();
+        saved.Rounds.Single().Votes.Should().BeEmpty();
+        notifier.VerifyNoOtherCalls();
+    }
 }

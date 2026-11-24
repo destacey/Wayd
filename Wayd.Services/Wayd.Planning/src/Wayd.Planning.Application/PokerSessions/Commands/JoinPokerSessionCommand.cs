@@ -27,7 +27,7 @@ public sealed class JoinPokerSessionCommandHandler(IPlanningDbContext planningDb
     public async Task<Result<PokerSessionMemberDto>> Handle(JoinPokerSessionCommand request, CancellationToken cancellationToken)
     {
         // A double join meets the earlier request's member row at a unique index; the retry finds it and joins nobody.
-        var joined = await PokerSessionDuplicateSave.RetryOnce(_planningDbContext, () => Join(request, cancellationToken));
+        var joined = await PokerSessionRacingSave.RetryOnce(_planningDbContext, () => Join(request, cancellationToken));
         if (joined.IsFailure)
             return Result.Failure<PokerSessionMemberDto>(joined.Error);
 

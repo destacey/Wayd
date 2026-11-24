@@ -57,6 +57,17 @@ internal sealed record PokerSeed(Guid SessionId, Guid RoundId, PokerSessionActor
         return new PokerSeed(session.Id, round.Id, new PokerSessionActor(voter.Id, user.Id, false, new HashSet<Guid>()));
     }
 
+    /// <summary>Seeds <see cref="ActiveSession"/> with the voter already joined as a voting member.</summary>
+    public static async Task<PokerSeed> ActiveSessionWithVotingMember(SqlServerDbContextFixture fixture, CancellationToken ct)
+    {
+        var seed = await ActiveSession(fixture, ct);
+        await using var context = fixture.CreateContext();
+        var session = await Load(context, seed.SessionId, ct);
+        session.Join(true, seed.Voter, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+        await context.SaveChangesAsync(ct);
+        return seed;
+    }
+
     /// <summary>Loads the session as the handlers do, tracked, with its members and votes.</summary>
     public static Task<PokerSession> Load(WaydDbContext context, Guid sessionId, CancellationToken ct) =>
         context.PokerSessions

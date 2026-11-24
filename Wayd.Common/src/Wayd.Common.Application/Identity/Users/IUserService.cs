@@ -25,6 +25,13 @@ public interface IUserService : ITransientService
     /// </summary>
     Task<Guid?> GetEmployeeIdAsync(string userId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The ids of the users linked to any of the given employees. An employee with no linked user contributes
+    /// nothing, so the result can be shorter than the input. Lets a change recorded against employees reach the
+    /// accounts that act for them.
+    /// </summary>
+    Task<IReadOnlyList<string>> GetUserIdsForEmployees(IReadOnlyCollection<Guid> employeeIds, CancellationToken cancellationToken);
+
     Task<List<UserDetailsDto>> GetListAsync(CancellationToken cancellationToken);
 
     Task<UserDetailsDto?> GetAsync(string userId, CancellationToken cancellationToken);

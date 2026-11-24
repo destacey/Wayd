@@ -249,6 +249,39 @@ public class RealtimeAccessRevokerTests
     }
 
     [Fact]
+    public async Task RecheckEmployees_RechecksTheAccountsLinkedToThem()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var userId = Guid.NewGuid().ToString();
+        var sessionId = Guid.NewGuid();
+        var connection = await JoinPokerSession(userId, sessionId);
+        _userService
+            .Setup(s => s.GetUserIdsForEmployees(It.Is<IReadOnlyCollection<Guid>>(ids => ids.SequenceEqual(new[] { employeeId })), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([userId]);
+        _pokerSessionAccess.Setup(a => a.CanUserAccess(sessionId, userId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+
+        // Act
+        await CreateSut().RecheckEmployees([employeeId], TestContext.Current.CancellationToken);
+
+        // Assert
+        VerifyEvicted(connection, sessionId, Times.Once());
+    }
+
+    [Fact]
+    public async Task RecheckEmployees_WithNoEmployees_LooksUpNothing()
+    {
+        // Arrange
+        var sut = CreateSut();
+
+        // Act
+        await sut.RecheckEmployees([], TestContext.Current.CancellationToken);
+
+        // Assert
+        _userService.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task RecheckPokerSession_EvictsEveryoneTheSessionNoLongerAdmits()
     {
         // Arrange

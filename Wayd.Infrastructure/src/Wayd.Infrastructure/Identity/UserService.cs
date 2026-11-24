@@ -77,6 +77,18 @@ internal partial class UserService(
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<string>> GetUserIdsForEmployees(IReadOnlyCollection<Guid> employeeIds, CancellationToken cancellationToken)
+    {
+        if (employeeIds.Count == 0)
+            return [];
+
+        return await _userManager.Users
+            .AsNoTracking()
+            .Where(u => u.EmployeeId.HasValue && employeeIds.Contains(u.EmployeeId.Value))
+            .Select(u => u.Id)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<List<UserDetailsDto>> GetListAsync(CancellationToken cancellationToken)
     {
         // Stable, so an MCP caller's offset slices the same list on every call.

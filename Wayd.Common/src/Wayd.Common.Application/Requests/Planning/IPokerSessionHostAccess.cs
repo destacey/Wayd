@@ -12,9 +12,10 @@ namespace Wayd.Common.Application.Requests.Planning;
 /// implementation manages nothing, so its sessions are run only by their own facilitators and poker
 /// administrators, and none can be started.
 /// <para>
-/// Planning reads the answer when a connection joins a session's live updates, so the implementing module must
-/// recheck its users' connections (<c>RealtimeAccessRevoker.RecheckUsers</c>) when someone stops managing a host,
-/// or they keep receiving its sessions' updates until they reconnect.
+/// Planning reads the answer when a connection joins a session's live updates, so when someone stops managing a
+/// host the implementing module must raise an event that <c>RealtimeAccessEventHandler</c> turns into a recheck
+/// (<c>RealtimeAccessRevoker.RecheckEmployees</c>), or they keep receiving its sessions' updates until they reconnect.
+/// A new kind of host therefore needs its own <c>Handle</c> on that handler.
 /// </para>
 /// </remarks>
 public interface IPokerSessionHostAccess : IScopedService

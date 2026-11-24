@@ -3593,6 +3593,36 @@ public class UserServiceTests
     }
 
     [Fact]
+    public async Task GetOrCreateFromPrincipalAsync_ShouldSignInWithNoRole_WhenAnExistingUserWithNoRolesSignsInWithAutoRegistrationDisabled()
+    {
+        // Arrange
+        const string tenantId = "tenant-1";
+        const string objectId = "oid-existing";
+        var user = CreateUser(id: "user-roleless");
+        ArrangeNewUserCreatePath(CreateEntraProviderWithPolicy(allowAutoRegistration: false));
+        _mockUserIdentityStore.Setup(s => s.FindActive(LoginProviders.MicrosoftEntraId, tenantId, objectId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UserIdentity
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                User = user,
+                Provider = LoginProviders.MicrosoftEntraId,
+                ProviderTenantId = tenantId,
+                ProviderSubject = objectId,
+                IsActive = true,
+            });
+        var sut = CreateSut();
+
+        // Act
+        var (resolvedId, _) = await sut.GetOrCreateFromPrincipalAsync(CreateEntraPrincipal(objectId, tenantId));
+
+        // Assert
+        resolvedId.Should().Be(user.Id);
+        _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
+        _mockRoleManager.Verify(x => x.FindByIdAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GetOrCreateFromPrincipalAsync_ShouldRefuseRegistrationAndCreateNoUser_WhenTheDefaultRoleIsPrivileged()
     {
         // Arrange

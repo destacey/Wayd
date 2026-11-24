@@ -10,6 +10,8 @@ public class SeedAreaGraphTests
     {
         public string? BatchedImport => null;
 
+        public bool NeedsLinkedEmployee => false;
+
         public bool ShouldRun(SeedContext context) => true;
 
         public Task Run(SeedContext context, CancellationToken cancellationToken) => Task.CompletedTask;

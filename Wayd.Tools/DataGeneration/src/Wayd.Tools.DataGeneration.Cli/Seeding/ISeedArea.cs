@@ -25,6 +25,12 @@ public interface ISeedArea
     string? BatchedImport { get; }
 
     /// <summary>
+    /// Whether the import this area posts records the token's account as a person, and so refuses an account
+    /// linked to no employee. Declared so a seed can check the account before posting anything.
+    /// </summary>
+    bool NeedsLinkedEmployee { get; }
+
+    /// <summary>
     /// Whether this area has anything to do for the current context — a seed with no programs skips the
     /// program area rather than posting an empty file, which the endpoints reject.
     /// </summary>

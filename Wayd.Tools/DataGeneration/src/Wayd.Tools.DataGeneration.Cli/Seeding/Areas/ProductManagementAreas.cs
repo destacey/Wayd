@@ -357,6 +357,9 @@ public sealed class IncidentsArea() : ProductManagementSeedArea(
     ProductManagementArea.Releases,
     OrganizationArea.Employees)
 {
+    /// <summary>The import records the token's account as who submitted each incident.</summary>
+    public override bool NeedsLinkedEmployee => true;
+
     public override bool ShouldRun(SeedContext context) => context.ProductManagement?.Incidents.Count > 0;
 
     public override async Task Run(SeedContext context, CancellationToken cancellationToken)

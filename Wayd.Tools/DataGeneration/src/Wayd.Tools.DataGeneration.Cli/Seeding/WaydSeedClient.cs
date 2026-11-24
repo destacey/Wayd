@@ -161,6 +161,10 @@ public sealed class WaydSeedClient : IDisposable
     public async Task<ImportLimits> GetImportLimits(CancellationToken cancellationToken) =>
         new(await _api.Api.Imports.Definitions.GetAsync(cancellationToken: cancellationToken) ?? []);
 
+    /// <summary>Whether the token's own account is linked to an employee.</summary>
+    public async Task<bool> IsLinkedToEmployee(CancellationToken cancellationToken) =>
+        (await _api.Api.UserManagement.Profiles.GetAsync(cancellationToken: cancellationToken))?.Employee is not null;
+
     /// <summary>The provider a password-backed account signs in through.</summary>
     private const string LocalLoginProvider = "Wayd";
 

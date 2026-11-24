@@ -19,6 +19,7 @@ using Wayd.Infrastructure.Persistence.Extensions;
 using NodaTime;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
+using Wolverine.Runtime;
 
 namespace Wayd.Infrastructure.Persistence.Context;
 
@@ -72,6 +73,13 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
         _events = events;
         _outbox = outbox;
         _requestCorrelationIdProvider = requestCorrelationIdProvider;
+
+        // The outbox is scoped, so one context and one outbox serve every save of a request or message, and
+        // each commit flushes it. Wolverine's default (OnlyOnce) sends only the first flush and drops every
+        // envelope enlisted after it with nothing but a warning: their rows are committed, but they are never
+        // handed to their queues. An import saves once per chunk, so it would deliver only its first chunk's events.
+        if (outbox is MessageContext messageContext)
+            messageContext.MultiFlushMode = MultiFlushMode.AllowMultiples;
 
         // this is need so that the owned entities are soft deleted correctly
         ChangeTracker.CascadeDeleteTiming = CascadeTiming.OnSaveChanges;
@@ -227,24 +235,32 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
 
             return result;
         }
-        catch
-        {
-            if (ownsScope && !committed)
-            {
-                // Nothing the attempt staged is committed, so nothing it raised may be delivered either.
-                _pendingInlineEvents.Clear();
-                _pendingOutboxFlush = false;
-            }
-
-            throw;
-        }
         finally
         {
             // Disposing an uncommitted transaction rolls it back, and does so without throwing over a
             // connection that is already broken — which an explicit rollback here would.
             if (transaction is not null)
                 await transaction.DisposeAsync();
+
+            // Nothing the attempt staged is committed, so nothing it raised may be delivered either.
+            if (ownsScope && !committed)
+                await DiscardUndelivered();
         }
+    }
+
+    /// <summary>
+    /// Drops everything raised since the last delivery, for work that was rolled back. Runs after the transaction
+    /// is disposed, so the outbox finds none of its own to roll back.
+    /// </summary>
+    private async Task DiscardUndelivered()
+    {
+        _pendingInlineEvents.Clear();
+        _pendingOutboxFlush = false;
+
+        // The outbox holds each envelope in memory as well as in the change tracker, and a rollback removes only
+        // the row. Kept, the next save's flush would deliver an event about data that was never committed.
+        if (_outbox is MessageContext messageContext)
+            await messageContext.ClearAllAsync();
     }
 
     /// <summary>
@@ -308,8 +324,7 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
                 return;
 
             // Nothing was committed, so nothing raised inside may be delivered.
-            _context._pendingInlineEvents.Clear();
-            _context._pendingOutboxFlush = false;
+            await _context.DiscardUndelivered();
         }
     }
 
@@ -426,9 +441,8 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
                 // The tracked entities, and any events still queued on them, describe rows that no longer exist.
                 context.ChangeTracker.Clear();
                 context._deletedEntities.Clear();
-                context._pendingInlineEvents.Clear();
-                context._pendingOutboxFlush = false;
                 context._holdEventsBack = false;
+                await context.DiscardUndelivered();
             }
         }
     }

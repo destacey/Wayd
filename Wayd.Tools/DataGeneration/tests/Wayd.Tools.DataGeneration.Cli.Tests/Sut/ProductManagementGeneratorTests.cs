@@ -1,3 +1,4 @@
+using System.Globalization;
 using FluentAssertions;
 using Wayd.Tools.DataGeneration.Cli.Generation;
 using Wayd.Tools.DataGeneration.Cli.Recipes;
@@ -16,12 +17,13 @@ public class ProductManagementGeneratorTests
     private static readonly HashSet<string> _releasableTypes =
         new(["Product", "Application", "Service", "Tool", "Library"], StringComparer.OrdinalIgnoreCase);
 
-    private static GenerationContext Context(int seed = 1234) => new() { AsOf = _asOf, Seed = seed };
+    private static GenerationContext Context(int seed = 1234, DateOnly? asOf = null) =>
+        new() { AsOf = asOf ?? _asOf, Seed = seed };
 
     private static GeneratedProductManagement Generate(
-        ProductManagementOptions? options = null, OrgOptions? orgOptions = null, int seed = 1234)
+        ProductManagementOptions? options = null, OrgOptions? orgOptions = null, int seed = 1234, DateOnly? asOf = null)
     {
-        var context = Context(seed);
+        var context = Context(seed, asOf);
         var org = new OrgGenerator(orgOptions ?? new OrgOptions { ValueStreams = 3, Teams = 18 }, context).Generate();
 
         return new ProductManagementGenerator(org.Structure, options ?? new ProductManagementOptions(), context).Generate();
@@ -116,7 +118,7 @@ public class ProductManagementGeneratorTests
         versions.Should().OnlyContain(v => v.TargetDate == null || v.CutDate == null || v.TargetDate >= v.CutDate);
         versions.Should().OnlyContain(v => v.ReleasedDate == null || v.ReleasedDate <= _asOf);
         versions.Should().OnlyContain(v => v.CutDate == null || v.CutDate <= _asOf);
-        versions.Where(v => v.CutDate == null).Should().OnlyContain(v => v.TargetDate > _asOf);
+        versions.Where(v => v.CutDate == null).Should().OnlyContain(v => v.TargetDate >= _asOf);
     }
 
     [Fact]
@@ -244,15 +246,28 @@ public class ProductManagementGeneratorTests
         inFlight.Should().BeEmpty();
     }
 
-    [Fact]
-    public void Generate_DeploysNothingAfterToday()
+    [Theory]
+    [InlineData(1234, "2026-06-15")]
+    [InlineData(7, "2026-06-19")]
+    [InlineData(99, "2026-06-20")]
+    [InlineData(2024, "2026-11-25")]
+    public void Generate_StampsNothingAfterTheAsOfDayBegan(int seed, string asOfText)
     {
-        // Arrange
-        var endOfToday = new DateTimeOffset(_asOf.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero).AddDays(1);
+        // Arrange — a run at 00:01 UTC on the as-of day imports these a minute after it began
+        var asOf = DateOnly.Parse(asOfText, CultureInfo.InvariantCulture);
+        var startOfToday = new DateTimeOffset(asOf.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        var data = Generate(seed: seed, asOf: asOf);
 
-        // Act & Assert — an outcome is a fact about the past; only an in-flight deployment reaches today
-        _default.Deployments.Where(d => d.Outcome != null).Should().OnlyContain(d => d.StartedAt < endOfToday);
-        _default.Deployments.Where(d => d.Outcome == null).Should().OnlyContain(d => d.StartedAt < endOfToday);
+        // Act
+        var moments = data.Deployments
+            .SelectMany(d => new[] { d.StartedAt, d.CompletedAt, d.RolledBackAt })
+            .Concat(data.Versions.SelectMany(v => new[] { v.CutAt, v.ReleasedAt }))
+            .Concat(data.ReleasePackages.Select(p => p.ReleasedAt))
+            .OfType<DateTimeOffset>()
+            .ToList();
+
+        // Assert
+        moments.Should().NotBeEmpty().And.OnlyContain(m => m <= startOfToday);
     }
 
     [Fact]

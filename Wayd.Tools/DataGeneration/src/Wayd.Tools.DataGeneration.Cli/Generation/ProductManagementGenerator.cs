@@ -69,6 +69,13 @@ public sealed class ProductManagementGenerator
 
     private DateOnly Today => _context.AsOf;
 
+    /// <summary>
+    /// Whether a cut or ship on the day has already happened. The as-of day itself has not: a cut or ship is
+    /// stamped with a time on its day, and the as-of day defaults to today's UTC date, so any time on it can still
+    /// be ahead of a run made early that day.
+    /// </summary>
+    private bool HasHappened(DateOnly day) => day < Today;
+
     private DateOnly Horizon
     {
         get
@@ -375,7 +382,7 @@ public sealed class ProductManagementGenerator
             var cut = PreviousWorkday(shipOn.AddDays(-CutLead(component.Kind)));
             DateOnly next;
 
-            if (shipOn <= Today)
+            if (HasHappened(shipOn))
             {
                 var version = AddVersion(component, NextNumber(component), Target(cut, shipOn), cut, shipOn, Pick(EngineeringNotes));
 
@@ -390,7 +397,7 @@ public sealed class ProductManagementGenerator
                         next = Later(next, Hotfix(component, shipOn));
                 }
             }
-            else if (cut <= Today)
+            else if (HasHappened(cut))
             {
                 var version = AddVersion(component, NextNumber(component), shipOn, cut, released: null, Pick(EngineeringNotes));
 
@@ -420,7 +427,7 @@ public sealed class ProductManagementGenerator
     private DateOnly Hotfix(Component component, DateOnly after)
     {
         var shipOn = ShipDay(after.AddDays(_faker.Random.Int(1, 3)));
-        if (shipOn > Today)
+        if (!HasHappened(shipOn))
             return after;
 
         component.Patch++;
@@ -462,7 +469,7 @@ public sealed class ProductManagementGenerator
                 return;
 
             var cut = PreviousWorkday(shipOn.AddDays(-_faker.Random.Int(3, 7)));
-            var state = shipOn <= Today ? Stage.Released : cut <= Today ? Stage.Ready : Stage.Planned;
+            var state = HasHappened(shipOn) ? Stage.Released : HasHappened(cut) ? Stage.Ready : Stage.Planned;
 
             sequenceByYear[shipOn.Year] = sequenceByYear.GetValueOrDefault(shipOn.Year) + 1;
             var packageVersion = $"{group.Code}-{shipOn.Year}.{sequenceByYear[shipOn.Year]:D2}";
@@ -519,7 +526,7 @@ public sealed class ProductManagementGenerator
     private DateOnly TrainHotfix(ArtProduct group, IReadOnlyList<Component> riding, string packageVersion, DateOnly after)
     {
         var shipOn = ShipDay(after.AddDays(_faker.Random.Int(1, 3)));
-        if (shipOn > Today)
+        if (!HasHappened(shipOn))
             return after;
 
         var fixedComponent = _faker.PickRandom(riding.ToList());

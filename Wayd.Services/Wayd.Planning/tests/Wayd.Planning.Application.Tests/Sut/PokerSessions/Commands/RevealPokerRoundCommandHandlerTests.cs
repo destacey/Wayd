@@ -49,6 +49,7 @@ public class RevealPokerRoundCommandHandlerTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         round.Status.Should().Be(PokerRoundStatus.Revealed);
         _dbContext.SaveChangesCallCount.Should().Be(1);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(1);
         _mockNotifier.Verify(n => n.NotifyVotesRevealed(session.Id, round.Id, It.IsAny<IEnumerable<PokerVoteDto>>()), Times.Once);
     }
 
@@ -65,6 +66,7 @@ public class RevealPokerRoundCommandHandlerTests : IDisposable
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not found");
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
     }
 
     [Fact]
@@ -89,6 +91,7 @@ public class RevealPokerRoundCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
         _mockNotifier.Verify(n => n.NotifyVotesRevealed(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<IEnumerable<PokerVoteDto>>()), Times.Never);
     }
 
@@ -109,6 +112,7 @@ public class RevealPokerRoundCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
     }
 
     public void Dispose()

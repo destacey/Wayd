@@ -65,6 +65,7 @@ public class SubmitVoteCommandHandlerTests : IDisposable
         round.Votes.First().Value.Should().Be("8");
         round.Votes.First().ParticipantId.Should().Be(_currentUserId);
         _dbContext.SaveChangesCallCount.Should().Be(1);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(1);
         _mockNotifier.Verify(n => n.NotifyVoteSubmitted(session.Id, round.Id, _currentUserId, "Test User"), Times.Once);
     }
 
@@ -94,6 +95,7 @@ public class SubmitVoteCommandHandlerTests : IDisposable
         round.Votes.Should().HaveCount(1);
         round.Votes.First().Value.Should().Be("8");
         _dbContext.SaveChangesCallCount.Should().Be(1);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(1);
     }
 
     [Fact]
@@ -179,6 +181,7 @@ public class SubmitVoteCommandHandlerTests : IDisposable
         // Assert
         await act.Should().ThrowAsync<DbUpdateException>();
         _dbContext.SaveChangesCallCount.Should().Be(1);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
         _mockNotifier.VerifyNoOtherCalls();
     }
 
@@ -195,6 +198,7 @@ public class SubmitVoteCommandHandlerTests : IDisposable
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not found");
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
     }
 
     [Fact]
@@ -220,6 +224,7 @@ public class SubmitVoteCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
         _mockNotifier.Verify(n => n.NotifyVoteSubmitted(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
@@ -240,6 +245,7 @@ public class SubmitVoteCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
     }
 
     [Fact]
@@ -264,6 +270,7 @@ public class SubmitVoteCommandHandlerTests : IDisposable
         result.Error.Should().Be("'8' is not a value on the session's estimation scale.");
         round.Votes.Should().BeEmpty();
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
         _mockNotifier.Verify(n => n.NotifyVoteSubmitted(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
@@ -289,6 +296,7 @@ public class SubmitVoteCommandHandlerTests : IDisposable
         pinnedValue.IsSuccess.Should().BeTrue(pinnedValue.IsFailure ? pinnedValue.Error : null);
         round.Votes.Should().ContainSingle().Which.Value.Should().Be("M");
         _dbContext.SaveChangesCallCount.Should().Be(1);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(1);
     }
 
     public void Dispose()

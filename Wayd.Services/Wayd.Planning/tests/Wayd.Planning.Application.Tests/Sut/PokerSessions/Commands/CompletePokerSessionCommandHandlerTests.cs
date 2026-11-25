@@ -47,6 +47,7 @@ public class CompletePokerSessionCommandHandlerTests : IDisposable
         session.Status.Should().Be(PokerSessionStatus.Completed);
         session.CompletedOn.Should().NotBeNull();
         _dbContext.SaveChangesCallCount.Should().Be(1);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(1);
         _mockNotifier.Verify(n => n.NotifySessionCompleted(session.Id), Times.Once);
     }
 
@@ -69,6 +70,7 @@ public class CompletePokerSessionCommandHandlerTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         session.Rounds.Should().ContainSingle().Which.Should().Be(estimated);
         _dbContext.SaveChangesCallCount.Should().Be(1);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(1);
     }
 
     [Fact]
@@ -84,6 +86,7 @@ public class CompletePokerSessionCommandHandlerTests : IDisposable
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not found");
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
     }
 
     [Fact]
@@ -101,6 +104,7 @@ public class CompletePokerSessionCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
     }
 
     public void Dispose()

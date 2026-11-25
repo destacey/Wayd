@@ -44,6 +44,9 @@ public sealed class SubmitVoteCommandHandler(IPlanningDbContext planningDbContex
 
     private async Task<Result<(PokerSession Session, PokerSessionActor Actor, bool JoinedSession)>> Submit(SubmitVoteCommand request, CancellationToken cancellationToken)
     {
+        // A reveal of the round waits for this vote to commit and counts it, or this waits for the reveal and refuses.
+        await using var unitOfWork = await _planningDbContext.BeginPokerRoundVoting(request.SessionId, request.RoundId, cancellationToken);
+
         var session = await _planningDbContext.PokerSessions
             .IncludeAccess()
             .Include(s => s.Members)
@@ -68,6 +71,7 @@ public sealed class SubmitVoteCommandHandler(IPlanningDbContext planningDbContex
             PokerSessionRacingSave.TouchMember(_planningDbContext, session.FindMember(actor.EmployeeId)!);
 
         await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await unitOfWork.CommitAsync(cancellationToken);
 
         return (session, actor, result.Value);
     }

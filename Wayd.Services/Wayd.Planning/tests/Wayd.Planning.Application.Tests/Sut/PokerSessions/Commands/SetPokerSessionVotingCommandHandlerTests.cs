@@ -48,8 +48,29 @@ public class SetPokerSessionVotingCommandHandlerTests : IDisposable
         result.Value.IsVoting.Should().BeFalse();
         round.Votes.Should().BeEmpty();
         _dbContext.SaveChangesCallCount.Should().Be(1);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(1);
         _mockNotifier.Verify(n => n.NotifyVoteWithdrawn(session.Id, round.Id, _voter.UserId), Times.Once);
         _mockNotifier.Verify(n => n.NotifyMemberUpdated(session.Id, It.Is<PokerSessionMemberDto>(m => !m.IsVoting)), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_TurningVotingOn_ShouldSaveWithoutLockingTheRounds()
+    {
+        // Arrange
+        var session = new PokerSessionFaker().WithEstimationScale(_scale).Generate();
+        var round = session.AddRound("Story", null, PokerSessionActors.Facilitator).Value;
+        session.SubmitVote(round.Id, _scale.CurrentVersion.Values.First().Value, _scale.CurrentVersion, _voter, Now);
+        session.SetVoting(false, _voter).IsSuccess.Should().BeTrue();
+        _dbContext.AddPokerSession(session);
+
+        // Act
+        var result = await _handler.Handle(new SetPokerSessionVotingCommand(session.Id, true), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.IsVoting.Should().BeTrue();
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
     }
 
     [Fact]
@@ -102,6 +123,7 @@ public class SetPokerSessionVotingCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
         _mockNotifier.VerifyNoOtherCalls();
     }
 

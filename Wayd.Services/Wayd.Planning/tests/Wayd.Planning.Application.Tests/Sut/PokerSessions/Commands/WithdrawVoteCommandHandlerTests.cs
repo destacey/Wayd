@@ -54,6 +54,7 @@ public class WithdrawVoteCommandHandlerTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         round.Votes.Should().BeEmpty();
         _dbContext.SaveChangesCallCount.Should().Be(1);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(1);
         _mockNotifier.Verify(n => n.NotifyVoteWithdrawn(session.Id, round.Id, _currentUserId), Times.Once);
     }
 
@@ -78,6 +79,7 @@ public class WithdrawVoteCommandHandlerTests : IDisposable
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("No vote found");
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
     }
 
     [Fact]
@@ -93,6 +95,7 @@ public class WithdrawVoteCommandHandlerTests : IDisposable
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not found");
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
     }
 
     public void Dispose()

@@ -36,6 +36,9 @@ public sealed class WithdrawVoteCommandHandler(IPlanningDbContext planningDbCont
 
     private async Task<Result<PokerSessionActor>> Withdraw(WithdrawVoteCommand request, CancellationToken cancellationToken)
     {
+        // A reveal of the round waits for this to commit, or this waits for the reveal and refuses.
+        await using var unitOfWork = await _planningDbContext.BeginPokerRoundVoting(request.SessionId, request.RoundId, cancellationToken);
+
         var session = await _planningDbContext.PokerSessions
             .IncludeAccess()
             .Include(s => s.Rounds)
@@ -52,6 +55,7 @@ public sealed class WithdrawVoteCommandHandler(IPlanningDbContext planningDbCont
             return Result.Failure<PokerSessionActor>(result.Error);
 
         await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await unitOfWork.CommitAsync(cancellationToken);
 
         return actor;
     }

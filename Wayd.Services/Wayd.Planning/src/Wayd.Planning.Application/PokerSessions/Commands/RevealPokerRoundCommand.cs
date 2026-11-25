@@ -22,6 +22,9 @@ public sealed class RevealPokerRoundCommandHandler(IPlanningDbContext planningDb
 
     public async Task<Result> Handle(RevealPokerRoundCommand request, CancellationToken cancellationToken)
     {
+        // Taken before the load, so the reveal shows every vote that committed first and none can follow it.
+        await using var unitOfWork = await _planningDbContext.BeginExclusivePokerRoundChange(request.SessionId, request.RoundId, cancellationToken);
+
         var session = await _planningDbContext.PokerSessions
             .IncludeAccess()
             .Include(s => s.Rounds)
@@ -39,6 +42,7 @@ public sealed class RevealPokerRoundCommandHandler(IPlanningDbContext planningDb
             return Result.Failure(result.Error);
 
         await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await unitOfWork.CommitAsync(cancellationToken);
 
         var voteDtos = result.Value.Votes.Adapt<List<PokerVoteDto>>();
         await _notifier.NotifyVotesRevealed(session.Id, result.Value.Id, voteDtos);

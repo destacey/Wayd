@@ -621,6 +621,7 @@ public sealed class ProductManagementGenerator
             EnvironmentName = line.Staging,
             ArtifactId = pipeline.ArtifactId,
             StartedAt = startedAt,
+            ImportId = DeploymentModel.ImportIdFor(versionHandle, packageVersion, pipeline.ArtifactId, line.Staging),
         });
     }
 
@@ -687,6 +688,7 @@ public sealed class ProductManagementGenerator
             CompletedAt = completedAt,
             RolledBackAt = rolledBackAt,
             Reason = reason,
+            ImportId = DeploymentModel.ImportIdFor(pipeline.VersionHandle, pipeline.PackageVersion, pipeline.ArtifactId, environment),
         });
 
         pipeline.Cursor = rolledBackAt ?? completedAt;
@@ -832,6 +834,7 @@ public sealed class ProductManagementGenerator
         {
             ProductName = productName,
             Number = number,
+            Handle = VersionModel.HandleFor(productName, number),
             TargetDate = target,
             CutDate = cut,
             ReleasedDate = released,

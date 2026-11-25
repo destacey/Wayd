@@ -1,4 +1,4 @@
-using CsvHelper;
+using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Settings;
 using Wayd.Web.Api.Models.ProductManagement;
@@ -209,7 +209,7 @@ public class VersionsController(IDispatcher dispatcher, ICsvService csvService, 
                 ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
-        catch (CsvHelperException ex)
+        catch (CsvFileException ex)
         {
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }

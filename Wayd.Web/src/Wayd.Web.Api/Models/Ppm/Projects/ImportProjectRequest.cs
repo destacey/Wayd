@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.Common.Extensions;
 using Wayd.Common.Domain.Extensions.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
@@ -13,7 +14,8 @@ namespace Wayd.Web.Api.Models.Ppm.Projects;
 /// <c>Status</c> is the status the project should end up in (case-insensitive), reached by replaying
 /// the real lifecycle transitions.
 /// </summary>
-public sealed class ImportProjectRequest
+[CsvRecord]
+public sealed partial class ImportProjectRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

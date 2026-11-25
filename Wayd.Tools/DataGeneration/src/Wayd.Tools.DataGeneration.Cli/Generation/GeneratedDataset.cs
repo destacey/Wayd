@@ -119,47 +119,9 @@ public sealed record GeneratedDataset(
 
         if (DemandManagement is { } demandManagement)
         {
-            CsvFile.Write(Path.Combine(directory, "intake-desks.csv"), demandManagement.Desks.Select(d => new
-            {
-                d.Name,
-                d.Description,
-                d.Visibility,
-                Members = string.Join(';', d.Members.Select(m => $"{m.EmployeeNumber}:{m.Role}")),
-            }));
-            CsvFile.Write(Path.Combine(directory, "intake-requests.csv"), demandManagement.Requests.Select(r => new
-            {
-                r.Handle,
-                r.Title,
-                r.Description,
-                r.ExpectedBenefits,
-                r.DeskName,
-                r.ChannelName,
-                r.RequesterEmployeeNumber,
-                r.SubmittedAt,
-                r.NeedByDate,
-                r.NeedByBasis,
-                r.NeedByReference,
-                r.NeedByCommittedByEmployeeNumber,
-                r.NeedByCommittedOn,
-                r.OriginSourceSystem,
-                r.OriginExternalId,
-                r.OriginUrl,
-                r.Status,
-                r.StatusChangedAt,
-                r.StatusReason,
-                r.AssigneeEmployeeNumber,
-                Tags = string.Join(';', r.Tags),
-            }));
-            CsvFile.Write(Path.Combine(directory, "intake-request-outcomes.csv"), demandManagement.Outcomes.Select(o => new
-            {
-                o.RequestHandle,
-                o.Kind,
-                o.ProjectKey,
-                o.Note,
-                Deliverables = string.Join(';', o.DeliverableNames),
-                o.AddedByEmployeeNumber,
-                o.AddedOn,
-            }));
+            CsvFile.Write(Path.Combine(directory, "intake-desks.csv"), demandManagement.Desks.Select(IntakeDeskFileRow.From));
+            CsvFile.Write(Path.Combine(directory, "intake-requests.csv"), demandManagement.Requests.Select(IntakeRequestFileRow.From));
+            CsvFile.Write(Path.Combine(directory, "intake-request-outcomes.csv"), demandManagement.Outcomes.Select(IntakeRequestOutcomeFileRow.From));
         }
     }
 

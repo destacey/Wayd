@@ -1,5 +1,5 @@
-using CsvHelper;
 using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
@@ -114,7 +114,7 @@ public class StrategicThemesController(ILogger<StrategicThemesController> logger
                 ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
-        catch (CsvHelperException ex)
+        catch (CsvFileException ex)
         {
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }

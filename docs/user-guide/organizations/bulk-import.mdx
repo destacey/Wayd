@@ -61,7 +61,8 @@ A few rules apply to every import:
   as the id of the record each applied row reports creating.
 - **Every column must be present, even the optional ones.** *Required* in the tables below means the cell
   needs a value; it does not mean the column can be left out. A missing header fails the file with
-  `Header with name 'X' was not found`. Include every column and leave unused cells blank.
+  a `400` that names it — `The CSV header has no column for … ('X')`. Headers match ignoring case and
+  surrounding spaces. Include every column and leave unused cells blank.
 - **Dates are ISO `yyyy-MM-dd`.** A date column takes a date, not a timestamp: a cell carrying a time
   is rejected rather than truncated.
 - **A missing file returns 422**, not 400 — the file is a validation failure like any other.

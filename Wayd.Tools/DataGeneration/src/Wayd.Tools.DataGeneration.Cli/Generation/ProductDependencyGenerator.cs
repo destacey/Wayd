@@ -1,3 +1,4 @@
+using CsvHelper;
 using Bogus;
 
 namespace Wayd.Tools.DataGeneration.Cli.Generation;
@@ -6,7 +7,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 /// One product relying on another over a period, named by product name — names are unique in the catalog,
 /// and the ids only exist once the products import has run.
 /// </summary>
-public sealed class ProductDependencyModel
+[CsvRecord]
+public sealed partial class ProductDependencyModel
 {
     public required string ProductName { get; init; }
     public required string DependsOnProductName { get; init; }
@@ -23,8 +25,14 @@ public sealed class ProductDependencyModel
     public required DateOnly StartsOn { get; init; }
     public DateOnly? EndsOn { get; init; }
 
-    /// <summary>Unique per row: a pair holds at most one link from any one day.</summary>
-    public string ImportId => $"{ProductName}|{DependsOnProductName}|{StartsOn:yyyy-MM-dd}";
+    /// <summary>
+    /// Unique per row: a pair holds at most one link from any one day. Set from <see cref="ImportIdFor"/>;
+    /// stored so <c>product-dependencies.csv</c> carries it.
+    /// </summary>
+    public required string ImportId { get; init; }
+
+    public static string ImportIdFor(string productName, string dependsOnProductName, DateOnly startsOn) =>
+        $"{productName}|{dependsOnProductName}|{startsOn:yyyy-MM-dd}";
 }
 
 /// <summary>
@@ -482,6 +490,7 @@ internal sealed class ProductDependencyGenerator
             Description = description,
             StartsOn = startsOn,
             EndsOn = endsOn,
+            ImportId = ProductDependencyModel.ImportIdFor(link.From.Name, link.To.Name, startsOn),
         };
 
     /// <summary>

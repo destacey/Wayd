@@ -1,3 +1,4 @@
+using CsvHelper;
 using NodaTime.Text;
 using Wayd.Common.Application.Kpis.Imports;
 using Wayd.Common.Domain.Enums;
@@ -11,7 +12,8 @@ namespace Wayd.Web.Api.Models.Kpis;
 /// arrive in a second file and checkpoints in an optional third, each pointing back here by this row's
 /// <c>ImportId</c>.
 /// </summary>
-public sealed class ImportKpiRequest
+[CsvRecord]
+public sealed partial class ImportKpiRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are reported against
@@ -212,7 +214,8 @@ public sealed class ImportKpiRequestValidator : CustomValidator<ImportKpiRequest
 /// A single CSV row for the measurements file: one value of one KPI, saying when it was taken the one way the KPI's
 /// window takes — `PeriodStart` and `PeriodEnd`, `AsOf`, or `MeasuredAt`.
 /// </summary>
-public sealed class ImportKpiMeasurementRequest
+[CsvRecord]
+public sealed partial class ImportKpiMeasurementRequest
 {
     /// <summary>The `ImportId` of the KPI row this value belongs to.</summary>
     public string KpiImportId { get; set; } = default!;
@@ -291,7 +294,8 @@ public sealed class ImportKpiMeasurementRequest
 /// <summary>
 /// A single CSV row for the checkpoints file: one checkpoint of one KPI's plan.
 /// </summary>
-public sealed class ImportKpiCheckpointRequest
+[CsvRecord]
+public sealed partial class ImportKpiCheckpointRequest
 {
     /// <summary>The `ImportId` of the KPI row this checkpoint belongs to.</summary>
     public string KpiImportId { get; set; } = default!;

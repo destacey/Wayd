@@ -1,3 +1,5 @@
+using CsvHelper;
+
 namespace Wayd.Tools.DataGeneration.Cli.Csv;
 
 // The KPI CSV rows, as the API import endpoint consumes them. Column names must match ImportKpiRequest,
@@ -5,7 +7,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Csv;
 // has to be present even when the seed leaves it empty: a missing header fails the whole file.
 
 /// <summary>One row of the KPI file: a KPI on a team or a team of teams, by id.</summary>
-public sealed class KpiCsvRow
+[CsvRecord]
+public sealed partial class KpiCsvRow
 {
     public required string ImportId { get; init; }
     public required string SubjectType { get; init; }
@@ -36,7 +39,8 @@ public sealed class KpiCsvRow
 /// One row of the measurements file: one value of one KPI, named by the KPI row's ImportId, and saying when it was
 /// taken the one way the KPI's window takes — a period, an as-of day, or a moment written with its offset.
 /// </summary>
-public sealed class KpiMeasurementCsvRow
+[CsvRecord]
+public sealed partial class KpiMeasurementCsvRow
 {
     public required string KpiImportId { get; init; }
     public DateOnly? PeriodStart { get; init; }
@@ -50,7 +54,8 @@ public sealed class KpiMeasurementCsvRow
 }
 
 /// <summary>One row of the checkpoints file: one checkpoint of one KPI's plan, named by the KPI row's ImportId.</summary>
-public sealed class KpiCheckpointCsvRow
+[CsvRecord]
+public sealed partial class KpiCheckpointCsvRow
 {
     public required string KpiImportId { get; init; }
     public required DateOnly Date { get; init; }

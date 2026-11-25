@@ -1,6 +1,6 @@
-﻿using CsvHelper;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Organization.Application.EmployeeCapacities.Commands;
 using Wayd.Organization.Application.EmployeeCapacities.Dtos;
@@ -121,7 +121,7 @@ public class EmployeesController(
                 ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
-        catch (CsvHelperException ex)
+        catch (CsvFileException ex)
         {
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }

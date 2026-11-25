@@ -1,3 +1,6 @@
+using CsvHelper;
+using Wayd.Tools.DataGeneration.Cli.Csv;
+
 namespace Wayd.Tools.DataGeneration.Cli.Generation;
 
 /// <summary>
@@ -11,7 +14,8 @@ public sealed record GeneratedKpis(
     IReadOnlyList<KpiCheckpointModel> Checkpoints);
 
 /// <summary>One checkpoint of a KPI's plan, named by its KPI's handle.</summary>
-public sealed record KpiCheckpointModel(
+[CsvRecord]
+public sealed partial record KpiCheckpointModel(
     string KpiHandle,
     DateOnly Date,
     string Label,
@@ -42,7 +46,8 @@ public enum KpiSubject
 /// <see cref="SubjectHandle"/> name the record by the handle its own generator gave it; the category is named and
 /// resolved to its id when seeded.
 /// </summary>
-public sealed record KpiModel(
+[CsvRecord]
+public sealed partial record KpiModel(
     string Handle,
     KpiSubject Subject,
     string SubjectHandle,
@@ -71,15 +76,19 @@ public sealed record KpiModel(
 /// One value of a KPI, named by its KPI's handle, saying when it was taken the one way its KPI's window takes: a
 /// period, an as-of day, or a moment.
 /// </summary>
-public sealed record KpiMeasurementModel(
+[CsvRecord]
+public sealed partial record KpiMeasurementModel(
     string KpiHandle,
     DateOnly? PeriodStart,
     DateOnly? PeriodEnd,
     DateOnly? AsOf,
-    DateTimeOffset? MeasuredAt,
+    [CsvFormat(CsvFormats.Instant)] DateTimeOffset? MeasuredAt,
     double Value,
     int? SampleSize)
 {
-    /// <summary>The last day the value covers, whichever way it was taken.</summary>
-    public DateOnly LastDay => PeriodEnd ?? AsOf ?? DateOnly.FromDateTime(MeasuredAt!.Value.UtcDateTime);
+    /// <summary>
+    /// The last day the value covers, whichever way it was taken. Stored rather than computed so
+    /// <c>kpi-measurements.csv</c> carries it: CsvHelper writes only the members it could read back.
+    /// </summary>
+    public DateOnly LastDay { get; init; } = PeriodEnd ?? AsOf ?? DateOnly.FromDateTime(MeasuredAt!.Value.UtcDateTime);
 }

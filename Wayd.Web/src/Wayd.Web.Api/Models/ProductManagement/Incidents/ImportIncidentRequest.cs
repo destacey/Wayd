@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.ProductManagement.Application.Incidents.Dtos;
 using Wayd.Web.Api.Models.ProductManagement;
@@ -12,7 +13,8 @@ namespace Wayd.Web.Api.Models.ProductManagement.Incidents;
 /// are ids. Status is an alias. Who submitted the incident is the importer's linked employee.
 /// Timestamps are instants, and each must carry its offset (see <c>OffsetTimestamp</c>).
 /// </remarks>
-public sealed class ImportIncidentRequest
+[CsvRecord]
+public sealed partial class ImportIncidentRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

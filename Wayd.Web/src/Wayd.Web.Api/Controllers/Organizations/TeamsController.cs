@@ -1,7 +1,7 @@
+using Wayd.Common.Application.Exceptions;
 using Wayd.Organization.Application.EmployeeCapacities;
 using Wayd.Organization.Application.EmployeeCapacities.Queries;
 using Wayd.Organization.Application.EmployeeCapacities.Dtos;
-using CsvHelper;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Imports.Commands;
@@ -146,7 +146,7 @@ public class TeamsController(
                 ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
-        catch (CsvHelperException ex)
+        catch (CsvFileException ex)
         {
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }
@@ -191,7 +191,7 @@ public class TeamsController(
                 ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
-        catch (CsvHelperException ex)
+        catch (CsvFileException ex)
         {
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }
@@ -236,7 +236,7 @@ public class TeamsController(
                 ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
-        catch (CsvHelperException ex)
+        catch (CsvFileException ex)
         {
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }

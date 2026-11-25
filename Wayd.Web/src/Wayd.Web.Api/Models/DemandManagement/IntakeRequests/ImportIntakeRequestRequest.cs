@@ -1,4 +1,4 @@
-using CsvHelper.Configuration.Attributes;
+using CsvHelper;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Extensions;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
@@ -12,7 +12,8 @@ namespace Wayd.Web.Api.Models.DemandManagement.IntakeRequests;
 /// Submitted and is moved to <c>Status</c> when the row names another, recorded at <c>StatusChangedAt</c>.
 /// Timestamps are instants, and each must carry its offset.
 /// </summary>
-public sealed class ImportIntakeRequestRequest
+[CsvRecord]
+public sealed partial class ImportIntakeRequestRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are
@@ -103,7 +104,7 @@ public sealed class ImportIntakeRequestRequest
     /// (<c>M</c>, <c>8</c>), never a card such as <c>?</c>. Needs a desk with an estimation scale. Blank leaves the
     /// request unestimated, and the column may be left out of the file. Max 32 chars.
     /// </summary>
-    [Optional]
+    [CsvColumn(Optional = true)]
     public string? Estimate { get; set; }
 
     public ImportIntakeRequestDto ToImportIntakeRequestDto() =>

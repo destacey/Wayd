@@ -1,5 +1,5 @@
-﻿using CsvHelper;
-using Wayd.Common.Application.Activities.Dtos;
+﻿using Wayd.Common.Application.Activities.Dtos;
+using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Models;
 using Wayd.Planning.Application.Risks.Commands;
@@ -179,7 +179,7 @@ public class RisksController : ControllerBase
                 ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
-        catch (CsvHelperException ex)
+        catch (CsvFileException ex)
         {
             // TODO: Convert this to a validation problem details
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));

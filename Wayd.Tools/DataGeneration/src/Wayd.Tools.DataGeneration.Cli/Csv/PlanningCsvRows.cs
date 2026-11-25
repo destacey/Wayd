@@ -1,3 +1,4 @@
+using CsvHelper;
 using System.Globalization;
 
 namespace Wayd.Tools.DataGeneration.Cli.Csv;
@@ -7,7 +8,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Csv;
 // missing header fails the whole file. Statuses, categories and grades are numeric ids.
 
 /// <summary>One row of the planning intervals CSV, with the roster on the row.</summary>
-public sealed class PlanningIntervalCsvRow
+[CsvRecord]
+public sealed partial class PlanningIntervalCsvRow
 {
     public required string ImportId { get; init; }
     public required string Name { get; init; }
@@ -25,7 +27,8 @@ public sealed class PlanningIntervalCsvRow
 }
 
 /// <summary>One row of the objectives CSV. Each row names its own planning interval.</summary>
-public sealed class PlanningIntervalObjectiveCsvRow
+[CsvRecord]
+public sealed partial class PlanningIntervalObjectiveCsvRow
 {
     public required string ImportId { get; init; }
     public required Guid PlanningIntervalId { get; init; }
@@ -45,7 +48,8 @@ public sealed class PlanningIntervalObjectiveCsvRow
 }
 
 /// <summary>One row of the risks CSV. People are employee ids.</summary>
-public sealed class RiskCsvRow
+[CsvRecord]
+public sealed partial class RiskCsvRow
 {
     public required string ImportId { get; init; }
     public required Guid TeamId { get; init; }
@@ -72,9 +76,9 @@ public static class PlanningCsv
     /// A UTC instant for the Planning imports' <c>*Utc</c> columns, written without a zone designator.
     /// </summary>
     /// <remarks>
-    /// Those columns bind to a <c>DateTime</c> that the endpoint then labels UTC. CsvHelper parses a value
-    /// ending in <c>Z</c> into the server's local time first, so the designator would move every instant by
-    /// the server's offset — and a report dated late today could land in the future and be refused.
+    /// Those columns bind to a <c>DateTime</c> that the endpoint then labels UTC, so a bare timestamp is what
+    /// they document. Converting first keeps an instant written with another offset from being read as that
+    /// wall-clock time in UTC.
     /// </remarks>
     public static string Timestamp(DateTimeOffset value) =>
         value.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture);

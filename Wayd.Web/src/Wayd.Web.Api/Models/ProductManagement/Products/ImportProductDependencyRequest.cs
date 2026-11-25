@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Extensions;
 using Wayd.ProductManagement.Application.Products.Dtos;
@@ -12,7 +13,8 @@ namespace Wayd.Web.Api.Models.ProductManagement.Products;
 /// A dependency that stopped carries <c>EndsOn</c>. One whose strength changed is two rows on the
 /// same pair: the first ending the day before the second starts.
 /// </summary>
-public sealed class ImportProductDependencyRequest
+[CsvRecord]
+public sealed partial class ImportProductDependencyRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

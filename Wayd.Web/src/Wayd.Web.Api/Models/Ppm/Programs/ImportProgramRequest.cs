@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Extensions;
+﻿using CsvHelper;
+using Wayd.Common.Extensions;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 
@@ -10,7 +11,8 @@ namespace Wayd.Web.Api.Models.Ppm.Programs;
 /// <c>Status</c> is the status the program should end up in (case-insensitive), reached by replaying
 /// the real lifecycle transitions.
 /// </summary>
-public sealed class ImportProgramRequest
+[CsvRecord]
+public sealed partial class ImportProgramRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

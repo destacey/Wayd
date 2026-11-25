@@ -1,4 +1,6 @@
-﻿namespace Wayd.Tools.DataGeneration.Cli.Csv;
+﻿using CsvHelper;
+
+namespace Wayd.Tools.DataGeneration.Cli.Csv;
 
 // The PPM CSV rows, as the API import endpoints consume them. Column names must match the request models
 // in Wayd.Web.Api/Models/Ppm and Wayd.Web.Api/Models/StrategicManagement; multi-value columns hold
@@ -10,7 +12,8 @@
 // that point at another record do so by id, because none of the names involved is uniquely indexed.
 
 /// <summary>One row of the strategic themes CSV.</summary>
-public sealed class StrategicThemeCsvRow
+[CsvRecord]
+public sealed partial class StrategicThemeCsvRow
 {
     public required string ImportId { get; init; }
     public required string Name { get; init; }
@@ -23,7 +26,8 @@ public sealed class StrategicThemeCsvRow
 /// portfolio has no planned timeline of its own, so it carries only the transition dates — and no closing
 /// one, since an import cannot close a portfolio.
 /// </summary>
-public sealed class PortfolioCsvRow
+[CsvRecord]
+public sealed partial class PortfolioCsvRow
 {
     public required string ImportId { get; init; }
     public required string Name { get; init; }
@@ -40,7 +44,8 @@ public sealed class PortfolioCsvRow
 }
 
 /// <summary>One row of the programs CSV.</summary>
-public sealed class ProgramCsvRow
+[CsvRecord]
+public sealed partial class ProgramCsvRow
 {
     public required string ImportId { get; init; }
     public required string Name { get; init; }
@@ -68,7 +73,8 @@ public sealed class ProgramCsvRow
 }
 
 /// <summary>One row of the projects CSV. Key is the project's natural key, which tasks and initiatives use.</summary>
-public sealed class ProjectCsvRow
+[CsvRecord]
+public sealed partial class ProjectCsvRow
 {
     public required string ImportId { get; init; }
     public required string Name { get; init; }
@@ -109,7 +115,8 @@ public sealed class ProjectCsvRow
 /// One row of the project tasks CSV. The project is named by key; the stage by name, which is unique
 /// within a project because stages are copied from its lifecycle.
 /// </summary>
-public sealed class ProjectTaskCsvRow
+[CsvRecord]
+public sealed partial class ProjectTaskCsvRow
 {
     public required string ImportId { get; init; }
     public required string ProjectKey { get; init; }
@@ -142,7 +149,8 @@ public sealed class ProjectTaskCsvRow
 }
 
 /// <summary>One row of the project stages CSV: sets one stage's status.</summary>
-public sealed class ProjectStageCsvRow
+[CsvRecord]
+public sealed partial class ProjectStageCsvRow
 {
     public required string ImportId { get; init; }
     public required string ProjectKey { get; init; }
@@ -151,7 +159,8 @@ public sealed class ProjectStageCsvRow
 }
 
 /// <summary>One row of the project deliverables CSV: one deliverable of one project.</summary>
-public sealed class ProjectDeliverableCsvRow
+[CsvRecord]
+public sealed partial class ProjectDeliverableCsvRow
 {
     public required string ImportId { get; init; }
     public required string ProjectKey { get; init; }
@@ -172,7 +181,8 @@ public sealed class ProjectDeliverableCsvRow
 }
 
 /// <summary>One row of the strategic initiatives CSV. Projects are referenced by semicolon-separated keys.</summary>
-public sealed class StrategicInitiativeCsvRow
+[CsvRecord]
+public sealed partial class StrategicInitiativeCsvRow
 {
     public required string ImportId { get; init; }
     public required string Name { get; init; }
@@ -193,7 +203,8 @@ public sealed class StrategicInitiativeCsvRow
 /// One row of the finalize CSV: closes one program or portfolio once its contents are imported. Id is read
 /// per Type — a program id on a program row, a portfolio id on a portfolio row.
 /// </summary>
-public sealed class PpmFinalizationCsvRow
+[CsvRecord]
+public sealed partial class PpmFinalizationCsvRow
 {
     public required string ImportId { get; init; }
     public required string Type { get; init; }

@@ -1,4 +1,4 @@
-using CsvHelper.Configuration.Attributes;
+using CsvHelper;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 using Wayd.Web.Api.Models.ProductManagement;
@@ -10,7 +10,8 @@ namespace Wayd.Web.Api.Models.DemandManagement.IntakeRequests;
 /// request, project, work item, deliverables and people are named by id. Every column must be in the file,
 /// even one whose cells are all blank. Timestamps are instants, and each must carry its offset.
 /// </summary>
-public sealed class ImportIntakeRequestOutcomeRequest
+[CsvRecord]
+public sealed partial class ImportIntakeRequestOutcomeRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

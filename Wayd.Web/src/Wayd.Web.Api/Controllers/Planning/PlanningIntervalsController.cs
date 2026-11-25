@@ -1,7 +1,7 @@
 ﻿using CSharpFunctionalExtensions;
-using CsvHelper;
 using Mapster;
 using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.FeatureManagement;
@@ -191,7 +191,7 @@ public class PlanningIntervalsController : ControllerBase
                 ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
-        catch (CsvHelperException ex)
+        catch (CsvFileException ex)
         {
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }
@@ -1031,7 +1031,7 @@ public class PlanningIntervalsController : ControllerBase
                 ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
-        catch (CsvHelperException ex)
+        catch (CsvFileException ex)
         {
             // TODO: Convert this to a validation problem details
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));

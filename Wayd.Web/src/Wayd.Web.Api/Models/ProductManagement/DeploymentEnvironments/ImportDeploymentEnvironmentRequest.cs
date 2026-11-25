@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.ProductManagement.Application.DeploymentEnvironments.Dtos;
 
@@ -9,7 +10,8 @@ namespace Wayd.Web.Api.Models.ProductManagement.DeploymentEnvironments;
 /// deployments import names its environment by this, so a file of environments is what a historical
 /// backfill loads first.
 /// </summary>
-public sealed class ImportDeploymentEnvironmentRequest
+[CsvRecord]
+public sealed partial class ImportDeploymentEnvironmentRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

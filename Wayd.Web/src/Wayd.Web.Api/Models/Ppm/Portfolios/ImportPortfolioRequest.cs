@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Extensions;
+﻿using CsvHelper;
+using Wayd.Common.Extensions;
 using Wayd.ProjectPortfolioManagement.Application.Portfolios.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 
@@ -11,7 +12,8 @@ namespace Wayd.Web.Api.Models.Ppm.Portfolios;
 /// never from creation.
 /// Role columns hold semicolon-separated employee numbers, since a CSV cell cannot carry a list.
 /// </summary>
-public sealed class ImportPortfolioRequest
+[CsvRecord]
+public sealed partial class ImportPortfolioRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

@@ -1,3 +1,6 @@
+using CsvHelper;
+using Wayd.Tools.DataGeneration.Cli.Csv;
+
 namespace Wayd.Tools.DataGeneration.Cli.Generation;
 
 // The generated Product Management model, keyed by the generator's own handles — product names, version
@@ -5,7 +8,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 // the API has created something, so each seed area substitutes them as it writes its file.
 
 /// <summary>A generated product. Its parent is named by <see cref="ParentName"/>, which is another product in the same set.</summary>
-public sealed class ProductModel
+[CsvRecord]
+public sealed partial class ProductModel
 {
     public required string Name { get; init; }
     public required string Description { get; init; }
@@ -25,7 +29,8 @@ public sealed class ProductModel
 /// A generated version of the product named by <see cref="ProductName"/>. Its dates decide its status: none
 /// is planned, a cut date is ready, a released date is released.
 /// </summary>
-public sealed class VersionModel
+[CsvRecord]
+public sealed partial class VersionModel
 {
     public required string ProductName { get; init; }
     public required string Number { get; init; }
@@ -35,22 +40,28 @@ public sealed class VersionModel
     public string? Notes { get; init; }
 
     /// <summary>The moment it was cut, on <see cref="CutDate"/>. What the import records.</summary>
+    [CsvFormat(CsvFormats.Instant)]
     public DateTimeOffset? CutAt { get; set; }
 
     /// <summary>
     /// The moment it shipped, on <see cref="ReleasedDate"/>: when production received it, directly or inside
     /// its package. What the import records.
     /// </summary>
+    [CsvFormat(CsvFormats.Instant)]
     public DateTimeOffset? ReleasedAt { get; set; }
 
-    /// <summary>A version number is unique only within its product, so the handle carries both.</summary>
-    public string Handle => HandleFor(ProductName, Number);
+    /// <summary>
+    /// A version number is unique only within its product, so the handle carries both. Set from
+    /// <see cref="HandleFor"/>; stored so <c>versions.csv</c> carries it.
+    /// </summary>
+    public required string Handle { get; init; }
 
     public static string HandleFor(string productName, string number) => $"{productName}|{number}";
 }
 
 /// <summary>A generated release package, identified by its own <see cref="Version"/>.</summary>
-public sealed class ReleasePackageModel
+[CsvRecord]
+public sealed partial class ReleasePackageModel
 {
     public required string Version { get; init; }
     public string? Name { get; init; }
@@ -63,11 +74,13 @@ public sealed class ReleasePackageModel
     /// The moment it shipped: when its production deployment completed. Set once that deployment is
     /// generated; this is what the import records.
     /// </summary>
+    [CsvFormat(CsvFormats.Instant)]
     public DateTimeOffset? ReleasedAt { get; set; }
 }
 
 /// <summary>One manifest line of the package named by <see cref="PackageVersion"/>.</summary>
-public sealed class ReleasePackageComponentModel
+[CsvRecord]
+public sealed partial class ReleasePackageComponentModel
 {
     public required string PackageVersion { get; init; }
     public required string ProductName { get; init; }
@@ -76,7 +89,8 @@ public sealed class ReleasePackageComponentModel
 }
 
 /// <summary>A generated release — the announced thing — under the product line named by <see cref="ProductName"/>.</summary>
-public sealed class ReleaseModel
+[CsvRecord]
+public sealed partial class ReleaseModel
 {
     public required string Version { get; init; }
     public string? Name { get; init; }
@@ -90,7 +104,8 @@ public sealed class ReleaseModel
 /// One thing the release named by <see cref="ReleaseVersion"/> announces: a package, named by its version,
 /// or a version, named by its handle.
 /// </summary>
-public sealed class ReleaseContentModel
+[CsvRecord]
+public sealed partial class ReleaseContentModel
 {
     public required string ReleaseVersion { get; init; }
     public required string Kind { get; init; }
@@ -99,7 +114,8 @@ public sealed class ReleaseContentModel
 }
 
 /// <summary>A generated deployment environment. Names are unique across the organization.</summary>
-public sealed class DeploymentEnvironmentModel
+[CsvRecord]
+public sealed partial class DeploymentEnvironmentModel
 {
     public required string Name { get; init; }
     public required string Category { get; init; }
@@ -111,20 +127,28 @@ public sealed class DeploymentEnvironmentModel
 /// A generated deployment of exactly one of a version (by handle) or a package (by version). No outcome
 /// means it is still in flight.
 /// </summary>
-public sealed class DeploymentModel
+[CsvRecord]
+public sealed partial class DeploymentModel
 {
     public string? VersionHandle { get; init; }
     public string? PackageVersion { get; init; }
     public required string EnvironmentName { get; init; }
     public required string ArtifactId { get; init; }
+    [CsvFormat(CsvFormats.Instant)]
     public required DateTimeOffset StartedAt { get; init; }
     public string? Outcome { get; init; }
+    [CsvFormat(CsvFormats.Instant)]
     public DateTimeOffset? CompletedAt { get; init; }
+    [CsvFormat(CsvFormats.Instant)]
     public DateTimeOffset? RolledBackAt { get; init; }
     public string? Reason { get; init; }
 
     /// <summary>
-    /// Unique per row: a build reaches each environment once, and a retry is a new build.
+    /// Unique per row: a build reaches each environment once, and a retry is a new build. Set from
+    /// <see cref="ImportIdFor"/>; stored so <c>deployments.csv</c> carries it.
     /// </summary>
-    public string ImportId => $"{VersionHandle ?? PackageVersion}|{ArtifactId}|{EnvironmentName}";
+    public required string ImportId { get; init; }
+
+    public static string ImportIdFor(string? versionHandle, string? packageVersion, string artifactId, string environmentName) =>
+        $"{versionHandle ?? packageVersion}|{artifactId}|{environmentName}";
 }

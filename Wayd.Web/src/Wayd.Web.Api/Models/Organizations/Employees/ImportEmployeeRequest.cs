@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Extensions;
 
@@ -7,7 +8,8 @@ namespace Wayd.Web.Api.Models.Organizations.Employees;
 /// A single CSV row for the employee import. References the row's manager by employee number so an entire
 /// management tree can be imported at once; linkage is resolved server-side after all rows are created.
 /// </summary>
-public sealed class ImportEmployeeRequest
+[CsvRecord]
+public sealed partial class ImportEmployeeRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

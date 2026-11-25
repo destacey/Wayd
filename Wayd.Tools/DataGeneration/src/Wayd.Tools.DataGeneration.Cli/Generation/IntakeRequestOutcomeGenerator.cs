@@ -39,7 +39,13 @@ public sealed class IntakeRequestOutcomeGenerator
         _faker = new Faker { Random = new Randomizer(context.SeedFor(AreaName)) };
     }
 
-    private DateTimeOffset StartOfToday => new(_context.AsOf.ToDateTime(new TimeOnly(8, 0)), TimeSpan.Zero);
+    /// <summary>
+    /// The latest an outcome may be recorded: midnight UTC at the start of the as-of day. The import refuses an
+    /// outcome later than the moment it runs, and the as-of day defaults to today's UTC date, so only its very start
+    /// is past at every hour a run can happen. Read from the as-of date rather than the clock, so a pinned seed and
+    /// date still reproduce the same outcomes.
+    /// </summary>
+    private DateTimeOffset StartOfToday => new(_context.AsOf.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
 
     public IReadOnlyList<IntakeRequestOutcomeModel> Generate()
     {
@@ -62,7 +68,9 @@ public sealed class IntakeRequestOutcomeGenerator
             if (addedBy is null)
                 continue;
 
-            var addedOn = AddedOn(request, fulfilled);
+            if (AddedOn(request, fulfilled) is not { } addedOn)
+                continue;
+
             var outcome = roll switch
             {
                 < 0.3 => StartedFor(request, fulfilled, startedProjects, addedBy, addedOn),
@@ -143,9 +151,10 @@ public sealed class IntakeRequestOutcomeGenerator
 
     /// <summary>
     /// When the outcome was recorded: just before a fulfilled request was closed, and some days after an accepted
-    /// one was taken on, never later than this morning.
+    /// one was taken on, never later than the start of today. Null when the request was submitted too late for any
+    /// moment to fall after it and before today.
     /// </summary>
-    private DateTimeOffset AddedOn(IntakeRequestModel request, bool fulfilled)
+    private DateTimeOffset? AddedOn(IntakeRequestModel request, bool fulfilled)
     {
         var decided = request.StatusChangedAt ?? request.SubmittedAt;
         var at = fulfilled
@@ -153,10 +162,10 @@ public sealed class IntakeRequestOutcomeGenerator
             : decided.AddDays(_faker.Random.Int(0, 10));
 
         var notBefore = request.SubmittedAt.AddMinutes(1);
-        if (at < notBefore)
-            at = notBefore;
+        if (notBefore > StartOfToday)
+            return null;
 
-        return at > StartOfToday ? (StartOfToday > notBefore ? StartOfToday : notBefore) : at;
+        return at < notBefore ? notBefore : at > StartOfToday ? StartOfToday : at;
     }
 
     private static bool IsFinished(string status) => string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase);

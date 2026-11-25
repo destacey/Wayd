@@ -793,8 +793,9 @@ with the asks its departments have raised.
   one request only. Existing project scope maps one to three of the project's deliverables: a Fulfilled request's
   are all Accepted, so it reads as met, while an Accepted request's are whatever its open project has under way,
   so most are still waiting. Each is recorded by the request's assignee, or a member of its desk, just before a
-  Fulfilled request closed or some days after an Accepted one was taken on. Outcomes draw from a random stream of
-  their own (`demand-management.outcomes`), so they never shift the requests or the projects.
+  Fulfilled request closed or some days after an Accepted one was taken on, and never later than midnight UTC at
+  the start of the as-of day, since the import refuses an outcome recorded after it runs. Outcomes draw from a
+  random stream of their own (`demand-management.outcomes`), so they never shift the requests or the projects.
 
 Duplicates, work item outcomes, scores and discussion are not generated. A duplicate has to name a request
 already in Wayd, which the import cannot do within one file; work items are not generated; and scores and

@@ -1,14 +1,23 @@
-using System.Globalization;
 using CsvHelper;
-using CsvHelper.Configuration;
 
 namespace Wayd.Tools.DataGeneration.Cli.Csv;
 
 /// <summary>Writes strongly-typed rows to CSV, either to a file or into an in-memory stream for upload.</summary>
+/// <remarks>
+/// A row type must be a <c>[CsvRecord]</c> partial type: CsvHelper's source generator writes its columns, and
+/// a type without one throws when it is written. Dates are written in ISO 8601 (<c>yyyy-MM-dd</c>), which every
+/// bulk-import page documents; a <see cref="DateTime"/> or <see cref="DateTimeOffset"/> column that should be
+/// written differently says so with <c>[CsvFormat]</c>.
+/// </remarks>
 public static class CsvFile
 {
-    private static readonly CsvConfiguration Configuration = new(CultureInfo.InvariantCulture);
+    /// <summary>
+    /// Quotes a cell that starts or ends with whitespace too, so the text survives a reader that trims
+    /// unquoted cells.
+    /// </summary>
+    private static readonly CsvWriterOptions Options = CsvWriterOptions.Default with { Quoting = CsvQuoting.WhenNeededOrWhitespace };
 
+    /// <summary>Writes the rows, with a header, to the file at <paramref name="path"/>, replacing it.</summary>
     public static void Write<T>(string path, IEnumerable<T> rows)
     {
         using var writer = new StreamWriter(path);
@@ -28,24 +37,22 @@ public static class CsvFile
 
     private static void WriteTo<T>(TextWriter writer, IEnumerable<T> rows)
     {
-        using var csv = new CsvWriter(writer, Configuration);
-
-        // Write dates in unambiguous ISO 8601 (yyyy-MM-dd), which every bulk-import page documents. The cache
-        // is keyed by type, so DateOnly does not inherit the DateTime entry: without its own, it is written
-        // in the invariant culture's MM/dd/yyyy. DateTime stays for employee HireDate, the one column the
-        // API still takes as a DateTime.
-        var isoFormats = new[] { "yyyy-MM-dd" };
-        csv.Context.TypeConverterOptionsCache.GetOptions<DateOnly>().Formats = isoFormats;
-        csv.Context.TypeConverterOptionsCache.GetOptions<DateOnly?>().Formats = isoFormats;
-        csv.Context.TypeConverterOptionsCache.GetOptions<DateTime>().Formats = isoFormats;
-        csv.Context.TypeConverterOptionsCache.GetOptions<DateTime?>().Formats = isoFormats;
-
-        // Instants, written with their offset. Only the generated model files carry these; the deployment
-        // rows a seed posts format their own.
-        var instantFormats = new[] { "yyyy-MM-dd'T'HH:mm:sszzz" };
-        csv.Context.TypeConverterOptionsCache.GetOptions<DateTimeOffset>().Formats = instantFormats;
-        csv.Context.TypeConverterOptionsCache.GetOptions<DateTimeOffset?>().Formats = instantFormats;
-
+        using var csv = CsvWriter.Create(writer, Options, leaveOpen: true);
         csv.WriteRecords(rows);
     }
+}
+
+/// <summary>The formats that a generated row's <c>[CsvFormat]</c> columns are written in.</summary>
+public static class CsvFormats
+{
+    /// <summary>
+    /// An instant with its offset, to the second. CsvHelper's own ISO 8601 adds fractional seconds, which the
+    /// files have no use for.
+    /// </summary>
+    public const string Instant = "yyyy-MM-dd'T'HH:mm:sszzz";
+
+    /// <summary>
+    /// A date alone, for a <see cref="DateTime"/> column that holds one: CsvHelper writes a time of day otherwise.
+    /// </summary>
+    public const string Date = "yyyy-MM-dd";
 }

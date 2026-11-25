@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.ProductManagement.Application.Deployments.Dtos;
 
 namespace Wayd.Web.Api.Models.ProductManagement.Deployments;
@@ -13,7 +14,8 @@ namespace Wayd.Web.Api.Models.ProductManagement.Deployments;
 /// and the time it was reverted.
 /// Timestamps are instants, and each must carry its offset (see <c>OffsetTimestamp</c>).
 /// </summary>
-public sealed class ImportDeploymentRequest
+[CsvRecord]
+public sealed partial class ImportDeploymentRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

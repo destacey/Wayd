@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.Common.Extensions;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.ProductManagement.Application.ReleasePackages.Dtos;
@@ -9,7 +10,8 @@ namespace Wayd.Web.Api.Models.ProductManagement.ReleasePackages;
 /// A package is identified by <c>Version</c> alone: it has no product, because it spans them.
 /// Manifest lines arrive in a second file and point back here by this row's <c>ImportId</c>.
 /// </summary>
-public sealed class ImportReleasePackageRequest
+[CsvRecord]
+public sealed partial class ImportReleasePackageRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are
@@ -70,7 +72,8 @@ public sealed class ImportReleasePackageRequestValidator : CustomValidator<Impor
 /// product it is linked; where none does the string stands on its own, which is how a carried-forward
 /// component — already running, never cut here — is recorded.
 /// </remarks>
-public sealed class ImportReleasePackageComponentRequest
+[CsvRecord]
+public sealed partial class ImportReleasePackageComponentRequest
 {
     /// <summary>The `ImportId` of the package row this line belongs to.</summary>
     public string PackageImportId { get; set; } = default!;

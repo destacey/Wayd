@@ -1,5 +1,5 @@
-using CsvHelper;
 using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Domain.FeatureManagement;
 using Microsoft.AspNetCore.JsonPatch.SystemTextJson;
@@ -229,7 +229,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
                 ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
-        catch (CsvHelperException ex)
+        catch (CsvFileException ex)
         {
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }
@@ -277,7 +277,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
                 ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
-        catch (CsvHelperException ex)
+        catch (CsvFileException ex)
         {
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }
@@ -326,7 +326,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
                 ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
-        catch (CsvHelperException ex)
+        catch (CsvFileException ex)
         {
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }

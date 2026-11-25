@@ -1,3 +1,5 @@
+using CsvHelper;
+
 namespace Wayd.Tools.DataGeneration.Cli.Csv;
 
 // The organization CSV rows, as the API import endpoints consume them. Headers must match the request
@@ -9,7 +11,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Csv;
 // says which team or person could not be created.
 
 /// <summary>One row of the employees CSV. Manager is referenced by employee number.</summary>
-public sealed class EmployeeCsvRow
+[CsvRecord]
+public sealed partial class EmployeeCsvRow
 {
     /// <summary>The employee number, which is already this row's natural key.</summary>
     public required string ImportId { get; init; }
@@ -27,6 +30,7 @@ public sealed class EmployeeCsvRow
     public string? AdditionalEmails { get; init; }
 
     /// <summary>A DateTime rather than a DateOnly because the employee import still takes one; only the date is written.</summary>
+    [CsvFormat(CsvFormats.Date)]
     public DateTime? HireDate { get; init; }
     public string? JobTitle { get; init; }
     public string? Department { get; init; }
@@ -37,7 +41,8 @@ public sealed class EmployeeCsvRow
 }
 
 /// <summary>One row of the unified teams CSV. <see cref="Type"/> is "Team" or "TeamOfTeams".</summary>
-public sealed class TeamCsvRow
+[CsvRecord]
+public sealed partial class TeamCsvRow
 {
     /// <summary>The team code, which is already this row's natural key.</summary>
     public required string ImportId { get; init; }
@@ -55,7 +60,8 @@ public sealed class TeamCsvRow
 }
 
 /// <summary>One row of the staffing CSV: one employee on one team in one role, all by natural key.</summary>
-public sealed class TeamMemberCsvRow
+[CsvRecord]
+public sealed partial class TeamMemberCsvRow
 {
     /// <summary>Team code and employee number together, since neither identifies a staffing row alone.</summary>
     public required string ImportId { get; init; }
@@ -66,7 +72,8 @@ public sealed class TeamMemberCsvRow
 }
 
 /// <summary>One row of the hierarchy CSV: a child team/ToT placed under a parent ToT for a date range.</summary>
-public sealed class TeamMembershipCsvRow
+[CsvRecord]
+public sealed partial class TeamMembershipCsvRow
 {
     /// <summary>Child and parent code together, since a child may sit under more than one parent over time.</summary>
     public required string ImportId { get; init; }

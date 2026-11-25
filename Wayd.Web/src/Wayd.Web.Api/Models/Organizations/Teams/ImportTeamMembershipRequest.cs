@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.Common.Extensions;
 using Wayd.Organization.Application.Teams.Dtos;
 
@@ -7,7 +8,8 @@ namespace Wayd.Web.Api.Models.Organizations.Teams;
 /// A single CSV row for the team-hierarchy import: places a child team (or team of teams) under a parent
 /// team of teams for a date range, all by natural key.
 /// </summary>
-public sealed class ImportTeamMembershipRequest
+[CsvRecord]
+public sealed partial class ImportTeamMembershipRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

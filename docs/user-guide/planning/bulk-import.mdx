@@ -57,7 +57,8 @@ A few rules apply to all three:
   *applied* is covered under [what a failed run leaves behind](#what-a-failed-run-leaves-behind).
 - **Every column must be present, even the optional ones.** *Required* in the tables below means the
   cell needs a value; it does not mean the column can be left out. A missing header fails the file with
-  `Header with name 'X' was not found`. Include every column and leave unused cells blank.
+  a `400` that names it — `The CSV header has no column for … ('X')`. Headers match ignoring case and
+  surrounding spaces. Include every column and leave unused cells blank.
 - **`ImportId` is your key for a row.** Any value you like — a row number, a key from whatever system
   the file came out of — provided it is unique within the one file, compared case-insensitively. Row
   outcomes are reported against it. Leave the column blank and the row's position in the file is used

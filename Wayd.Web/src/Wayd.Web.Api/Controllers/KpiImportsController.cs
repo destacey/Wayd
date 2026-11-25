@@ -1,5 +1,5 @@
-using CsvHelper;
 using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Kpis.Imports;
 using Wayd.Common.Domain.FeatureManagement;
@@ -159,7 +159,7 @@ public class KpiImportsController(IDispatcher dispatcher, ICsvService csvService
                 ? await responder.Respond(this, result.Value, cancellationToken)
                 : BadRequest(result.ToBadRequestObject(HttpContext));
         }
-        catch (CsvHelperException ex)
+        catch (CsvFileException ex)
         {
             return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
         }

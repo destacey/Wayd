@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.Common.Extensions;
 using Wayd.ProductManagement.Application.Releases.Dtos;
 
@@ -9,7 +10,8 @@ namespace Wayd.Web.Api.Models.ProductManagement.Releases;
 /// design: a release spanning product lines has no single owner, so requiring one would force a
 /// misleading choice.
 /// </summary>
-public sealed class ImportReleaseRequest
+[CsvRecord]
+public sealed partial class ImportReleaseRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are
@@ -76,7 +78,8 @@ public sealed class ImportReleaseRequestValidator : CustomValidator<ImportReleas
 /// shipping inside one of the release's packages cannot also be carried directly, and judging that
 /// needs both halves in view at once.
 /// </remarks>
-public sealed class ImportReleaseContentRequest
+[CsvRecord]
+public sealed partial class ImportReleaseContentRequest
 {
     /// <summary>The `ImportId` of the release row this row belongs to.</summary>
     public string ReleaseImportId { get; set; } = default!;

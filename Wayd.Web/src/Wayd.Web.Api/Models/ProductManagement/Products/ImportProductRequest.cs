@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.ProductManagement.Application.Products.Dtos;
 
 namespace Wayd.Web.Api.Models.ProductManagement.Products;
@@ -10,7 +11,8 @@ namespace Wayd.Web.Api.Models.ProductManagement.Products;
 /// for. Names cannot serve as the link: a tree legitimately holds the same name in two places, so
 /// keying on names would make such a file unimportable.
 /// </summary>
-public sealed class ImportProductRequest
+[CsvRecord]
+public sealed partial class ImportProductRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

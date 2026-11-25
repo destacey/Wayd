@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.Common.Domain.Extensions.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Dtos;
@@ -9,7 +10,8 @@ namespace Wayd.Web.Api.Models.Ppm.ProjectTasks;
 /// A single CSV row for the project stage import: sets one stage's status. The project is referenced by key
 /// and the stage by name (stages come from the project's assigned lifecycle). The status is applied as given.
 /// </summary>
-public sealed class ImportProjectStageRequest
+[CsvRecord]
+public sealed partial class ImportProjectStageRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Extensions.Organizations;
 using Wayd.Common.Domain.Models.Organizations;
@@ -10,7 +11,8 @@ namespace Wayd.Web.Api.Models.Organizations.Teams;
 /// A single CSV row for the unified team import. <c>Type</c> discriminates between a Team and a
 /// Team of Teams (case-insensitive: "Team" / "TeamOfTeams"). Both share the same create shape.
 /// </summary>
-public sealed class ImportTeamRequest
+[CsvRecord]
+public sealed partial class ImportTeamRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

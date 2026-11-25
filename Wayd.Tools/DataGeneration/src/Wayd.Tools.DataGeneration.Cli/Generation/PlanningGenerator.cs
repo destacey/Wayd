@@ -204,6 +204,7 @@ public sealed class PlanningGenerator
                 IsStretch = isStretch,
                 ClosedAt = closedAt,
                 Order = order,
+                ImportId = PlanningIntervalObjectiveModel.ImportIdFor(interval.Name, teamCode, order),
             });
         }
     }

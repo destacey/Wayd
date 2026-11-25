@@ -64,7 +64,8 @@ A few rules apply to every import:
   See [Limits](#limits).
 - **Every column must be present, even the optional ones.** *Required* below means the cell needs a
   value; it does not mean the column can be left out. A missing header fails the file with
-  `Header with name 'X' was not found`. Include every column and leave unused cells blank.
+  a `400` that names it — `The CSV header has no column for … ('X')`. Headers match ignoring case and
+  surrounding spaces. Include every column and leave unused cells blank.
 - **Multi-value columns are semicolon-separated.** A comma would collide with the CSV field delimiter.
 - **Dates are ISO `yyyy-MM-dd`.** A date column takes a date, not a timestamp: a cell carrying a time
   is rejected rather than truncated. The columns that are genuine moments — a version's `CutAt` and

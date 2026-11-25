@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.StrategicManagement.Application.StrategicThemes.Dtos;
 
@@ -8,7 +9,8 @@ namespace Wayd.Web.Api.Models.StrategicManagement.StrategicThemes;
 /// (case-insensitive: "Proposed" / "Active" / "Archived"), applied directly rather than through the
 /// activate/archive transitions.
 /// </summary>
-public sealed class ImportStrategicThemeRequest
+[CsvRecord]
+public sealed partial class ImportStrategicThemeRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

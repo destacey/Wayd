@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.Common.Domain.Extensions.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Extensions;
@@ -15,7 +16,8 @@ namespace Wayd.Web.Api.Models.Ppm.Projects;
 /// and the file's other rows for it. The owner may be an inactive employee, so a finished project's history can
 /// name whoever was accountable then; the add and update endpoints take only an active one.
 /// </remarks>
-public sealed class ImportProjectDeliverableRequest
+[CsvRecord]
+public sealed partial class ImportProjectDeliverableRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are reported

@@ -1,3 +1,5 @@
+using CsvHelper;
+
 namespace Wayd.Tools.DataGeneration.Cli.Csv;
 
 // The Request Desk CSV row, as the intake request import consumes it. Column names must match
@@ -5,7 +7,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Csv;
 // when the seed leaves it empty: a missing header fails the whole file.
 
 /// <summary>One row of the intake requests CSV. Desks, channels, tags and people are ids.</summary>
-public sealed class IntakeRequestCsvRow
+[CsvRecord]
+public sealed partial class IntakeRequestCsvRow
 {
     public required string ImportId { get; init; }
     public required string Title { get; init; }
@@ -44,7 +47,8 @@ public sealed class IntakeRequestCsvRow
 /// One row of the intake request outcomes CSV. Column names must match ImportIntakeRequestOutcomeRequest, and
 /// every column has to be present even when the seed leaves it empty.
 /// </summary>
-public sealed class IntakeRequestOutcomeCsvRow
+[CsvRecord]
+public sealed partial class IntakeRequestOutcomeCsvRow
 {
     public required string ImportId { get; init; }
     public required Guid RequestId { get; init; }

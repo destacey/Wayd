@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.Common.Extensions;
 using Wayd.ProjectPortfolioManagement.Application.Finalization.Dtos;
 
@@ -8,7 +9,8 @@ namespace Wayd.Web.Api.Models.Ppm.Finalization;
 /// been imported. <c>Type</c> discriminates between the two (case-insensitive: "Program" /
 /// "Portfolio") and says how to read <c>Id</c>.
 /// </summary>
-public sealed class ImportPpmFinalizationRequest
+[CsvRecord]
+public sealed partial class ImportPpmFinalizationRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

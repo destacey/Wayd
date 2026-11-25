@@ -1,4 +1,6 @@
-﻿namespace Wayd.Tools.DataGeneration.Cli.Generation;
+﻿using CsvHelper;
+
+namespace Wayd.Tools.DataGeneration.Cli.Generation;
 
 // The generated PPM model, keyed by the generator's own handles — portfolio and program names, project
 // keys — because those are what the generator can decide for itself, and what its own cross-references are
@@ -6,7 +8,8 @@
 // projected to a CSV row and nowhere earlier. Each seed area owns that projection.
 
 /// <summary>A generated strategic theme. Programs and projects reference it by name here; the areas that post them resolve those names to ids.</summary>
-public sealed class StrategicThemeModel
+[CsvRecord]
+public sealed partial class StrategicThemeModel
 {
     public required string Name { get; init; }
     public required string Description { get; init; }
@@ -18,7 +21,8 @@ public sealed class StrategicThemeModel
 /// A portfolio has no planned timeline of its own — its date range is whatever its transitions set — so
 /// the transition dates are all it carries.
 /// </summary>
-public sealed class PortfolioModel
+[CsvRecord]
+public sealed partial class PortfolioModel
 {
     public required string Name { get; init; }
     public required string Description { get; init; }
@@ -31,7 +35,8 @@ public sealed class PortfolioModel
 }
 
 /// <summary>A generated program, under the portfolio named by <see cref="PortfolioName"/>.</summary>
-public sealed class ProgramModel
+[CsvRecord]
+public sealed partial class ProgramModel
 {
     public required string Name { get; init; }
     public required string Description { get; init; }
@@ -48,7 +53,8 @@ public sealed class ProgramModel
 }
 
 /// <summary>A generated project. <see cref="Key"/> is its natural key, which tasks and initiatives reference; everything it points at is named here and resolved to an id by the project area.</summary>
-public sealed class ProjectModel
+[CsvRecord]
+public sealed partial class ProjectModel
 {
     public required string Name { get; init; }
     public required string Description { get; init; }
@@ -73,7 +79,8 @@ public sealed class ProjectModel
 }
 
 /// <summary>A generated project task, under the project named by <see cref="ProjectKey"/> and nested under <see cref="ParentTaskName"/> where it has one.</summary>
-public sealed class ProjectTaskModel
+[CsvRecord]
+public sealed partial class ProjectTaskModel
 {
     public required string ProjectKey { get; init; }
     public required string Name { get; init; }
@@ -98,7 +105,8 @@ public sealed class ProjectTaskModel
 }
 
 /// <summary>A generated stage status: one stage of one project, set to exactly the status the generator computed from that stage’s tasks.</summary>
-public sealed class ProjectStageModel
+[CsvRecord]
+public sealed partial class ProjectStageModel
 {
     public required string ProjectKey { get; init; }
     public required string StageName { get; init; }
@@ -126,7 +134,8 @@ public sealed class ProjectDeliverableModel
 }
 
 /// <summary>A generated strategic initiative, under the portfolio named by <see cref="PortfolioName"/>, delivering through the projects named by <see cref="ProjectKeys"/>.</summary>
-public sealed class StrategicInitiativeModel
+[CsvRecord]
+public sealed partial class StrategicInitiativeModel
 {
     public required string Name { get; init; }
     public required string Description { get; init; }
@@ -140,7 +149,8 @@ public sealed class StrategicInitiativeModel
 }
 
 /// <summary>A generated finalization: closes one program or portfolio once its contents exist.</summary>
-public sealed class PpmFinalizationModel
+[CsvRecord]
+public sealed partial class PpmFinalizationModel
 {
     public required string Type { get; init; }
     public required string Name { get; init; }

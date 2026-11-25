@@ -1,11 +1,13 @@
-﻿using Wayd.Common.Application.Interfaces;
+﻿using CsvHelper;
+using Wayd.Common.Application.Interfaces;
 using Wayd.Planning.Application.Risks.Dtos;
 using Wayd.Common.Extensions;
 using Wayd.Common.Domain.Enums.Planning;
 
 namespace Wayd.Web.Api.Models.Planning.Risks;
 
-public class ImportRiskRequest
+[CsvRecord]
+public partial class ImportRiskRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

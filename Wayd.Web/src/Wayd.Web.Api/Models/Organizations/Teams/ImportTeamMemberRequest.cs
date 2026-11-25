@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.Organization.Application.Teams.Dtos;
 
 namespace Wayd.Web.Api.Models.Organizations.Teams;
@@ -6,7 +7,8 @@ namespace Wayd.Web.Api.Models.Organizations.Teams;
 /// A single CSV row for team staffing: places one employee on one team in one role, all by natural key.
 /// Multiple roles for the same employee on the same team are expressed as multiple rows.
 /// </summary>
-public sealed class ImportTeamMemberRequest
+[CsvRecord]
+public sealed partial class ImportTeamMemberRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

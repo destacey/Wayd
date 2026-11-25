@@ -1,3 +1,5 @@
+using CsvHelper;
+
 namespace Wayd.Tools.DataGeneration.Cli.Csv;
 
 // The Product Management CSV rows, as the API import endpoints consume them. Column names must match the
@@ -5,7 +7,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Csv;
 // seed leaves it empty: a missing header fails the whole file.
 
 /// <summary>One row of the products CSV. The parent names another row in the same file by its ImportId.</summary>
-public sealed class ProductCsvRow
+[CsvRecord]
+public sealed partial class ProductCsvRow
 {
     public required string ImportId { get; init; }
     public required string Name { get; init; }
@@ -23,7 +26,8 @@ public sealed class ProductCsvRow
 }
 
 /// <summary>One row of the product dependencies CSV: <see cref="ProductId"/> relies on <see cref="DependsOnProductId"/>.</summary>
-public sealed class ProductDependencyCsvRow
+[CsvRecord]
+public sealed partial class ProductDependencyCsvRow
 {
     public required string ImportId { get; init; }
     public required Guid ProductId { get; init; }
@@ -42,7 +46,8 @@ public sealed class ProductDependencyCsvRow
 }
 
 /// <summary>One row of the versions CSV. The dates decide the status.</summary>
-public sealed class VersionCsvRow
+[CsvRecord]
+public sealed partial class VersionCsvRow
 {
     public required string ImportId { get; init; }
     public required Guid ProductId { get; init; }
@@ -57,7 +62,8 @@ public sealed class VersionCsvRow
 }
 
 /// <summary>One row of the release packages CSV, without its manifest.</summary>
-public sealed class ReleasePackageCsvRow
+[CsvRecord]
+public sealed partial class ReleasePackageCsvRow
 {
     public required string ImportId { get; init; }
     public required string Version { get; init; }
@@ -69,7 +75,8 @@ public sealed class ReleasePackageCsvRow
 }
 
 /// <summary>One manifest line, pointing back at its package row by that row's ImportId.</summary>
-public sealed class ReleasePackageComponentCsvRow
+[CsvRecord]
+public sealed partial class ReleasePackageComponentCsvRow
 {
     public required string PackageImportId { get; init; }
     public required Guid ProductId { get; init; }
@@ -78,7 +85,8 @@ public sealed class ReleasePackageComponentCsvRow
 }
 
 /// <summary>One row of the releases CSV, without its contents.</summary>
-public sealed class ReleaseCsvRow
+[CsvRecord]
+public sealed partial class ReleaseCsvRow
 {
     public required string ImportId { get; init; }
     public required string Version { get; init; }
@@ -91,7 +99,8 @@ public sealed class ReleaseCsvRow
 }
 
 /// <summary>One thing a release announces, pointing back at its release row by that row's ImportId.</summary>
-public sealed class ReleaseContentCsvRow
+[CsvRecord]
+public sealed partial class ReleaseContentCsvRow
 {
     public required string ReleaseImportId { get; init; }
     public required string Kind { get; init; }
@@ -100,7 +109,8 @@ public sealed class ReleaseContentCsvRow
 }
 
 /// <summary>One row of the deployment environments CSV.</summary>
-public sealed class DeploymentEnvironmentCsvRow
+[CsvRecord]
+public sealed partial class DeploymentEnvironmentCsvRow
 {
     public required string ImportId { get; init; }
     public required string Name { get; init; }
@@ -113,7 +123,8 @@ public sealed class DeploymentEnvironmentCsvRow
 /// One row of the deployments CSV. Timestamps are text, matching the request model: the import refuses a
 /// timestamp without an offset rather than read it in the server's zone.
 /// </summary>
-public sealed class DeploymentCsvRow
+[CsvRecord]
+public sealed partial class DeploymentCsvRow
 {
     public required string ImportId { get; init; }
     public Guid? VersionId { get; init; }
@@ -135,7 +146,8 @@ public sealed class DeploymentCsvRow
 /// One row of the incidents CSV the seed posts. Products, releases and the commander are ids, and the
 /// timestamps carry an offset, matching the import.
 /// </summary>
-public sealed class IncidentCsvRow
+[CsvRecord]
+public sealed partial class IncidentCsvRow
 {
     public required string ImportId { get; init; }
     public required string Title { get; init; }

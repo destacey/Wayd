@@ -1,10 +1,12 @@
-﻿using Wayd.Planning.Application.PlanningIntervals.Dtos;
+﻿using CsvHelper;
+using Wayd.Planning.Application.PlanningIntervals.Dtos;
 using Wayd.Common.Extensions;
 using Wayd.Common.Domain.Enums.Planning;
 
 namespace Wayd.Web.Api.Models.Planning.PlanningIntervals;
 
-public class ImportPlanningIntervalObjectivesRequest
+[CsvRecord]
+public partial class ImportPlanningIntervalObjectivesRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

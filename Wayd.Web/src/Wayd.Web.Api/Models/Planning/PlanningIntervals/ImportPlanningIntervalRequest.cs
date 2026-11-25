@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.Common.Extensions;
 using Wayd.Planning.Application.PlanningIntervals.Dtos;
 
@@ -8,7 +9,8 @@ namespace Wayd.Web.Api.Models.Planning.PlanningIntervals;
 /// row as <c>TeamIds</c>, a semicolon-separated list of ids — the repo's multi-value column
 /// convention — so one row is one planning interval and there is no second file.
 /// </summary>
-public sealed class ImportPlanningIntervalRequest
+[CsvRecord]
+public sealed partial class ImportPlanningIntervalRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

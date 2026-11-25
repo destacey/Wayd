@@ -1,3 +1,6 @@
+using CsvHelper;
+using Wayd.Tools.DataGeneration.Cli.Csv;
+
 namespace Wayd.Tools.DataGeneration.Cli.Generation;
 
 // The generated Planning model, keyed by the generator's own handles — interval names, team codes, employee
@@ -9,7 +12,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 /// off. <see cref="TeamCodes"/> is its roster: the team of teams directly over the teams, if any, and each of
 /// the teams, semicolon-separated.
 /// </summary>
-public sealed class PlanningIntervalModel
+[CsvRecord]
+public sealed partial class PlanningIntervalModel
 {
     public required string Name { get; init; }
     public required string Description { get; init; }
@@ -25,7 +29,8 @@ public sealed class PlanningIntervalModel
 /// A generated objective of the team named by <see cref="TeamCode"/> on the interval named by
 /// <see cref="PlanningIntervalName"/>. A closed status carries <see cref="ClosedAt"/>; any other has none.
 /// </summary>
-public sealed class PlanningIntervalObjectiveModel
+[CsvRecord]
+public sealed partial class PlanningIntervalObjectiveModel
 {
     public required string PlanningIntervalName { get; init; }
     public required string TeamCode { get; init; }
@@ -36,23 +41,32 @@ public sealed class PlanningIntervalObjectiveModel
     public required DateOnly StartDate { get; init; }
     public required DateOnly TargetDate { get; init; }
     public required bool IsStretch { get; init; }
+    [CsvFormat(CsvFormats.Instant)]
     public DateTimeOffset? ClosedAt { get; init; }
     public required int Order { get; init; }
 
-    /// <summary>Unique per row: the order is unique within one team's objectives on one interval.</summary>
-    public string ImportId => $"{PlanningIntervalName}|{TeamCode}|{Order}";
+    /// <summary>
+    /// Unique per row: the order is unique within one team's objectives on one interval. Set from
+    /// <see cref="ImportIdFor"/>; stored so <c>planning-interval-objectives.csv</c> carries it.
+    /// </summary>
+    public required string ImportId { get; init; }
+
+    public static string ImportIdFor(string planningIntervalName, string teamCode, int order) =>
+        $"{planningIntervalName}|{teamCode}|{order}";
 }
 
 /// <summary>
 /// A generated risk raised by the team named by <see cref="TeamCode"/>. People are employee numbers. A
 /// closed risk carries <see cref="ClosedAt"/>, and only an open one is followed up.
 /// </summary>
-public sealed class RiskModel
+[CsvRecord]
+public sealed partial class RiskModel
 {
     public required string Handle { get; init; }
     public required string TeamCode { get; init; }
     public required string Summary { get; init; }
     public required string Description { get; init; }
+    [CsvFormat(CsvFormats.Instant)]
     public required DateTimeOffset ReportedAt { get; init; }
     public required string ReportedByEmployeeNumber { get; init; }
     public required string Status { get; init; }
@@ -62,5 +76,6 @@ public sealed class RiskModel
     public string? AssigneeEmployeeNumber { get; init; }
     public DateOnly? FollowUpDate { get; init; }
     public string? Response { get; init; }
+    [CsvFormat(CsvFormats.Instant)]
     public DateTimeOffset? ClosedAt { get; init; }
 }

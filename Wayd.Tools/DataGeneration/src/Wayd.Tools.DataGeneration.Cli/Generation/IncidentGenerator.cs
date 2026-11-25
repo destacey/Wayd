@@ -1,3 +1,5 @@
+using CsvHelper;
+using Wayd.Tools.DataGeneration.Cli.Csv;
 using static Wayd.Tools.DataGeneration.Cli.Generation.ProductManagementVocabulary;
 
 namespace Wayd.Tools.DataGeneration.Cli.Generation;
@@ -6,7 +8,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 /// A generated incident, named by the product, release and employee the catalog already created.
 /// Ids are substituted when the row is posted.
 /// </summary>
-public sealed class IncidentModel
+[CsvRecord]
+public sealed partial class IncidentModel
 {
     public required string ImportId { get; init; }
     public required string Title { get; init; }
@@ -23,8 +26,11 @@ public sealed class IncidentModel
     public required string CommanderEmployeeNumber { get; init; }
     public required string ProductName { get; init; }
     public required string ReleaseVersion { get; init; }
+    [CsvFormat(CsvFormats.Instant)]
     public required DateTimeOffset NoticedAt { get; init; }
+    [CsvFormat(CsvFormats.Instant)]
     public DateTimeOffset? StartedAt { get; init; }
+    [CsvFormat(CsvFormats.Instant)]
     public DateTimeOffset? RecoveredAt { get; init; }
 }
 

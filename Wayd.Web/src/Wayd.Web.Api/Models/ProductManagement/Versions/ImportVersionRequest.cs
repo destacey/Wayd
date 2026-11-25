@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.Common.Extensions;
 using Wayd.ProductManagement.Application.Versions.Dtos;
 
@@ -15,7 +16,8 @@ namespace Wayd.Web.Api.Models.ProductManagement.Versions;
 /// Both moments are instants and must carry their offset (see <c>OffsetTimestamp</c>): copy the
 /// CI/CD timestamps as-is.
 /// </summary>
-public sealed class ImportVersionRequest
+[CsvRecord]
+public sealed partial class ImportVersionRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

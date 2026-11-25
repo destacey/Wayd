@@ -1,3 +1,4 @@
+using CsvHelper;
 using Wayd.Common.Extensions;
 using Wayd.Common.Domain.Extensions.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
@@ -14,7 +15,8 @@ namespace Wayd.Web.Api.Models.Ppm.ProjectTasks;
 /// with neither it is a root task of its stage. Rows may be listed in any order — parents are applied
 /// before children.
 /// </summary>
-public sealed class ImportProjectTaskRequest
+[CsvRecord]
+public sealed partial class ImportProjectTaskRequest
 {
     /// <summary>
     /// The caller's own key for this row, unique within the file (case-insensitively). Results are

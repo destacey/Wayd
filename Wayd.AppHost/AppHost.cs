@@ -125,7 +125,6 @@ waydApi.WithCommand(
 // Null when the browser should not be opened at all — see ResolveDashboardLoginUrl.
 var dashboardLoginUrl = ResolveDashboardLoginUrl(builder);
 
-#pragma warning disable ASPIREJAVASCRIPT001
 builder.AddNextJsApp("wayd-client", "../Wayd.Web/src/wayd.web.reactclient", runScriptName: "dev")
     .WithReference(waydApi)
     .WaitFor(waydApi)
@@ -135,7 +134,6 @@ builder.AddNextJsApp("wayd-client", "../Wayd.Web/src/wayd.web.reactclient", runS
     .WithNpm(install: false)
     .WithHttpEndpoint(env: "PORT", port: 3000)
     .WithExternalHttpEndpoints();
-#pragma warning restore ASPIREJAVASCRIPT001
 
 var app = builder.Build();
 

@@ -173,10 +173,7 @@ public sealed class AzureDevOpsWorkItemSource(
         {
             var processResult = await SyncWorkProcess(ctx, syncId, workProcessExternalId, cancellationToken);
             if (processResult.IsFailure)
-            {
-                _workProcessSyncTracker.Forget(syncId, workProcessExternalId);
                 return processResult;
-            }
         }
 
         if (!_setUpProcessesSynced)
@@ -541,8 +538,9 @@ public sealed class AzureDevOpsWorkItemSource(
     /// other workspace's turn, and the periods would lose their type and status.
     /// </summary>
     /// <remarks>
-    /// Each process still syncs once per run. A failure is logged and forgotten, not charged to this workspace:
-    /// the process's own workspace syncs it again and fails there.
+    /// Each process still syncs once per run. A failure, by a failed result or an exception, is logged and
+    /// forgotten, not charged to this workspace, and the processes after it still sync: the process's own
+    /// workspace syncs it again and fails there.
     /// </remarks>
     private async Task SyncOtherSetUpProcesses(SyncContext ctx, Guid syncId, Guid preparedProcessExternalId, CancellationToken cancellationToken)
     {
@@ -553,14 +551,39 @@ public sealed class AzureDevOpsWorkItemSource(
 
             var result = await SyncWorkProcess(ctx, syncId, processExternalId, cancellationToken);
             if (result.IsFailure)
-            {
-                _workProcessSyncTracker.Forget(syncId, processExternalId);
                 _logger.LogWarning("Unable to keep work process {WorkProcessExternalId} in the status workflow engine ahead of its projects: {Error}", processExternalId, result.Error);
-            }
         }
     }
 
+    /// <summary>
+    /// Syncs a work process the run's tracker has just marked synced. A process whose sync fails, by a failed
+    /// result or an exception, is forgotten by the tracker so the next workspace on it syncs it again rather
+    /// than syncing items against a process the engine does not hold; an exception comes back as a failure.
+    /// </summary>
     private async Task<Result> SyncWorkProcess(SyncContext ctx, Guid syncId, Guid workProcessExternalId, CancellationToken cancellationToken)
+    {
+        Result result;
+        try
+        {
+            result = await ReadAndKeepWorkProcess(ctx, syncId, workProcessExternalId, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "Syncing work process {WorkProcessExternalId} threw.", workProcessExternalId);
+            result = Result.Failure(ErrorMessages.UnexpectedInRun);
+        }
+
+        if (result.IsFailure)
+            _workProcessSyncTracker.Forget(syncId, workProcessExternalId);
+
+        return result;
+    }
+
+    /// <summary>
+    /// Reads a work process from Azure DevOps, updates Wayd's copy of it, and keeps its workflows in the status
+    /// workflow engine, from which work items take their statuses.
+    /// </summary>
+    private async Task<Result> ReadAndKeepWorkProcess(SyncContext ctx, Guid syncId, Guid workProcessExternalId, CancellationToken cancellationToken)
     {
         Guard.Against.Default(workProcessExternalId, nameof(workProcessExternalId));
 

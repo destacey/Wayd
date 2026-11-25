@@ -20,6 +20,7 @@ using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Interfaces;
 using Wayd.Common.Application.Requests.WorkManagement.Queries;
+using Wayd.Common.Domain;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Integrations.Abstractions;
@@ -559,6 +560,41 @@ public class AzureDevOpsWorkItemSourceTests
     }
 
     [Fact]
+    public async Task PrepareWorkspaceForItemSync_WhenTheProcessThrows_SyncsItAgainForTheNextWorkspaceInTheRun()
+    {
+        // Arrange — two projects on one process; reading the process throws the first time
+        var descriptor = BuildDescriptor();
+        _sut.Bind(descriptor);
+        var processId = Guid.CreateVersion7();
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildConnectionDetails(descriptor.ConnectionId, [Process(externalId: processId)],
+                [Workspace(processId, name: "ProjectA"), Workspace(processId, name: "ProjectB")]));
+        StubWorkProcessSync();
+        var process = new Mock<IExternalWorkProcessConfiguration>();
+        process.Setup(p => p.Name).Returns("Agile");
+        process.Setup(p => p.WorkTypes).Returns([]);
+        var attempts = 0;
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetWorkProcess(It.IsAny<AzureDevOpsConnectionContext>(), processId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => ++attempts == 1 ? throw new InvalidOperationException("Azure DevOps dropped the connection.") : Result.Success(process.Object));
+        var plan = (await _sut.GetSyncPlan(TestContext.Current.CancellationToken)).Value;
+        var syncId = Guid.CreateVersion7();
+
+        // Act
+        var first = await _sut.PrepareWorkspaceForItemSync(plan[0], syncId, TestContext.Current.CancellationToken);
+        var second = await _sut.PrepareWorkspaceForItemSync(plan[1], syncId, TestContext.Current.CancellationToken);
+
+        // Assert
+        // A throw must not leave the process marked synced, or the second project's items sync against a
+        // process the engine does not hold.
+        first.IsFailure.Should().BeTrue();
+        first.Error.Should().Be(ErrorMessages.UnexpectedInRun);
+        second.IsSuccess.Should().BeTrue(second.IsFailure ? second.Error : null);
+        attempts.Should().Be(2);
+    }
+
+    [Fact]
     public async Task PrepareWorkspaceForItemSync_KeepsEverySetUpProjectsProcessInTheEngine_BeforeTheFirstWorkspacesItems()
     {
         // Arrange — Agile's project syncs first; Scrum's project comes later, and a paused project is on Basic.
@@ -629,6 +665,66 @@ public class AzureDevOpsWorkItemSourceTests
         first.IsSuccess.Should().BeTrue(first.IsFailure ? first.Error : null);
         second.IsSuccess.Should().BeTrue(second.IsFailure ? second.Error : null);
         scrumAttempts.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task PrepareWorkspaceForItemSync_WhenAnotherProjectsProcessThrowsAhead_PreparesThisWorkspace_SyncsTheRest_AndRetriesItLater()
+    {
+        // Arrange — Scrum throws when synced ahead of its project, then succeeds at its project's turn; Kanban
+        // comes after Scrum in the set-up processes
+        var descriptor = BuildDescriptor();
+        _sut.Bind(descriptor);
+        var (agile, scrum, kanban) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildConnectionDetails(descriptor.ConnectionId, [Process(externalId: agile), Process(externalId: scrum), Process(externalId: kanban)],
+                [Workspace(agile, name: "ProjectA"), Workspace(scrum, name: "ProjectB"), Workspace(kanban, name: "ProjectC")]));
+        StubWorkProcessSync();
+        var scrumProcess = new Mock<IExternalWorkProcessConfiguration>();
+        scrumProcess.Setup(p => p.Name).Returns("Scrum");
+        scrumProcess.Setup(p => p.WorkTypes).Returns([]);
+        var scrumAttempts = 0;
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetWorkProcess(It.IsAny<AzureDevOpsConnectionContext>(), scrum, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => ++scrumAttempts == 1 ? throw new InvalidOperationException("Azure DevOps dropped the connection.") : Result.Success(scrumProcess.Object));
+        var plan = (await _sut.GetSyncPlan(TestContext.Current.CancellationToken)).Value;
+        var syncId = Guid.CreateVersion7();
+
+        // Act
+        var first = await _sut.PrepareWorkspaceForItemSync(plan.Single(t => t.WorkspaceName == "ProjectA"), syncId, TestContext.Current.CancellationToken);
+        var second = await _sut.PrepareWorkspaceForItemSync(plan.Single(t => t.WorkspaceName == "ProjectB"), syncId, TestContext.Current.CancellationToken);
+
+        // Assert
+        first.IsSuccess.Should().BeTrue(first.IsFailure ? first.Error : null);
+        second.IsSuccess.Should().BeTrue(second.IsFailure ? second.Error : null);
+        scrumAttempts.Should().Be(2);
+        _mocker.GetMock<IAzureDevOpsService>().Verify(
+            s => s.GetWorkProcess(It.IsAny<AzureDevOpsConnectionContext>(), kanban, It.IsAny<CancellationToken>()), Times.Once,
+            "the processes after the one that threw still sync ahead of their projects");
+    }
+
+    [Fact]
+    public async Task PrepareWorkspaceForItemSync_WhenCancelledWhileSyncingAnotherProjectsProcess_StopsTheSync()
+    {
+        // Arrange
+        var descriptor = BuildDescriptor();
+        _sut.Bind(descriptor);
+        var (agile, scrum) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildConnectionDetails(descriptor.ConnectionId, [Process(externalId: agile), Process(externalId: scrum)],
+                [Workspace(agile, name: "ProjectA"), Workspace(scrum, name: "ProjectB")]));
+        StubWorkProcessSync();
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetWorkProcess(It.IsAny<AzureDevOpsConnectionContext>(), scrum, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+        var plan = (await _sut.GetSyncPlan(TestContext.Current.CancellationToken)).Value;
+
+        // Act
+        var act = () => _sut.PrepareWorkspaceForItemSync(plan.Single(t => t.WorkspaceName == "ProjectA"), Guid.CreateVersion7(), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
     }
 
     [Fact]

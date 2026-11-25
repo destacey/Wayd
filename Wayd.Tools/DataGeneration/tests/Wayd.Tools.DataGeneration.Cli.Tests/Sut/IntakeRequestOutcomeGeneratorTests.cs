@@ -97,16 +97,17 @@ public class IntakeRequestOutcomeGeneratorTests
     }
 
     [Fact]
-    public void Generate_RecordsEachOutcomeAfterItsRequestWasSubmittedAndNotInTheFuture_BySomeoneOnItsDesk()
+    public void Generate_RecordsEachOutcomeAfterItsRequestWasSubmittedAndBeforeTheAsOfDayBegan_BySomeoneOnItsDesk()
     {
         // Arrange
-        var endOfToday = new DateTimeOffset(_asOf.AddDays(1).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        // A run at 00:01 UTC on the as-of day imports these a minute after it began, so nothing may be later.
+        var startOfToday = new DateTimeOffset(_asOf.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
 
         // Act & Assert
         Outcomes.Should().AllSatisfy(o =>
         {
             var request = RequestOf(o);
-            o.AddedOn.Should().BeAfter(request.SubmittedAt).And.BeBefore(endOfToday);
+            o.AddedOn.Should().BeAfter(request.SubmittedAt).And.BeOnOrBefore(startOfToday);
             var desk = _default.Data.Desks.Single(d => d.Name == request.DeskName);
             (o.AddedByEmployeeNumber == request.AssigneeEmployeeNumber || desk.Members.Any(m => m.EmployeeNumber == o.AddedByEmployeeNumber))
                 .Should().BeTrue();

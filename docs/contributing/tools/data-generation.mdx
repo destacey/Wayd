@@ -619,7 +619,9 @@ description says so, and the teams that work on each product are linked to it.
   apps about 1.4×, mobile 2×, libraries and tools 3× or more). Every team works at its own tempo, and teams
   speed up across the history. A version released before today has a target date and cut and released
   moments (a quarter of them slipped a few days); one cut but not released is **Ready**; ones up to 90 days ahead are
-  **Planned**. Nothing ships in a weekend or the year-end change freeze.
+  **Planned**. Nothing ships in a weekend or the year-end change freeze. No version or package is cut or shipped,
+  and no deployment runs, on the as-of day itself, since each is stamped with a time that would still be ahead of
+  a run made early that day; a version or package due that day is generated as not yet reached.
 - **Deployments** — every shipped service or web-app version walks its line's environments, promoting the
   same build from dev to production, and production receives it on the day the version was released. A
   failure outside production is retried with a new build. In production a deployment fails or is rolled back
@@ -793,8 +795,9 @@ with the asks its departments have raised.
   one request only. Existing project scope maps one to three of the project's deliverables: a Fulfilled request's
   are all Accepted, so it reads as met, while an Accepted request's are whatever its open project has under way,
   so most are still waiting. Each is recorded by the request's assignee, or a member of its desk, just before a
-  Fulfilled request closed or some days after an Accepted one was taken on. Outcomes draw from a random stream of
-  their own (`demand-management.outcomes`), so they never shift the requests or the projects.
+  Fulfilled request closed or some days after an Accepted one was taken on, and never later than midnight UTC at
+  the start of the as-of day, since the import refuses an outcome recorded after it runs. Outcomes draw from a
+  random stream of their own (`demand-management.outcomes`), so they never shift the requests or the projects.
 
 Duplicates, work item outcomes, scores and discussion are not generated. A duplicate has to name a request
 already in Wayd, which the import cannot do within one file; work items are not generated; and scores and

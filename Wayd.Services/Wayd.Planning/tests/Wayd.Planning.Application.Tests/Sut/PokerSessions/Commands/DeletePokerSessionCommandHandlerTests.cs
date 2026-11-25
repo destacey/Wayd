@@ -45,6 +45,7 @@ public class DeletePokerSessionCommandHandlerTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(1);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(1);
     }
 
     [Fact]
@@ -68,6 +69,7 @@ public class DeletePokerSessionCommandHandlerTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(1);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(1);
     }
 
     [Fact]
@@ -83,6 +85,7 @@ public class DeletePokerSessionCommandHandlerTests : IDisposable
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not found");
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
     }
 
     [Fact]
@@ -101,6 +104,7 @@ public class DeletePokerSessionCommandHandlerTests : IDisposable
         result.Error.Should().Be(Wayd.Planning.Domain.Models.PlanningPoker.PokerSession.NotAFacilitatorError);
         _dbContext.PokerSessions.Should().ContainSingle();
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
     }
 
     public void Dispose()

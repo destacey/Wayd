@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -48,7 +49,12 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
 
         _container = await SqlServerTestContainer.Start();
 
-        var connectionString = _container.GetConnectionString();
+        // The container's connection string names no database, so it would migrate into master, whose options cannot
+        // be changed; a database of its own can be put in the mode production runs in.
+        var connectionString = new SqlConnectionStringBuilder(_container.GetConnectionString())
+        {
+            InitialCatalog = "WaydPlanningTests",
+        }.ConnectionString;
 
         // Drive OnConfiguring down the SqlServer + NodaTime path (DBProvider "mssql"), exactly as production.
         _databaseSettings = Options.Create(new DatabaseSettings
@@ -73,6 +79,11 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
 
         await using var context = CreateContext();
         await context.Database.MigrateAsync();
+
+        // Production reads under row versioning (Azure SQL Database has it on; startup turns it on in Development),
+        // and a new SQL Server database has it off. The poker lock tests order requests by which reads lock and which
+        // do not, so they must run in the mode the application runs in.
+        await context.Database.ExecuteSqlRawAsync("ALTER DATABASE CURRENT SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE;");
     }
 
     public async ValueTask DisposeAsync()

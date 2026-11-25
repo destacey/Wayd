@@ -44,6 +44,7 @@ public class RemovePokerRoundCommandHandlerTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         session.Rounds.Should().BeEmpty();
         _dbContext.SaveChangesCallCount.Should().Be(1);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(1);
         _mockNotifier.Verify(n => n.NotifyRoundRemoved(session.Id, roundId), Times.Once);
     }
 
@@ -60,6 +61,7 @@ public class RemovePokerRoundCommandHandlerTests : IDisposable
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not found");
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
     }
 
     [Fact]
@@ -78,6 +80,7 @@ public class RemovePokerRoundCommandHandlerTests : IDisposable
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not found");
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
     }
 
     [Fact]
@@ -95,6 +98,7 @@ public class RemovePokerRoundCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
     }
 
     public void Dispose()

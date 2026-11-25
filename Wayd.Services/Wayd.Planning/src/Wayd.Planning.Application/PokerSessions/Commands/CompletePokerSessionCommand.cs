@@ -21,6 +21,11 @@ public sealed class CompletePokerSessionCommandHandler(IPlanningDbContext planni
 
     public async Task<Result> Handle(CompletePokerSessionCommand request, CancellationToken cancellationToken)
     {
+        // Every round the session has when this starts, so a vote saved into one this reads as empty is not deleted
+        // with it, and none lands in one after the session is completed: it commits first and keeps its round, or
+        // waits and is refused. A round added after the lock is taken is not held by it.
+        await using var unitOfWork = await _planningDbContext.BeginExclusivePokerRoundChange(request.Id, null, cancellationToken);
+
         // Completing deletes empty rounds, and a round reads as empty unless its votes are loaded.
         var session = await _planningDbContext.PokerSessions
             .IncludeAccess()
@@ -38,6 +43,7 @@ public sealed class CompletePokerSessionCommandHandler(IPlanningDbContext planni
             return result;
 
         await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await unitOfWork.CommitAsync(cancellationToken);
         await _notifier.NotifySessionCompleted(session.Id);
 
         return Result.Success();

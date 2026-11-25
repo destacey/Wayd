@@ -3,7 +3,9 @@ using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Planning.Application.PokerSessions;
 using Wayd.Planning.Application.PokerSessions.Commands;
+using Wayd.Planning.Application.PokerSessions.Dtos;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
+using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Planning.IntegrationTests.Infrastructure;
 
@@ -99,5 +101,129 @@ public sealed class SubmitVoteCommandHandlerTests
         saved.Members.Should().ContainSingle().Which.IsVoting.Should().BeFalse();
         saved.Rounds.Single().Votes.Should().BeEmpty();
         notifier.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task Handle_WhenARevealArrivesAsItSaves_CommitsAndTheRevealShowsTheVote()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var seed = await PokerSeed.ActiveSessionWithVotingMember(_fixture, ct);
+        var revealNotifier = new Mock<IPokerSessionNotifier>();
+        var reveal = new WaitingRequest<CSharpFunctionalExtensions.Result>(_fixture, (other, token) => PokerRequests.Reveal(other, seed, token, revealNotifier.Object));
+
+        // Act
+        CSharpFunctionalExtensions.Result result;
+        await using (var context = _fixture.CreateContext(reveal))
+        {
+            result = await PokerRequests.Vote(context, seed, "M", ct);
+        }
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        var revealed = await reveal.Completion;
+        revealed.IsSuccess.Should().BeTrue(revealed.IsFailure ? revealed.Error : null);
+        await using var verify = _fixture.CreateContext();
+        var round = (await PokerSeed.Load(verify, seed.SessionId, ct)).Rounds.Single();
+        round.Status.Should().Be(PokerRoundStatus.Revealed);
+        round.Votes.Should().ContainSingle().Which.Value.Should().Be("M");
+        revealNotifier.Verify(n => n.NotifyVotesRevealed(seed.SessionId, seed.RoundId, It.Is<IEnumerable<PokerVoteDto>>(v => v.Single().Value == "M")), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenAResetArrivesAsItSaves_CommitsAndTheResetClearsTheVote()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var seed = await PokerSeed.ActiveSessionWithVotingMember(_fixture, ct);
+        var reset = new WaitingRequest<CSharpFunctionalExtensions.Result>(_fixture, (other, token) => PokerRequests.Reset(other, seed, token));
+
+        // Act
+        CSharpFunctionalExtensions.Result result;
+        await using (var context = _fixture.CreateContext(reset))
+        {
+            result = await PokerRequests.Vote(context, seed, "M", ct);
+        }
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        var wasReset = await reset.Completion;
+        wasReset.IsSuccess.Should().BeTrue(wasReset.IsFailure ? wasReset.Error : null);
+        await using var verify = _fixture.CreateContext();
+        var round = (await PokerSeed.Load(verify, seed.SessionId, ct)).Rounds.Single();
+        round.Status.Should().Be(PokerRoundStatus.Voting);
+        round.Votes.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_WhenARemovalArrivesAsItSaves_CommitsAndTheVoteIsRemovedWithTheRound()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var seed = await PokerSeed.ActiveSessionWithVotingMember(_fixture, ct);
+        var removal = new WaitingRequest<CSharpFunctionalExtensions.Result>(_fixture, (other, token) => PokerRequests.Remove(other, seed, token));
+
+        // Act
+        CSharpFunctionalExtensions.Result result;
+        await using (var context = _fixture.CreateContext(removal))
+        {
+            result = await PokerRequests.Vote(context, seed, "M", ct);
+        }
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        var removed = await removal.Completion;
+        removed.IsSuccess.Should().BeTrue(removed.IsFailure ? removed.Error : null);
+        await using var verify = _fixture.CreateContext();
+        (await PokerSeed.Load(verify, seed.SessionId, ct)).Rounds.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_WhenCompletionArrivesAsItSavesIntoAnEmptyRound_CommitsAndTheRoundIsKept()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var seed = await PokerSeed.ActiveSessionWithEmptyRound(_fixture, ct);
+        var completion = new WaitingRequest<CSharpFunctionalExtensions.Result>(_fixture, (other, token) => PokerRequests.Complete(other, seed, token));
+
+        // Act
+        CSharpFunctionalExtensions.Result result;
+        await using (var context = _fixture.CreateContext(completion))
+        {
+            result = await PokerRequests.Vote(context, seed, "M", ct);
+        }
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        var completed = await completion.Completion;
+        completed.IsSuccess.Should().BeTrue(completed.IsFailure ? completed.Error : null);
+        await using var verify = _fixture.CreateContext();
+        var saved = await PokerSeed.Load(verify, seed.SessionId, ct);
+        saved.Status.Should().Be(PokerSessionStatus.Completed);
+        saved.Rounds.Should().ContainSingle(r => r.Id == seed.RoundId)
+            .Which.Votes.Should().ContainSingle().Which.Value.Should().Be("M");
+    }
+
+    [Fact]
+    public async Task Handle_WhenADeletionArrivesAsItSaves_CommitsAndTheVoteIsDeletedWithTheSession()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var seed = await PokerSeed.ActiveSessionWithVotingMember(_fixture, ct);
+        var deletion = new WaitingRequest<CSharpFunctionalExtensions.Result>(_fixture, (other, token) => PokerRequests.Delete(other, seed, token));
+
+        // Act
+        CSharpFunctionalExtensions.Result result;
+        await using (var context = _fixture.CreateContext(deletion))
+        {
+            result = await PokerRequests.Vote(context, seed, "M", ct);
+        }
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        var deleted = await deletion.Completion;
+        deleted.IsSuccess.Should().BeTrue(deleted.IsFailure ? deleted.Error : null);
+        await using var verify = _fixture.CreateContext();
+        (await verify.PokerSessions.AnyAsync(s => s.Id == seed.SessionId, ct)).Should().BeFalse();
     }
 }

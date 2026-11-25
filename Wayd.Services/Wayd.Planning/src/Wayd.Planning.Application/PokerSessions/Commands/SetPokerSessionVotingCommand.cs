@@ -37,6 +37,13 @@ public sealed class SetPokerSessionVotingCommandHandler(IPlanningDbContext plann
 
     private async Task<Result<(PokerSessionActor Actor, PokerSessionMembershipChange Change)>> Set(SetPokerSessionVotingCommand request, CancellationToken cancellationToken)
     {
+        // Turning voting off withdraws votes from every unrevealed round, so a reveal of any of them waits for this
+        // to commit, or this waits for the reveal and leaves that round's vote in place. Turning it on touches no
+        // round, so it takes no lock and waits on nothing.
+        await using var unitOfWork = request.IsVoting
+            ? null
+            : await _planningDbContext.BeginPokerRoundVoting(request.Id, null, cancellationToken);
+
         var session = await _planningDbContext.PokerSessions
             .IncludeAccess()
             .Include(s => s.Members)
@@ -54,6 +61,8 @@ public sealed class SetPokerSessionVotingCommandHandler(IPlanningDbContext plann
             return Result.Failure<(PokerSessionActor, PokerSessionMembershipChange)>(result.Error);
 
         await _planningDbContext.SaveChangesAsync(cancellationToken);
+        if (unitOfWork is not null)
+            await unitOfWork.CommitAsync(cancellationToken);
 
         return (actor, result.Value);
     }

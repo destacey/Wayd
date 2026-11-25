@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Identity;
@@ -108,6 +109,37 @@ public class FakePlanningDbContext : IPlanningDbContext, IDisposable
                     _estimationScales.Count + _pokerSessions.Count +
                     _employees.Count + _externalEmployeeBlacklistItems.Count + _externalIdentityMappings.Count + _personalAccessTokens.Count;
         return Task.FromResult(count);
+    }
+
+    /// <summary>
+    /// The number of units of work committed. The fake takes no locks and opens no transaction, so a save inside a
+    /// unit of work stands whether or not it is committed.
+    /// </summary>
+    public int UnitOfWorkCommitCount { get; private set; }
+
+    /// <summary>
+    /// Begins a unit of work that counts its commit and locks nothing; the ordering the lock gives is covered by the
+    /// SQL Server integration tests.
+    /// </summary>
+    public Task<IUnitOfWork> BeginPokerRoundVoting(Guid sessionId, Guid? roundId, CancellationToken cancellationToken) =>
+        Task.FromResult<IUnitOfWork>(new FakeUnitOfWork(this));
+
+    /// <summary>
+    /// Begins a unit of work that counts its commit and locks nothing; the ordering the lock gives is covered by the
+    /// SQL Server integration tests.
+    /// </summary>
+    public Task<IUnitOfWork> BeginExclusivePokerRoundChange(Guid sessionId, Guid? roundId, CancellationToken cancellationToken) =>
+        Task.FromResult<IUnitOfWork>(new FakeUnitOfWork(this));
+
+    private sealed class FakeUnitOfWork(FakePlanningDbContext context) : IUnitOfWork
+    {
+        public Task CommitAsync(CancellationToken cancellationToken)
+        {
+            context.UnitOfWorkCommitCount++;
+            return Task.CompletedTask;
+        }
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
     public EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class

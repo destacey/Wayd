@@ -21,6 +21,10 @@ public sealed class RemovePokerRoundCommandHandler(IPlanningDbContext planningDb
 
     public async Task<Result> Handle(RemovePokerRoundCommand request, CancellationToken cancellationToken)
     {
+        // A vote saving into the round would otherwise insert against a round this deletes, and fail on its foreign
+        // key; with the lock it commits first and is deleted with the round, or waits and finds the round gone.
+        await using var unitOfWork = await _planningDbContext.BeginExclusivePokerRoundChange(request.SessionId, request.RoundId, cancellationToken);
+
         var session = await _planningDbContext.PokerSessions
             .IncludeAccess()
             .Include(s => s.Rounds)
@@ -36,6 +40,7 @@ public sealed class RemovePokerRoundCommandHandler(IPlanningDbContext planningDb
             return result;
 
         await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await unitOfWork.CommitAsync(cancellationToken);
         await _notifier.NotifyRoundRemoved(session.Id, request.RoundId);
 
         return Result.Success();

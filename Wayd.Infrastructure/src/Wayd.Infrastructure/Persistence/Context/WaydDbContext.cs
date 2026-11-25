@@ -128,6 +128,57 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<PokerSession> PokerSessions => Set<PokerSession>();
     public DbSet<StoryMap> StoryMaps => Set<StoryMap>();
 
+    // Every lock on poker rounds is taken in one order — the round's entry in IX_PokerRounds_PokerSessionId, then the
+    // round's own row — because deleting a round writes both: a delete holding the row and wanting the index entry,
+    // against a lock holding the entry and wanting the row, deadlock. (A delete writes the round's SubjectId index
+    // entry too, but nothing here locks that index.) Status, which the index does not cover, makes each read go on
+    // from the entry to the row and lock it too.
+    //
+    // The order holds only because the loads that follow these locks take none, which READ_COMMITTED_SNAPSHOT gives.
+    // Without it a vote's load, seeking the index entry an exclusive change has locked, waits while holding the round
+    // row that change waits for, and the two deadlock.
+
+    async Task<IUnitOfWork> IPlanningDbContext.BeginPokerRoundVoting(Guid sessionId, Guid? roundId, CancellationToken cancellationToken)
+    {
+        var unitOfWork = await BeginUnitOfWork(cancellationToken);
+
+        // One round is locked by its row alone, which every exclusive change also locks; it takes no index entry, so
+        // it cannot hold one that a delete waits for.
+        var rounds = roundId is { } id
+            ? Database.SqlQuery<string>($@"
+                SELECT [Status] AS [Value]
+                FROM [Planning].[PokerRounds] WITH (REPEATABLEREAD, ROWLOCK)
+                WHERE [Id] = {id} AND [PokerSessionId] = {sessionId}")
+            : Database.SqlQuery<string>($@"
+                SELECT [Status] AS [Value]
+                FROM [Planning].[PokerRounds] WITH (REPEATABLEREAD, ROWLOCK, FORCESEEK, INDEX([IX_PokerRounds_PokerSessionId]))
+                WHERE [PokerSessionId] = {sessionId}");
+        await rounds.ToListAsync(cancellationToken);
+
+        return unitOfWork;
+    }
+
+    async Task<IUnitOfWork> IPlanningDbContext.BeginExclusivePokerRoundChange(Guid sessionId, Guid? roundId, CancellationToken cancellationToken)
+    {
+        var unitOfWork = await BeginUnitOfWork(cancellationToken);
+
+        // Exclusive rather than an update lock: an update lock admits a vote's shared lock, and the vote could then
+        // commit after this load and be left out of what a reveal shows. The index hint holds one round to the same
+        // order as the whole session.
+        var rounds = roundId is { } id
+            ? Database.SqlQuery<string>($@"
+                SELECT [Status] AS [Value]
+                FROM [Planning].[PokerRounds] WITH (XLOCK, ROWLOCK, FORCESEEK, INDEX([IX_PokerRounds_PokerSessionId]))
+                WHERE [PokerSessionId] = {sessionId} AND [Id] = {id}")
+            : Database.SqlQuery<string>($@"
+                SELECT [Status] AS [Value]
+                FROM [Planning].[PokerRounds] WITH (XLOCK, ROWLOCK, FORCESEEK, INDEX([IX_PokerRounds_PokerSessionId]))
+                WHERE [PokerSessionId] = {sessionId}");
+        await rounds.ToListAsync(cancellationToken);
+
+        return unitOfWork;
+    }
+
     #endregion IPlanning
 
     #region Imports

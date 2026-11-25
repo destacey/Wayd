@@ -21,6 +21,10 @@ public sealed class ResetPokerRoundCommandHandler(IPlanningDbContext planningDbC
 
     public async Task<Result> Handle(ResetPokerRoundCommand request, CancellationToken cancellationToken)
     {
+        // Taken before the load, so the reset clears every vote that committed first and none can land on the
+        // round it is clearing.
+        await using var unitOfWork = await _planningDbContext.BeginExclusivePokerRoundChange(request.SessionId, request.RoundId, cancellationToken);
+
         var session = await _planningDbContext.PokerSessions
             .IncludeAccess()
             .Include(s => s.Rounds)
@@ -37,6 +41,7 @@ public sealed class ResetPokerRoundCommandHandler(IPlanningDbContext planningDbC
             return Result.Failure(result.Error);
 
         await _planningDbContext.SaveChangesAsync(cancellationToken);
+        await unitOfWork.CommitAsync(cancellationToken);
         await _notifier.NotifyRoundReset(session.Id, request.RoundId);
 
         return Result.Success();

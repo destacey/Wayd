@@ -50,6 +50,7 @@ public class ResetPokerRoundCommandHandlerTests : IDisposable
         round.Status.Should().Be(PokerRoundStatus.Voting);
         round.Votes.Should().BeEmpty();
         _dbContext.SaveChangesCallCount.Should().Be(1);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(1);
         _mockNotifier.Verify(n => n.NotifyRoundReset(session.Id, round.Id), Times.Once);
     }
 
@@ -75,6 +76,7 @@ public class ResetPokerRoundCommandHandlerTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         round.Status.Should().Be(PokerRoundStatus.Voting);
         _dbContext.SaveChangesCallCount.Should().Be(1);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(1);
     }
 
     [Fact]
@@ -90,6 +92,7 @@ public class ResetPokerRoundCommandHandlerTests : IDisposable
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not found");
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
     }
 
     [Fact]
@@ -109,6 +112,7 @@ public class ResetPokerRoundCommandHandlerTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         _dbContext.SaveChangesCallCount.Should().Be(0);
+        _dbContext.UnitOfWorkCommitCount.Should().Be(0);
     }
 
     public void Dispose()

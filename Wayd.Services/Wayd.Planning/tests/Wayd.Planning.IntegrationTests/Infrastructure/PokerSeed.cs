@@ -12,10 +12,10 @@ using Wayd.Planning.Domain.Models.PlanningPoker;
 namespace Wayd.Planning.IntegrationTests.Infrastructure;
 
 /// <summary>
-/// An Active, Public poker session with one round in voting, and a voter who is not yet a member: an employee
-/// linked to a user account, since members point at employees and votes at users.
+/// An Active, Public poker session with one round in voting, its facilitator, and a voter who is not yet a member: an
+/// employee linked to a user account, since members point at employees and votes at users.
 /// </summary>
-internal sealed record PokerSeed(Guid SessionId, Guid RoundId, PokerSessionActor Voter)
+internal sealed record PokerSeed(Guid SessionId, Guid RoundId, PokerSessionActor Voter, PokerSessionActor Facilitator)
 {
     /// <summary>Seeds the scale, the facilitator, the voter and the session through their own domains.</summary>
     public static async Task<PokerSeed> ActiveSession(SqlServerDbContextFixture fixture, CancellationToken ct)
@@ -54,7 +54,7 @@ internal sealed record PokerSeed(Guid SessionId, Guid RoundId, PokerSessionActor
         context.PokerSessions.Add(session);
         await context.SaveChangesAsync(ct);
 
-        return new PokerSeed(session.Id, round.Id, new PokerSessionActor(voter.Id, user.Id, false, new HashSet<Guid>()));
+        return new PokerSeed(session.Id, round.Id, new PokerSessionActor(voter.Id, user.Id, false, new HashSet<Guid>()), facilitatorActor);
     }
 
     /// <summary>Seeds <see cref="ActiveSession"/> with the voter already joined as a voting member.</summary>
@@ -66,6 +66,44 @@ internal sealed record PokerSeed(Guid SessionId, Guid RoundId, PokerSessionActor
         session.Join(true, seed.Voter, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
         await context.SaveChangesAsync(ct);
         return seed;
+    }
+
+    /// <summary>Seeds <see cref="ActiveSessionWithVotingMember"/> with the voter's vote of "S" in the round.</summary>
+    public static async Task<PokerSeed> ActiveSessionWithVote(SqlServerDbContextFixture fixture, CancellationToken ct)
+    {
+        var seed = await ActiveSessionWithVotingMember(fixture, ct);
+        await using var context = fixture.CreateContext();
+        var session = await Load(context, seed.SessionId, ct);
+        var version = await context.EstimationScaleVersions.AsNoTracking()
+            .SingleAsync(v => v.Id == session.EstimationScaleVersionId, ct);
+        session.SubmitVote(seed.RoundId, "S", version, seed.Voter, SqlServerDbContextFixture.FixedNow).IsSuccess.Should().BeTrue();
+        await context.SaveChangesAsync(ct);
+        return seed;
+    }
+
+    /// <summary>Seeds <see cref="ActiveSessionWithVote"/> with the round revealed.</summary>
+    public static async Task<PokerSeed> RevealedRoundWithVote(SqlServerDbContextFixture fixture, CancellationToken ct)
+    {
+        var seed = await ActiveSessionWithVote(fixture, ct);
+        await using var context = fixture.CreateContext();
+        var session = await Load(context, seed.SessionId, ct);
+        session.RevealRound(seed.RoundId, seed.Facilitator).IsSuccess.Should().BeTrue();
+        await context.SaveChangesAsync(ct);
+        return seed;
+    }
+
+    /// <summary>
+    /// Seeds <see cref="ActiveSessionWithVotingMember"/> with a second round holding nothing, which completing the
+    /// session deletes, and points the seed at it.
+    /// </summary>
+    public static async Task<PokerSeed> ActiveSessionWithEmptyRound(SqlServerDbContextFixture fixture, CancellationToken ct)
+    {
+        var seed = await ActiveSessionWithVotingMember(fixture, ct);
+        await using var context = fixture.CreateContext();
+        var session = await Load(context, seed.SessionId, ct);
+        var round = session.AddRound(null, null, seed.Facilitator).Value;
+        await context.SaveChangesAsync(ct);
+        return seed with { RoundId = round.Id };
     }
 
     /// <summary>Loads the session as the handlers do, tracked, with its members and votes.</summary>

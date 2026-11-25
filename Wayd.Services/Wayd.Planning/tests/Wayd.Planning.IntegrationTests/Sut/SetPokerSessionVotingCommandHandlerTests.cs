@@ -4,6 +4,7 @@ using Wayd.Planning.Application.PokerSessions;
 using Wayd.Planning.Application.PokerSessions.Commands;
 using Wayd.Planning.Application.PokerSessions.Dtos;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
+using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Planning.IntegrationTests.Infrastructure;
 
@@ -58,5 +59,34 @@ public sealed class SetPokerSessionVotingCommandHandlerTests
         saved.Members.Should().ContainSingle().Which.IsVoting.Should().BeFalse();
         saved.Rounds.Single().Votes.Should().BeEmpty();
         notifier.Verify(n => n.NotifyVoteWithdrawn(seed.SessionId, seed.RoundId, seed.Voter.UserId), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_TurningVotingOffWhenARevealArrivesAsItSaves_WithdrawsTheVoteBeforeTheReveal()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var seed = await PokerSeed.ActiveSessionWithVote(_fixture, ct);
+        var revealNotifier = new Mock<IPokerSessionNotifier>();
+        var reveal = new WaitingRequest<CSharpFunctionalExtensions.Result>(_fixture, (other, token) => PokerRequests.Reveal(other, seed, token, revealNotifier.Object));
+        var notifier = new Mock<IPokerSessionNotifier>();
+
+        // Act
+        CSharpFunctionalExtensions.Result<PokerSessionMemberDto> result;
+        await using (var context = _fixture.CreateContext(reveal))
+        {
+            result = await PokerRequests.StopVoting(context, seed, ct, notifier.Object);
+        }
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        var revealed = await reveal.Completion;
+        revealed.IsSuccess.Should().BeTrue(revealed.IsFailure ? revealed.Error : null);
+        await using var verify = _fixture.CreateContext();
+        var round = (await PokerSeed.Load(verify, seed.SessionId, ct)).Rounds.Single();
+        round.Status.Should().Be(PokerRoundStatus.Revealed);
+        round.Votes.Should().BeEmpty();
+        notifier.Verify(n => n.NotifyVoteWithdrawn(seed.SessionId, seed.RoundId, seed.Voter.UserId), Times.Once);
+        revealNotifier.Verify(n => n.NotifyVotesRevealed(seed.SessionId, seed.RoundId, It.Is<IEnumerable<PokerVoteDto>>(v => !v.Any())), Times.Once);
     }
 }

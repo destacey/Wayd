@@ -99,6 +99,25 @@ public class DiscussionsController(IDispatcher dispatcher) : ControllerBase
             : ErrorResult(result.Error);
     }
 
+    [HttpGet("messages/{messageId:guid}")]
+    [EndpointSummary("Get one message in a record's conversation.")]
+    [EndpointDescription(
+        $"{ChannelTypeDocs} Returns the message `messageId`, a top-level message or a reply, with its author, mentions, thread counts and whether you may edit or delete it. A reply's `parentMessageId` is the top-level message its thread hangs from; read that the same way. A notifications entry read with `reason` `Mentioned` or `Thread` carries the message's id as its `eventId`; another `MessagePosted` notification, such as an incident's timeline note, does not. Returns 404 when the record or message does not exist or you cannot read it.")]
+    [McpTool("Discussions_GetMessage", "Read one message in a conversation")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<DiscussionMessageDto>> GetMessage(string channelType, Guid ownerId, Guid messageId, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new GetDiscussionMessageQuery(channelType, ownerId, messageId), cancellationToken);
+
+        if (result.IsFailure)
+            return BadRequest(result.ToBadRequestObject(HttpContext));
+
+        return result.Value is not null ? Ok(result.Value) : NotFound();
+    }
+
     [HttpGet("messages/{messageId:guid}/replies")]
     [EndpointSummary("Get the replies in a thread.")]
     [EndpointDescription(

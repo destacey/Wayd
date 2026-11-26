@@ -2,6 +2,7 @@ using Wayd.Common.Application.Following;
 using Wayd.Common.Application.Notifications.Dtos;
 using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.Records;
+using Wayd.Common.Domain.Notifications;
 
 namespace Wayd.Common.Application.Notifications.Queries;
 
@@ -15,7 +16,23 @@ namespace Wayd.Common.Application.Notifications.Queries;
 /// needs to know whether it is "99+". Not <see cref="IRequireLinkedEmployee"/>: a caller with no employee has
 /// nothing unread.
 /// </remarks>
-public sealed record GetMyUnreadNotificationCountQuery : IQuery<UnreadNotificationCountDto>;
+/// <param name="Reasons">
+/// Counts only records with an unread notification told for at least one of these reasons; every reason when
+/// empty or null.
+/// </param>
+public sealed record GetMyUnreadNotificationCountQuery(IReadOnlyCollection<NotificationReason>? Reasons = null)
+    : IQuery<UnreadNotificationCountDto>;
+
+/// <summary>Refuses an undefined reason.</summary>
+public sealed class GetMyUnreadNotificationCountQueryValidator : CustomValidator<GetMyUnreadNotificationCountQuery>
+{
+    public GetMyUnreadNotificationCountQueryValidator()
+    {
+        RuleForEach(q => q.Reasons)
+            .Must(NotificationReasons.IsValid)
+            .WithMessage("'Reasons' must hold only defined notification reasons.");
+    }
+}
 
 /// <summary>Counts the caller's unread entries up to the cap.</summary>
 public sealed class GetMyUnreadNotificationCountQueryHandler(
@@ -39,7 +56,8 @@ public sealed class GetMyUnreadNotificationCountQueryHandler(
         }
 
         var owners = FollowReadRules.Select(_readRules, null).Value;
-        var rows = await NotificationRows.Build(_notificationsDbContext.Notifications, employeeId.Value, owners, cancellationToken);
+        var notifications = _notificationsDbContext.Notifications.WithAnyReason(NotificationReasons.Combine(request.Reasons));
+        var rows = await NotificationRows.Build(notifications, employeeId.Value, owners, cancellationToken);
         if (rows is null)
         {
             return none;

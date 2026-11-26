@@ -72,6 +72,7 @@ public sealed class GetMyNotificationsQueryHandlerTests
     [InlineData(NotificationReason.Mentioned)]
     [InlineData(NotificationReason.Desk)]
     [InlineData(NotificationReason.Role)]
+    [InlineData(NotificationReason.Thread)]
     public async Task Handle_ShouldKeepEveryReason_WhenCollapsingARecordsNotifications(NotificationReason reason)
     {
         // Arrange
@@ -150,6 +151,69 @@ public sealed class GetMyNotificationsQueryHandlerTests
 
         // Assert
         result.Items.Should().ContainSingle().Which.Record.Key.Should().Be("G-2");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldKeepOnlyNotificationsToldForAGivenReason_CountingAndLeadingWithThemAlone()
+    {
+        // Arrange — a mention on G-1 followed by a later status change; G-2 has only a status change.
+        var sprocket = _gadgets.Add("G-1", "Sprocket");
+        var lever = _gadgets.Add("G-2", "Lever");
+        var mention = Seed(GadgetType, sprocket.Id, hours: 1, NotificationEvent.MessagePosted, NotificationReason.Mentioned | NotificationReason.Following);
+        Seed(GadgetType, sprocket.Id, hours: 2, NotificationEvent.StatusChanged, NotificationReason.Following);
+        Seed(GadgetType, lever.Id, hours: 3, NotificationEvent.StatusChanged, NotificationReason.Following);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new GetMyNotificationsQuery(new CursorRequest(), Reasons: [NotificationReason.Mentioned, NotificationReason.Thread]),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        var entry = result.Items.Should().ContainSingle().Subject;
+        entry.Record.Key.Should().Be("G-1");
+        entry.Event.Should().Be(NotificationEvent.MessagePosted);
+        entry.LatestNotificationId.Should().Be(mention.Id);
+        entry.OccurredOn.Should().Be(Start.Plus(Duration.FromHours(1)));
+        entry.Count.Should().Be(1);
+        entry.UnreadCount.Should().Be(1);
+        entry.Reasons.Should().BeEquivalentTo([NotificationReason.Following, NotificationReason.Mentioned]);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldCombineTheReasonFilterWithUnreadOnly()
+    {
+        // Arrange — G-1's mention is read, and its unread change was not a mention, so it drops out.
+        var sprocket = _gadgets.Add("G-1", "Sprocket");
+        var lever = _gadgets.Add("G-2", "Lever");
+        Seed(GadgetType, sprocket.Id, hours: 1, NotificationEvent.MessagePosted, NotificationReason.Mentioned, read: true);
+        Seed(GadgetType, sprocket.Id, hours: 2, NotificationEvent.StatusChanged, NotificationReason.Following);
+        Seed(GadgetType, lever.Id, hours: 3, NotificationEvent.MessagePosted, NotificationReason.Thread);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new GetMyNotificationsQuery(new CursorRequest(), UnreadOnly: true, Reasons: [NotificationReason.Mentioned, NotificationReason.Thread]),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Items.Should().ContainSingle().Which.Record.Key.Should().Be("G-2");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldPageTheReasonFilteredListByCursor()
+    {
+        // Arrange — three mentioned records, each with a newer change that is not a mention.
+        for (var i = 1; i <= 3; i++)
+        {
+            var record = _gadgets.Add($"G-{i}", $"Gadget {i}");
+            Seed(GadgetType, record.Id, hours: i, NotificationEvent.MessagePosted, NotificationReason.Mentioned);
+            Seed(GadgetType, record.Id, hours: 10 - i, NotificationEvent.StatusChanged, NotificationReason.Following);
+        }
+
+        // Act
+        var keys = await WalkByCursor(new GetMyNotificationsQuery(new CursorRequest(PageSize: 1), Reasons: [NotificationReason.Mentioned]));
+
+        // Assert — ordered by the newest mention, not by the newer changes the filter leaves out.
+        keys.Should().Equal("G-3", "G-2", "G-1");
     }
 
     [Fact]

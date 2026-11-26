@@ -69,6 +69,29 @@ public sealed class GetMyUnreadNotificationCountQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldCountOnlyRecordsWithAnUnreadNotificationToldForAGivenReason()
+    {
+        // Arrange — G-1 has an unread mention; G-2's mention is read and its unread change is not one; G-3 has
+        // an unread reply in a thread.
+        var mentioned = _gadgets.Add("G-1", "Mentioned");
+        var readMention = _gadgets.Add("G-2", "Read mention");
+        var thread = _gadgets.Add("G-3", "Thread");
+        Seed(mentioned.Id, reasons: NotificationReason.Mentioned | NotificationReason.Following);
+        Seed(readMention.Id, read: true, reasons: NotificationReason.Mentioned);
+        Seed(readMention.Id, reasons: NotificationReason.Following);
+        Seed(thread.Id, reasons: NotificationReason.Thread);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new GetMyUnreadNotificationCountQuery([NotificationReason.Mentioned, NotificationReason.Thread]),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Count.Should().Be(2);
+        result.IsCapped.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Handle_ShouldCapTheCount()
     {
         // Arrange
@@ -117,12 +140,17 @@ public sealed class GetMyUnreadNotificationCountQueryHandlerTests
         result.IsCapped.Should().BeFalse();
     }
 
-    private void Seed(Guid ownerId, bool read = false, NotificationEvent @event = NotificationEvent.StatusChanged)
+    private void Seed(
+        Guid ownerId,
+        bool read = false,
+        NotificationEvent @event = NotificationEvent.StatusChanged,
+        NotificationReason reasons = NotificationReason.Following)
     {
         _dbContext.AddNotification(new NotificationFaker()
             .WithRecipientEmployeeId(_employeeId)
             .WithOwner(GadgetType, ownerId)
             .WithEvent(@event)
+            .WithReasons(reasons)
             .WithOccurredOn(Start)
             .WithReadOn(read ? Start : null)
             .Generate());

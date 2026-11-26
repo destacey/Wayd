@@ -3,6 +3,7 @@ using NodaTime;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Notifications;
 using Wayd.Common.Application.Notifications.Queries;
+using Wayd.Common.Domain.Notifications;
 
 namespace Wayd.Common.Application.Tests.Sut.Notifications.Queries;
 
@@ -57,6 +58,29 @@ public sealed class GetMyNotificationsQueryValidatorTests
         // Assert
         result.IsValid.Should().BeFalse();
         result.Errors.Should().ContainSingle().Which.PropertyName.Should().Be(nameof(CursorRequest.PageSize));
+    }
+
+    [Fact]
+    public void Validate_ShouldAcceptDefinedReasons()
+    {
+        // Act
+        var result = _validator.Validate(new GetMyNotificationsQuery(new CursorRequest(), Reasons: [NotificationReason.Mentioned, NotificationReason.Thread]));
+
+        // Assert
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1024)]
+    public void Validate_ShouldRefuseAnUndefinedReason(int reason)
+    {
+        // Act
+        var result = _validator.Validate(new GetMyNotificationsQuery(new CursorRequest(), Reasons: [(NotificationReason)reason]));
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().ContainSingle().Which.ErrorMessage.Should().Be("'Reasons' must hold only defined notification reasons.");
     }
 
     [Theory]

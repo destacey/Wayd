@@ -126,59 +126,30 @@ export const discussionsPostMessage = async (channelType: string,
 );}
 
 
-export const getDiscussionsGetRepliesUrl = (channelType: string,
+export const getDiscussionsGetMessageUrl = (channelType: string,
     ownerId: string,
     messageId: string,) => {
 
 
 
 
-  return `/api/discussions/${encodeURIComponent(String(channelType))}/${encodeURIComponent(String(ownerId))}/messages/${encodeURIComponent(String(messageId))}/replies`
+  return `/api/discussions/${encodeURIComponent(String(channelType))}/${encodeURIComponent(String(ownerId))}/messages/${encodeURIComponent(String(messageId))}`
 }
 
 /**
- * `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns every reply in the thread the top-level message `messageId` starts, oldest first, each with its author, mentions, and whether you may edit or delete it. Returns 404 when the record, the message or its thread does not exist or you cannot read it.
- * @summary Get the replies in a thread.
+ * `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns the message `messageId`, a top-level message or a reply, with its author, mentions, thread counts and whether you may edit or delete it. A reply's `parentMessageId` is the top-level message its thread hangs from; read that the same way. A notifications entry read with `reason` `Mentioned` or `Thread` carries the message's id as its `eventId`; another `MessagePosted` notification, such as an incident's timeline note, does not. Returns 404 when the record or message does not exist or you cannot read it.
+ * @summary Get one message in a record's conversation.
  */
-export const discussionsGetReplies = async (channelType: string,
+export const discussionsGetMessage = async (channelType: string,
     ownerId: string,
-    messageId: string, options?: Parameters<typeof apiFetch>[1]): Promise<DiscussionMessageDto[]> => {
+    messageId: string, options?: Parameters<typeof apiFetch>[1]): Promise<DiscussionMessageDto> => {
 
-  return apiFetch<DiscussionMessageDto[]>(getDiscussionsGetRepliesUrl(channelType,ownerId,messageId),
+  return apiFetch<DiscussionMessageDto>(getDiscussionsGetMessageUrl(channelType,ownerId,messageId),
   {
     ...options,
     method: 'GET'
 
 
-  }
-);}
-
-
-export const getDiscussionsReplyUrl = (channelType: string,
-    ownerId: string,
-    messageId: string,) => {
-
-
-
-
-  return `/api/discussions/${encodeURIComponent(String(channelType))}/${encodeURIComponent(String(ownerId))}/messages/${encodeURIComponent(String(messageId))}/replies`
-}
-
-/**
- * `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Replies in the thread the top-level message `messageId` starts and returns the reply's id. The reply takes the thread's kind — a reply under an internal note is an internal note — and has no subject; replies go one level deep, so `messageId` must start a thread. `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Returns 403 when you may not write in that thread, 404 when the record or message does not exist or you cannot read it, and 400 when the conversation is locked, `messageId` is itself a reply, or it starts a thread of internal notes and they are turned off for the record's scope. Requires your account to be linked to an employee.
- * @summary Reply in a thread.
- */
-export const discussionsReply = async (channelType: string,
-    ownerId: string,
-    messageId: string,
-    replyToDiscussionMessageRequest: ReplyToDiscussionMessageRequest, options?: Parameters<typeof apiFetch>[1]): Promise<string> => {
-
-  return apiFetch<string>(getDiscussionsReplyUrl(channelType,ownerId,messageId),
-  {
-    ...options,
-    method: 'POST',
-    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
-    body: JSON.stringify(replyToDiscussionMessageRequest)
   }
 );}
 
@@ -236,6 +207,63 @@ export const discussionsDeleteMessage = async (channelType: string,
     method: 'DELETE'
 
 
+  }
+);}
+
+
+export const getDiscussionsGetRepliesUrl = (channelType: string,
+    ownerId: string,
+    messageId: string,) => {
+
+
+
+
+  return `/api/discussions/${encodeURIComponent(String(channelType))}/${encodeURIComponent(String(ownerId))}/messages/${encodeURIComponent(String(messageId))}/replies`
+}
+
+/**
+ * `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Returns every reply in the thread the top-level message `messageId` starts, oldest first, each with its author, mentions, and whether you may edit or delete it. Returns 404 when the record, the message or its thread does not exist or you cannot read it.
+ * @summary Get the replies in a thread.
+ */
+export const discussionsGetReplies = async (channelType: string,
+    ownerId: string,
+    messageId: string, options?: Parameters<typeof apiFetch>[1]): Promise<DiscussionMessageDto[]> => {
+
+  return apiFetch<DiscussionMessageDto[]>(getDiscussionsGetRepliesUrl(channelType,ownerId,messageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+export const getDiscussionsReplyUrl = (channelType: string,
+    ownerId: string,
+    messageId: string,) => {
+
+
+
+
+  return `/api/discussions/${encodeURIComponent(String(channelType))}/${encodeURIComponent(String(ownerId))}/messages/${encodeURIComponent(String(messageId))}/replies`
+}
+
+/**
+ * `channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400. Replies in the thread the top-level message `messageId` starts and returns the reply's id. The reply takes the thread's kind — a reply under an internal note is an internal note — and has no subject; replies go one level deep, so `messageId` must start a thread. `body` is markdown, at most 10,000 characters, with mentions written `@[Name](employee:{employeeId})`. Returns 403 when you may not write in that thread, 404 when the record or message does not exist or you cannot read it, and 400 when the conversation is locked, `messageId` is itself a reply, or it starts a thread of internal notes and they are turned off for the record's scope. Requires your account to be linked to an employee.
+ * @summary Reply in a thread.
+ */
+export const discussionsReply = async (channelType: string,
+    ownerId: string,
+    messageId: string,
+    replyToDiscussionMessageRequest: ReplyToDiscussionMessageRequest, options?: Parameters<typeof apiFetch>[1]): Promise<string> => {
+
+  return apiFetch<string>(getDiscussionsReplyUrl(channelType,ownerId,messageId),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(replyToDiscussionMessageRequest)
   }
 );}
 

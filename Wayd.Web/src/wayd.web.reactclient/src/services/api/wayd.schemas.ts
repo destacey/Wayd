@@ -20330,8 +20330,13 @@ export type MyNotificationMutesGetMutedRecordsParams = {
 
 export type MyNotificationsGetNotificationsParams = {
   unreadOnly?: boolean;
+  reason?: NotificationReason[];
   before?: string;
   pageSize?: number;
+};
+
+export type MyNotificationsGetUnreadCountParams = {
+  reason?: NotificationReason[];
 };
 
 export type SearchSearchParams = {

@@ -7,6 +7,7 @@
 import type {
   CursorPageOfNotificationDto,
   MyNotificationsGetNotificationsParams,
+  MyNotificationsGetUnreadCountParams,
   UnreadNotificationCountDto
 } from './wayd.schemas';
 
@@ -17,6 +18,14 @@ export const getMyNotificationsGetNotificationsUrl = (params?: MyNotificationsGe
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["reason"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
@@ -29,7 +38,7 @@ export const getMyNotificationsGetNotificationsUrl = (params?: MyNotificationsGe
 }
 
 /**
- * Returns one page of your notifications, one entry per record, newest change first. Each entry has the `record` (`ownerType`, `id`, `key`, `name`, `statusName`; an objective also carries `parentKey` and `parentName`, its planning interval, and an intake request its desk), the newest change — `event` (`Created`, `StatusChanged`, `LifecycleChanged`, `HealthReported`, `TimelineChanged`, `RolesChanged`, `Reparented`, `ScoreRecorded`, `Withdrawn`, `Retitled`, `DetailsChanged`, `AssigneeChanged`, `ParticipantsChanged`, `ChannelChanged`), `eventId`, `occurredOn`, `actorKind` and `actor` (null when no employee is linked to whoever made it, or when you may not see who made changes to the record — an intake request whose details you cannot see) — the `reasons` you were told (`Following`: you follow the record; `Role`: you hold a role on it, or are on the team that owns it; `Requester`: you asked for an intake request; `Assigned`: it is assigned to you; `Participant`: you were given it, or submitted it for someone else; and later `Mentioned`, `Desk`), `unreadCount`, `count`, `isUnread` and `latestNotificationId`. You are never told about your own changes, or about imports. A record you can no longer read is left out, and so is a change to a part of a record you cannot read. `unreadOnly` keeps only entries with something unread. `pageSize` is at most 500. For the next page, pass the response's `nextCursor` as `before`; `nextCursor` is null on the last page. Paging by cursor means an entry that moves to the top while you read on is neither repeated nor skipped; it appears when you read the first page again. Requires the following feature flag; returns 404 when it is off.
+ * Returns one page of your notifications, one entry per record, newest change first. Each entry has the `record` (`ownerType`, `id`, `key`, `name`, `statusName`; an objective also carries `parentKey` and `parentName`, its planning interval, and an intake request its desk), the newest change — `event` (`Created`, `StatusChanged`, `LifecycleChanged`, `HealthReported`, `TimelineChanged`, `RolesChanged`, `Reparented`, `ScoreRecorded`, `Withdrawn`, `Retitled`, `DetailsChanged`, `AssigneeChanged`, `ParticipantsChanged`, `ChannelChanged`, `MessagePosted`, `InternalNotePosted`), `eventId`, `occurredOn`, `actorKind` and `actor` (null when no employee is linked to whoever made it, or when you may not see who made changes to the record — an intake request whose details you cannot see) — the `reasons` you were told (`Following`: you follow the record; `Role`: you hold a role on it, or are on the team that owns it; `Requester`: you asked for an intake request; `Assigned`: it is assigned to you; `Participant`: you were given it, or submitted it for someone else; `Mentioned`: a message on it mentions you; `Thread`: a reply in a conversation thread you started or replied in; `Desk`: it waits, unassigned, on a desk you triage), `unreadCount`, `count`, `isUnread` and `latestNotificationId`. You are never told about your own changes, or about imports. A record you can no longer read is left out, and so is a change to a part of a record you cannot read. `unreadOnly` keeps only entries with something unread. `reason`, repeatable, keeps only notifications told for at least one of those reasons — `reason=Mentioned&reason=Thread` is the conversations that asked for you — and each entry then counts, and leads with, those notifications alone; left out, every reason. With `reason` limited to `Mentioned` and `Thread`, each entry leads with a discussion message, and its `eventId` is that message's id. `pageSize` is at most 500. For the next page, pass the response's `nextCursor` as `before`; `nextCursor` is null on the last page. Paging by cursor means an entry that moves to the top while you read on is neither repeated nor skipped; it appears when you read the first page again. Requires the following feature flag; returns 404 when it is off.
  * @summary List your notifications.
  */
 export const myNotificationsGetNotifications = async (params?: MyNotificationsGetNotificationsParams, options?: Parameters<typeof apiFetch>[1]): Promise<CursorPageOfNotificationDto> => {
@@ -44,21 +53,34 @@ export const myNotificationsGetNotifications = async (params?: MyNotificationsGe
 );}
 
 
-export const getMyNotificationsGetUnreadCountUrl = () => {
+export const getMyNotificationsGetUnreadCountUrl = (params?: MyNotificationsGetUnreadCountParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["reason"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
 
 
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/me/notifications/unread-count`
+  return stringifiedParams.length > 0 ? `/api/me/notifications/unread-count?${stringifiedParams}` : `/api/me/notifications/unread-count`
 }
 
 /**
- * Returns `count`, the number of records with unread notifications you can still read, and `isCapped`, true when there are more than 99 — `count` is then 99, shown as "99+". Requires the following feature flag; returns 404 when it is off.
+ * Returns `count`, the number of records with unread notifications you can still read, and `isCapped`, true when there are more than 99 — `count` is then 99, shown as "99+". `reason`, repeatable, counts only records with an unread notification told for at least one of those reasons — `reason=Mentioned&reason=Thread` counts the conversations waiting for you; left out, every reason. Requires the following feature flag; returns 404 when it is off.
  * @summary Count the records you have unread notifications about.
  */
-export const myNotificationsGetUnreadCount = async ( options?: Parameters<typeof apiFetch>[1]): Promise<UnreadNotificationCountDto> => {
+export const myNotificationsGetUnreadCount = async (params?: MyNotificationsGetUnreadCountParams, options?: Parameters<typeof apiFetch>[1]): Promise<UnreadNotificationCountDto> => {
 
-  return apiFetch<UnreadNotificationCountDto>(getMyNotificationsGetUnreadCountUrl(),
+  return apiFetch<UnreadNotificationCountDto>(getMyNotificationsGetUnreadCountUrl(params),
   {
     ...options,
     method: 'GET'

@@ -70,7 +70,7 @@ needs upper and lower case, a digit and a symbol. The port is published on loopb
 docker run --detach --name wayd-test-sqlserver --restart unless-stopped \
   --env ACCEPT_EULA=Y --env MSSQL_SA_PASSWORD='<password>' --env MSSQL_MEMORY_LIMIT_MB=6144 \
   --publish 127.0.0.1:14333:1433 \
-  mcr.microsoft.com/mssql/server:2025-CU8-ubuntu-24.04
+  mcr.microsoft.com/mssql/server:2025-CU9-GDR1-ubuntu-24.04
 ```
 
 On Windows, run the same command in PowerShell with a backtick (`` ` ``) in place of each trailing `\`.

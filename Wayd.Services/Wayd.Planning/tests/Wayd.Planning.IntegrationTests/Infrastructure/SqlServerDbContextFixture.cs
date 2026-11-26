@@ -1,9 +1,7 @@
-﻿using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Options;
 using Moq;
-using Testcontainers.MsSql;
 using Wayd.Common.Application.Events;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Events;
@@ -16,15 +14,15 @@ using Wolverine.EntityFrameworkCore;
 namespace Wayd.Planning.IntegrationTests.Infrastructure;
 
 /// <summary>
-/// Starts a SQL Server container and applies the real <c>Wayd.Infrastructure.Migrators.MSSQL</c> migrations
-/// against it, then hands out <see cref="WaydDbContext"/> instances pointed at that container.
+/// Creates a SQL Server database of its own (see <see cref="SqlServerTestDatabase"/>), applies the real <c>Wayd.Infrastructure.Migrators.MSSQL</c> migrations
+/// against it, then hands out <see cref="WaydDbContext"/> instances pointed at it.
 /// <para>
 /// Planning writes need this because the in-memory <c>FakePlanningDbContext</c> runs LINQ-to-Objects, where
 /// <c>.Include</c> is a no-op and a save records nothing: a handler that forgets to load a collection the
 /// aggregate changes passes against the fake and silently skips the change in production.
 /// </para>
 /// <para>
-/// This is a collection fixture (see <see cref="SqlServerTestCollection"/>): one container and one migrated
+/// This is a collection fixture (see <see cref="SqlServerTestCollection"/>): one database and one migrated
 /// schema are shared by every test class in the collection, so tests must not assume a private database.
 /// </para>
 /// </summary>
@@ -36,7 +34,7 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
 
     public const string UserId = "integration-test-user";
 
-    private MsSqlContainer _container = null!;
+    private SqlServerTestDatabase _database = null!;
 
     private DbContextOptions<WaydDbContext> _options = null!;
     private IOptions<DatabaseSettings> _databaseSettings = null!;
@@ -47,14 +45,9 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
         // scanning the application assembly at startup; without it a mapped field silently comes back default.
         MapsterConfiguration.Ensure();
 
-        _container = await SqlServerTestContainer.Start();
+        _database = await SqlServerTestDatabase.Create("planning");
 
-        // The container's connection string names no database, so it would migrate into master, whose options cannot
-        // be changed; a database of its own can be put in the mode production runs in.
-        var connectionString = new SqlConnectionStringBuilder(_container.GetConnectionString())
-        {
-            InitialCatalog = "WaydPlanningTests",
-        }.ConnectionString;
+        var connectionString = _database.ConnectionString;
 
         // Drive OnConfiguring down the SqlServer + NodaTime path (DBProvider "mssql"), exactly as production.
         _databaseSettings = Options.Create(new DatabaseSettings
@@ -72,8 +65,8 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
                 // No EnableRetryOnFailure. BaseDbContext.SaveChangesAsync opens the transaction that commits
                 // the entities with their audit trail, activity log and outbox envelopes, and a retrying
                 // strategy refuses a transaction it did not start — so switching it on fails every save here
-                // while production, which has no retries either, works. SqlServerTestContainer waits on a real
-                // SELECT 1 before handing the container over, which is what the retries were covering for.
+                // while production, which has no retries either, works. The engine has already answered an
+                // sa login before a suite connects, which is what the retries were covering for.
             })
             .Options;
 
@@ -88,11 +81,11 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        if (_container is not null)
-            await _container.DisposeAsync();
+        if (_database is not null)
+            await _database.DisposeAsync();
     }
 
-    /// <summary>Creates a fresh <see cref="WaydDbContext"/> against the container, with no-op collaborators.</summary>
+    /// <summary>Creates a fresh <see cref="WaydDbContext"/> against the database, with no-op collaborators.</summary>
     /// <param name="interceptors">EF interceptors to act during the context's saves, such as a competing request.</param>
     public WaydDbContext CreateContext(params IInterceptor[] interceptors)
     {

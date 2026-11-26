@@ -9,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Testcontainers.MsSql;
 using Wayd.Infrastructure;
 using Wayd.Infrastructure.Auth.OAuth;
 using Wayd.Infrastructure.Persistence.Context;
@@ -19,13 +18,13 @@ using Wayd.Web.Api.Services;
 namespace Wayd.Web.Api.IntegrationTests.Infrastructure;
 
 /// <summary>
-/// Boots the real <c>Program</c> host against a throwaway SQL Server container (the production EF
+/// Boots the real <c>Program</c> host against a throwaway SQL Server database (the production EF
 /// provider + real migrations), so a command dispatched through <c>IDispatcher</c> actually runs its
 /// Wolverine-generated handler, its FluentValidation middleware, and persists through the real schema.
 /// This is the one end-to-end proof that the whole pipeline executes — not just that its generated code
 /// compiles (that is the in-memory <see cref="WaydApiFactory"/>).
 /// <para>
-/// Shared as a collection fixture (see <see cref="SqlServerApiTestCollection"/>): one container, schema and
+/// Shared as a collection fixture (see <see cref="SqlServerApiTestCollection"/>): one database, schema and
 /// host for every SQL-backed class. Tests therefore share a database and must scope their assertions to
 /// data they created rather than assuming they are alone in it.
 /// </para>
@@ -33,21 +32,16 @@ namespace Wayd.Web.Api.IntegrationTests.Infrastructure;
 /// <remarks>Requires Docker to be running on the machine executing the tests.</remarks>
 public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    // A dedicated application database (not the container's default `master`). Production never runs on
-    // master, and Wolverine's Weasel envelope-table provisioning targets a real application database — so
-    // the integration host must too, or the durable-outbox schema is never provisioned.
-    private const string DatabaseName = "WaydIntegrationTests";
-
     // Long enough that a run the queue finishes is answered 200 however loaded the runner is. A test that
     // needs the wait to run out holds the run back with ImportClaims and shortens it with WaitOnImportsFor.
     private static readonly ImportResponseTiming _defaultImportResponseTiming =
         new(TimeSpan.FromSeconds(30), TimeSpan.FromMilliseconds(250));
 
-    private MsSqlContainer _container = null!;
+    private SqlServerTestDatabase _database = null!;
 
     private string _connectionString = null!;
 
-    /// <summary>Connection string for the dedicated container database the host runs against.</summary>
+    /// <summary>Connection string for the database of its own the host runs against.</summary>
     public string ConnectionString => _connectionString;
 
     /// <summary>Forces a concurrency conflict on a chosen save; inert unless a test arms it.</summary>
@@ -82,20 +76,10 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
 
     public async ValueTask InitializeAsync()
     {
-        _container = await SqlServerTestContainer.Start();
-
-        // Testcontainers reports the container ready as soon as SQL Server accepts a connection, but under CI
-        // load (several of these containers starting at once on far fewer cores) the engine can still be
-        // warming up and drop or time out the next commands. Both steps are retried for that reason.
-        await RetryTransient(
-            "create the application database",
-            _container.GetConnectionString(),
-            $"IF DB_ID('{DatabaseName}') IS NULL CREATE DATABASE [{DatabaseName}];");
-
-        _connectionString = new SqlConnectionStringBuilder(_container.GetConnectionString())
-        {
-            InitialCatalog = DatabaseName,
-        }.ConnectionString;
+        // A database of its own rather than master: Wolverine's Weasel envelope-table provisioning targets an
+        // application database, so on master the durable-outbox schema is never provisioned.
+        _database = await SqlServerTestDatabase.Create("api");
+        _connectionString = _database.ConnectionString;
 
         // One answered query is not a warm engine. Require several in a row against the application database
         // before the host's migrations, Wolverine's message store and Hangfire's schema all hit it at once.
@@ -121,17 +105,17 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
         HandlerCodegenMode.Clear();
 
         await base.DisposeAsync();
-        if (_container is not null)
-            await _container.DisposeAsync();
+        if (_database is not null)
+            await _database.DisposeAsync();
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        // Let the host run its real InitializeDatabases() (applies migrations to the container) — that is
+        // Let the host run its real InitializeDatabases() (applies migrations to the database) — that is
         // the point of using a real SQL Server here rather than the in-memory provider.
         builder.UseEnvironment("Development");
 
-        // Inject the container connection string via a process ENVIRONMENT VARIABLE rather than
+        // Inject the database connection string via a process ENVIRONMENT VARIABLE rather than
         // ConfigureAppConfiguration. This is the one config source the host reads SYNCHRONOUSLY and early
         // enough: Program.cs configures the Wolverine durable outbox during host construction, and
         // PersistMessagesWithSqlServer needs the connection string right then — before any deferred
@@ -208,7 +192,7 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
             foreach (var exception in thrown)
                 report.AppendLine($"- {exception.GetType().FullName}: {exception.Message}").AppendLine(exception.StackTrace);
 
-            throw new InvalidOperationException(await AppendContainerLog(report), ex);
+            throw new InvalidOperationException(await AppendServerLog(report), ex);
         }
         finally
         {
@@ -238,13 +222,13 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
         }
 
         var report = new StringBuilder($"The API host started but {ServiceEndpoints.HealthEndpointPath} never reported healthy. Last response: {last}");
-        throw new InvalidOperationException(await AppendContainerLog(report));
+        throw new InvalidOperationException(await AppendServerLog(report));
     }
 
-    private async Task<string> AppendContainerLog(StringBuilder report)
+    private async Task<string> AppendServerLog(StringBuilder report)
     {
-        var (stdout, stderr) = await _container.GetLogsAsync();
-        return report.AppendLine().AppendLine("SQL Server container log (tail):").AppendLine(Tail(stdout + stderr, 40)).ToString();
+        var log = await _database.GetServerLogTail(40);
+        return report.AppendLine().AppendLine("SQL Server log (tail):").AppendLine(log).ToString();
     }
 
     private static async Task RetryTransient(string step, string connectionString, string commandText)
@@ -270,11 +254,8 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
             }
         }
 
-        throw new InvalidOperationException($"Could not {step} on the test container after {attempts} attempts.", lastError);
+        throw new InvalidOperationException($"Could not {step} on the test database after {attempts} attempts.", lastError);
     }
-
-    private static string Tail(string text, int lines) =>
-        string.Join(Environment.NewLine, text.Split('\n').TakeLast(lines));
 
     private sealed class ImportResponseTimingReset(WaydSqlServerApiFactory owner) : IDisposable
     {

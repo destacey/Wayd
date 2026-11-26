@@ -113,8 +113,8 @@ jobs:
             # published the Wolverine handler tree, so the two run effectively in series anyway. Sharing one
             # build is both simpler and faster; the tests here already boot the tree this job just generated.
             #
-            # Spins up SQL Server via Testcontainers on the runner's preinstalled Docker; Ryuk (the resource
-            # reaper) stays enabled, per Testcontainers' guidance for GitHub Actions.
+            # The script starts one SQL Server on the runner's preinstalled Docker and every suite shares it,
+            # each on a database of its own. Ryuk does not reap that container; the script's EXIT trap removes it.
             - name: Test (integration)
               working-directory: .
               env:

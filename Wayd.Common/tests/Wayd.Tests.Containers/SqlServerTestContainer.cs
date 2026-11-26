@@ -4,7 +4,10 @@ using Testcontainers.MsSql;
 
 namespace Wayd.Tests.Containers;
 
-/// <summary>Starts the SQL Server container an integration suite runs against.</summary>
+/// <summary>
+/// Starts a SQL Server container for one suite, when no shared server is set; fixtures reach it through
+/// <see cref="SqlServerTestDatabase"/>.
+/// </summary>
 public static class SqlServerTestContainer
 {
     // SQL Server's minimum. Uncapped, each engine sizes its memory from the whole host, unaware of the other
@@ -24,7 +27,8 @@ public static class SqlServerTestContainer
     /// the image ships system databases older than its own binaries, so every first boot converts master and
     /// model, which has taken a minute here and can take longer on a loaded runner.
     /// <para>
-    /// Baking the upgrade into a derived image would remove the wait rather than absorb it — see issue #881.
+    /// A CI run pays this once: the script starts one engine and every suite shares it (issue #881). Baking the
+    /// upgrade into a derived image would remove the wait rather than share it.
     /// </para>
     /// </remarks>
     private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(5);

@@ -36,7 +36,6 @@ This file captures compact repo-specific lessons that future coding agents shoul
 ## Local Environment
 
 - Files are CRLF (`.editorconfig`, `core.autocrlf=true`). `sed -i` and writing `git show` output back to disk both produce LF, which turns every touched file into a whole-file diff. Edit files with a tool that keeps the existing line endings.
-- Integration suites on Windows/Docker Desktop can exceed the 5-minute `--hangdump-timeout` while SQL Server containers start (the dump log names no test). Run `INTEGRATION_TEST_PARALLELISM=1 ./.github/scripts/dotnet-test-projects.sh integration`; CI is unaffected.
 - Seq receiving nothing, with the Serilog sink timing out after 100s, is an orphaned `wslrelay.exe` on `::1:5341` shadowing the container. `Get-NetTCPConnection -State Listen | ? LocalPort -eq 5341` shows two owners; stop the relay's process. Stop Seq with `docker compose down`, never by killing Docker or WSL, which is what orphans the relay.
 
 ## Frontend Patterns

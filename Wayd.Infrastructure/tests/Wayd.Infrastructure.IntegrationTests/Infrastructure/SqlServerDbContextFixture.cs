@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Moq;
-using Testcontainers.MsSql;
 using Wayd.Common.Application.Events;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Events;
@@ -14,7 +13,7 @@ using Wolverine.EntityFrameworkCore;
 namespace Wayd.Infrastructure.IntegrationTests.Infrastructure;
 
 /// <summary>
-/// Starts a SQL Server container, applies the real migrations, and hands out
+/// Creates a SQL Server database of its own (see <see cref="SqlServerTestDatabase"/>), applies the real migrations, and hands out
 /// <see cref="WaydDbContext"/> instances pointed at it. Refresh-token sessions depend on
 /// behaviour an in-memory provider does not have — the filtered unique index, NodaTime
 /// <c>Instant</c> mapping, and cascade delete from Users — so they are tested here.
@@ -22,16 +21,16 @@ namespace Wayd.Infrastructure.IntegrationTests.Infrastructure;
 /// <remarks>Requires Docker on the machine running the tests.</remarks>
 public sealed class SqlServerDbContextFixture : IAsyncLifetime
 {
-    private MsSqlContainer _container = null!;
+    private SqlServerTestDatabase _database = null!;
 
     private DbContextOptions<WaydDbContext> _options = null!;
     private IOptions<DatabaseSettings> _databaseSettings = null!;
 
     public async ValueTask InitializeAsync()
     {
-        _container = await SqlServerTestContainer.Start();
+        _database = await SqlServerTestDatabase.Create("infrastructure");
 
-        var connectionString = _container.GetConnectionString();
+        var connectionString = _database.ConnectionString;
 
         _databaseSettings = Options.Create(new DatabaseSettings
         {
@@ -45,8 +44,8 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
         await context.Database.MigrateAsync();
     }
 
-    /// <summary>The container's connection string, for a test that needs a database of its own on it.</summary>
-    public string ConnectionString => _container.GetConnectionString();
+    /// <summary>The server's connection string, on <c>master</c>, for a test that names a database of its own on it.</summary>
+    public string ConnectionString => _database.ServerConnectionString;
 
     private static DbContextOptions<WaydDbContext> BuildOptions(string connectionString) =>
         new DbContextOptionsBuilder<WaydDbContext>()
@@ -58,22 +57,22 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
                 // No EnableRetryOnFailure. BaseDbContext.SaveChangesAsync opens the transaction that commits
                 // the entities with their audit trail, activity log and outbox envelopes, and a retrying
                 // strategy refuses a transaction it did not start — so switching it on fails every save here
-                // while production, which has no retries either, works. SqlServerTestContainer waits on a real
-                // SELECT 1 before handing the container over, which is what the retries were covering for.
+                // while production, which has no retries either, works. The engine has already answered an
+                // sa login before a suite connects, which is what the retries were covering for.
             })
             .Options;
 
     public async ValueTask DisposeAsync()
     {
-        if (_container is not null)
-            await _container.DisposeAsync();
+        if (_database is not null)
+            await _database.DisposeAsync();
     }
 
-    /// <summary>Creates a fresh context against the container, with no-op collaborators.</summary>
+    /// <summary>Creates a fresh context against the database, with no-op collaborators.</summary>
     public WaydDbContext CreateContext() => CreateContext(_options, _databaseSettings);
 
     /// <summary>
-    /// Creates a context against another database on the container, unmigrated. The context connects through
+    /// Creates a context against another database on the server, unmigrated. The context connects through
     /// <see cref="DatabaseSettings"/>, so the settings carry the connection string as well as the options.
     /// </summary>
     public WaydDbContext CreateContext(string connectionString) => CreateContext(

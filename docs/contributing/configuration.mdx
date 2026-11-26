@@ -820,6 +820,6 @@ The planning poker and story map hubs (`/hubs/planning-poker`, `/hubs/story-maps
 | `OTEL_SERVICE_NAME`                     | `service.name` on logs sent over OTLP (default `wayd-api`) |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Azure Application Insights                    |
 | `ASPNETCORE_ENVIRONMENT`                | Runtime environment (Development, Production) |
-| `WAYD_STATIC_HANDLERS`                  | Build-time: `true` compiles the generated Wolverine handler tree into a local build (CI and the Dockerfile set it) |
+| `WAYD_STATIC_HANDLERS`                  | Build-time: `true` compiles the generated Wolverine handler tree into a local build (the Dockerfile's from-source build sets it; in CI, `CI=true` does the same) |
 | `WAYD_SKIP_DB_INIT`                     | `true` skips startup database work (migrations and seeding, the first-run check, recurring-job registration, the Hangfire server); the Debug build sets it while it boots the API to read the OpenAPI document |
 | `WAYD_NO_LAUNCH_BROWSER`                | AppHost only: `true` or `1` stops it opening the Aspire dashboard |

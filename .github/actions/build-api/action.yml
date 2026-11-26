@@ -1,0 +1,57 @@
+name: Build API
+description: >-
+    Builds Wayd.Web.Api in Release, generates its Wolverine handler tree (Internal/Generated/WolverineHandlers)
+    with `codegen write` and, given publish-dir, publishes the API there with the tree compiled in: the
+    output the API image copies. Expects .NET to be set up already.
+
+inputs:
+    publish-dir:
+        description: Directory to publish the API to. Leave empty to build and generate the tree only.
+        required: false
+        default: ""
+
+runs:
+    using: composite
+    steps:
+        - name: Build API
+          shell: bash
+          working-directory: Wayd.Web/src/Wayd.Web.Api
+          run: dotnet build -c Release
+
+        # Env: ASPNETCORE_ENVIRONMENT=Development runs the codegen boot in Auto mode (no pre-existing tree
+        # needed), loads the development JWT secret and master key from security.Development.json, and skips
+        # the guards that refuse those values outside Development. WAYD_SKIP_DB_INIT + a
+        # placeholder connection string let the host boot without a database (codegen never connects; the
+        # `codegen write` verb builds the host but never calls app.Run(), so no hosted service runs).
+        # OTEL_EXPORTER_OTLP_ENDPOINT is cleared so the OTLP exporter services do not perturb registration
+        # order. The generated output is the same Static handler code regardless of the host's own mode.
+        - name: Generate Wolverine handler tree
+          shell: bash
+          working-directory: Wayd.Web/src/Wayd.Web.Api
+          env:
+              ASPNETCORE_ENVIRONMENT: Development
+              WAYD_SKIP_DB_INIT: "true"
+              OTEL_EXPORTER_OTLP_ENDPOINT: ""
+              # Placeholder connection string: codegen never opens a successful connection (WAYD_SKIP_DB_INIT
+              # skips migrations/seeding and the `codegen write` verb never calls app.Run()). It must be a
+              # syntactically valid SQL Server string on THIS runner though — a `(localdb)` data source throws
+              # PlatformNotSupportedException at parse time on Linux, so use a plain unreachable TCP host.
+              DatabaseSettings__ConnectionString: "Server=127.0.0.1,1433;Database=Codegen;User Id=sa;Password=Not_used_by_codegen_1;TrustServerCertificate=true;Connect Timeout=1"
+              HangfireSettings__Storage__ConnectionString: "Server=127.0.0.1,1433;Database=Codegen;User Id=sa;Password=Not_used_by_codegen_1;TrustServerCertificate=true;Connect Timeout=1"
+          run: dotnet run --no-build --no-launch-profile -c Release -- codegen write
+
+        # Not --no-build: the build above ran before the tree existed, so publishing compiles the API again
+        # with the tree in. Wayd.Web.Api.csproj compiles the tree in because Actions sets CI=true; the check
+        # fails the step if the tree is missing, which would otherwise publish an API with no handlers.
+        - name: Publish API
+          if: inputs.publish-dir != ''
+          shell: bash
+          working-directory: Wayd.Web/src/Wayd.Web.Api
+          env:
+              PUBLISH_DIR: ${{ inputs.publish-dir }}
+          run: |
+              if [ -z "$(ls -A Internal/Generated/WolverineHandlers/*.cs 2>/dev/null)" ]; then
+                  echo "::error::The Wolverine handler tree is missing; codegen write produced nothing."
+                  exit 1
+              fi
+              dotnet publish -c Release -o "$PUBLISH_DIR" /p:UseAppHost=false

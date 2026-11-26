@@ -30,10 +30,10 @@ import {
   Position,
   ReactFlow,
   useReactFlow,
-  useStore,
+  useViewportStore,
   type NodeProps,
 } from '@xyflow/react'
-import '@xyflow/react/dist/style.css'
+import '@xyflow/react/style.css'
 import { Button, Dropdown, theme } from 'antd'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -311,6 +311,13 @@ interface MapControlsProps {
 }
 
 /**
+ * How every fit frames the map. Capped at 1: a two-node map would otherwise be blown up to fill the
+ * canvas, which makes the same record read as a different size on every page. React Flow reads a bare
+ * number as pixels, so the margin is a percentage of the canvas.
+ */
+const FIT = { padding: '8.3%', maxZoom: 1 } as const
+
+/**
  * The control cluster, with React Flow's own buttons turned off and Ant Design icons in their place.
  *
  * React Flow ships its own SVGs, which sit beside antd's everywhere else in the app at a different
@@ -408,10 +415,7 @@ const MapControls = ({
         </ControlButton>
       </WaydTooltip>
       <WaydTooltip title="Fit View" placement="right">
-        <ControlButton
-          aria-label="Fit view"
-          onClick={() => fitView({ padding: 0.2, maxZoom: 1 })}
-        >
+        <ControlButton aria-label="Fit view" onClick={() => fitView(FIT)}>
           <ShrinkOutlined />
         </ControlButton>
       </WaydTooltip>
@@ -457,12 +461,12 @@ const MapControls = ({
  */
 const FitToGraph = ({ drawn }: { drawn: string }) => {
   const { fitView } = useReactFlow()
-  const width = useStore((state) => state.width)
-  const height = useStore((state) => state.height)
+  const width = useViewportStore((state) => state.width)
+  const height = useViewportStore((state) => state.height)
 
   useEffect(() => {
     if (width === 0 || height === 0) return
-    fitView({ padding: 0.2, maxZoom: 1 })
+    fitView(FIT)
   }, [fitView, drawn, width, height])
 
   return null
@@ -569,11 +573,10 @@ const DependencyMap = ({
             if (onOpenRecord && !record.isSubject) onOpenRecord(record)
             else if (record.href) router.push(record.href)
           }}
-          colorMode={isDarkMode(currentMode) ? 'dark' : 'light'}
+          // Forced: React Flow otherwise follows the system's scheme, not the mode chosen in Wayd.
+          forceColorMode={isDarkMode(currentMode) ? 'dark' : 'light'}
           fitView
-          // Capped at 1: a two-node map would otherwise be blown up to fill the canvas, which makes the
-          // same record read as a different size on every page.
-          fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
+          fitViewOptions={FIT}
           // Read-only: the layout is derived from the data, so a moved node would say something the
           // record does not, and nothing persists it.
           nodesDraggable={false}

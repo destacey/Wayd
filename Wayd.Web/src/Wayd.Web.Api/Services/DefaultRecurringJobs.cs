@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using Hangfire;
 using Wayd.Common.Application.BackgroundJobs;
 using Wayd.Web.Api.Interfaces;
 
@@ -64,9 +63,6 @@ public static class DefaultRecurringJobs
 
     public static void EnsureDefaultRecurringJobs(this IServiceProvider services)
     {
-        // Resolving the storage is what initializes JobStorage.Current, which the job service reads.
-        services.GetRequiredService<JobStorage>();
-
         using var scope = services.CreateScope();
         var jobService = scope.ServiceProvider.GetRequiredService<IJobService>();
         var jobManager = scope.ServiceProvider.GetRequiredService<IJobManager>();

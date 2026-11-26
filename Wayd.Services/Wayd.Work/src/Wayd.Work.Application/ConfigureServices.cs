@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using Mapster.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Wayd.Common.Application.Mapping;
 
 namespace Wayd.Work.Application;
 
@@ -12,8 +13,11 @@ public static class ConfigureServices
 
         services.AddValidatorsFromAssembly(assembly);
 
-        TypeAdapterConfig.GlobalSettings.Scan(assembly);
-        TypeAdapterConfig.GlobalSettings.ScanInheritedTypes(assembly);
+        MappingRegistration.Once(assembly, mapping =>
+        {
+            mapping.Scan(assembly);
+            mapping.ScanInheritedTypes(assembly);
+        });
 
         return services;
     }

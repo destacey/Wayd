@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Runtime.ExceptionServices;
 using System.Text;
+using Hangfire;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -9,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Wayd.Infrastructure;
 using Wayd.Infrastructure.Auth.OAuth;
 using Wayd.Infrastructure.Persistence.Context;
@@ -95,15 +97,6 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
 
     public override async ValueTask DisposeAsync()
     {
-        // Clear the env vars this factory set so nothing leaks to sibling test hosts. Safe because this
-        // factory is a single collection fixture (see SqlServerApiTestCollection) and xunit.runner.json
-        // disables collection parallelism, so no other host is constructing while these are cleared.
-        Environment.SetEnvironmentVariable("DatabaseSettings__DBProvider", null);
-        Environment.SetEnvironmentVariable("DatabaseSettings__ConnectionString", null);
-        Environment.SetEnvironmentVariable("HangfireSettings__Storage__ConnectionString", null);
-        Environment.SetEnvironmentVariable("SecuritySettings__LocalJwt__Secret", null);
-        HandlerCodegenMode.Clear();
-
         await base.DisposeAsync();
         if (_database is not null)
             await _database.DisposeAsync();
@@ -115,25 +108,24 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
         // the point of using a real SQL Server here rather than the in-memory provider.
         builder.UseEnvironment("Development");
 
-        // Inject the database connection string via a process ENVIRONMENT VARIABLE rather than
-        // ConfigureAppConfiguration. This is the one config source the host reads SYNCHRONOUSLY and early
-        // enough: Program.cs configures the Wolverine durable outbox during host construction, and
-        // PersistMessagesWithSqlServer needs the connection string right then — before any deferred
-        // ConfigureAppConfiguration override applies. The app's AddConfigurations() ends with
-        // AddEnvironmentVariables() (highest precedence, applied immediately), so an env var both reaches
-        // that eager read and out-ranks the database.json fallback. The double underscore is the .NET
-        // section separator. Cleared in DisposeAsync; safe because collection parallelism is disabled.
-        Environment.SetEnvironmentVariable("DatabaseSettings__DBProvider", "mssql");
-        Environment.SetEnvironmentVariable("DatabaseSettings__ConnectionString", _connectionString);
-        Environment.SetEnvironmentVariable("HangfireSettings__Storage__ConnectionString", _connectionString);
-        Environment.SetEnvironmentVariable("SecuritySettings__LocalJwt__Secret", "integration-test-secret-key-please-ignore-0123456789");
-        HandlerCodegenMode.Apply();
+        // Host settings, not ConfigureAppConfiguration: the start-up code reads the connection strings while the
+        // host is still being built (Wolverine's durable outbox, Hangfire's storage), before a deferred
+        // ConfigureAppConfiguration override applies. A host setting reaches Program as a command-line argument,
+        // which out-ranks the json files and user secrets, and it belongs to this host alone, so collections run
+        // in parallel, each against its own database.
+        builder.UseSetting("DatabaseSettings:DBProvider", "mssql");
+        builder.UseSetting("DatabaseSettings:ConnectionString", _connectionString);
+        builder.UseSetting("HangfireSettings:Storage:ConnectionString", _connectionString);
+        builder.UseSetting("SecuritySettings:LocalJwt:Secret", "integration-test-secret-key-please-ignore-0123456789");
+        HandlerCodegenMode.Apply(builder);
 
         builder.ConfigureServices(services =>
             services.ConfigureDbContext<WaydDbContext>(options => options.AddInterceptors(ConcurrentWrites, ImportClaims, Saves, SaveFaults)));
 
         builder.ConfigureTestServices(services =>
         {
+            RemoveHangfireServer(services);
+
             // Read per scope rather than captured once, so WaitOnImportsFor reaches the next request.
             services.RemoveAll<ImportResponseTiming>();
             services.AddScoped(_ => ImportResponseTiming);
@@ -154,6 +146,27 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
                     new KeyValuePair<string, string?>("RateLimitSettings:PerUserElevated:TokenLimit", "100000"),
                     new KeyValuePair<string, string?>("RateLimitSettings:PerUserElevated:TokensPerPeriod", "100000"),
                 ])));
+    }
+
+    /// <summary>
+    /// Removes the Hangfire server, so the host enqueues jobs and records recurring ones but never runs them.
+    /// </summary>
+    /// <remarks>
+    /// No test needs a job to run, and a running server works on its own schedule: the default recurring jobs fire
+    /// mid-test, in the factory's host and in every host a test derives from it, and stopping a host waits for whatever
+    /// job is in flight, which has outlasted the host's shutdown timeout and failed the collection's clean-up. Hangfire registers the server as a
+    /// factory, so it is found by the type the factory returns; a registration this misses fails the boot rather
+    /// than leaving the server running unnoticed.
+    /// </remarks>
+    private static void RemoveHangfireServer(IServiceCollection services)
+    {
+        var server = services.Where(d => d.ServiceType == typeof(IHostedService)
+            && d.ImplementationFactory?.Method.ReturnType == typeof(BackgroundJobServerHostedService)).ToList();
+        if (server.Count == 0)
+            throw new InvalidOperationException("The Hangfire server's registration was not found; AddHangfireServer may register it differently now.");
+
+        foreach (var descriptor in server)
+            services.Remove(descriptor);
     }
 
     /// <summary>
@@ -188,7 +201,7 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
             AppDomain.CurrentDomain.FirstChanceException -= Record;
 
             var report = new StringBuilder("The API host failed to start.");
-            report.AppendLine().AppendLine().AppendLine("Last exceptions thrown while it started (some may have been handled):");
+            report.AppendLine().AppendLine().AppendLine("Last exceptions thrown in the test process while it started (some may have been handled, and some may be from hosts starting beside it):");
             foreach (var exception in thrown)
                 report.AppendLine($"- {exception.GetType().FullName}: {exception.Message}").AppendLine(exception.StackTrace);
 

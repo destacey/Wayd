@@ -4,6 +4,7 @@ using Mapster;
 using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Application.Imports;
 using Wayd.DemandManagement.Application.IntakeRequests.Imports;
+using Wayd.Common.Application.Mapping;
 
 namespace Wayd.DemandManagement.Application;
 
@@ -24,7 +25,10 @@ public static class ConfigureServices
         services.AddScoped<IImportDefinition, IntakeRequestImportDefinition>();
         services.AddScoped<IImportDefinition, IntakeRequestOutcomeImportDefinition>();
 
-        TypeAdapterConfig.GlobalSettings.Scan(assembly);
+        MappingRegistration.Once(assembly, mapping =>
+        {
+            mapping.Scan(assembly);
+        });
 
         return services;
     }

@@ -1,4 +1,5 @@
 ﻿using Hangfire;
+using Hangfire.Common;
 using Hangfire.Console;
 using Hangfire.Console.Extensions;
 using Hangfire.SqlServer;
@@ -35,24 +36,33 @@ internal static class ConfigureServices
 
         services.AddSingleton<JobActivator, WaydJobActivator>();
 
+        // The host's own storage and filters, registered before AddHangfire, which adds its own only when none is.
+        // Its defaults are the process-wide JobStorage.Current and global filter list, and a test process runs several
+        // hosts side by side, each on a database of its own: these keep each host's jobs on its own database and
+        // WaydJobFilter on its own services. The server, the job client and the recurring-job manager all take them
+        // from the container; the callback below still sets the statics, which nothing here reads. SqlServerStorage
+        // installs its schema in its constructor, so it is built only when first resolved.
+        services.AddSingleton<JobStorage>(_ => CreateStorage(storageSettings.StorageProvider, storageSettings.ConnectionString, config));
+        services.AddSingleton<IJobFilterProvider>(provider => new JobFilterProviderCollection(
+            JobFilterProviders.Providers,
+            new JobFilterCollection { new WaydJobFilter(provider), new LogJobFilter() }));
+
         services.AddHangfire((provider, hangfireConfig) => hangfireConfig
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
             .UseActivator(provider.GetRequiredService<JobActivator>())
-            .UseDatabase(storageSettings.StorageProvider, storageSettings.ConnectionString, config)
-            .UseFilter(new WaydJobFilter(provider))
-            .UseFilter(new LogJobFilter())
+            .UseStorage(provider.GetRequiredService<JobStorage>())
             .UseConsole());
 
         return services;
     }
 
-    private static IGlobalConfiguration UseDatabase(this IGlobalConfiguration hangfireConfig, string dbProvider, string connectionString, IConfiguration config) =>
+    private static JobStorage CreateStorage(string dbProvider, string connectionString, IConfiguration config) =>
         dbProvider.ToLowerInvariant() switch
         {
             DbProviderKeys.SqlServer =>
-                hangfireConfig.UseSqlServerStorage(connectionString, config.GetSection("HangfireSettings:Storage:Options").Get<SqlServerStorageOptions>()),
+                new SqlServerStorage(connectionString, config.GetSection("HangfireSettings:Storage:Options").Get<SqlServerStorageOptions>() ?? new SqlServerStorageOptions()),
             //DbProviderKeys.Npgsql =>
-            //    hangfireConfig.UsePostgreSqlStorage(connectionString, config.GetSection("HangfireSettings:Storage:Options").Get<PostgreSqlStorageOptions>()),
+            //    new PostgreSqlStorage(connectionString, config.GetSection("HangfireSettings:Storage:Options").Get<PostgreSqlStorageOptions>()),
             _ => throw new Exception($"Hangfire Storage Provider {dbProvider} is not supported.")
         };
 }

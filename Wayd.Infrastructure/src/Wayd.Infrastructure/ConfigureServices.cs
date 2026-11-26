@@ -34,6 +34,7 @@ using Wayd.Planning.Application.StoryMaps.Interfaces;
 using Wayd.ProductManagement.Domain;
 using Wayd.ProjectPortfolioManagement.Domain;
 using Wayd.Work.Domain;
+using Wayd.Common.Application.Mapping;
 namespace Wayd.Infrastructure;
 
 public static class ConfigureServices
@@ -79,8 +80,11 @@ public static class ConfigureServices
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config, IHostEnvironment environment)
     {
         var assembly = Assembly.GetExecutingAssembly();
-        TypeAdapterConfig.GlobalSettings.Scan(assembly);
-        TypeAdapterConfig.GlobalSettings.ScanInheritedTypes(assembly);
+        MappingRegistration.Once(assembly, mapping =>
+        {
+            mapping.Scan(assembly);
+            mapping.ScanInheritedTypes(assembly);
+        });
 
         services.AddSingleton(TimeProvider.System);
 

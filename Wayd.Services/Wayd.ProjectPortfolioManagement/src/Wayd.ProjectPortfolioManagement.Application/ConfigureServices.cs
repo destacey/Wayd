@@ -9,6 +9,7 @@ using Wayd.ProjectPortfolioManagement.Application.Projects.Imports;
 using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Imports;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Imports;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Deliverables.Imports;
+using Wayd.Common.Application.Mapping;
 
 namespace Wayd.ProjectPortfolioManagement.Application;
 
@@ -35,10 +36,13 @@ public static class ConfigureServices
     private static void ConfigureMapster(Assembly assembly)
     {
         // Global Mapster settings
-        TypeAdapterConfig.GlobalSettings.Scan(assembly);
-        TypeAdapterConfig.GlobalSettings.ScanInheritedTypes(assembly);
-        TypeAdapterConfig.GlobalSettings.Default.PreserveReference(true);
-        TypeAdapterConfig.GlobalSettings.AllowImplicitSourceInheritance = true;
-        TypeAdapterConfig.GlobalSettings.AllowImplicitDestinationInheritance = true;
+        MappingRegistration.Once(assembly, mapping =>
+        {
+            mapping.Scan(assembly);
+            mapping.ScanInheritedTypes(assembly);
+            mapping.Default.PreserveReference(true);
+            mapping.AllowImplicitSourceInheritance = true;
+            mapping.AllowImplicitDestinationInheritance = true;
+        });
     }
 }

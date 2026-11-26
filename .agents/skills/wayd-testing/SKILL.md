@@ -69,7 +69,7 @@ Every rule this skill enforces, in one place. Run it on every change.
 - [ ] Fakers in the domain test project's `Data/` folder (or the documented shared homes), extended with per-property `With{Property}`?
 - [ ] New test files use FluentAssertions; additions to an existing file follow that file's style?
 - [ ] No new `Testcontainers*` reference in a project that did not already need Docker?
-- [ ] Integration tests use `[Collection(SqlServerTestCollection.Name)]`, never `IClassFixture<T>`, and assert only on data they created?
+- [ ] Integration tests join the project's existing collection (`[Collection(...)]`), never an `IClassFixture<T>` database of their own (the migration fixture aside), assert only on data they created, and change no process-wide state another collection reads?
 - [ ] For a PPM mutating handler, the `.Include` chain checked by eye (the gate cannot see it — [dotnet.md](dotnet.md#what-a-fake-dbcontext-cannot-see))?
 
 **Scope**

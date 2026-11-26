@@ -7,6 +7,7 @@ using Wayd.Common.Application.Dispatching;
 using Wayd.Common.Application.Employees.Imports;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Application.Mapping;
 
 namespace Wayd.Common.Application;
 
@@ -34,8 +35,11 @@ public static class ConfigureServices
         services.AddScoped(typeof(ISettings<>), typeof(StoredSettings<>));
         services.AddScoped<ISystemCalendar, SystemSettings.General.SystemCalendar>();
 
-        TypeAdapterConfig.GlobalSettings.Scan(assembly);
-        TypeAdapterConfig.GlobalSettings.ScanInheritedTypes(assembly);
+        MappingRegistration.Once(assembly, mapping =>
+        {
+            mapping.Scan(assembly);
+            mapping.ScanInheritedTypes(assembly);
+        });
 
         return services;
     }

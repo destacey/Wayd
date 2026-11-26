@@ -26,10 +26,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- Durable-outbox integration tests inject the container connection string via a process
-             environment variable (the only config source the host reads synchronously early enough for
-             Wolverine's PersistMessagesWithSqlServer). Process env vars are global, so test collections
-             must not run in parallel — see xunit.runner.json. -->
+        <!-- The SQL Server and in-memory collections run beside each other, each with a host of its own
+             (ApiTestCollections). -->
         <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 

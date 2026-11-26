@@ -1,4 +1,5 @@
 using Hangfire;
+using Hangfire.InMemory;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -27,7 +28,7 @@ public sealed class WaydApiFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("Development");
         builder.UseSetting("WAYD_SKIP_DB_INIT", "true");
 
-        HandlerCodegenMode.Apply();
+        HandlerCodegenMode.Apply(builder);
 
         // Disable Wolverine's SQL durable outbox for this in-memory factory. With it registered,
         // WolverineRuntime.StartAsync → tryMigrateStorage() opens a SqlConnection and migrates the message store
@@ -38,25 +39,20 @@ public sealed class WaydApiFactory : WebApplicationFactory<Program>
         // WaydSqlServerApiFactory leaves this false and provisions the real outbox against its container.
         builder.UseSetting("Wolverine:DisableDurableOutbox", "true");
 
-        // Inject the placeholder settings as process ENVIRONMENT VARIABLES, not via ConfigureAppConfiguration.
-        // Confirmed via diagnostics: AddWaydWolverine reads DatabaseSettings:ConnectionString SYNCHRONOUSLY during
-        // AddInfrastructure (and passes it to PersistMessagesWithSqlServer, which parses it) BEFORE the host is
-        // built — so a deferred ConfigureAppConfiguration override is NOT visible there, and neither is UseSetting
-        // when a *.json file also sets the key. The eager read otherwise resolves to user-secrets locally or
-        // database.json's `(localdb)\mssqllocaldb` in CI; `(localdb)` throws PlatformNotSupportedException at parse
-        // time on Linux, killing the host boot (invisible on Windows). AddConfigurations() ends with
-        // AddEnvironmentVariables() (highest precedence, applied immediately), the one source that both reaches the
-        // eager read and out-ranks the json/user-secrets fallbacks. The value just needs to PARSE everywhere; it is
-        // never connected to (in-memory EF + in-memory Hangfire + DisableDurableOutbox mean nothing opens a
-        // connection). Mirrors WaydSqlServerApiFactory; `__` is the section separator. Cleared in DisposeAsync to
-        // avoid leaking into sibling factories (which set the same keys) — safe because xunit.runner.json disables
-        // collection parallelism.
+        // Placeholder settings, as host settings rather than ConfigureAppConfiguration: AddWaydWolverine reads
+        // DatabaseSettings:ConnectionString while the host is still being built (and passes it to
+        // PersistMessagesWithSqlServer, which parses it), before a deferred ConfigureAppConfiguration override
+        // applies. A host setting reaches Program as a command-line argument, which out-ranks the json files and
+        // user secrets; without it the read resolves to user secrets locally or database.json's
+        // `(localdb)\mssqllocaldb` in CI, and `(localdb)` throws PlatformNotSupportedException at parse time on
+        // Linux. The value only has to parse: in-memory EF, in-memory Hangfire and DisableDurableOutbox mean
+        // nothing connects to it.
         const string placeholderConnectionString =
             "Server=127.0.0.1,1433;Database=WaydTest;User Id=sa;Password=Placeholder_not_used_1;TrustServerCertificate=true;Connect Timeout=1";
-        Environment.SetEnvironmentVariable("DatabaseSettings__DBProvider", "mssql");
-        Environment.SetEnvironmentVariable("DatabaseSettings__ConnectionString", placeholderConnectionString);
-        Environment.SetEnvironmentVariable("HangfireSettings__Storage__ConnectionString", placeholderConnectionString);
-        Environment.SetEnvironmentVariable("SecuritySettings__LocalJwt__Secret", "integration-test-secret-key-please-ignore-0123456789");
+        builder.UseSetting("DatabaseSettings:DBProvider", "mssql");
+        builder.UseSetting("DatabaseSettings:ConnectionString", placeholderConnectionString);
+        builder.UseSetting("HangfireSettings:Storage:ConnectionString", placeholderConnectionString);
+        builder.UseSetting("SecuritySettings:LocalJwt:Secret", "integration-test-secret-key-please-ignore-0123456789");
 
         builder.ConfigureTestServices(services =>
         {
@@ -96,21 +92,7 @@ public sealed class WaydApiFactory : WebApplicationFactory<Program>
             // server and client still resolve) without any database. The Testcontainers
             // WaydSqlServerApiFactory keeps SQL storage for the real end-to-end pipeline tests.
             services.RemoveAll<JobStorage>();
-            services.AddHangfire(config => config.UseInMemoryStorage());
+            services.AddSingleton<JobStorage>(new InMemoryStorage());
         });
-    }
-
-    public override async ValueTask DisposeAsync()
-    {
-        // Clear the process-global env vars set in ConfigureWebHost so they cannot leak into sibling factories
-        // (notably WaydSqlServerApiFactory, which sets the SAME keys to its real container) later in the same
-        // test process. Safe because xunit.runner.json disables collection parallelism.
-        Environment.SetEnvironmentVariable("DatabaseSettings__DBProvider", null);
-        Environment.SetEnvironmentVariable("DatabaseSettings__ConnectionString", null);
-        Environment.SetEnvironmentVariable("HangfireSettings__Storage__ConnectionString", null);
-        Environment.SetEnvironmentVariable("SecuritySettings__LocalJwt__Secret", null);
-        HandlerCodegenMode.Clear();
-
-        await base.DisposeAsync();
     }
 }

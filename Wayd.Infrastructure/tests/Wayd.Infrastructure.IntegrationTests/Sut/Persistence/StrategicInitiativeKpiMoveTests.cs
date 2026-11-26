@@ -26,10 +26,10 @@ namespace Wayd.Infrastructure.IntegrationTests.Sut.Persistence;
 /// </summary>
 /// <remarks>
 /// Both migrations are hand-written T-SQL over tables the current model no longer has, so each test runs against a
-/// database of its own, migrated only as far as the migration before them, and seeds the old tables by hand.
+/// database migrated only as far as the migration before them, untouched by the test before it, and seeds the old
+/// tables by hand.
 /// </remarks>
-[Collection(nameof(SqlServerTestCollection))]
-public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fixture)
+public sealed class StrategicInitiativeKpiMoveTests(SqlServerMigrationFixture fixture) : IClassFixture<SqlServerMigrationFixture>
 {
     private const string Previous = "20261120142242_Add-Dependency-Planned-Start";
     private const string Move = "20261121131927_Move-Strategic-Initiative-Kpis-To-Shared-Model";
@@ -40,7 +40,7 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
 
     private static readonly Instant Now = Instant.FromUtc(2026, 11, 20, 12, 0);
 
-    private readonly SqlServerDbContextFixture _fixture = fixture;
+    private readonly SqlServerMigrationFixture _fixture = fixture;
 
     static StrategicInitiativeKpiMoveTests()
     {
@@ -53,7 +53,6 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
         await InDatabase(async (context, migrator, connectionString, ct) =>
         {
             // Arrange
-            await migrator.MigrateAsync(Previous, ct);
             await SetZone(context, Chicago, ct);
             var seed = await SeedInitiative(context, ct);
             var revenue = await AddOldKpi(context, seed.InitiativeId, "Revenue", "Annual \"run\" rate", 100, 250, "$", "M", "Increase", 1, ct);
@@ -127,7 +126,6 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
         await InDatabase(async (context, migrator, connectionString, ct) =>
         {
             // Arrange — written straight to the table, which only a direct edit could have done
-            await migrator.MigrateAsync(Previous, ct);
             var seed = await SeedInitiative(context, ct);
             await AddOldKpi(context, seed.InitiativeId, "NPS", null, problem == "baseline" ? 40 : 20, 40, null, null,
                 problem == "direction" ? "Sideways" : "Increase", 1, ct);
@@ -147,7 +145,6 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
         await InDatabase(async (context, migrator, connectionString, ct) =>
         {
             // Arrange
-            await migrator.MigrateAsync(Previous, ct);
             var seed = await SeedInitiative(context, ct);
             var nps = await AddOldKpi(context, seed.InitiativeId, "NPS", null, 20, 40, null, null, "Increase", 1, ct);
             // An at-risk value above the planned value of a KPI that should increase.
@@ -183,7 +180,6 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
         await InDatabase(async (context, migrator, connectionString, ct) =>
         {
             // Arrange
-            await migrator.MigrateAsync(Previous, ct);
             await SetZone(context, Tokyo, ct);
             var seed = await SeedInitiative(context, ct);
             var kpi = await AddOldKpi(context, seed.InitiativeId, "Adoption", null, 10, 60, null, "%", "Increase", 1, ct);
@@ -212,7 +208,6 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
         await InDatabase(async (context, migrator, connectionString, ct) =>
         {
             // Arrange
-            await migrator.MigrateAsync(Previous, ct);
             var seed = await SeedInitiative(context, ct);
             var removed = await AddOldKpi(context, seed.InitiativeId, "Uptime", null, null, 99.9, null, "%", "Increase", 1, ct);
             await migrator.MigrateAsync(Move, ct);
@@ -250,7 +245,6 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
         await InDatabase(async (context, migrator, connectionString, ct) =>
         {
             // Arrange
-            await migrator.MigrateAsync(Previous, ct);
             await SetZone(context, Chicago, ct);
             var seed = await SeedInitiative(context, ct);
             var revenue = await AddOldKpi(context, seed.InitiativeId, "Revenue", "Run rate", 100, 250, "$", "M", "Increase", 1, ct);
@@ -318,7 +312,6 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
         await InDatabase(async (context, migrator, connectionString, ct) =>
         {
             // Arrange
-            await migrator.MigrateAsync(Previous, ct);
             var seed = await SeedInitiative(context, ct);
             var kpi = await AddOldKpi(context, seed.InitiativeId, "Cost", null, 500, 300, "$", "k", "Decrease", 1, ct);
             await AddOldMeasurement(context, kpi, 450, "2026-02-01T12:00:00", seed.EmployeeId, null, ct);
@@ -348,24 +341,14 @@ public sealed class StrategicInitiativeKpiMoveTests(SqlServerDbContextFixture fi
 
     private sealed record Seeded(Guid InitiativeId, Guid EmployeeId);
 
-    /// <summary>Runs <paramref name="test"/> against a fresh database of its own, deleted afterwards.</summary>
+    /// <summary>Runs <paramref name="test"/> against the database migrated as far as <see cref="Previous"/>, as it was before any test wrote to it.</summary>
     private async Task InDatabase(Func<WaydDbContext, IMigrator, string, CancellationToken, Task> test)
     {
         var ct = TestContext.Current.CancellationToken;
-        var connectionString = new SqlConnectionStringBuilder(_fixture.ConnectionString)
-        {
-            InitialCatalog = $"wayd-migration-{Guid.NewGuid():N}",
-        }.ConnectionString;
+        var connectionString = await _fixture.MigratedTo(Previous, ct);
 
         await using var context = _fixture.CreateContext(connectionString);
-        try
-        {
-            await test(context, context.GetService<IMigrator>(), connectionString, ct);
-        }
-        finally
-        {
-            await context.Database.EnsureDeletedAsync(ct);
-        }
+        await test(context, context.GetService<IMigrator>(), connectionString, ct);
     }
 
     /// <summary>Asserts the KPI's baseline entry is the one the factory builds for the same event, filed under the initiative too.</summary>

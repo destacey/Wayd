@@ -44,6 +44,12 @@ try
 
     builder.Host.AddConfigurations();
 
+    // AddConfigurations adds its json files after CreateBuilder's command line, so without this they would out-rank
+    // it; re-adding the command line restores ASP.NET's order, where it wins. WebApplicationFactory hands its host
+    // settings to the entry point as these arguments, and they are the only per-host source the start-up code
+    // below reads in time: a test process runs several hosts side by side, each on a database of its own.
+    builder.Configuration.AddCommandLine(args);
+
     builder.AddServiceDefaults();
 
     static void ConfigureJson(JsonSerializerOptions options)

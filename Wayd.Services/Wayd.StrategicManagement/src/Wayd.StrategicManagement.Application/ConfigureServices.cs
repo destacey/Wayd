@@ -3,6 +3,7 @@ using Mapster.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Application.Imports;
 using Wayd.StrategicManagement.Application.StrategicThemes.Imports;
+using Wayd.Common.Application.Mapping;
 
 namespace Wayd.StrategicManagement.Application;
 
@@ -22,10 +23,13 @@ public static class ConfigureServices
     private static void ConfigureMapster(Assembly assembly)
     {
         // Global Mapster settings
-        TypeAdapterConfig.GlobalSettings.Scan(assembly);
-        TypeAdapterConfig.GlobalSettings.ScanInheritedTypes(assembly);
-        TypeAdapterConfig.GlobalSettings.Default.PreserveReference(true);
-        TypeAdapterConfig.GlobalSettings.AllowImplicitSourceInheritance = true;
-        TypeAdapterConfig.GlobalSettings.AllowImplicitDestinationInheritance = true;
+        MappingRegistration.Once(assembly, mapping =>
+        {
+            mapping.Scan(assembly);
+            mapping.ScanInheritedTypes(assembly);
+            mapping.Default.PreserveReference(true);
+            mapping.AllowImplicitSourceInheritance = true;
+            mapping.AllowImplicitDestinationInheritance = true;
+        });
     }
 }

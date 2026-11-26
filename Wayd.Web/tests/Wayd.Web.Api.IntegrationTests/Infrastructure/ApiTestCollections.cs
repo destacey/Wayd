@@ -1,16 +1,16 @@
 namespace Wayd.Web.Api.IntegrationTests.Infrastructure;
 
 /// <summary>
-/// Shares a single <see cref="WaydSqlServerApiFactory"/> — and therefore one SQL Server container, one
-/// migrated schema and one booted host — across every test class that needs a real database. As an
-/// <c>IClassFixture</c> this factory was constructed once per test class, so six classes paid six container
-/// starts and six host boots (~16s each) end to end.
-/// <para>
-/// The factory's process-global environment variables (see <see cref="WaydSqlServerApiFactory"/>) make a
-/// single shared instance the safer arrangement as well as the faster one: only one factory now sets them.
-/// Tests share a database, so each must use its own data rather than assuming an empty schema.
-/// </para>
+/// Shares a single <see cref="WaydSqlServerApiFactory"/> — one database, migrated schema and booted host — across every
+/// test class that needs a real database. Tests share that database, so each uses its own data rather than assuming an
+/// empty schema.
 /// </summary>
+/// <remarks>
+/// One collection rather than several in parallel: the suite is CPU-bound, booting dozens of hosts of its own through
+/// <c>WithWebHostBuilder</c>, and on a 4-core CI runner parallel collections are slower, since each adds a host, a
+/// migration and a warm-up the runner has no cores spare for. Hosts share no process-wide configuration, so a split
+/// worth trying on a larger runner is a change to this file alone.
+/// </remarks>
 [CollectionDefinition(Name)]
 public sealed class SqlServerApiTestCollection : ICollectionFixture<WaydSqlServerApiFactory>
 {
@@ -19,7 +19,7 @@ public sealed class SqlServerApiTestCollection : ICollectionFixture<WaydSqlServe
 
 /// <summary>
 /// Shares a single <see cref="WaydApiFactory"/> across the test classes that only need the host to boot
-/// against the EF in-memory provider. No container, but a host boot each, so the same per-class cost applied.
+/// against the EF in-memory provider. No database, but a host boot, so one per collection rather than per class.
 /// </summary>
 [CollectionDefinition(Name)]
 public sealed class InMemoryApiTestCollection : ICollectionFixture<WaydApiFactory>

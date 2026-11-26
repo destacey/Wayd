@@ -15,13 +15,20 @@ using WaydRecurringJobDto = Wayd.Common.Application.BackgroundJobs.RecurringJobD
 
 namespace Wayd.Infrastructure.BackgroundJobs;
 
-public class HangfireService : IJobService
+/// <summary>
+/// The job service over Hangfire, reading and writing the host's own storage through the clients registered with it.
+/// </summary>
+/// <remarks>
+/// Never Hangfire's static <c>BackgroundJob</c>, <c>RecurringJob</c> or <c>JobStorage.Current</c>: those are one per
+/// process, and a test process runs several hosts side by side, each on a database of its own.
+/// </remarks>
+public class HangfireService(JobStorage storage, IBackgroundJobClient client, IRecurringJobManager recurringJobs) : IJobService
 {
     public IEnumerable<BackgroundJobDto> GetRunningJobs()
     {
         List<BackgroundJobDto> backgroundJobs = [];
 
-        var jobs = JobStorage.Current.GetMonitoringApi().ProcessingJobs(0, 1000);
+        var jobs = storage.GetMonitoringApi().ProcessingJobs(0, 1000);
 
         foreach (var job in jobs)
         {
@@ -41,7 +48,7 @@ public class HangfireService : IJobService
 
     public PagedResponse<JobSummaryDto> GetJobs(JobStateFilter state, PageRequest paging)
     {
-        var monitoring = JobStorage.Current.GetMonitoringApi();
+        var monitoring = storage.GetMonitoringApi();
 
         var pageSize = paging.PageSize;
         var from = PageOffset(paging);
@@ -124,7 +131,7 @@ public class HangfireService : IJobService
 
     public JobDetailDto? GetJobDetail(string jobId)
     {
-        var monitoring = JobStorage.Current.GetMonitoringApi();
+        var monitoring = storage.GetMonitoringApi();
 
         var details = monitoring.JobDetails(jobId);
         if (details is null)
@@ -163,7 +170,7 @@ public class HangfireService : IJobService
 
     public JobStatisticsDto GetStatistics()
     {
-        var monitoring = JobStorage.Current.GetMonitoringApi();
+        var monitoring = storage.GetMonitoringApi();
         var statistics = monitoring.GetStatistics();
 
         return new JobStatisticsDto
@@ -194,7 +201,7 @@ public class HangfireService : IJobService
 
     public IReadOnlyList<JobServerDto> GetServers() =>
     [
-        .. JobStorage.Current.GetMonitoringApi().Servers().Select(server => new JobServerDto
+        .. storage.GetMonitoringApi().Servers().Select(server => new JobServerDto
         {
             Name = server.Name,
             WorkerCount = server.WorkersCount,
@@ -206,7 +213,7 @@ public class HangfireService : IJobService
 
     public IReadOnlyList<WaydRecurringJobDto> GetRecurringJobs()
     {
-        using var connection = JobStorage.Current.GetConnection();
+        using var connection = storage.GetConnection();
 
         return
         [
@@ -230,7 +237,7 @@ public class HangfireService : IJobService
 
     public bool RemoveRecurringJob(string recurringJobId)
     {
-        using var connection = JobStorage.Current.GetConnection();
+        using var connection = storage.GetConnection();
 
         // RemoveIfExists returns void, so existence is checked first to tell "removed" from
         // "no such job" — the API turns the latter into a 404 rather than a silent success.
@@ -240,13 +247,13 @@ public class HangfireService : IJobService
             return false;
         }
 
-        RecurringJob.RemoveIfExists(recurringJobId);
+        recurringJobs.RemoveIfExists(recurringJobId);
         return true;
     }
 
     public IReadOnlyList<string> RemoveRecurringJobsInvoking(string methodName)
     {
-        using var connection = JobStorage.Current.GetConnection();
+        using var connection = storage.GetConnection();
 
         // Read the stored invocation rather than the loaded Job: once the method is gone the Job no longer
         // resolves and is null, and a registration for a missing method is exactly the one to remove.
@@ -259,7 +266,7 @@ public class HangfireService : IJobService
 
             if (InvocationData.DeserializePayload(payload).Method == methodName)
             {
-                RecurringJob.RemoveIfExists(recurring.Id);
+                recurringJobs.RemoveIfExists(recurring.Id);
                 removed.Add(recurring.Id);
             }
         }
@@ -325,40 +332,40 @@ public class HangfireService : IJobService
         value is null ? null : Instant.FromDateTimeUtc(DateTime.SpecifyKind(value.Value, DateTimeKind.Utc));
 
     public bool Delete(string jobId) =>
-        BackgroundJob.Delete(jobId);
+        client.Delete(jobId);
 
     public bool Delete(string jobId, string fromState) =>
-        BackgroundJob.Delete(jobId, fromState);
+        client.Delete(jobId, fromState);
 
     public string Enqueue(Expression<Func<Task>> methodCall) =>
-        BackgroundJob.Enqueue(methodCall);
+        client.Enqueue(methodCall);
 
     public string EnqueueSystem(Expression<Func<Task>> methodCall)
     {
-        var jobId = BackgroundJob.Enqueue(methodCall);
-        using var connection = JobStorage.Current.GetConnection();
+        var jobId = client.Enqueue(methodCall);
+        using var connection = storage.GetConnection();
         connection.SetJobParameter(jobId, QueryStringKeys.UserId, SerializationHelper.Serialize(SystemIdentity.UserId));
         return jobId;
     }
 
     public string Enqueue<T>(Expression<Action<T>> methodCall) =>
-        BackgroundJob.Enqueue(methodCall);
+        client.Enqueue(methodCall);
 
     public string Enqueue(Expression<Action> methodCall) =>
-        BackgroundJob.Enqueue(methodCall);
+        client.Enqueue(methodCall);
 
     public string Enqueue<T>(Expression<Func<T, Task>> methodCall) =>
-        BackgroundJob.Enqueue(methodCall);
+        client.Enqueue(methodCall);
 
     public bool Requeue(string jobId) =>
-        BackgroundJob.Requeue(jobId);
+        client.Requeue(jobId);
 
     public bool Requeue(string jobId, string fromState) =>
-        BackgroundJob.Requeue(jobId, fromState);
+        client.Requeue(jobId, fromState);
 
     public RequeueOutcome RequeueIfNotRunning(string jobId)
     {
-        using var connection = JobStorage.Current.GetConnection();
+        using var connection = storage.GetConnection();
         var state = connection.GetStateData(jobId)?.Name;
 
         if (state is null)
@@ -372,34 +379,33 @@ public class HangfireService : IJobService
         }
 
         // The expected state makes the transition conditional, so a job that moved since the read is untouched.
-        return BackgroundJob.Requeue(jobId, state) ? RequeueOutcome.Requeued : RequeueOutcome.StateChanged;
+        return client.Requeue(jobId, state) ? RequeueOutcome.Requeued : RequeueOutcome.StateChanged;
     }
 
     public string Schedule(Expression<Action> methodCall, TimeSpan delay) =>
-        BackgroundJob.Schedule(methodCall, delay);
+        client.Schedule(methodCall, delay);
 
     public string Schedule(Expression<Func<Task>> methodCall, TimeSpan delay) =>
-        BackgroundJob.Schedule(methodCall, delay);
+        client.Schedule(methodCall, delay);
 
     public string Schedule(Expression<Action> methodCall, DateTimeOffset enqueueAt) =>
-        BackgroundJob.Schedule(methodCall, enqueueAt);
+        client.Schedule(methodCall, enqueueAt);
 
     public string Schedule(Expression<Func<Task>> methodCall, DateTimeOffset enqueueAt) =>
-        BackgroundJob.Schedule(methodCall, enqueueAt);
+        client.Schedule(methodCall, enqueueAt);
 
     public string Schedule<T>(Expression<Action<T>> methodCall, TimeSpan delay) =>
-        BackgroundJob.Schedule(methodCall, delay);
+        client.Schedule(methodCall, delay);
 
     public string Schedule<T>(Expression<Func<T, Task>> methodCall, TimeSpan delay) =>
-        BackgroundJob.Schedule(methodCall, delay);
+        client.Schedule(methodCall, delay);
 
     public string Schedule<T>(Expression<Action<T>> methodCall, DateTimeOffset enqueueAt) =>
-        BackgroundJob.Schedule(methodCall, enqueueAt);
+        client.Schedule(methodCall, enqueueAt);
 
     public string Schedule<T>(Expression<Func<T, Task>> methodCall, DateTimeOffset enqueueAt) =>
-        BackgroundJob.Schedule(methodCall, enqueueAt);
+        client.Schedule(methodCall, enqueueAt);
 
-    // public static void AddOrUpdate([NotNull] string recurringJobId, [NotNull][InstantHandle] Expression<Action> methodCall, [NotNull] Func<string> cronExpression, [NotNull] RecurringJobOptions options)
     public void AddOrUpdate(string jobId, Expression<Func<Task>> methodCall, Func<string> cronExpression) =>
-        RecurringJob.AddOrUpdate(jobId, methodCall, cronExpression, new RecurringJobOptions());
+        recurringJobs.AddOrUpdate(jobId, methodCall, cronExpression(), new RecurringJobOptions());
 }

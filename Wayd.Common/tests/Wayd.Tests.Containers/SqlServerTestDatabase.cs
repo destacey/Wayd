@@ -1,17 +1,15 @@
 using Microsoft.Data.SqlClient;
-using Testcontainers.MsSql;
 
 namespace Wayd.Tests.Containers;
 
 /// <summary>
-/// An empty database of a suite's own, on the run's shared SQL Server or on a container started for the suite.
+/// An empty database of a collection's own, on the server <see cref="SqlServerTestServer"/> leases, dropped on dispose.
 /// </summary>
 /// <remarks>
-/// When <see cref="SharedServerVariable"/> holds a connection string, the database is created on that server
-/// and dropped on dispose; <c>.github/scripts/dotnet-test-projects.sh integration</c> sets it, so the whole run
-/// pays the engine's first-boot upgrade once rather than once per suite (issue #881). When it is not set — a
-/// single project run from an IDE — a container is started with <see cref="SqlServerTestContainer"/> and the
-/// database is created on it, so nothing needs setting up.
+/// <c>.github/scripts/dotnet-test-projects.sh integration</c> sets <see cref="SqlServerTestServer.SharedServerVariable"/>,
+/// so the whole run pays the engine's first-boot upgrade once rather than once per suite (issue #881). When it is not
+/// set — a single project run from an IDE — the process starts one container and every collection's database is
+/// created on it, so nothing needs setting up.
 /// <para>
 /// Every name is unique, so suites sharing an engine never see each other's data and a database a crashed run
 /// left behind never collides with the next one. Anything instance-wide — logins, server configuration — is
@@ -20,9 +18,6 @@ namespace Wayd.Tests.Containers;
 /// </remarks>
 public sealed class SqlServerTestDatabase : IAsyncDisposable
 {
-    /// <summary>The environment variable naming a running SQL Server to create the database on.</summary>
-    public const string SharedServerVariable = "WAYD_TEST_SQLSERVER";
-
     // Every database this type creates starts with it, which is what lets a later run find one a crashed run
     // left on a long-lived engine.
     private const string NamePrefix = "wayd-test-";
@@ -31,15 +26,13 @@ public sealed class SqlServerTestDatabase : IAsyncDisposable
     // in progress beside this one.
     private static readonly TimeSpan AbandonedAfter = TimeSpan.FromDays(1);
 
-    private readonly MsSqlContainer? _container;
-    private readonly string _serverConnectionString;
+    private readonly SqlServerTestServer _server;
 
-    private SqlServerTestDatabase(MsSqlContainer? container, string serverConnectionString, string name)
+    private SqlServerTestDatabase(SqlServerTestServer server, string name)
     {
-        _container = container;
-        _serverConnectionString = serverConnectionString;
+        _server = server;
         Name = name;
-        ConnectionString = new SqlConnectionStringBuilder(serverConnectionString) { InitialCatalog = name }.ConnectionString;
+        ConnectionString = new SqlConnectionStringBuilder(server.ConnectionString) { InitialCatalog = name }.ConnectionString;
     }
 
     /// <summary>The database's name, unique to this run and suite.</summary>
@@ -51,37 +44,28 @@ public sealed class SqlServerTestDatabase : IAsyncDisposable
     /// <summary>
     /// A connection string for the server, on <c>master</c>, for a test that creates a database of its own.
     /// </summary>
-    public string ServerConnectionString => _serverConnectionString;
+    public string ServerConnectionString => _server.ConnectionString;
 
     /// <summary>
-    /// Creates an empty database named for <paramref name="suite"/>, on the shared server when there is one and on a
-    /// new container otherwise. The caller disposes it.
+    /// Creates an empty database named for <paramref name="suite"/> on the leased server. The caller disposes it.
     /// </summary>
     /// <param name="suite">A short name for the suite, which keeps the database recognisable on a shared engine.</param>
     /// <param name="cancellationToken">Cancels starting the container and creating the database.</param>
     public static async Task<SqlServerTestDatabase> Create(string suite, CancellationToken cancellationToken = default)
     {
         var name = $"{NamePrefix}{suite.ToLowerInvariant()}-{Guid.NewGuid():N}";
-        var shared = Environment.GetEnvironmentVariable(SharedServerVariable);
-
-        if (!string.IsNullOrWhiteSpace(shared))
-        {
-            var server = new SqlConnectionStringBuilder(shared) { InitialCatalog = "master" }.ConnectionString;
-            await DropAbandoned(server, cancellationToken);
-            await CreateDatabase(server, name, cancellationToken);
-            return new SqlServerTestDatabase(null, server, name);
-        }
-
-        var container = await SqlServerTestContainer.Start(cancellationToken);
+        var server = await SqlServerTestServer.Acquire(cancellationToken);
         try
         {
-            var server = container.GetConnectionString();
-            await CreateDatabase(server, name, cancellationToken);
-            return new SqlServerTestDatabase(container, server, name);
+            // Only a long-lived engine outlives the run that crashed; a container is new.
+            if (server.IsShared)
+                await DropAbandoned(server.ConnectionString, cancellationToken);
+            await CreateDatabase(server.ConnectionString, name, cancellationToken);
+            return new SqlServerTestDatabase(server, name);
         }
         catch
         {
-            await container.DisposeAsync();
+            await server.DisposeAsync();
             throw;
         }
     }
@@ -91,34 +75,82 @@ public sealed class SqlServerTestDatabase : IAsyncDisposable
     /// run's script owns the log, a note saying so.
     /// </summary>
     /// <param name="lines">How many lines from the end to return.</param>
-    public async Task<string> GetServerLogTail(int lines)
-    {
-        if (_container is null)
-            return "(shared server — dotnet-test-projects.sh prints its log when the run fails)";
+    public Task<string> GetServerLogTail(int lines) => _server.GetLogTail(lines);
 
-        var (stdout, stderr) = await _container.GetLogsAsync();
-        return string.Join(Environment.NewLine, (stdout + stderr).Split('\n').TakeLast(lines));
-    }
-
-    /// <summary>Drops the database on a shared server, or removes the container the database lives on.</summary>
-    public async ValueTask DisposeAsync()
+    /// <summary>
+    /// Takes a snapshot of the database as it is now, for <see cref="RevertToSnapshot"/> to return it to. A database
+    /// has at most one; it is dropped with the database.
+    /// </summary>
+    /// <param name="cancellationToken">Cancels creating the snapshot.</param>
+    public async Task CreateSnapshot(CancellationToken cancellationToken = default)
     {
-        if (_container is not null)
+        string logicalName, dataFile;
+        await using (var connection = new SqlConnection(_server.ConnectionString))
         {
-            await _container.DisposeAsync();
-            return;
+            await connection.OpenAsync(cancellationToken);
+            await using var command = connection.CreateCommand();
+            command.CommandText = "SELECT name, physical_name FROM sys.master_files WHERE database_id = DB_ID(@name) AND type = 0;";
+            command.Parameters.AddWithValue("@name", Name);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            if (!await reader.ReadAsync(cancellationToken))
+                throw new InvalidOperationException($"Database {Name} has no data file to snapshot.");
+            (logicalName, dataFile) = (reader.GetString(0), reader.GetString(1));
         }
 
-        // A pooled connection to the database keeps a session open on it, and DROP refuses a database in use.
-        SqlConnection.ClearAllPools();
+        await Execute(_server.ConnectionString,
+            $"CREATE DATABASE {Quote(SnapshotName)} ON (NAME = {Quote(logicalName)}, FILENAME = {Literal(dataFile + ".ss")}) AS SNAPSHOT OF {Quote(Name)};",
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns the database to its snapshot, undoing everything written since, schema included. It takes a
+    /// fraction of a second, where building the same database again means migrating it from nothing.
+    /// </summary>
+    /// <remarks>
+    /// The revert needs the database to itself, so it disconnects every session on it; a pooled connection to it is
+    /// broken afterwards, so the pool is cleared too.
+    /// </remarks>
+    /// <param name="cancellationToken">Cancels the revert.</param>
+    public async Task RevertToSnapshot(CancellationToken cancellationToken = default)
+    {
+        await Execute(_server.ConnectionString, $"ALTER DATABASE {Quote(Name)} SET SINGLE_USER WITH ROLLBACK IMMEDIATE;", cancellationToken);
         try
         {
-            await Drop(_serverConnectionString, Name, CancellationToken.None);
+            await Execute(_server.ConnectionString,
+                $"RESTORE DATABASE {Quote(Name)} FROM DATABASE_SNAPSHOT = {Literal(SnapshotName)};", cancellationToken);
+        }
+        finally
+        {
+            // Left in single-user mode, every later test would fail on that rather than on whatever stopped the revert.
+            await Execute(_server.ConnectionString, $"ALTER DATABASE {Quote(Name)} SET MULTI_USER;", CancellationToken.None);
+        }
+
+        using var pooled = new SqlConnection(ConnectionString);
+        SqlConnection.ClearPool(pooled);
+    }
+
+    /// <summary>The name of the database's snapshot, which the sweep's prefix also matches.</summary>
+    private string SnapshotName => $"{Name}-snapshot";
+
+    /// <summary>Drops the database and its snapshot, and releases the server lease.</summary>
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            // A pooled connection to the database keeps a session open on it, and DROP refuses a database in use.
+            // Only idle connections are cleared, so another collection's work in progress is untouched.
+            SqlConnection.ClearAllPools();
+            await Drop(_server.ConnectionString, SnapshotName, CancellationToken.None);
+            await Drop(_server.ConnectionString, Name, CancellationToken.None);
         }
         catch (SqlException)
         {
             // Every test has already run, so a failed drop must not fail the suite. The name is unique, so the
             // database left behind collides with nothing, and the sweep in a later run drops it.
+        }
+        finally
+        {
+            await _server.DisposeAsync();
         }
     }
 
@@ -157,7 +189,9 @@ public sealed class SqlServerTestDatabase : IAsyncDisposable
         {
             await connection.OpenAsync(cancellationToken);
             await using var command = connection.CreateCommand();
-            command.CommandText = "SELECT name FROM sys.databases WHERE name LIKE @prefix AND create_date < DATEADD(SECOND, -@age, GETDATE());";
+            // Snapshots first: a database that still has one cannot be dropped.
+            command.CommandText = "SELECT name FROM sys.databases WHERE name LIKE @prefix AND create_date < DATEADD(SECOND, -@age, GETDATE()) "
+                + "ORDER BY CASE WHEN source_database_id IS NULL THEN 1 ELSE 0 END;";
             command.Parameters.AddWithValue("@prefix", NamePrefix.Replace("-", "[-]", StringComparison.Ordinal) + "%");
             command.Parameters.AddWithValue("@age", (int)AbandonedAfter.TotalSeconds);
 
@@ -180,12 +214,14 @@ public sealed class SqlServerTestDatabase : IAsyncDisposable
         }
     }
 
-    /// <summary>Drops a database, disconnecting whatever is still connected to it.</summary>
+    /// <summary>Drops a database or a snapshot, disconnecting whatever is still connected to it.</summary>
+    /// <remarks>A snapshot is read-only and refuses <c>SINGLE_USER</c>; dropping it disconnects its sessions anyway.</remarks>
     private static Task Drop(string server, string name, CancellationToken cancellationToken) =>
         Execute(server, $"""
             IF DB_ID({Literal(name)}) IS NOT NULL
             BEGIN
-                ALTER DATABASE {Quote(name)} SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+                IF (SELECT source_database_id FROM sys.databases WHERE name = {Literal(name)}) IS NULL
+                    ALTER DATABASE {Quote(name)} SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
                 DROP DATABASE {Quote(name)};
             END
             """, cancellationToken);

@@ -1,5 +1,4 @@
 using System.Data.Common;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -19,93 +18,81 @@ namespace Wayd.Infrastructure.IntegrationTests.Sut.Persistence;
 /// The migration is hand-written T-SQL over a column the current model no longer has, so it runs against a database
 /// of its own, migrated only as far as the migration before it.
 /// </remarks>
-[Collection(nameof(SqlServerTestCollection))]
-public sealed class StoryMapOwnersAndEditorsMigrationTests(SqlServerDbContextFixture fixture)
+public sealed class StoryMapOwnersAndEditorsMigrationTests(SqlServerMigrationFixture fixture) : IClassFixture<SqlServerMigrationFixture>
 {
     private const string Previous = "20261102151428_Poker-Session-Facilitators-And-Members";
     private const string Target = "20261102235331_Story-Map-Owners-And-Editors";
     private const string NoPreferences = """{"Tours":"{}"}""";
 
-    private readonly SqlServerDbContextFixture _fixture = fixture;
+    private readonly SqlServerMigrationFixture _fixture = fixture;
 
     [Fact]
     public async Task UpThenDown_MovesOwnersOntoEmployees_ThenRestoresTheOwner()
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var connectionString = new SqlConnectionStringBuilder(_fixture.ConnectionString)
-        {
-            InitialCatalog = $"wayd-migration-{Guid.NewGuid():N}",
-        }.ConnectionString;
+        var connectionString = await _fixture.MigratedTo(Previous, ct);
 
         await using var context = _fixture.CreateContext(connectionString);
         var migrator = context.GetService<IMigrator>();
-        try
+
+        var ownerEmployee = Guid.NewGuid();
+        await AddEmployee(context, ownerEmployee, "E-1", ct);
+        await AddUser(context, "owner-user", ownerEmployee, ct);
+        await AddUser(context, "unlinked-user", null, ct);
+
+        var linked = Guid.NewGuid();
+        var unlinked = Guid.NewGuid();
+        await AddMap(context, linked, "owner-user", ct);
+        await AddMap(context, unlinked, "unlinked-user", ct);
+
+        var roleId = Guid.NewGuid().ToString();
+        await Execute(context, $"""
+            INSERT INTO [Identity].[Roles] ([Id], [Name], [NormalizedName])
+            VALUES ('{roleId}', N'Mappers', N'MAPPERS');
+            INSERT INTO [Identity].[RoleClaims] ([RoleId], [ClaimType], [ClaimValue], [Created])
+            VALUES ('{roleId}', 'permission', 'Permissions.StoryMaps.View', SYSUTCDATETIME()),
+                   ('{roleId}', 'permission', 'Permissions.StoryMaps.Create', SYSUTCDATETIME()),
+                   ('{roleId}', 'permission', 'Permissions.StoryMaps.Update', SYSUTCDATETIME()),
+                   ('{roleId}', 'permission', 'Permissions.StoryMaps.Delete', SYSUTCDATETIME());
+            """, ct);
+
+        // Act
+        await migrator.MigrateAsync(Target, ct);
+
+        // Assert
+        (await Rows(context, "SELECT DISTINCT [Visibility], [EditAccess] FROM [Planning].[StoryMaps];", ct))
+            .Select(r => ((string)r[0], (string)r[1])).Should().Equal(("Public", "AnyoneWhoCanView"));
+
+        var owners = await Rows(context, "SELECT [StoryMapId], [EmployeeId] FROM [Planning].[StoryMapOwners];", ct);
+        owners.Select(r => ((Guid)r[0], (Guid)r[1])).Should().Equal((linked, ownerEmployee));
+
+        (await Rows(context, $"SELECT [ClaimValue] FROM [Identity].[RoleClaims] WHERE [RoleId] = '{roleId}' ORDER BY [ClaimValue];", ct))
+            .Select(r => (string)r[0]).Should().Equal("Permissions.StoryMaps.Create", "Permissions.StoryMaps.View");
+
+        // The rest of the way, so EF reads the rows through the current model.
+        await migrator.MigrateAsync(cancellationToken: ct);
+        await using (var read = _fixture.CreateContext(connectionString))
         {
-            await migrator.MigrateAsync(Previous, ct);
+            var map = await read.StoryMaps.AsNoTracking()
+                .Include(m => m.Owners)
+                .SingleAsync(m => m.Id == linked, ct);
+            map.Owners.Select(o => o.EmployeeId).Should().Equal(ownerEmployee);
+            map.Visibility.Should().Be(Visibility.Public);
+            map.EditAccess.Should().Be(StoryMapEditAccess.AnyoneWhoCanView);
 
-            var ownerEmployee = Guid.NewGuid();
-            await AddEmployee(context, ownerEmployee, "E-1", ct);
-            await AddUser(context, "owner-user", ownerEmployee, ct);
-            await AddUser(context, "unlinked-user", null, ct);
-
-            var linked = Guid.NewGuid();
-            var unlinked = Guid.NewGuid();
-            await AddMap(context, linked, "owner-user", ct);
-            await AddMap(context, unlinked, "unlinked-user", ct);
-
-            var roleId = Guid.NewGuid().ToString();
-            await Execute(context, $"""
-                INSERT INTO [Identity].[Roles] ([Id], [Name], [NormalizedName])
-                VALUES ('{roleId}', N'Mappers', N'MAPPERS');
-                INSERT INTO [Identity].[RoleClaims] ([RoleId], [ClaimType], [ClaimValue], [Created])
-                VALUES ('{roleId}', 'permission', 'Permissions.StoryMaps.View', SYSUTCDATETIME()),
-                       ('{roleId}', 'permission', 'Permissions.StoryMaps.Create', SYSUTCDATETIME()),
-                       ('{roleId}', 'permission', 'Permissions.StoryMaps.Update', SYSUTCDATETIME()),
-                       ('{roleId}', 'permission', 'Permissions.StoryMaps.Delete', SYSUTCDATETIME());
-                """, ct);
-
-            // Act
-            await migrator.MigrateAsync(Target, ct);
-
-            // Assert
-            (await Rows(context, "SELECT DISTINCT [Visibility], [EditAccess] FROM [Planning].[StoryMaps];", ct))
-                .Select(r => ((string)r[0], (string)r[1])).Should().Equal(("Public", "AnyoneWhoCanView"));
-
-            var owners = await Rows(context, "SELECT [StoryMapId], [EmployeeId] FROM [Planning].[StoryMapOwners];", ct);
-            owners.Select(r => ((Guid)r[0], (Guid)r[1])).Should().Equal((linked, ownerEmployee));
-
-            (await Rows(context, $"SELECT [ClaimValue] FROM [Identity].[RoleClaims] WHERE [RoleId] = '{roleId}' ORDER BY [ClaimValue];", ct))
-                .Select(r => (string)r[0]).Should().Equal("Permissions.StoryMaps.Create", "Permissions.StoryMaps.View");
-
-            // The rest of the way, so EF reads the rows through the current model.
-            await migrator.MigrateAsync(cancellationToken: ct);
-            await using (var read = _fixture.CreateContext(connectionString))
-            {
-                var map = await read.StoryMaps.AsNoTracking()
-                    .Include(m => m.Owners)
-                    .SingleAsync(m => m.Id == linked, ct);
-                map.Owners.Select(o => o.EmployeeId).Should().Equal(ownerEmployee);
-                map.Visibility.Should().Be(Visibility.Public);
-                map.EditAccess.Should().Be(StoryMapEditAccess.AnyoneWhoCanView);
-
-                var ownerless = await read.StoryMaps.AsNoTracking()
-                    .Include(m => m.Owners)
-                    .SingleAsync(m => m.Id == unlinked, ct);
-                ownerless.Owners.Should().BeEmpty();
-            }
-
-            await migrator.MigrateAsync(Previous, ct);
-
-            (await Scalar<string>(context, $"SELECT [OwnerId] FROM [Planning].[StoryMaps] WHERE [Id] = '{linked}';", ct))
-                .Should().Be("owner-user");
-            (await Scalar<string>(context, $"SELECT [OwnerId] FROM [Planning].[StoryMaps] WHERE [Id] = '{unlinked}';", ct))
-                .Should().Be("creator");
+            var ownerless = await read.StoryMaps.AsNoTracking()
+                .Include(m => m.Owners)
+                .SingleAsync(m => m.Id == unlinked, ct);
+            ownerless.Owners.Should().BeEmpty();
         }
-        finally
-        {
-            await context.Database.EnsureDeletedAsync(ct);
-        }
+
+        await migrator.MigrateAsync(Previous, ct);
+
+        (await Scalar<string>(context, $"SELECT [OwnerId] FROM [Planning].[StoryMaps] WHERE [Id] = '{linked}';", ct))
+            .Should().Be("owner-user");
+        (await Scalar<string>(context, $"SELECT [OwnerId] FROM [Planning].[StoryMaps] WHERE [Id] = '{unlinked}';", ct))
+            .Should().Be("creator");
     }
 
     private static Task AddEmployee(WaydDbContext context, Guid id, string number, CancellationToken ct) =>

@@ -5,8 +5,8 @@ using Testcontainers.MsSql;
 namespace Wayd.Tests.Containers;
 
 /// <summary>
-/// Starts a SQL Server container for one suite, when no shared server is set; fixtures reach it through
-/// <see cref="SqlServerTestDatabase"/>.
+/// Starts the SQL Server container a test process shares when no shared server is set; fixtures reach it through
+/// <see cref="SqlServerTestServer"/> and <see cref="SqlServerTestDatabase"/>.
 /// </summary>
 public static class SqlServerTestContainer
 {

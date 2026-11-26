@@ -6,10 +6,9 @@ namespace Wayd.Web.Api.IntegrationTests.Infrastructure;
 /// empty schema.
 /// </summary>
 /// <remarks>
-/// One collection rather than several in parallel: the suite is CPU-bound, booting dozens of hosts of its own through
-/// <c>WithWebHostBuilder</c>, and on a 4-core CI runner parallel collections are slower, since each adds a host, a
-/// migration and a warm-up the runner has no cores spare for. Hosts share no process-wide configuration, so a split
-/// worth trying on a larger runner is a change to this file alone.
+/// One collection rather than several in parallel: the suite is CPU-bound, and on a 4-core CI runner parallel collections
+/// are slower, since each adds a host, a migration and a warm-up the runner has no cores spare for. Hosts share no
+/// process-wide configuration, so a split worth trying on a larger runner is a change to this file alone.
 /// </remarks>
 [CollectionDefinition(Name)]
 public sealed class SqlServerApiTestCollection : ICollectionFixture<WaydSqlServerApiFactory>

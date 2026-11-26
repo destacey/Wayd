@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 using Wayd.Infrastructure;
 using Wayd.Web.Api.IntegrationTests.Infrastructure;
 
@@ -90,7 +89,7 @@ public sealed class SecurityHeadersTests(WaydApiFactory factory)
         // Arrange — every configurable key blanked, the shape a mis-nested or renamed config section
         // produces. The headers must fall back to their defaults rather than disappear, which is the
         // failure this middleware originally shipped with.
-        using var factory = WithSettings(
+        var factory = WithSettings(
             ("ReferrerPolicy", string.Empty),
             ("PermissionsPolicy", string.Empty));
         var client = factory.CreateClient();
@@ -112,7 +111,7 @@ public sealed class SecurityHeadersTests(WaydApiFactory factory)
     public async Task EnableFalse_SendsNoSecurityHeaderAtAll(string headerName)
     {
         // Arrange — the kill switch, for a deployment whose edge owns these headers.
-        using var factory = WithSettings(("Enable", "false"));
+        var factory = WithSettings(("Enable", "false"));
         var client = factory.CreateClient();
 
         // Act
@@ -129,7 +128,7 @@ public sealed class SecurityHeadersTests(WaydApiFactory factory)
     {
         // Arrange — proves config is actually read. Asserting only the defaults would pass even if the
         // middleware ignored configuration entirely.
-        using var factory = WithSettings((settingKey, configuredValue));
+        var factory = WithSettings((settingKey, configuredValue));
         var client = factory.CreateClient();
 
         // Act
@@ -146,7 +145,7 @@ public sealed class SecurityHeadersTests(WaydApiFactory factory)
     public async Task EnableHsts_EmitsMaxAgeOverHttps(string includeSubDomains, string expectedValue)
     {
         // Arrange — the test server only speaks https when given an https base address.
-        using var factory = WithSettings(
+        var factory = WithSettings(
             ("EnableHsts", "true"),
             ("HstsMaxAgeSeconds", "31536000"),
             ("HstsIncludeSubDomains", includeSubDomains));
@@ -168,7 +167,7 @@ public sealed class SecurityHeadersTests(WaydApiFactory factory)
     {
         // Arrange — TLS terminates upstream, so an enabled-but-plain-HTTP hop must stay silent rather
         // than latch a max-age the edge cannot honour.
-        using var factory = WithSettings(("EnableHsts", "true"), ("HstsMaxAgeSeconds", "31536000"));
+        var factory = WithSettings(("EnableHsts", "true"), ("HstsMaxAgeSeconds", "31536000"), ("HstsIncludeSubDomains", "true"));
         var client = factory.CreateClient();
 
         // Act
@@ -183,7 +182,7 @@ public sealed class SecurityHeadersTests(WaydApiFactory factory)
     {
         // Arrange — a zero max-age would tell browsers to forget the policy; treat it as "off" rather
         // than emitting a header that undoes an edge-set one.
-        using var factory = WithSettings(("EnableHsts", "true"), ("HstsMaxAgeSeconds", "0"));
+        var factory = WithSettings(("EnableHsts", "true"), ("HstsMaxAgeSeconds", "0"));
         var client = factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             BaseAddress = new Uri("https://localhost"),
@@ -196,8 +195,7 @@ public sealed class SecurityHeadersTests(WaydApiFactory factory)
         Assert.False(response.Headers.Contains("Strict-Transport-Security"));
     }
 
+    /// <summary>A shared host with the given <c>SecurityHeaderSettings</c>; never dispose it.</summary>
     private WebApplicationFactory<Program> WithSettings(params (string Key, string Value)[] settings) =>
-        _factory.WithWebHostBuilder(builder =>
-            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
-                settings.Select(s => new KeyValuePair<string, string?>($"SecurityHeaderSettings:{s.Key}", s.Value)))));
+        _factory.HostWith([.. settings.Select(s => ($"SecurityHeaderSettings:{s.Key}", (string?)s.Value))]);
 }

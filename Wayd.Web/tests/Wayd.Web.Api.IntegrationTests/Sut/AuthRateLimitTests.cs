@@ -1,8 +1,6 @@
 using System.Net;
 using System.Text;
 using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 using Wayd.Web.Api.IntegrationTests.Infrastructure;
 
 namespace Wayd.Web.Api.IntegrationTests.Sut;
@@ -13,14 +11,17 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// was moved into another endpoint's budget.
 /// </summary>
 /// <remarks>
-/// Each test lowers the limits on a host of its own, so its limiter starts empty and no other test is throttled.
-/// Requests carry an empty body: request validation refuses it with 422 before the action runs, so nothing is written
-/// and no account is locked, while the limiter, which runs first, still counts it.
+/// The tests share the host on which every one of these limits is lowered (<see cref="AddressLimitedHost"/>), each
+/// sending from an address of its own, so its windows start empty and no other test is throttled. With every limit
+/// lowered, a refusal alone does not show which limit refused, so a test that spends one endpoint's budget also shows
+/// the endpoints on the other limits still answering. Requests carry an empty body: request validation refuses it with
+/// 422 before the action runs, so nothing is written and no account is locked, while the limiter, which runs first,
+/// still counts it.
 /// </remarks>
 [Collection(SqlServerApiTestCollection.Name)]
 public sealed class AuthRateLimitTests(WaydSqlServerApiFactory factory)
 {
-    private const int Limit = 2;
+    private const int Limit = AddressLimitedHost.Limit;
 
     private readonly WaydSqlServerApiFactory _factory = factory;
 
@@ -33,10 +34,9 @@ public sealed class AuthRateLimitTests(WaydSqlServerApiFactory factory)
     public async Task Endpoint_AnswersTooManyRequests_PastItsLimit(string limit, string method, string path)
     {
         // Arrange
-        using var host = LimitedHost(limit);
-        var client = host.CreateClient();
+        var client = _factory.AddressLimited().CreateClientFromNewAddress();
         for (var i = 0; i < Limit; i++)
-            (await Send(client, method, path)).StatusCode.Should().Be(WithinLimit(method));
+            (await Send(client, method, path)).StatusCode.Should().Be(WithinLimit(method), $"{limit} allows {Limit}");
 
         // Act
         var response = await Send(client, method, path);
@@ -46,14 +46,16 @@ public sealed class AuthRateLimitTests(WaydSqlServerApiFactory factory)
         response.Headers.RetryAfter.Should().NotBeNull();
         response.Headers.RetryAfter!.Delta.Should().BePositive();
         response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+        foreach (var other in Endpoints.Where(e => e.Limit != limit))
+            (await Send(client, other.Method, other.Path)).StatusCode.Should().Be(
+                WithinLimit(other.Method), $"{other.Path} is on {other.Limit}, which {path} must not spend");
     }
 
     [Fact]
     public async Task SignInAndExchange_ShareOneBudget()
     {
         // Arrange — the sign-in budget spent entirely on password sign-in
-        using var host = LimitedHost("AuthSignIn");
-        var client = host.CreateClient();
+        var client = _factory.AddressLimited().CreateClientFromNewAddress();
         for (var i = 0; i < Limit; i++)
             (await Send(client, "POST", "/api/auth/login")).StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
 
@@ -68,8 +70,7 @@ public sealed class AuthRateLimitTests(WaydSqlServerApiFactory factory)
     public async Task Refresh_DoesNotSpendTheSignInBudget()
     {
         // Arrange — both lowered, and the refresh budget spent, so a shared window would refuse the sign-in
-        using var host = LimitedHost("AuthSignIn", "AuthRefresh");
-        var client = host.CreateClient();
+        var client = _factory.AddressLimited().CreateClientFromNewAddress();
         for (var i = 0; i < Limit; i++)
             await Send(client, "POST", "/api/auth/refresh-token");
         (await Send(client, "POST", "/api/auth/refresh-token")).StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
@@ -81,21 +82,22 @@ public sealed class AuthRateLimitTests(WaydSqlServerApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
     }
 
+    /// <summary>Every anonymous /api/auth endpoint, with the limit it is on.</summary>
+    private static readonly (string Limit, string Method, string Path)[] Endpoints =
+    [
+        ("AuthSignIn", "POST", "/api/auth/login"),
+        ("AuthSignIn", "POST", "/api/auth/exchange"),
+        ("AuthRefresh", "POST", "/api/auth/refresh-token"),
+        ("AuthProviders", "GET", "/api/auth/providers"),
+        ("AuthSetup", "POST", "/api/auth/setup"),
+    ];
+
     /// <summary>
     /// What a request within its limit answers: request validation refuses the empty body of a POST before the action
     /// runs, so no test signs anyone in or completes setup, and the provider list needs no body.
     /// </summary>
     private static HttpStatusCode WithinLimit(string method) =>
         method == "POST" ? HttpStatusCode.UnprocessableEntity : HttpStatusCode.OK;
-
-    /// <summary>A host whose named limits allow <see cref="Limit"/> requests an hour.</summary>
-    private WebApplicationFactory<Program> LimitedHost(params string[] limits) =>
-        _factory.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, config) =>
-            config.AddInMemoryCollection(limits.SelectMany(limit => new[]
-            {
-                new KeyValuePair<string, string?>($"RateLimitSettings:{limit}:PermitLimit", Limit.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                new KeyValuePair<string, string?>($"RateLimitSettings:{limit}:WindowSeconds", "3600"),
-            }))));
 
     private static Task<HttpResponseMessage> Send(HttpClient client, string method, string path)
     {

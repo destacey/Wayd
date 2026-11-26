@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.FeatureManagement.Commands;
@@ -75,10 +74,7 @@ public sealed class AuthorizationServerMetadataTests(WaydSqlServerApiFactory fac
     {
         // Arrange — the API behind a TLS-terminating proxy sees plain HTTP on an internal address
         await SetFlag(true);
-        using var behindProxy = _factory.WithWebHostBuilder(builder =>
-            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
-                [new KeyValuePair<string, string?>("ApiSettings:PublicUrl", "https://api.wayd.example.com")])));
-        var client = behindProxy.CreateClient();
+        var client = _factory.HostWith(("ApiSettings:PublicUrl", "https://api.wayd.example.com")).CreateClient();
 
         // Act
         var metadata = await client.GetFromJsonAsync<JsonElement>(MetadataPath, TestContext.Current.CancellationToken);

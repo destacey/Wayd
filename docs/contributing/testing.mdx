@@ -40,7 +40,14 @@ The Testcontainers match is on the **prefix**, not on `Testcontainers.MsSql` spe
 reaching for a different module (`Testcontainers.PostgreSql`, `.Redis`, `.RabbitMq`) still needs Docker.
 `Directory.Build.targets` and `.github/scripts/dotnet-test-projects.sh` must stay in step on this.
 
-The integration run starts **one** SQL Server container for every suite and hands its connection string
+CI runs the unit half and the integration half as parallel jobs, and splits the integration half into
+shards, one job each. `Wayd.Infrastructure.IntegrationTests` and `Wayd.Web.Api.IntegrationTests` each have a
+shard of their own (`infrastructure`, `api`) because they set the pace of the run; the `other` shard takes
+every remaining integration project, so a new suite lands there without any change. The shards are defined in
+`dotnet-test-projects.sh`, and the integration matrix in `.github/workflows/docker.yml` must list them
+exactly, in the same order, or every shard fails.
+
+Each integration run (one per shard in CI) starts **one** SQL Server container for every suite in it and hands its connection string
 to the test processes as `WAYD_TEST_SQLSERVER`. The engine upgrades its system databases on every first
 boot, which takes about a minute, so sharing it pays that once per run instead of once per suite. The
 script removes the container when the run ends, pass or fail, and prints its log when the run fails. It
@@ -245,8 +252,11 @@ dotnet test Wayd.slnx
 # Only the tests that need no Docker — what CI's unit run covers
 ./.github/scripts/dotnet-test-projects.sh unit
 
-# Only the Testcontainers suites (Requires=Docker) — what CI's integration run covers
+# Only the Testcontainers suites (Requires=Docker) — what CI's integration jobs cover
 ./.github/scripts/dotnet-test-projects.sh integration
+
+# One integration shard, as one CI job runs it
+./.github/scripts/dotnet-test-projects.sh integration api
 
 # Specific project
 dotnet test "Wayd.Services/Wayd.Work/tests/Wayd.Work.Application.Tests/Wayd.Work.Application.Tests.csproj"

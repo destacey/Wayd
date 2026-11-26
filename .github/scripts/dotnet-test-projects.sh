@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Runs one half of the .NET test suite.
+# Runs one half of the .NET test suite, or one shard of the integration half.
 #
-#   unit         every test project that does NOT need Docker
-#   integration  the Testcontainers suites (SQL Server), which need Docker; they share one engine this
-#                script starts, unless WAYD_TEST_SQLSERVER already names one
+#   unit                  every test project that does NOT need Docker
+#   integration [shard]   the Testcontainers suites (SQL Server), which need Docker; they share one engine
+#                         this script starts, unless WAYD_TEST_SQLSERVER already names one. With a shard,
+#                         only that shard's suites (see integration_shards below); without, all of them.
 #
 # Set COLLECT_COVERAGE=true to also collect Cobertura coverage (rules in testconfig.json). It is
 # opt-in because instrumentation slows the run noticeably, and PRs do not publish a coverage report
@@ -25,9 +26,67 @@
 # every test module in which it matches nothing (Microsoft.Testing.Platform exit code 8, "zero tests ran").
 set -euo pipefail
 
-mode="${1:?usage: dotnet-test-projects.sh <unit|integration>}"
+mode="${1:?usage: dotnet-test-projects.sh <unit|integration [shard]>}"
+shard="${2:-}"
 collect_coverage="${COLLECT_COVERAGE:-false}"
 cd "$(dirname "$0")/../.."
+
+# The integration shards CI runs as parallel jobs. A suite long enough to set the pace of the whole run gets a
+# shard of its own, keyed here by shard name; `other` is every integration project no shard names, so a new
+# suite lands there rather than in no job at all.
+#
+# The integration matrix in .github/workflows/docker.yml must list exactly shard_names, in this order. CI passes
+# each job's strategy.job-index and job-total, and a job whose index does not hold its shard here fails: a
+# dropped, duplicated, extra or reordered matrix entry would otherwise leave suites in no job while CI passes.
+declare -A integration_shards=(
+    [infrastructure]="Wayd.Infrastructure.IntegrationTests"
+    [api]="Wayd.Web.Api.IntegrationTests"
+)
+shard_names=(infrastructure api other)
+
+case "$mode" in
+    unit)
+        if [[ -n "$shard" ]]; then
+            echo "The unit half has no shards (got '$shard')." >&2
+            exit 1
+        fi
+        ;;
+    integration)
+        if [[ -n "$shard" && "$shard" != "other" && -z "${integration_shards[$shard]:-}" ]]; then
+            echo "Unknown integration shard '$shard'; expected one of: ${shard_names[*]}." >&2
+            exit 1
+        fi
+        if [[ -n "${WAYD_TEST_SHARD_COUNT:-}" ]]; then
+            index="${WAYD_TEST_SHARD_INDEX:?WAYD_TEST_SHARD_INDEX must be set with WAYD_TEST_SHARD_COUNT}"
+            if [[ "$WAYD_TEST_SHARD_COUNT" != "${#shard_names[@]}" || ! "$index" =~ ^[0-9]+$ \
+                || "${shard_names[$index]:-}" != "$shard" ]]; then
+                echo "The integration matrix in docker.yml does not match this script: job $index of $WAYD_TEST_SHARD_COUNT runs '$shard', but the matrix must list exactly: ${shard_names[*]} (in that order)." >&2
+                exit 1
+            fi
+        fi
+        ;;
+    *)
+        echo "usage: dotnet-test-projects.sh <unit|integration [shard]>" >&2
+        exit 1
+        ;;
+esac
+
+if [[ ${#shard_names[@]} -ne $((${#integration_shards[@]} + 1)) || "${shard_names[-1]}" != "other" ]]; then
+    echo "shard_names must list every integration_shards key, then other." >&2
+    exit 1
+fi
+for name in "${shard_names[@]:0:${#shard_names[@]}-1}"; do
+    if [[ -z "${integration_shards[$name]:-}" ]]; then
+        echo "shard_names lists '$name', which integration_shards does not define." >&2
+        exit 1
+    fi
+done
+
+# The shard a dedicated project belongs to, by project name.
+declare -A dedicated_shard=()
+for name in "${!integration_shards[@]}"; do
+    dedicated_shard["${integration_shards[$name]}"]="$name"
+done
 
 # Extracted with sed rather than `grep -oP`: PCRE is a GNU extension, absent from BSD/macOS grep and
 # refused by Git Bash's grep unless the locale is unibyte or UTF-8. On a Windows dev box it therefore
@@ -36,6 +95,7 @@ cd "$(dirname "$0")/../.."
 mapfile -t all_projects < <(tr '<' '\n' < Wayd.slnx | sed -n 's/^Project .*Path="\([^"]*\)".*/\1/p')
 
 selected=()
+declare -A found_dedicated=()
 for proj in "${all_projects[@]}"; do
     # Only test projects are candidates; src projects have no tests to run.
     [[ "$proj" == *Tests.csproj ]] || continue
@@ -43,22 +103,41 @@ for proj in "${all_projects[@]}"; do
     # unrelated string mentioning Testcontainers must not move a project into the Docker job. Keep this
     # in step with the prefix match in Directory.Build.targets, which stamps the Requires=Docker trait.
     if grep -qE '<PackageReference[^>]*Include="Testcontainers' "$proj"; then
-        [[ "$mode" == "integration" ]] && selected+=("$proj")
+        [[ "$mode" == "integration" ]] || continue
+        project_name="$(basename "$proj" .csproj)"
+        project_shard="${dedicated_shard[$project_name]:-other}"
+        [[ "$project_shard" == "other" ]] || found_dedicated["$project_name"]=1
+        if [[ -z "$shard" || "$shard" == "$project_shard" ]]; then
+            selected+=("$proj")
+        fi
     else
         [[ "$mode" == "unit" ]] && selected+=("$proj")
     fi
 done
 
+# A shard naming a project that was renamed, removed or no longer uses Testcontainers would otherwise test
+# nothing while that project ran in `other`, or nowhere.
+if [[ "$mode" == "integration" ]]; then
+    for project_name in "${!dedicated_shard[@]}"; do
+        if [[ -z "${found_dedicated[$project_name]:-}" ]]; then
+            echo "Integration shard '${dedicated_shard[$project_name]}' names $project_name, which is not a Testcontainers test project in Wayd.slnx." >&2
+            exit 1
+        fi
+    done
+fi
+
+label="$mode${shard:+ ($shard)}"
+
 if [[ ${#selected[@]} -eq 0 ]]; then
-    echo "No $mode test projects found — the Wayd.slnx parse or the Testcontainers heuristic broke." >&2
+    echo "No $label test projects found — the Wayd.slnx parse or the Testcontainers heuristic broke." >&2
     exit 1
 fi
 
-echo "Running ${#selected[@]} $mode test project(s):"
+echo "Running ${#selected[@]} $label test project(s):"
 printf '  %s\n' "${selected[@]}"
 
 # A solution filter needs Windows-style separators and its paths relative to the named solution.
-filter="test-${mode}.slnf"
+filter="test-${mode}${shard:+-$shard}.slnf"
 {
     printf '{\n  "solution": {\n    "path": "Wayd.slnx",\n    "projects": [\n'
     for i in "${!selected[@]}"; do
@@ -174,8 +253,8 @@ fi
 
 coverage_args=()
 if [[ "$collect_coverage" == "true" ]]; then
-    # Every module writes TestResults/coverage.cobertura.<timestamp>.xml at the repo root; the workflow
-    # uploads that directory after both halves and merges once, so the published number spans unit AND
+    # Every module writes TestResults/coverage.cobertura.<timestamp>.xml at the repo root; each CI job
+    # uploads its own files and coverage-report merges them all, so the published number spans unit AND
     # integration runs.
     #
     # The unit half clears the previous run's files first -- the names are unique per module AND per run,

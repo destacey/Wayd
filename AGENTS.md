@@ -106,7 +106,7 @@ dotnet test Wayd.slnx
 # Run only the tests that need no Docker — what CI's unit job runs
 ./.github/scripts/dotnet-test-projects.sh unit
 
-# Run only the Testcontainers suites — what CI's integration job runs
+# Run only the Testcontainers suites — what CI's integration jobs run
 ./.github/scripts/dotnet-test-projects.sh integration
 
 # Categories: Unit / Integration (*.IntegrationTests); Requires=Docker on Testcontainers suites

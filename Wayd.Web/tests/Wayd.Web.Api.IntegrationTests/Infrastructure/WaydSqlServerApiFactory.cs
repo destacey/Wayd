@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Runtime.ExceptionServices;
 using System.Text;
+using Hangfire;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -9,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Wayd.Infrastructure;
 using Wayd.Infrastructure.Auth.OAuth;
 using Wayd.Infrastructure.Persistence.Context;
@@ -122,6 +124,8 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
 
         builder.ConfigureTestServices(services =>
         {
+            RemoveHangfireServer(services);
+
             // Read per scope rather than captured once, so WaitOnImportsFor reaches the next request.
             services.RemoveAll<ImportResponseTiming>();
             services.AddScoped(_ => ImportResponseTiming);
@@ -142,6 +146,27 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
                     new KeyValuePair<string, string?>("RateLimitSettings:PerUserElevated:TokenLimit", "100000"),
                     new KeyValuePair<string, string?>("RateLimitSettings:PerUserElevated:TokensPerPeriod", "100000"),
                 ])));
+    }
+
+    /// <summary>
+    /// Removes the Hangfire server, so the host enqueues jobs and records recurring ones but never runs them.
+    /// </summary>
+    /// <remarks>
+    /// No test needs a job to run, and a running server works on its own schedule: the default recurring jobs fire
+    /// on every collection's database mid-test, and stopping the host waits for whatever job is in flight, which has
+    /// outlasted the host's shutdown timeout and failed the collection's clean-up. Hangfire registers the server as a
+    /// factory, so it is found by the type the factory returns; a registration this misses fails the boot rather
+    /// than leaving the server running unnoticed.
+    /// </remarks>
+    private static void RemoveHangfireServer(IServiceCollection services)
+    {
+        var server = services.Where(d => d.ServiceType == typeof(IHostedService)
+            && d.ImplementationFactory?.Method.ReturnType == typeof(BackgroundJobServerHostedService)).ToList();
+        if (server.Count == 0)
+            throw new InvalidOperationException("The Hangfire server's registration was not found; AddHangfireServer may register it differently now.");
+
+        foreach (var descriptor in server)
+            services.Remove(descriptor);
     }
 
     /// <summary>

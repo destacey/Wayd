@@ -2,7 +2,8 @@
 # Runs one half of the .NET test suite.
 #
 #   unit         every test project that does NOT need Docker
-#   integration  the Testcontainers suites (SQL Server), which need Docker
+#   integration  the Testcontainers suites (SQL Server), which need Docker; they share one engine this
+#                script starts, unless WAYD_TEST_SQLSERVER already names one
 #
 # Set COLLECT_COVERAGE=true to also collect Cobertura coverage (rules in testconfig.json). It is
 # opt-in because instrumentation slows the run noticeably, and PRs do not publish a coverage report
@@ -71,23 +72,104 @@ filter="test-${mode}.slnf"
 
 parallel_args=()
 if [[ "$mode" == "integration" ]]; then
-    # Pull the image once, up front. Otherwise every suite that starts at the same time downloads it at the
-    # same time, and the download eats into each container's start-up time.
-    # sed, not `grep -oP` -- see the note on the project list above. Matched against the whole const
-    # declaration so an unrelated `Name = "..."` appearing later cannot be picked up instead.
-    image="$(sed -n 's/.*const string Name = "\([^"]*\)".*/\1/p' Wayd.Common/tests/Wayd.Tests.Containers/SqlServerTestImage.cs)"
-    if [[ -z "$image" ]]; then
-        echo "Could not read the SQL Server image from SqlServerTestImage.cs — the const was renamed or moved." >&2
-        exit 1
-    fi
-    echo "Pulling $image"
-    docker pull --quiet "$image"
+    # One SQL Server for the whole run, shared by every suite through WAYD_TEST_SQLSERVER; each suite creates a
+    # database of its own on it (SqlServerTestDatabase). The image ships system databases older than its
+    # binaries, so every first boot spends about a minute upgrading them -- paid once here instead of once per
+    # suite. A developer who already runs an engine can point WAYD_TEST_SQLSERVER at it and none is started.
+    if [[ -z "${WAYD_TEST_SQLSERVER:-}" ]]; then
+        # sed, not `grep -oP` -- see the note on the project list above. Matched against the whole const
+        # declaration so an unrelated `Name = "..."` appearing later cannot be picked up instead.
+        image="$(sed -n 's/.*const string Name = "\([^"]*\)".*/\1/p' Wayd.Common/tests/Wayd.Tests.Containers/SqlServerTestImage.cs)"
+        if [[ -z "$image" ]]; then
+            echo "Could not read the SQL Server image from SqlServerTestImage.cs — the const was renamed or moved." >&2
+            exit 1
+        fi
+        echo "Pulling $image"
+        docker pull --quiet "$image"
 
-    # Each integration project starts its own SQL Server container, and dotnet test runs every test module
-    # at once by default. On a runner with far fewer cores than projects, every engine then warms up
-    # together and early queries time out. Capping the modules caps the containers starting together.
-    parallel_args=(--max-parallel-test-modules "${INTEGRATION_TEST_PARALLELISM:-2}")
-    echo "Running at most ${INTEGRATION_TEST_PARALLELISM:-2} integration project(s) at a time"
+        container="wayd-test-sqlserver-$$"
+        # Random per run, and only ever on loopback. Meets SQL Server's complexity rule (upper, lower, digit, symbol).
+        password="Wayd-$(od -An -N12 -tx1 /dev/urandom | tr -d ' \n')-T1"
+        startup_timeout="${SQLSERVER_STARTUP_TIMEOUT_SECONDS:-240}"
+
+        remove_container() {
+            docker rm --force --volumes "$container" > /dev/null 2>&1 || true
+        }
+        print_log() {
+            echo "SQL Server log (tail):" >&2
+            docker logs --tail 80 "$container" >&2 2>&1 || true
+        }
+        trap remove_container EXIT
+
+        # Git Bash rewrites an argument that looks like a POSIX path into a Windows one, which would send docker
+        # exec a sqlcmd path that does not exist in the container.
+        export MSYS_NO_PATHCONV=1
+
+        # The engine has crashed during start-up in CI, dumping core before accepting a login. Nothing has been
+        # written to it then, so a fresh container is started in its place.
+        ready=false
+        outcome=""
+        for attempt in 1 2 3; do
+            echo "Starting SQL Server ($container, attempt $attempt)"
+            docker run --detach --name "$container" \
+                --env ACCEPT_EULA=Y \
+                --env MSSQL_SA_PASSWORD="$password" \
+                --env MSSQL_MEMORY_LIMIT_MB="${SQLSERVER_MEMORY_LIMIT_MB:-6144}" \
+                --publish 127.0.0.1::1433 \
+                "$image" > /dev/null
+
+            # Waits on a real sa login, not the port or the "ready for client connections" line: the engine
+            # prints that while it is still upgrading, and a login then fails with "An error occurred while
+            # evaluating the password".
+            deadline=$((SECONDS + startup_timeout))
+            outcome="timed out"
+            while (( SECONDS < deadline )); do
+                # Only a definite "false" is a crash; a failed inspect is retried on the next pass rather than
+                # taken for one.
+                if [[ "$(docker inspect --format '{{.State.Running}}' "$container" 2>/dev/null || true)" == "false" ]]; then
+                    outcome="stopped"
+                    break
+                fi
+                if docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$password" \
+                    -Q "SET NOCOUNT ON; SELECT 1;" > /dev/null 2>&1; then
+                    ready=true
+                    break
+                fi
+                sleep 2
+            done
+
+            [[ "$ready" == "true" ]] && break
+            print_log
+            remove_container
+            # A slow engine is not a crashed one; only a container that stopped is worth starting again.
+            [[ "$outcome" == "stopped" ]] || break
+        done
+
+        if [[ "$ready" != "true" ]]; then
+            if [[ "$outcome" == "stopped" ]]; then
+                echo "SQL Server stopped during start-up on all three attempts; its log is above." >&2
+            else
+                echo "SQL Server did not accept an sa login within ${startup_timeout}s; its log is above." >&2
+            fi
+            exit 1
+        fi
+
+        # `docker port` prints one line per address family; the loopback publish gives exactly one.
+        port="$(docker port "$container" 1433/tcp | head -n 1 | sed 's/.*://')"
+        if [[ ! "$port" =~ ^[0-9]+$ ]]; then
+            echo "Could not read the port Docker published for SQL Server (got '$port')." >&2
+            exit 1
+        fi
+        export WAYD_TEST_SQLSERVER="Server=127.0.0.1,$port;User Id=sa;Password=$password;TrustServerCertificate=True;Encrypt=True"
+        echo "SQL Server ready on 127.0.0.1:$port after ${SECONDS}s of the run"
+    else
+        echo "Using the SQL Server in WAYD_TEST_SQLSERVER"
+    fi
+
+    # With no engines booting beside each other, the cap is about the test processes themselves sharing the
+    # runner's cores and the one engine.
+    parallel_args=(--max-parallel-test-modules "${INTEGRATION_TEST_PARALLELISM:-4}")
+    echo "Running at most ${INTEGRATION_TEST_PARALLELISM:-4} integration project(s) at a time"
 fi
 
 coverage_args=()
@@ -109,9 +191,16 @@ fi
 
 # --hangdump aborts with a dump, and lists the tests still running, instead of burning the job's full
 # time budget, which is how a container that never becomes ready would otherwise present.
+status=0
 dotnet test --solution "$filter" \
     -c Release \
     --results-directory TestResults \
     --hangdump --hangdump-timeout 5m \
     "${parallel_args[@]}" \
-    "${coverage_args[@]}"
+    "${coverage_args[@]}" || status=$?
+
+# A failure that came from the engine shows up in its log, not the tests' output.
+if [[ $status -ne 0 && -n "${container:-}" ]]; then
+    print_log
+fi
+exit $status

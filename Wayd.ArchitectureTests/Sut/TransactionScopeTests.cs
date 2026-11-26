@@ -97,7 +97,7 @@ public class TransactionScopeTests
         offenders.Should().BeEmpty(
             "SaveChangesAsync opens the transaction that commits the rows with what records them, and a "
             + "retrying execution strategy refuses a transaction it did not start. A fixture that enables "
-            + "retries fails every save in it. Wait the database out instead — SqlServerTestContainer does.");
+            + "retries fails every save in it. Wait the database out instead — SqlServerTestContainer and dotnet-test-projects.sh do.");
     }
 
     [Fact]

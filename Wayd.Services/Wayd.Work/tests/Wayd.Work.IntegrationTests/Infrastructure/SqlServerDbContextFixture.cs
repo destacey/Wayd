@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Moq;
-using Testcontainers.MsSql;
 using Wayd.Common.Application.Events;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Events;
@@ -14,13 +13,13 @@ using Wolverine.EntityFrameworkCore;
 namespace Wayd.Work.IntegrationTests.Infrastructure;
 
 /// <summary>
-/// Starts a SQL Server container and applies the real <c>Wayd.Infrastructure.Migrators.MSSQL</c> migrations
-/// against it, then hands out <see cref="WaydDbContext"/> instances pointed at that container. This exercises
+/// Creates a SQL Server database of its own (see <see cref="SqlServerTestDatabase"/>), applies the real <c>Wayd.Infrastructure.Migrators.MSSQL</c> migrations
+/// against it, then hands out <see cref="WaydDbContext"/> instances pointed at it. This exercises
 /// the production EF provider, so value converters (e.g. <c>TeamCode</c> → <c>varchar</c>), NodaTime mapping,
 /// and set-based updates (ExecuteUpdate) all behave exactly as they do in production — the very reason
 /// Testcontainers is used here instead of SQLite or an in-memory fake.
 /// <para>
-/// This is a collection fixture (see <see cref="SqlServerTestCollection"/>): one container and one migrated
+/// This is a collection fixture (see <see cref="SqlServerTestCollection"/>): one database and one migrated
 /// schema are shared by every test class in the collection, so tests must not assume a private database.
 /// Reset the rows you touch with <see cref="ResetWorkData"/> at the start of each test.
 /// </para>
@@ -31,16 +30,16 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
     // A fixed instant so audit/system columns are deterministic and no test ever reaches for DateTime.UtcNow.
     public static readonly Instant FixedNow = Instant.FromUtc(2026, 1, 15, 9, 30, 0);
 
-    private MsSqlContainer _container = null!;
+    private SqlServerTestDatabase _database = null!;
 
     private DbContextOptions<WaydDbContext> _options = null!;
     private IOptions<DatabaseSettings> _databaseSettings = null!;
 
     public async ValueTask InitializeAsync()
     {
-        _container = await SqlServerTestContainer.Start();
+        _database = await SqlServerTestDatabase.Create("work");
 
-        var connectionString = _container.GetConnectionString();
+        var connectionString = _database.ConnectionString;
 
         // Drive OnConfiguring down the SqlServer + NodaTime path (DBProvider "mssql"), exactly as production.
         _databaseSettings = Options.Create(new DatabaseSettings
@@ -58,8 +57,8 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
                 // No EnableRetryOnFailure. BaseDbContext.SaveChangesAsync opens the transaction that commits
                 // the entities with their audit trail, activity log and outbox envelopes, and a retrying
                 // strategy refuses a transaction it did not start — so switching it on fails every save here
-                // while production, which has no retries either, works. SqlServerTestContainer waits on a real
-                // SELECT 1 before handing the container over, which is what the retries were covering for.
+                // while production, which has no retries either, works. The engine has already answered an
+                // sa login before a suite connects, which is what the retries were covering for.
             })
             .Options;
 
@@ -70,11 +69,11 @@ public sealed class SqlServerDbContextFixture : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        if (_container is not null)
-            await _container.DisposeAsync();
+        if (_database is not null)
+            await _database.DisposeAsync();
     }
 
-    /// <summary>Creates a fresh <see cref="WaydDbContext"/> against the container, with no-op collaborators.</summary>
+    /// <summary>Creates a fresh <see cref="WaydDbContext"/> against the database, with no-op collaborators.</summary>
     public WaydDbContext CreateContext()
     {
         var currentUser = new Mock<ICurrentUser>();

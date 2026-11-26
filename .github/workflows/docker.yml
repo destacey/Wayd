@@ -162,7 +162,15 @@ jobs:
                   if-no-files-found: error
                   retention-days: 1
 
-    build-and-test-client:
+    # The client runs as parallel jobs: this one for the static checks and the production build, and
+    # test-client for the Vitest suite in shards. Neither waits for the other; both gate the image build.
+    #
+    # The ESLint and Next.js caches are saved only by main-branch pushes, under a key that ends in the commit,
+    # and every run restores the newest one by prefix: a cache key is never overwritten, so a fixed key would
+    # freeze on its first entry. PRs restore main's entries but save none: a PR's entry is visible only to its
+    # own branch, and the build cache runs to hundreds of MB, so per-push PR entries would fill the
+    # repository's cache quota and evict main's.
+    check-and-build-client:
         runs-on: ubuntu-latest
         defaults:
             run:
@@ -172,9 +180,13 @@ jobs:
             - name: checkout
               uses: actions/checkout@v4
 
+            # cache: npm keeps the download cache (~/.npm), not node_modules, so npm ci still installs from
+            # the lock file and a stale cache can never change what is installed.
             - uses: actions/setup-node@v4
               with:
                   node-version: 26
+                  cache: npm
+                  cache-dependency-path: Wayd.Web/src/wayd.web.reactclient/package-lock.json
 
             - name: npm ci
               run: npm ci
@@ -190,16 +202,48 @@ jobs:
                       exit 1
                   fi
 
+            # A lint result depends on the plugins and the config as well as the file, so both are in the
+            # key; a change to either starts a cold cache rather than reusing results it would contradict.
+            - name: Restore ESLint cache
+              uses: actions/cache/restore@v4
+              with:
+                  path: ${{ runner.temp }}/eslintcache
+                  key: eslint-${{ hashFiles('Wayd.Web/src/wayd.web.reactclient/package-lock.json', 'Wayd.Web/src/wayd.web.reactclient/eslint.config.mjs') }}-${{ github.sha }}
+                  restore-keys: eslint-${{ hashFiles('Wayd.Web/src/wayd.web.reactclient/package-lock.json', 'Wayd.Web/src/wayd.web.reactclient/eslint.config.mjs') }}-
+
+            # --cache-strategy content: checkout stamps every file with the current time, so ESLint's default
+            # (modification time) would see every file as changed. The config has no type-aware rules, so a
+            # file's result depends on that file alone and a cached result cannot go stale through an import.
             - name: npm run lint
-              run: npm run lint
+              run: npm run lint -- --cache --cache-strategy content --cache-location "$RUNNER_TEMP/eslintcache"
 
-            # Runs before build so a type error fails fast with a direct tsc message rather than
-            # surfacing later inside the slower Next build.
-            - name: npm run typecheck
-              run: npm run typecheck
+            - name: Save ESLint cache
+              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+              uses: actions/cache/save@v4
+              with:
+                  path: ${{ runner.temp }}/eslintcache
+                  key: eslint-${{ hashFiles('Wayd.Web/src/wayd.web.reactclient/package-lock.json', 'Wayd.Web/src/wayd.web.reactclient/eslint.config.mjs') }}-${{ github.sha }}
 
+            # Holds Turbopack's persistent build cache, which Next 16 writes on every `next build` and keeps
+            # when it cleans .next. Next validates each entry itself, so an older one costs a cold build at worst.
+            - name: Restore Next.js build cache
+              uses: actions/cache/restore@v4
+              with:
+                  path: Wayd.Web/src/wayd.web.reactclient/.next/cache
+                  key: nextjs-${{ hashFiles('Wayd.Web/src/wayd.web.reactclient/package-lock.json') }}-${{ github.sha }}
+                  restore-keys: nextjs-${{ hashFiles('Wayd.Web/src/wayd.web.reactclient/package-lock.json') }}-
+
+            # The prebuild script runs typecheck first, so a type error fails here with tsc's own message
+            # before the Next build starts.
             - name: npm run build
               run: npm run build
+
+            - name: Save Next.js build cache
+              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+              uses: actions/cache/save@v4
+              with:
+                  path: Wayd.Web/src/wayd.web.reactclient/.next/cache
+                  key: nextjs-${{ hashFiles('Wayd.Web/src/wayd.web.reactclient/package-lock.json') }}-${{ github.sha }}
 
             # Starts the standalone server with OpenTelemetry on, because a module the build fails to trace
             # only fails when the instrumentation hook loads, after "Ready". The copy runs outside the
@@ -226,25 +270,98 @@ jobs:
                       exit 1
                   fi
 
+    # The Vitest suite in shards. Vitest orders the test files by a hash of their path and gives each shard a
+    # contiguous slice, so the shards together run every file once whatever the count; they balance by file
+    # count, not by time. The count comes from the matrix length: to
+    # change it, add or remove an entry and nothing else.
+    test-client:
+        runs-on: ubuntu-latest
+        strategy:
+            # A failing shard must not cancel the others: each reports files no other shard runs.
+            fail-fast: false
+            matrix:
+                shard: [1, 2]
+        defaults:
+            run:
+                shell: bash
+                working-directory: Wayd.Web/src/wayd.web.reactclient
+        steps:
+            - name: checkout
+              uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 26
+                  cache: npm
+                  cache-dependency-path: Wayd.Web/src/wayd.web.reactclient/package-lock.json
+
+            - name: npm ci
+              run: npm ci
+
             # A PR publishes no coverage report, so PRs run the tests without it; v8 coverage adds only
             # about a tenth to the run, but nothing would read it. The main-branch build collects coverage
-            # and uploads it alongside the .NET report.
-            - name: npm test
-              if: github.event_name != 'push' || github.ref != 'refs/heads/main'
-              run: npm run test:ci
+            # into a blob report per shard, which merge-client-coverage combines.
+            - name: npm test (shard ${{ matrix.shard }})
+              env:
+                  SHARD: ${{ strategy.job-index }}
+                  SHARD_COUNT: ${{ strategy.job-total }}
+                  COLLECT_COVERAGE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+              run: |
+                  args=(--shard="$((SHARD + 1))/$SHARD_COUNT")
+                  if [ "$COLLECT_COVERAGE" = true ]; then
+                      args+=(--coverage --reporter=default --reporter=blob)
+                  fi
+                  npm run test:ci -- "${args[@]}"
 
-            - name: npm run test:coverage
+            - name: Upload client test blob
               if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-              run: npm run test:coverage
+              uses: actions/upload-artifact@v4
+              with:
+                  name: vitest-blob-${{ matrix.shard }}
+                  path: Wayd.Web/src/wayd.web.reactclient/.vitest/blob/
+                  include-hidden-files: true
+                  if-no-files-found: error
+                  retention-days: 1
+
+    # Merges the shards' blob reports into one client coverage report. Needs the source and node_modules:
+    # the coverage include list counts files no test loaded, which Vitest reads from disk to report at 0%.
+    merge-client-coverage:
+        runs-on: ubuntu-latest
+        needs: [test-client]
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        defaults:
+            run:
+                shell: bash
+                working-directory: Wayd.Web/src/wayd.web.reactclient
+        steps:
+            - name: checkout
+              uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 26
+                  cache: npm
+                  cache-dependency-path: Wayd.Web/src/wayd.web.reactclient/package-lock.json
+
+            - name: npm ci
+              run: npm ci
+
+            - name: Download client test blobs
+              uses: actions/download-artifact@v4
+              with:
+                  pattern: vitest-blob-*
+                  path: Wayd.Web/src/wayd.web.reactclient/.vitest/blob
+                  merge-multiple: true
+
+            - name: Merge coverage
+              run: npx vitest run --merge-reports --coverage
 
             # Only lcov.info is uploaded: it is what coverage-report parses, and lcov-report beside it is a
             # full HTML tree that coverage-report regenerates anyway.
             #
-            # if-no-files-found: error, not warn — this step only runs on the main-branch push where the
-            # coverage step above also ran, so a missing file means that step silently produced nothing
-            # rather than that coverage was legitimately skipped.
+            # if-no-files-found: error, not warn — this job only runs on the main-branch push where the
+            # shards collected coverage, so a missing file means the merge silently produced nothing.
             - name: Upload client coverage
-              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
               uses: actions/upload-artifact@v4
               with:
                   name: coverage-client
@@ -260,7 +377,7 @@ jobs:
     # would find no artifacts. Never gates the build: this reports a number, it does not enforce one.
     coverage-report:
         runs-on: ubuntu-latest
-        needs: [test-dotnet-unit, test-dotnet-integration, build-and-test-client]
+        needs: [test-dotnet-unit, test-dotnet-integration, merge-client-coverage]
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         steps:
             - name: Checkout repository
@@ -334,7 +451,7 @@ jobs:
 
     build-and-push-image:
         runs-on: ubuntu-latest
-        needs: [test-dotnet-unit, test-dotnet-integration, build-and-test-client]
+        needs: [test-dotnet-unit, test-dotnet-integration, check-and-build-client, test-client]
         strategy:
             fail-fast: false
             matrix:

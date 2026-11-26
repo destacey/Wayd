@@ -1,6 +1,10 @@
 # AGENTS.md — Web API
 
-The root [AGENTS.md](../../../AGENTS.md) applies here too. This file covers the two generation steps the API drives — the OpenAPI document and client, and the Wolverine handler tree — and the hosted MCP endpoint built on the first.
+The root [AGENTS.md](../../../AGENTS.md) applies here too. This file covers the two generation steps the API drives — the OpenAPI document and client, and the Wolverine handler tree — the hosted MCP endpoint built on the first, and how background jobs fail.
+
+## Background Jobs
+
+A `JobManager` job fails when its work did not happen and sets `[AutomaticRetry]` explicitly: [Background jobs](../../../docs/contributing/architecture.mdx#background-jobs).
 
 ## Hosted MCP Endpoint (`/mcp`)
 

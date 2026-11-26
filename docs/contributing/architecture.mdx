@@ -333,6 +333,23 @@ A planning interval's capacity crosses three modules. Planning owns the interval
 `GetTeamsCapacityByPeriodQuery`, passing those days off per team. Neither read grows with the number of teams or
 iterations.
 
+### Background jobs
+
+Hangfire runs the jobs in `JobManager` (`Wayd.Web.Api/Services/`). Each is a thin entry point that dispatches
+commands, and each follows one rule for failure:
+
+- **A job ends in Failed whenever its work did not happen**, whether through an exception or a failed `Result`.
+  A failed result is never only logged: the job would show as Succeeded on the Background Jobs page. A step
+  that has failed passes its result to `ThrowIfFailed`.
+- **Every job sets `[AutomaticRetry]` explicitly.** Without the attribute Hangfire retries ten times with a
+  growing delay, which holds a failed job in Scheduled for hours. Set `Attempts = 0` when a failure is
+  deterministic or a person or schedule runs the job again (the replication syncs, People Sync, the sweeps).
+  Allow a few short retries only when a failure is plausibly transient and repeating the job is safe (Work Sync,
+  the work item attribution repoint, Portfolio Rank Rebalance).
+- **A job of independent steps runs every step, then fails.** Each step runs through `RunIsolatedStep`, so one
+  module's or one record's failure does not leave the rest stale, and `ThrowIfAnyFailed` fails the job with an
+  `AggregateException` holding every step's failure. Cancellation is not a failure and stops the job.
+
 ### Tagging
 
 Every module that tags its records builds on `Wayd.Common.Domain/Tagging`, so tagging behaves the same everywhere while each module keeps its own tables, events and authorization.

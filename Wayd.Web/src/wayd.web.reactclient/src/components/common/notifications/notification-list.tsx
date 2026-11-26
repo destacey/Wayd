@@ -33,6 +33,7 @@ export const NothingUnreadMessage = 'You have read everything.'
 
 interface NotificationEntryProps {
   notification: NotificationDto
+  href: string | null
   onOpen: (notification: NotificationDto) => void
   onMarkRead: (notification: NotificationDto) => void
   onMute: (notification: NotificationDto) => void
@@ -42,13 +43,13 @@ interface NotificationEntryProps {
 
 const NotificationEntry = ({
   notification,
+  href,
   onOpen,
   onMarkRead,
   onMute,
   isMuting,
 }: NotificationEntryProps) => {
   const { record } = notification
-  const href = recordHref(record)
   const reason = notificationReasonText(notification.reasons)
   const occurredOn = new Date(notification.occurredOn)
 
@@ -140,6 +141,8 @@ export interface NotificationListProps {
   onNavigate?: () => void
   /** Rendered after the entries, such as a "load more" button. */
   footer?: ReactNode
+  /** Where an entry opens; the record's page when left out. */
+  entryHref?: (notification: NotificationDto) => string | null
 }
 
 /**
@@ -154,6 +157,7 @@ const NotificationList = ({
   emptyMessage,
   onNavigate,
   footer,
+  entryHref = (notification) => recordHref(notification.record),
 }: NotificationListProps) => {
   const [markRecordRead] = useMarkRecordNotificationsReadMutation()
   const [muteRecord, muting] = useMuteRecordMutation()
@@ -266,6 +270,7 @@ const NotificationList = ({
           <NotificationEntry
             key={recordId(notification.record)}
             notification={notification}
+            href={entryHref(notification)}
             onOpen={onOpen}
             onMarkRead={markRead}
             onMute={mute}

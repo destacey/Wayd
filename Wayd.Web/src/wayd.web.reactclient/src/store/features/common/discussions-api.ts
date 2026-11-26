@@ -7,6 +7,7 @@ import {
   discussionsEditMessage,
   discussionsGetDiscussion,
   discussionsGetEntries,
+  discussionsGetMessage,
   discussionsGetReplies,
   discussionsGetRevisions,
   discussionsLock,
@@ -160,6 +161,15 @@ export const discussionsApi = apiSlice.injectEndpoints({
       providesTags: (result, error, request) => [discussionTag(request)],
     }),
 
+    getDiscussionMessage: builder.query<
+      DiscussionMessageDto,
+      DiscussionMessageArgs
+    >({
+      queryFn: ({ channelType, ownerId, messageId }) =>
+        run(() => discussionsGetMessage(channelType, ownerId, messageId)),
+      providesTags: (result, error, args) => [discussionTag(args)],
+    }),
+
     getDiscussionReplies: builder.query<
       DiscussionMessageDto[],
       DiscussionMessageArgs
@@ -267,6 +277,7 @@ export const discussionsApi = apiSlice.injectEndpoints({
 export const {
   useGetDiscussionQuery,
   useGetDiscussionEntriesInfiniteQuery,
+  useGetDiscussionMessageQuery,
   useGetDiscussionRepliesQuery,
   useGetDiscussionRevisionsQuery,
   usePostDiscussionMessageMutation,

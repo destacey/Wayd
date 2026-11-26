@@ -6,6 +6,7 @@ import {
 } from '@/src/services/api/my-notifications'
 import {
   CursorPageOfNotificationDto,
+  NotificationReason,
   UnreadNotificationCountDto,
 } from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
@@ -20,7 +21,15 @@ export interface NotifiedRecordTarget {
 /** What narrows the notification list; the infinite query follows each page's cursor. */
 export interface GetMyNotificationsRequest {
   unreadOnly?: boolean
+  /** Keeps only notifications told for at least one of these reasons; all when left out. */
+  reasons?: NotificationReason[]
   pageSize: number
+}
+
+/** What narrows the unread count. */
+export interface GetUnreadNotificationCountRequest {
+  /** Counts only records unread for at least one of these reasons; all when left out. */
+  reasons?: NotificationReason[]
 }
 
 /** How often the unread count is refreshed while the window has focus. */
@@ -54,6 +63,7 @@ export const notificationsApi = apiSlice.injectEndpoints({
         try {
           const data = await myNotificationsGetNotifications({
             unreadOnly: queryArg.unreadOnly,
+            reason: queryArg.reasons,
             before: pageParam ?? undefined,
             pageSize: queryArg.pageSize,
           })
@@ -69,20 +79,23 @@ export const notificationsApi = apiSlice.injectEndpoints({
       keepUnusedDataFor: 0,
     }),
 
-    getUnreadNotificationCount: builder.query<UnreadNotificationCountDto, void>(
-      {
-        queryFn: async () => {
-          try {
-            const data = await myNotificationsGetUnreadCount()
-            return { data }
-          } catch (error) {
-            console.error('API Error:', error)
-            return { error }
-          }
-        },
-        providesTags: [QueryTags.UnreadNotificationCount],
+    getUnreadNotificationCount: builder.query<
+      UnreadNotificationCountDto,
+      GetUnreadNotificationCountRequest | void
+    >({
+      queryFn: async (request) => {
+        try {
+          const data = await myNotificationsGetUnreadCount(
+            request?.reasons ? { reason: request.reasons } : undefined,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
       },
-    ),
+      providesTags: [QueryTags.UnreadNotificationCount],
+    }),
 
     markRecordNotificationsRead: builder.mutation<null, NotifiedRecordTarget>({
       queryFn: async ({ ownerType, ownerId }) => {

@@ -186,6 +186,7 @@ describe('HomeWidgets', () => {
       'dependencies-at-risk',
       'unassigned-requests',
       'tasks-due-this-week',
+      'unread-mentions',
       'requests-assigned-to-me',
       'unread-notifications',
     ])
@@ -201,6 +202,7 @@ describe('HomeWidgets', () => {
     // Assert
     const ids = [...columns.main, ...columns.side].map((w) => w.id)
     expect(ids).not.toContain('whats-changed')
+    expect(ids).not.toContain('mentions')
     expect(ids).not.toContain('following')
     expect(ids).toContain('my-projects')
   })
@@ -229,6 +231,7 @@ describe('HomeWidgets involvement rules', () => {
     expect(layout.main).toEqual([
       'my-teams',
       'my-work-items',
+      'mentions',
       'whats-changed',
       'my-projects',
       'my-risks',
@@ -269,6 +272,7 @@ describe('HomeWidgets involvement rules', () => {
         'risk-follow-ups',
         'dependencies-at-risk',
         'unassigned-requests',
+        'unread-mentions',
         'requests-assigned-to-me',
         'unread-notifications',
       ])
@@ -360,6 +364,7 @@ describe('HomeWidgets involvement rules', () => {
     // Assert
     expect(layout.main).toEqual([
       'my-projects',
+      'mentions',
       'whats-changed',
       'my-work-items',
       'my-risks',
@@ -383,6 +388,7 @@ describe('HomeWidgets involvement rules', () => {
       'project-health-checks-due',
       'my-deliverables',
       'my-risks',
+      'mentions',
       'whats-changed',
       'desk-queue',
     ])
@@ -399,8 +405,9 @@ describe('HomeWidgets involvement rules', () => {
 
     // Assert
     // Their own work items are not raised: the rollup is about teams beneath them.
-    expect(layout.main.slice(0, 3)).toEqual([
+    expect(layout.main.slice(0, 4)).toEqual([
       'my-teams-of-teams',
+      'mentions',
       'whats-changed',
       'my-work-items',
     ])
@@ -438,7 +445,11 @@ describe('HomeWidgets involvement rules', () => {
     const layout = defaultFor({})
 
     // Assert
-    expect(layout.main.slice(0, 2)).toEqual(['whats-changed', 'my-work-items'])
+    expect(layout.main.slice(0, 3)).toEqual([
+      'mentions',
+      'whats-changed',
+      'my-work-items',
+    ])
   })
 
   it('puts the desk queue first for someone who works an intake desk', () => {

@@ -18,6 +18,11 @@ import ProjectHealthChecksDueWidget, {
   healthChecksDueSettings,
   ProjectHealthChecksDueTile,
 } from './widgets/project-health-checks-due-widget'
+import MentionsWidget, {
+  MENTIONS_COUNT,
+  MENTIONS_WIDGET_ID,
+  UnreadMentionsTile,
+} from './widgets/mentions-widget'
 import MyDeliverablesWidget, {
   MY_DELIVERABLES_LIMIT,
   myDeliverablesSettings,
@@ -84,6 +89,8 @@ export const TilePriority = {
   DependenciesAtRisk: 70,
   UnassignedRequests: 65,
   TasksDueThisWeek: 60,
+  // Someone waiting on an answer outranks news, but not work already due.
+  UnreadMentions: 55,
   RequestsAssignedToMe: 50,
   UnreadNotifications: 40,
 } as const
@@ -103,6 +110,26 @@ const teamCount = ({ teams }: HomeContextResponse) =>
  * users' saved layouts, so an id is never renamed or reused once shipped.
  */
 export const HomeWidgets: HomeWidget[] = [
+  {
+    id: MENTIONS_WIDGET_ID,
+    title: 'Mentions',
+    description:
+      'The conversations that asked for you: messages that mention you and replies in threads you are in, unread first.',
+    defaultColumn: 'main',
+    // Above What's changed: someone asking for you comes before news about a record.
+    defaultOrder: 5,
+    requires: { featureFlag: 'following', linkedEmployee: true },
+    Component: MentionsWidget,
+    settings: [rowsSetting(MENTIONS_COUNT), emptySetting],
+    tiles: [
+      {
+        id: 'unread-mentions',
+        title: 'Unread mentions',
+        priority: TilePriority.UnreadMentions,
+        Tile: UnreadMentionsTile,
+      },
+    ],
+  },
   {
     id: 'whats-changed',
     title: "What's changed",

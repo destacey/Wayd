@@ -18,19 +18,24 @@ public sealed class HangfireServiceRecurringJobTests
         public static Task StillHere() => Task.CompletedTask;
     }
 
+    private readonly InMemoryStorage _storage = new();
+    private readonly RecurringJobManager _recurringJobs;
+
     public HangfireServiceRecurringJobTests()
     {
-        JobStorage.Current = new InMemoryStorage();
+        _recurringJobs = new RecurringJobManager(_storage);
     }
+
+    private HangfireService CreateSut() => new(_storage, new BackgroundJobClient(_storage), _recurringJobs);
 
     [Fact]
     public void RemoveRecurringJobsInvoking_RemovesEveryScheduleForThatMethodAndNoOther()
     {
         // Arrange — two schedules for the retired method under an admin's own ids, one for another method
-        RecurringJob.AddOrUpdate("graph-nightly", () => Jobs.Retired(), Cron.Daily());
-        RecurringJob.AddOrUpdate("graph-hourly", () => Jobs.Retired(), Cron.Hourly());
-        RecurringJob.AddOrUpdate("keep", () => Jobs.StillHere(), Cron.Daily());
-        var sut = new HangfireService();
+        _recurringJobs.AddOrUpdate("graph-nightly", () => Jobs.Retired(), Cron.Daily());
+        _recurringJobs.AddOrUpdate("graph-hourly", () => Jobs.Retired(), Cron.Hourly());
+        _recurringJobs.AddOrUpdate("keep", () => Jobs.StillHere(), Cron.Daily());
+        var sut = CreateSut();
 
         // Act
         var removed = sut.RemoveRecurringJobsInvoking(nameof(Jobs.Retired));
@@ -44,8 +49,8 @@ public sealed class HangfireServiceRecurringJobTests
     public void RemoveRecurringJobsInvoking_ReturnsNothingWhenNoScheduleNamesTheMethod()
     {
         // Arrange
-        RecurringJob.AddOrUpdate("keep", () => Jobs.StillHere(), Cron.Daily());
-        var sut = new HangfireService();
+        _recurringJobs.AddOrUpdate("keep", () => Jobs.StillHere(), Cron.Daily());
+        var sut = CreateSut();
 
         // Act
         var removed = sut.RemoveRecurringJobsInvoking(nameof(Jobs.Retired));

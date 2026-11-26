@@ -6,6 +6,7 @@ using Wayd.Planning.Application.PlanningIntervals.Imports;
 using Wayd.Planning.Application.PokerSessions;
 using Wayd.Planning.Application.Risks.Imports;
 using Wayd.Planning.Application.StoryMaps;
+using Wayd.Common.Application.Mapping;
 
 namespace Wayd.Planning.Application;
 
@@ -32,10 +33,13 @@ public static class ConfigureServices
     private static void ConfigureMapster(Assembly assembly)
     {
         // Global Mapster settings
-        TypeAdapterConfig.GlobalSettings.Scan(assembly);
-        TypeAdapterConfig.GlobalSettings.ScanInheritedTypes(assembly);
-        TypeAdapterConfig.GlobalSettings.Default.PreserveReference(true);
-        TypeAdapterConfig.GlobalSettings.AllowImplicitSourceInheritance = true;
-        TypeAdapterConfig.GlobalSettings.AllowImplicitDestinationInheritance = true;
+        MappingRegistration.Once(assembly, mapping =>
+        {
+            mapping.Scan(assembly);
+            mapping.ScanInheritedTypes(assembly);
+            mapping.Default.PreserveReference(true);
+            mapping.AllowImplicitSourceInheritance = true;
+            mapping.AllowImplicitDestinationInheritance = true;
+        });
     }
 }

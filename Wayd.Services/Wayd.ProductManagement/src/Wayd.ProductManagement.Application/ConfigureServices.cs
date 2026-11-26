@@ -9,6 +9,7 @@ using Wayd.ProductManagement.Application.Products.Imports;
 using Wayd.ProductManagement.Application.ReleasePackages.Imports;
 using Wayd.ProductManagement.Application.Releases.Imports;
 using Wayd.ProductManagement.Application.Versions.Imports;
+using Wayd.Common.Application.Mapping;
 
 namespace Wayd.ProductManagement.Application;
 
@@ -28,8 +29,11 @@ public static class ConfigureServices
         services.AddScoped<IImportDefinition, DeploymentImportDefinition>();
         services.AddScoped<IImportDefinition, IncidentImportDefinition>();
 
-        TypeAdapterConfig.GlobalSettings.Scan(assembly);
-        TypeAdapterConfig.GlobalSettings.ScanInheritedTypes(assembly);
+        MappingRegistration.Once(assembly, mapping =>
+        {
+            mapping.Scan(assembly);
+            mapping.ScanInheritedTypes(assembly);
+        });
 
         return services;
     }

@@ -111,47 +111,70 @@ internal static class PublicNetwork
     }
 
     /// <summary>
-    /// A handler that connects only to public addresses, follows no redirects, sends no cookies and ignores any
-    /// system proxy.
+    /// A handler that reaches only public addresses, follows no redirects, sends no cookies and ignores any system
+    /// proxy; with <paramref name="proxy"/> it sends every request through that proxy instead of connecting
+    /// directly.
     /// </summary>
     /// <remarks>
-    /// The check runs when the connection is made, against the addresses the connection actually uses, so a
-    /// host name that resolves to a public address when checked and a private one when connected (DNS rebinding)
-    /// is still refused. A proxy would make the connection to the proxy and the check meaningless.
+    /// <para>
+    /// Without a proxy the check runs when the connection is made, against the addresses the connection actually
+    /// uses, so a host name that resolves to a public address when checked and a private one when connected (DNS
+    /// rebinding) is still refused.
+    /// </para>
+    /// <para>
+    /// Through a proxy the connection is to the proxy, so the destination is checked before the request is sent,
+    /// and the socket may connect to nowhere but the proxy, whose own address is exempt. The proxy resolves the
+    /// destination again, so a host that answers the API with a public address and the proxy with a private one
+    /// gets through; refusing private destinations at the proxy closes that.
+    /// </para>
     /// </remarks>
     /// <param name="connectTimeout">How long establishing a connection may take.</param>
     /// <param name="resolve">Resolves a host name to its addresses; DNS unless a test supplies its own.</param>
-    public static SocketsHttpHandler CreateHandler(
+    /// <param name="proxy">The operator's outbound proxy (<see cref="OutboundProxyOptions.Address"/>), or null to connect directly.</param>
+    public static HttpMessageHandler CreateHandler(
         TimeSpan connectTimeout,
-        Func<string, CancellationToken, Task<IPAddress[]>>? resolve = null) =>
-        CreateHandler(connectTimeout, IsPublic, "a public address", resolve);
+        Func<string, CancellationToken, Task<IPAddress[]>>? resolve = null,
+        Uri? proxy = null) =>
+        CreateHandler(connectTimeout, IsPublic, "a public address", resolve, proxy);
 
     /// <summary>
-    /// <see cref="CreateHandler(TimeSpan, Func{string, CancellationToken, Task{IPAddress[]}}?)"/> for a destination the
-    /// operator has allowed on the deployment's own network: private and loopback addresses are reached too, but
-    /// never <see cref="IsReachableOnPrivateNetwork">cloud metadata, unspecified or multicast</see> ones.
+    /// <see cref="CreateHandler(TimeSpan, Func{string, CancellationToken, Task{IPAddress[]}}?, Uri?)"/> for a
+    /// destination the operator has allowed on the deployment's own network: private and loopback addresses are
+    /// reached too, but never <see cref="IsReachableOnPrivateNetwork">cloud metadata, unspecified or multicast</see> ones.
     /// </summary>
-    public static SocketsHttpHandler CreatePrivateNetworkHandler(
+    public static HttpMessageHandler CreatePrivateNetworkHandler(
         TimeSpan connectTimeout,
-        Func<string, CancellationToken, Task<IPAddress[]>>? resolve = null) =>
-        CreateHandler(connectTimeout, IsReachableOnPrivateNetwork, "an allowed address", resolve);
+        Func<string, CancellationToken, Task<IPAddress[]>>? resolve = null,
+        Uri? proxy = null) =>
+        CreateHandler(connectTimeout, IsReachableOnPrivateNetwork, "an allowed address", resolve, proxy);
 
-    private static SocketsHttpHandler CreateHandler(
+    private static HttpMessageHandler CreateHandler(
         TimeSpan connectTimeout,
         Func<IPAddress, bool> isAllowed,
         string allowedDescription,
-        Func<string, CancellationToken, Task<IPAddress[]>>? resolve)
+        Func<string, CancellationToken, Task<IPAddress[]>>? resolve,
+        Uri? proxy)
     {
         resolve ??= Dns.GetHostAddressesAsync;
-        return new SocketsHttpHandler
+        var sockets = new SocketsHttpHandler
         {
             AllowAutoRedirect = false,
             UseCookies = false,
-            UseProxy = false,
             ConnectTimeout = connectTimeout,
             PooledConnectionLifetime = TimeSpan.FromMinutes(5),
-            ConnectCallback = (context, cancellationToken) => Connect(context, resolve, isAllowed, allowedDescription, cancellationToken),
         };
+
+        if (proxy is null)
+        {
+            sockets.UseProxy = false;
+            sockets.ConnectCallback = (context, cancellationToken) => Connect(context, resolve, isAllowed, allowedDescription, cancellationToken);
+            return sockets;
+        }
+
+        sockets.UseProxy = true;
+        sockets.Proxy = new FixedProxy(proxy);
+        sockets.ConnectCallback = (context, cancellationToken) => ConnectToProxy(context, proxy, resolve, cancellationToken);
+        return new DestinationCheck(sockets, resolve, isAllowed, allowedDescription);
     }
 
     /// <summary>Connects to the request's host only when every address it resolves to is allowed.</summary>
@@ -163,6 +186,40 @@ internal static class PublicNetwork
         CancellationToken cancellationToken)
     {
         var host = context.DnsEndPoint.Host;
+        var addresses = await ResolveAllowed(host, resolve, isAllowed, allowedDescription, cancellationToken);
+        return await ConnectSocket(addresses, context.DnsEndPoint.Port, cancellationToken);
+    }
+
+    /// <summary>
+    /// Connects to the proxy, and refuses any other endpoint: the handler is meant to send everything through it,
+    /// and a connection elsewhere would skip the destination check's premise.
+    /// </summary>
+    private static async ValueTask<Stream> ConnectToProxy(
+        SocketsHttpConnectionContext context,
+        Uri proxy,
+        Func<string, CancellationToken, Task<IPAddress[]>> resolve,
+        CancellationToken cancellationToken)
+    {
+        // An IPv6 literal may arrive with or without its brackets on either side.
+        var host = context.DnsEndPoint.Host.Trim('[', ']');
+        if (!string.Equals(host, proxy.IdnHost.Trim('[', ']'), StringComparison.OrdinalIgnoreCase) || context.DnsEndPoint.Port != proxy.Port)
+            throw new DestinationRefusedException(host, "the outbound proxy");
+
+        var addresses = IPAddress.TryParse(host, out var literal)
+            ? [literal]
+            : await resolve(host, cancellationToken);
+
+        return await ConnectSocket(addresses, context.DnsEndPoint.Port, cancellationToken);
+    }
+
+    /// <summary>The addresses <paramref name="host"/> resolves to, when every one of them is allowed.</summary>
+    private static async Task<IPAddress[]> ResolveAllowed(
+        string host,
+        Func<string, CancellationToken, Task<IPAddress[]>> resolve,
+        Func<IPAddress, bool> isAllowed,
+        string allowedDescription,
+        CancellationToken cancellationToken)
+    {
         var addresses = IPAddress.TryParse(host, out var literal)
             ? [literal]
             : await resolve(host, cancellationToken);
@@ -171,10 +228,15 @@ internal static class PublicNetwork
         if (addresses.Length == 0 || !addresses.All(isAllowed))
             throw new DestinationRefusedException(host, allowedDescription);
 
+        return addresses;
+    }
+
+    private static async ValueTask<Stream> ConnectSocket(IPAddress[] addresses, int port, CancellationToken cancellationToken)
+    {
         var socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
         try
         {
-            await socket.ConnectAsync(addresses, context.DnsEndPoint.Port, cancellationToken);
+            await socket.ConnectAsync(addresses, port, cancellationToken);
             return new NetworkStream(socket, ownsSocket: true);
         }
         catch
@@ -182,5 +244,46 @@ internal static class PublicNetwork
             socket.Dispose();
             throw;
         }
+    }
+
+    /// <summary>Sends a request on only when its destination host resolves to allowed addresses.</summary>
+    private sealed class DestinationCheck(
+        HttpMessageHandler inner,
+        Func<string, CancellationToken, Task<IPAddress[]>> resolve,
+        Func<IPAddress, bool> isAllowed,
+        string allowedDescription) : DelegatingHandler(inner)
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var uri = request.RequestUri ?? throw new InvalidOperationException("The request has no URI.");
+
+            // DnsSafeHost strips an IPv6 literal's brackets, so it parses as the address it names.
+            var host = uri.HostNameType is UriHostNameType.IPv4 or UriHostNameType.IPv6 ? uri.DnsSafeHost : uri.IdnHost;
+            try
+            {
+                await ResolveAllowed(host, resolve, isAllowed, allowedDescription, cancellationToken);
+            }
+            catch (SocketException ex)
+            {
+                // Callers and the resilience handler expect a lookup failure as HttpRequestException, as
+                // SocketsHttpHandler reports one made while connecting.
+                throw new HttpRequestException(HttpRequestError.NameResolutionError, $"'{host}' could not be resolved.", ex);
+            }
+
+            return await base.SendAsync(request, cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// A proxy that every request goes through. <see cref="WebProxy"/> would send a loopback destination around
+    /// the proxy, straight past the destination check's assumption that the socket only ever reaches the proxy.
+    /// </summary>
+    private sealed class FixedProxy(Uri address) : IWebProxy
+    {
+        public ICredentials? Credentials { get; set; }
+
+        public Uri GetProxy(Uri destination) => address;
+
+        public bool IsBypassed(Uri host) => false;
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Wayd.AppIntegration.Application.Connections.Managers;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -34,10 +35,12 @@ public sealed class WorkdayConnectorModule : IConnectorModule
         // SOAP fault and short-circuits those (IsPermanentFailure).
         //
         // The endpoint is typed by an administrator and carries the ISU password, so the primary handler connects
-        // only to public addresses and follows no redirect (PublicNetwork). Its check runs on the address the
-        // socket actually connects to, after service discovery has rewritten the request.
+        // only to public addresses and follows no redirect (PublicNetwork). As the primary handler, its check runs
+        // after service discovery has rewritten the request.
         services.AddHttpClient<WorkdayStaffingClient>()
-            .ConfigurePrimaryHttpMessageHandler(() => PublicNetwork.CreateHandler(_connectTimeout))
+            .ConfigurePrimaryHttpMessageHandler(sp => PublicNetwork.CreateHandler(
+                _connectTimeout,
+                proxy: sp.GetRequiredService<IOptions<OutboundProxyOptions>>().Value.Address))
             .AddStandardResilienceHandler(options =>
             {
                 options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(90);

@@ -38,9 +38,10 @@ internal static class ConfigureServices
         services.AddSingleton<IOidcConfigurationManagerFactory>(sp =>
         {
             var options = sp.GetRequiredService<IOptions<OidcNetworkOptions>>().Value;
+            var proxy = sp.GetRequiredService<IOptions<OutboundProxyOptions>>().Value.Address;
             var handler = options.AllowPrivateNetworkAuthorities
-                ? PublicNetwork.CreatePrivateNetworkHandler(_fetchTimeout)
-                : PublicNetwork.CreateHandler(_fetchTimeout);
+                ? PublicNetwork.CreatePrivateNetworkHandler(_fetchTimeout, proxy: proxy)
+                : PublicNetwork.CreateHandler(_fetchTimeout, proxy: proxy);
 
             return new OidcConfigurationManagerFactory(CreateClient(handler));
         });

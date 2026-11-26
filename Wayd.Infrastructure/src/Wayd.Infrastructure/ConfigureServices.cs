@@ -18,6 +18,7 @@ using Wayd.Infrastructure.Links;
 using Wayd.Infrastructure.Following;
 using Wayd.Infrastructure.Notifications;
 using Wayd.Infrastructure.ConnectorModules;
+using Wayd.Infrastructure.Networking;
 using Wayd.Infrastructure.DataProtection;
 using Wayd.Infrastructure.FeatureManagement;
 using Wayd.Infrastructure.Hosting;
@@ -128,6 +129,12 @@ public static class ConfigureServices
         // Data protection (at-rest secret encryption) must initialize before
         // persistence so the EF model can pick up the protector via SecretProtectorAccessor.
         services.AddDataProtectionForSecrets(config, environment);
+
+        // Read by the identity provider, OAuth client and Workday HTTP clients.
+        services.AddOptions<OutboundProxyOptions>()
+            .BindConfiguration(OutboundProxyOptions.SectionName)
+            .Validate(o => o.IsValid(), $"{OutboundProxyOptions.SectionName}:{nameof(OutboundProxyOptions.Address)} must be an absolute http or https URL without credentials.")
+            .ValidateOnStart();
 
         // CONNECTOR MODULES — one self-contained registration per connector (keyed sources,
         // descriptor builders, init probes, HTTP clients), discovered from this assembly. Adding

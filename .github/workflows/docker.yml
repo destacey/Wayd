@@ -14,7 +14,43 @@ on:
         branches:
             - "main"
 
+# A new push to a pull request cancels the run for the commit it replaces. Every other run is a group of its own:
+# GitHub keeps only one pending run per group and cancels the one before it, so a shared group would drop a push to
+# main or a tag, which deploys, even without cancel-in-progress.
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+    # Decides which halves of the pipeline a pull request runs, from the files it changes (changed-areas.sh owns the
+    # rules). Every other event runs both: a push to main or a tag ships what it builds, and workflow_dispatch has
+    # no diff to read. The `main` ruleset requires no status checks, so a skipped job blocks nothing.
+    changes:
+        runs-on: ubuntu-latest
+        outputs:
+            dotnet: ${{ steps.areas.outputs.dotnet }}
+            client: ${{ steps.areas.outputs.client }}
+        steps:
+            # Depth 2 brings the merge commit's first parent, the base branch tip it was made from. Only a pull
+            # request reads the tree.
+            - name: Checkout repository
+              if: github.event_name == 'pull_request'
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 2
+
+            # The checkout is the PR's merge commit, so its diff against its first parent is the PR's change.
+            - name: Decide which halves to run
+              id: areas
+              shell: bash
+              run: |
+                  if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+                      git -c core.quotePath=false diff --name-only --no-renames HEAD^1 HEAD | bash .github/scripts/changed-areas.sh >> "$GITHUB_OUTPUT"
+                  else
+                      printf 'dotnet=true\nclient=true\n' >> "$GITHUB_OUTPUT"
+                  fi
+                  cat "$GITHUB_OUTPUT"
+
     # The .NET suite runs as parallel jobs: this one for every project that needs no Docker, and
     # test-dotnet-integration for the Testcontainers suites in shards. Each job restores and builds only what
     # its own projects need; running them side by side costs a build per job but no job waits for another.
@@ -22,6 +58,8 @@ jobs:
     # automatically.
     test-dotnet-unit:
         runs-on: ubuntu-latest
+        needs: [changes]
+        if: needs.changes.outputs.dotnet == 'true'
         defaults:
             run:
                 shell: bash
@@ -83,6 +121,8 @@ jobs:
     # the job total against it, so a dropped or duplicated entry fails the run instead of leaving suites untested.
     test-dotnet-integration:
         runs-on: ubuntu-latest
+        needs: [changes]
+        if: needs.changes.outputs.dotnet == 'true'
         strategy:
             # A failing shard must not cancel the others: each reports suites no other job runs.
             fail-fast: false
@@ -158,6 +198,8 @@ jobs:
     # repository's cache quota and evict main's.
     check-and-build-client:
         runs-on: ubuntu-latest
+        needs: [changes]
+        if: needs.changes.outputs.client == 'true'
         defaults:
             run:
                 shell: bash
@@ -293,6 +335,8 @@ jobs:
     # change it, add or remove an entry and nothing else.
     test-client:
         runs-on: ubuntu-latest
+        needs: [changes]
+        if: needs.changes.outputs.client == 'true'
         strategy:
             # A failing shard must not cancel the others: each reports files no other shard runs.
             fail-fast: false
@@ -469,8 +513,8 @@ jobs:
     # The images are built from what CI already built, with each Dockerfile's `prebuilt` target, so Docker
     # compiles nothing: the API from its publish output, the client from check-and-build-client's smoke-tested
     # build. Pull requests and pushes use different jobs because a job's `needs` cannot vary by event, and a job
-    # always waits for its `needs` before it evaluates its `if:`, so no gate job could let a pull request skip
-    # the tests either.
+    # always waits for its `needs` before it evaluates its `if:`, so no gate job could let a pull request's image
+    # builds skip waiting for the tests either.
 
     # Pull requests only: proves the API image builds, alongside the tests, and pushes nothing. It publishes
     # the API itself rather than waiting for test-dotnet-integration's api shard, because `needs` on a matrix
@@ -478,7 +522,8 @@ jobs:
     # gives does not apply here.
     build-api-image:
         runs-on: ubuntu-latest
-        if: github.event_name == 'pull_request'
+        needs: [changes]
+        if: github.event_name == 'pull_request' && needs.changes.outputs.dotnet == 'true'
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
@@ -502,7 +547,7 @@ jobs:
                   push: false
 
     # Pull requests only: proves the client image builds from the client build, and pushes nothing. A job of its
-    # own so that the API image, which needs nothing, never waits for the client build.
+    # own so that the API image, which needs only `changes`, never waits for the client build.
     build-client-image:
         runs-on: ubuntu-latest
         if: github.event_name == 'pull_request'

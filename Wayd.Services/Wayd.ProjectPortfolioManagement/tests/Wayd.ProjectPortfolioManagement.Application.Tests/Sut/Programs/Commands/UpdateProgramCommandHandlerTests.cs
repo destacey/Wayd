@@ -2,14 +2,17 @@
 using Wayd.Common.Application.Exceptions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.ProjectPortfolioManagement.Application.Common;
 using Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Extensions;
@@ -95,6 +98,71 @@ public class UpdateProgramCommandHandlerTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue();
         program.Name.Should().Be("Renamed");
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFail_WhenAStrategicThemeDoesNotExist()
+    {
+        // Arrange — each theme is a foreign key to the replica, so an unknown one would otherwise fail at the database
+        var program = ProgramWithPortfolio(ProgramRole.Owner);
+        _dbContext.AddProgram(program);
+        var command = CommandFor(program) with { StrategicThemeIds = [Guid.NewGuid()] };
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("One or more Strategic Themes not found.");
+        program.Name.Should().Be("Original");
+        program.StrategicThemeTags.Should().BeEmpty();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(StrategicThemeState.Proposed)]
+    [InlineData(StrategicThemeState.Archived)]
+    public async Task Handle_ShouldRefuseATheme_WhenItIsNotActiveAndTheProgramDoesNotCarryIt(StrategicThemeState state)
+    {
+        // Arrange — a Proposed theme tagged here would make its deletion in Strategic Management fail on the tag
+        var program = ProgramWithPortfolio(ProgramRole.Owner);
+        _dbContext.AddProgram(program);
+        var theme = new StrategicThemeFaker().WithState(state).Generate();
+        _dbContext.AddPpmStrategicTheme(theme);
+        var command = CommandFor(program) with { StrategicThemeIds = [theme.Id] };
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("One or more Strategic Themes are not active.");
+        program.Name.Should().Be("Original", "the themes are checked before anything on the program changes");
+        program.StrategicThemeTags.Should().BeEmpty();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldKeepAnArchivedTheme_WhenTheProgramAlreadyCarriesIt()
+    {
+        // Arrange — a whole-record update echoes the program's themes back, including one archived since it was tagged
+        var program = ProgramWithPortfolio(ProgramRole.Owner);
+        _dbContext.AddProgram(program);
+        var archived = new StrategicThemeFaker().WithState(StrategicThemeState.Archived).Generate();
+        var active = new StrategicThemeFaker().WithState(StrategicThemeState.Active).Generate();
+        _dbContext.AddPpmStrategicThemes([archived, active]);
+        program.UpdateStrategicThemes(PpmActor.System, ProgramAncestryRoles.None, [archived.Id], _dateTimeProvider.Now)
+            .IsSuccess.Should().BeTrue();
+        var command = CommandFor(program) with { StrategicThemeIds = [archived.Id, active.Id] };
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        program.Name.Should().Be("Renamed");
+        program.StrategicThemeTags.Select(t => t.StrategicThemeId).Should().BeEquivalentTo([archived.Id, active.Id]);
         _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 

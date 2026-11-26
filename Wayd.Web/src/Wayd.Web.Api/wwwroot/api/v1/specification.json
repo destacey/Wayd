@@ -61047,7 +61047,7 @@
               "type": "string",
               "format": "uuid"
             },
-            "description": "The strategic themes associated with this program."
+            "description": "The strategic themes to tag the program with. Each must be Active; StrategicThemes_GetStrategicThemeOptions lists them."
           }
         },
         "additionalProperties": false
@@ -61304,7 +61304,7 @@
               "type": "string",
               "format": "uuid"
             },
-            "description": "The strategic themes associated with this project."
+            "description": "The strategic themes to tag the project with. Each must be Active; StrategicThemes_GetStrategicThemeOptions lists them."
           }
         },
         "additionalProperties": false
@@ -93440,7 +93440,7 @@
               "type": "string",
               "format": "uuid"
             },
-            "description": "The strategic themes associated with this program."
+            "description": "The strategic themes to tag the program with, replacing its current set. A theme the program does not carry yet must\nbe Active (StrategicThemes_GetStrategicThemeOptions lists them); one it already carries is kept whatever its\nstate, so echoing back a theme archived since it was tagged is accepted."
           }
         },
         "additionalProperties": false
@@ -93665,7 +93665,7 @@
               "type": "string",
               "format": "uuid"
             },
-            "description": "The strategic themes associated with this project."
+            "description": "The strategic themes to tag the project with, replacing its current set. A theme the project does not carry yet must\nbe Active (StrategicThemes_GetStrategicThemeOptions lists them); one it already carries is kept whatever its\nstate, so echoing back a theme archived since it was tagged is accepted."
           }
         },
         "additionalProperties": false

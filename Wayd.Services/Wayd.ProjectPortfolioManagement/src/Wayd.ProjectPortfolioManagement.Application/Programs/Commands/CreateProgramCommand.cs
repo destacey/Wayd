@@ -1,6 +1,5 @@
 ﻿using Wayd.ProjectPortfolioManagement.Application.Common;
 using Wayd.Common.Application.Models;
-using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.Common.Domain.Events;
 
@@ -56,20 +55,11 @@ public sealed class CreateProgramCommandHandler(
     public async Task<Result<ObjectIdAndKey>> Handle(CreateProgramCommand request, CancellationToken cancellationToken)
     {
         var strategicThemeIds = request.StrategicThemeIds?.ToHashSet() ?? [];
-        var strategicThemes = request.StrategicThemeIds is not null && request.StrategicThemeIds.Count != 0
-            ? await _ppmDbContext.PpmStrategicThemes
-                .Where(st => strategicThemeIds.Contains(st.Id))
-                .ToListAsync(cancellationToken)
-            : [];
-        if (request.StrategicThemeIds is not null && strategicThemes.Count != strategicThemeIds.Count)
+        var themesAttachable = await _ppmDbContext.EnsureThemesAttachable(strategicThemeIds, alreadyAttached: null, cancellationToken);
+        if (themesAttachable.IsFailure)
         {
-            _logger.LogInformation("One or more Strategic Themes not found.");
-            return Result.Failure<ObjectIdAndKey>("One or more Strategic Themes not found.");
-        }
-        else if (request.StrategicThemeIds is not null && strategicThemes.Any(st => st.State != StrategicThemeState.Active))
-        {
-            _logger.LogInformation("One or more Strategic Themes are not active.");
-            return Result.Failure<ObjectIdAndKey>("One or more Strategic Themes are not active.");
+            _logger.LogInformation("Strategic themes refused for a new program: {Error}", themesAttachable.Error);
+            return Result.Failure<ObjectIdAndKey>(themesAttachable.Error);
         }
 
         var portfolio = await _ppmDbContext.Portfolios
@@ -91,7 +81,7 @@ public sealed class CreateProgramCommandHandler(
                 request.Description,
                 request.DateRange,
                 roles,
-                [.. strategicThemes.Select(st => st.Id)],
+                strategicThemeIds,
                 EventActor.User(_currentUser.GetUserId()),
                 _dateTimeProvider.Now
                 );

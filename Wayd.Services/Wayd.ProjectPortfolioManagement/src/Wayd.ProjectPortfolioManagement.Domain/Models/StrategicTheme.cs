@@ -52,6 +52,17 @@ public sealed class StrategicTheme : IStrategicThemeData, IHasIdAndKey
     public StrategicThemeWatermarks Watermarks { get; private set; } = StrategicThemeWatermarks.None;
 
     /// <summary>
+    /// Whether a project or program may carry this theme. A theme it does not carry yet must be Active; one it
+    /// already carries stays whatever its state, so a record tagged with a theme since archived can still be saved.
+    /// </summary>
+    /// <remarks>
+    /// The rule also keeps a deletable theme untagged: Strategic Management deletes only Proposed themes and cannot
+    /// see PPM's tags, so a Proposed theme tagged here would make its deletion fail on the tag's foreign key.
+    /// </remarks>
+    /// <param name="alreadyAttached">Whether the record carries this theme before the change.</param>
+    public bool CanBeAttached(bool alreadyAttached) => alreadyAttached || State == StrategicThemeState.Active;
+
+    /// <summary>
     /// Applies a change to the name and description made at <paramref name="timestamp"/>.
     /// </summary>
     /// <returns>False when a newer change already applied, or when the copy already holds this one.</returns>

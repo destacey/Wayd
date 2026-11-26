@@ -69,7 +69,9 @@ public sealed record UpdateProjectRequest
     public List<Guid>? MemberIds { get; set; } = [];
 
     /// <summary>
-    /// The strategic themes associated with this project.
+    /// The strategic themes to tag the project with, replacing its current set. A theme the project does not carry yet must
+    /// be Active (StrategicThemes_GetStrategicThemeOptions lists them); one it already carries is kept whatever its
+    /// state, so echoing back a theme archived since it was tagged is accepted.
     /// </summary>
     public List<Guid>? StrategicThemeIds { get; set; } = [];
 

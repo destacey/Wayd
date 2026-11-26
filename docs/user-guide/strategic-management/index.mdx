@@ -102,7 +102,7 @@ stateDiagram-v2
 **Business rules:**
 - Only Proposed themes can be deleted
 - State transitions publish domain events consumed by other domains (PPM maintains a synchronized copy)
-- Active themes can be used to tag projects and programs
+- Only Active themes can be added to a project or program, whether it is created, edited, updated through the API or imported. A theme archived after it was added stays on the record, and saving the record keeps it.
 
 A theme's detail page carries an **Activity** section holding its recorded history: what changed, who changed it, and when. See [Activity Log](../activity-log.mdx).
 

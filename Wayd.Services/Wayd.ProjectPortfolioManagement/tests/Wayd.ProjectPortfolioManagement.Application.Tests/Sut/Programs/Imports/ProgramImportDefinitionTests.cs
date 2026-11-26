@@ -147,11 +147,13 @@ public sealed class ProgramImportDefinitionTests : IDisposable
         _portfolio.Programs.Single().StrategicThemeTags.Should().ContainSingle(t => t.StrategicThemeId == theme.Id);
     }
 
-    [Fact]
-    public async Task CreatePrograms_RejectsARowNamingAThemeThatIsNotActive()
+    [Theory]
+    [InlineData(StrategicThemeState.Proposed)]
+    [InlineData(StrategicThemeState.Archived)]
+    public async Task CreatePrograms_RejectsARowNamingAThemeThatIsNotActive(StrategicThemeState state)
     {
-        // Arrange — only active themes can be attached, so an archived one is reported rather than dropped
-        var theme = new StrategicThemeFaker().WithName("Retired").WithState(StrategicThemeState.Archived).Generate();
+        // Arrange — only active themes can be attached, so an inactive one is reported rather than dropped
+        var theme = new StrategicThemeFaker().WithState(state).Generate();
         _dbContext.AddPpmStrategicTheme(theme);
 
         // Act

@@ -487,7 +487,7 @@ High-level organizational priorities. Properties:
 
 Rules: Proposed → Active → Archived, one step at a time (the import sets any state directly). Only Proposed deletable. State changes publish domain events (PPM maintains synchronized copy).
 
-Cross-domain usage: Tags on Projects and Programs for alignment tracking (creating a project or program, or importing one, accepts only active themes; the update commands do not check state). Strategic initiatives carry no themes. A project's effective themes are its own when it has any, otherwise its program's.
+Cross-domain usage: Tags on Projects and Programs for alignment tracking (a theme a project or program does not already carry must be Active, whether it is created, updated or imported; one it already carries is kept whatever its state). Strategic initiatives carry no themes. A project's effective themes are its own when it has any, otherwise its program's.
 
 ---
 

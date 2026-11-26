@@ -102,4 +102,23 @@ public sealed class StrategicThemeTests
         changed.Should().BeFalse();
         theme.State.Should().Be(StrategicThemeState.Archived);
     }
+
+    [Theory]
+    [InlineData(StrategicThemeState.Active, false, true)]
+    [InlineData(StrategicThemeState.Proposed, false, false)]
+    [InlineData(StrategicThemeState.Archived, false, false)]
+    [InlineData(StrategicThemeState.Active, true, true)]
+    [InlineData(StrategicThemeState.Proposed, true, true)]
+    [InlineData(StrategicThemeState.Archived, true, true)]
+    public void CanBeAttached_RequiresActive_OnlyForAThemeNotAlreadyAttached(StrategicThemeState state, bool alreadyAttached, bool expected)
+    {
+        // Arrange
+        var theme = new StrategicThemeFaker().WithState(state).Generate();
+
+        // Act
+        var canBeAttached = theme.CanBeAttached(alreadyAttached);
+
+        // Assert
+        canBeAttached.Should().Be(expected);
+    }
 }

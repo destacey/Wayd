@@ -1,6 +1,5 @@
 using Wayd.ProjectPortfolioManagement.Application.Common;
 using Wayd.Common.Application.Attachments;
-using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Models;
@@ -110,20 +109,11 @@ public sealed class CreateProjectCommandHandler(
             }
 
             var strategicThemeIds = request.StrategicThemeIds?.ToHashSet() ?? [];
-            var strategicThemes = request.StrategicThemeIds is not null && request.StrategicThemeIds.Count != 0
-                ? await _projectPortfolioManagementDbContext.PpmStrategicThemes
-                    .Where(st => strategicThemeIds.Contains(st.Id))
-                    .ToListAsync(cancellationToken)
-                : [];
-            if (request.StrategicThemeIds is not null && strategicThemes.Count != strategicThemeIds.Count)
+            var themesAttachable = await _projectPortfolioManagementDbContext.EnsureThemesAttachable(strategicThemeIds, alreadyAttached: null, cancellationToken);
+            if (themesAttachable.IsFailure)
             {
-                _logger.LogInformation("One or more Strategic Themes not found.");
-                return Result.Failure<ProjectIdAndKey>("One or more Strategic Themes not found.");
-            }
-            else if (request.StrategicThemeIds is not null && strategicThemes.Any(st => st.State != StrategicThemeState.Active))
-            {
-                _logger.LogInformation("One or more Strategic Themes are not active.");
-                return Result.Failure<ProjectIdAndKey>("One or more Strategic Themes are not active.");
+                _logger.LogInformation("Strategic themes refused for a new project: {Error}", themesAttachable.Error);
+                return Result.Failure<ProjectIdAndKey>(themesAttachable.Error);
             }
 
             var portfolio = await _projectPortfolioManagementDbContext.Portfolios
@@ -185,7 +175,7 @@ public sealed class CreateProjectCommandHandler(
                 markdown[1],
                 markdown[2],
                 roles,
-                [.. strategicThemes.Select(st => st.Id)],
+                strategicThemeIds,
                 _dateTimeProvider.Now,
                 _currentUser.AttributionOnlyActor(),
                 currentMaxRank

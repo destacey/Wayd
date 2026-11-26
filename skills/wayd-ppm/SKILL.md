@@ -131,6 +131,7 @@ Use `Projects_Patch` (or `Programs_Patch`, `Portfolios_Patch`) for any partial c
 
 - Rename: `[{ "op": "replace", "path": "/name", "value": "Apollo 2" }]`
 - Add a manager: `[{ "op": "add", "path": "/managerIds/-", "value": "<employeeId>" }]` (likewise `/sponsorIds`, `/ownerIds`, `/memberIds`, `/strategicThemeIds`)
+- A strategic theme the record does not carry yet must be Active; one it already carries stays, even one archived since.
 - Remove someone from a role: read the record, then `replace` the whole list with everyone who stays — never remove by index.
 - Dates: `replace` `/start` and `/end` together.
 

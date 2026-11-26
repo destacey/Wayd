@@ -44,7 +44,7 @@ services:
 
     mssql:
         container_name: wayd.mssql
-        image: mcr.microsoft.com/mssql/server:2022-latest
+        image: mcr.microsoft.com/mssql/server:2025-CU9-GDR1-ubuntu-24.04
         ports:
             # Override MSSQL_PORT if 1433 is already taken on your machine.
             - ${MSSQL_PORT:-1433}:1433

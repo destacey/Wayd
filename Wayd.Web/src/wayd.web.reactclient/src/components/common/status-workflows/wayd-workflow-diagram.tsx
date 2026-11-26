@@ -28,13 +28,13 @@ import {
   ReactFlow,
   getBezierPath,
   useReactFlow,
-  useStore,
+  useViewportStore,
   type Edge,
   type EdgeProps,
   type Node,
   type NodeProps,
 } from '@xyflow/react'
-import '@xyflow/react/dist/style.css'
+import '@xyflow/react/style.css'
 import { Alert, Flex, theme } from 'antd'
 import { useEffect, useState } from 'react'
 import {
@@ -242,13 +242,17 @@ const BoundNode = () => <div style={{ width: 1, height: 1 }} />
 const nodeTypes = { status: StatusNode, column: ColumnNode, bound: BoundNode }
 const edgeTypes = { move: MoveEdge }
 
-const FIT = { padding: 0.1, maxZoom: 1 }
+/**
+ * How every fit frames the diagram. React Flow reads a bare number as pixels, so the margin is a
+ * percentage of the canvas.
+ */
+const FIT = { padding: '4.5%', maxZoom: 1 } as const
 
 /** Refits whenever what is drawn or the canvas it is drawn on changes, as the dependency map does. */
 const FitToDiagram = ({ drawn }: { drawn: string }) => {
   const { fitView } = useReactFlow()
-  const width = useStore((state) => state.width)
-  const height = useStore((state) => state.height)
+  const width = useViewportStore((state) => state.width)
+  const height = useViewportStore((state) => state.height)
 
   useEffect(() => {
     if (width === 0 || height === 0) return
@@ -435,7 +439,8 @@ const WaydWorkflowDiagram = ({
           edges={edges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
-          colorMode={isDarkMode(currentMode) ? 'dark' : 'light'}
+          // Forced: React Flow otherwise follows the system's scheme, not the mode chosen in Wayd.
+          forceColorMode={isDarkMode(currentMode) ? 'dark' : 'light'}
           fitView
           fitViewOptions={FIT}
           // Read-only: the layout is derived from the workflow, so a moved node would say something the

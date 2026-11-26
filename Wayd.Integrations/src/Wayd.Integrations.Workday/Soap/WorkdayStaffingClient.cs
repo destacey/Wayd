@@ -36,12 +36,42 @@ public sealed class WorkdayStaffingClient(HttpClient httpClient, TimeProvider ti
     private const string WssPasswordTextType = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText";
 
     /// <summary>
-    /// The largest response body read from Workday. The cap stops an endpoint that streams without end from
-    /// exhausting the API's memory, and is set well above real pages: each worker carries every organization it
-    /// belongs to and its management chain, so a page of 200 from a large tenant exceeds 32 MB. Parsing roughly
-    /// quadruples the body (UTF-16 string, then the document).
+    /// The largest response body read from Workday: a backstop that stops an endpoint streaming without end from
+    /// holding a sync open. Memory does not follow it — a response is parsed as it arrives and only one record is
+    /// held at a time, so memory follows <see cref="MaxRecordBytes"/>.
     /// </summary>
-    public const int MaxResponseBytes = 256 * 1024 * 1024;
+    public const long MaxResponseBytes = 1024L * 1024 * 1024;
+
+    /// <summary>
+    /// The largest single node read from a response, since each is held in memory whole: a record — a
+    /// <c>wd:Worker</c> or <c>wd:Organization</c>, kept while it is projected — or any text or whitespace between
+    /// them. A record's tree takes several times its bytes in memory. A real worker, with every organization it
+    /// belongs to and its management chain, runs to hundreds of kilobytes.
+    /// </summary>
+    public const int MaxRecordBytes = 16 * 1024 * 1024;
+
+    /// <summary>
+    /// The deepest an element may be nested outside a record. The reader keeps state for every open element, so
+    /// without a limit a response nesting without end would grow memory under the byte caps. A Get_Workers
+    /// response nests its records about four deep.
+    /// </summary>
+    public const int MaxDepth = 64;
+
+    /// <summary>
+    /// The most distinct element and attribute names a response may use, and the most characters they may take
+    /// together. The reader keeps every name it meets, so a response of names that never repeat would otherwise
+    /// grow memory under the byte caps. A response uses a few hundred.
+    /// </summary>
+    public const int MaxDistinctNames = 10_000;
+
+    /// <inheritdoc cref="MaxDistinctNames"/>
+    public const int MaxNameCharacters = 1024 * 1024;
+
+    /// <summary>
+    /// The most of a failed response's body read. A SOAP fault is a few kilobytes; whatever lies beyond this is
+    /// never read, so a fault cannot be classified from a larger body.
+    /// </summary>
+    public const int MaxFaultResponseBytes = 1024 * 1024;
 
     /// <summary>Why nothing is sent to an endpoint that is not HTTPS.</summary>
     public const string NotHttpsMessage =
@@ -49,7 +79,8 @@ public sealed class WorkdayStaffingClient(HttpClient httpClient, TimeProvider ti
 
     /// <summary>
     /// How long the body may take to arrive once the headers have. The resilience pipeline's attempt timeout
-    /// ends at the headers, so without this an endpoint sending a byte at a time could hold a sync open.
+    /// ends at the headers, so without this an endpoint sending a byte at a time could hold a sync open. Records
+    /// are handed to the caller while the body arrives, so the caller's time with them counts too.
     /// </summary>
     public static readonly TimeSpan BodyReadTimeout = TimeSpan.FromSeconds(90);
 
@@ -60,8 +91,25 @@ public sealed class WorkdayStaffingClient(HttpClient httpClient, TimeProvider ti
     private const int MaxLoggedBodyLength = 2000;
 
     /// <summary>Why a response larger than <see cref="MaxResponseBytes"/> is refused.</summary>
-    public static readonly string TooLargeMessage =
-        $"Workday's response is larger than the {MaxResponseBytes / (1024 * 1024)} MB limit.";
+    public static readonly string TooLargeMessage = string.Create(CultureInfo.InvariantCulture,
+        $"Workday's response is larger than the {MaxResponseBytes / (1024 * 1024):N0} MB limit.");
+
+    /// <summary>Why a response holding one node larger than <see cref="MaxRecordBytes"/> is refused.</summary>
+    public static readonly string RecordTooLargeMessage =
+        $"A single element in Workday's response is larger than the {MaxRecordBytes / (1024 * 1024)} MB limit.";
+
+    /// <summary>
+    /// What the caller is told of a failed response with no SOAP fault in its first
+    /// <see cref="MaxFaultResponseBytes"/>.
+    /// </summary>
+    public static string NoFaultMessage(int statusCode) => $"Workday returned HTTP {statusCode} without a SOAP fault.";
+
+    /// <summary>Why a response nested deeper than <see cref="MaxDepth"/> is refused.</summary>
+    public static readonly string TooDeepMessage = $"Workday's response is nested deeper than {MaxDepth} levels.";
+
+    /// <summary>Why a response using more names than <see cref="MaxDistinctNames"/> allows is refused.</summary>
+    public static readonly string TooManyNamesMessage = string.Create(CultureInfo.InvariantCulture,
+        $"Workday's response uses more than {MaxDistinctNames:N0} distinct element and attribute names.");
 
     /// <summary>
     /// Set on the request by whatever stops reading a failed response's body before the client does — the
@@ -74,24 +122,21 @@ public sealed class WorkdayStaffingClient(HttpClient httpClient, TimeProvider ti
     /// Calls <c>Get_Workers</c> against the supplied tenant. Single page only — caller paginates
     /// by passing <paramref name="page"/> until <see cref="GetWorkersResponse.TotalPages"/> is reached.
     /// </summary>
+    /// <param name="onWorker">
+    /// Called with each <c>wd:Worker</c> as it is parsed from the response, which holds no other worker; returning
+    /// false stops reading the page.
+    /// </param>
     public async Task<GetWorkersResponse> GetWorkers(
         WorkdayRequestContext context,
         int page,
         int pageSize,
+        Func<XElement, bool> onWorker,
         CancellationToken cancellationToken)
     {
         var envelope = BuildGetWorkersEnvelope(context, page, pageSize, _timeProvider.GetUtcNow());
-        var (responseXml, responseBytes) = await PostAsync(context, envelope, cancellationToken);
+        var read = await PostAsync(context, envelope, Wd + "Worker", onWorker, cancellationToken);
 
-        // Find all wd:Worker elements anywhere in the response — Workday nests them under
-        // Response_Data which lives under the operation response, but using a descendant-search
-        // here keeps us tolerant of envelope shape drift.
-        var workers = responseXml.Descendants(Wd + "Worker").ToList();
-        var pageInfo = responseXml.Descendants(Wd + "Response_Results").FirstOrDefault();
-        var totalPages = ParseIntOrDefault(pageInfo?.Element(Wd + "Total_Pages")?.Value, 1);
-        var totalResults = ParseIntOrDefault(pageInfo?.Element(Wd + "Total_Results")?.Value, workers.Count);
-
-        return new GetWorkersResponse(workers, page, totalPages, totalResults, responseBytes);
+        return new GetWorkersResponse(read.Records, page, read.TotalPages ?? 1, read.TotalResults ?? read.Records, read.Bytes);
     }
 
     private static XDocument BuildGetWorkersEnvelope(WorkdayRequestContext context, int page, int pageSize, DateTimeOffset now)
@@ -189,15 +234,20 @@ public sealed class WorkdayStaffingClient(HttpClient httpClient, TimeProvider ti
         string? organizationTypeId = null)
     {
         var envelope = BuildGetOrganizationsEnvelope(context, page, pageSize, organizationTypeId);
-        var (responseXml, _) = await PostAsync(context, envelope, cancellationToken);
 
-        // Each Organization element carries Reference_ID, Name, and Organization_Type_Reference.
-        var orgs = responseXml.Descendants(Wd + "Organization").ToList();
-        var pageInfo = responseXml.Descendants(Wd + "Response_Results").FirstOrDefault();
-        var totalPages = ParseIntOrDefault(pageInfo?.Element(Wd + "Total_Pages")?.Value, 1);
-        var totalResults = ParseIntOrDefault(pageInfo?.Element(Wd + "Total_Results")?.Value, orgs.Count);
+        // Each Organization element carries Reference_ID, Name, and Organization_Type_Reference. Organizations are
+        // small enough to keep for the page, but only as many as were asked for.
+        var orgs = new List<XElement>();
+        var read = await PostAsync(context, envelope, Wd + "Organization", org =>
+        {
+            orgs.Add(org);
+            return orgs.Count <= pageSize;
+        }, cancellationToken);
 
-        return new GetOrganizationsResponse(orgs, page, totalPages, totalResults);
+        if (orgs.Count > pageSize)
+            throw new WorkdaySoapException(200, $"Workday returned more than the {pageSize} requested organizations on one page.");
+
+        return new GetOrganizationsResponse(orgs, page, read.TotalPages ?? 1, read.TotalResults ?? orgs.Count);
     }
 
     private static XDocument BuildGetOrganizationsEnvelope(WorkdayRequestContext context, int page, int pageSize, string? organizationTypeId)
@@ -238,8 +288,17 @@ public sealed class WorkdayStaffingClient(HttpClient httpClient, TimeProvider ti
         return new XDocument(new XDeclaration("1.0", "utf-8", null), envelope);
     }
 
-    /// <summary>Sends <paramref name="envelope"/> and returns the parsed response with its size in bytes.</summary>
-    private async Task<(XDocument Document, long Bytes)> PostAsync(WorkdayRequestContext context, XDocument envelope, CancellationToken cancellationToken)
+    /// <summary>
+    /// Sends <paramref name="envelope"/> and parses the response as it arrives, passing each
+    /// <paramref name="recordName"/> element to <paramref name="onRecord"/> until it returns false or the
+    /// response ends.
+    /// </summary>
+    private async Task<ResponseRead> PostAsync(
+        WorkdayRequestContext context,
+        XDocument envelope,
+        XName recordName,
+        Func<XElement, bool> onRecord,
+        CancellationToken cancellationToken)
     {
         // The envelope carries the ISU password in plain text. A connection saved before WSDL URLs had to be
         // HTTPS still holds its http:// endpoint, so the scheme is checked on every send, not only on save.
@@ -259,54 +318,140 @@ public sealed class WorkdayStaffingClient(HttpClient httpClient, TimeProvider ti
         using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         var statusCode = (int)response.StatusCode;
 
-        var body = await ReadBody(response, statusCode, cancellationToken);
-
         if (!response.IsSuccessStatusCode)
         {
             // Workday returns SOAP Faults inside a 500-class body; the fault's reason lets the initializer tell
             // an auth failure from other errors. Anything else in the body stays in the log: the caller learns
             // only the status, so the connection cannot be used to read what some other server answered.
+            var body = await ReadFaultBody(response, statusCode, cancellationToken);
             var fault = TryReadFault(body);
             _logger.LogWarning("Workday SOAP call returned {StatusCode}: {Body}", statusCode, Truncate(fault ?? body, MaxLoggedBodyLength));
             throw new WorkdaySoapException(statusCode, fault is null
-                ? $"Workday returned HTTP {statusCode} without a SOAP fault."
+                ? NoFaultMessage(statusCode)
                 : Truncate(fault, MaxFaultLength));
         }
 
-        try
+        if (response.Content.Headers.ContentLength is > MaxResponseBytes and var declared)
+            throw new WorkdaySoapException(statusCode, string.Create(CultureInfo.InvariantCulture, $"{TooLargeMessage} It declared {declared / (1024.0 * 1024):N0} MB."));
+
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(BodyReadTimeout);
+
+        var stream = await ReadBody(() => response.Content.ReadAsStreamAsync(timeout.Token), response, statusCode, cancellationToken);
+        await using var metered = new MeteredStream(stream, statusCode, timeout.Token);
+        using var reader = XmlReader.Create(metered, new XmlReaderSettings
         {
-            // Once buffered, the content's length is the buffer's, whether or not Workday declared one.
-            var bytes = response.Content.Headers.ContentLength ?? Encoding.UTF8.GetByteCount(body);
-            return (XDocument.Parse(body, LoadOptions.PreserveWhitespace), bytes);
+            Async = true,
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            NameTable = new BoundedNameTable(statusCode),
+        });
+
+        int? totalPages = null;
+        int? totalResults = null;
+        var records = 0;
+
+        while (await ReadBody(NextRecord, response, statusCode, cancellationToken) is { } record)
+        {
+            records++;
+            if (!onRecord(record))
+                break;
         }
-        catch (XmlException ex)
+
+        return new ResponseRead(records, totalPages, totalResults, metered.BytesRead);
+
+        // Advances to the next record, reading Response_Results on the way. Anywhere in the response, so the
+        // reader is tolerant of envelope shape drift; ReadFrom leaves the reader on the node after the element,
+        // which may itself be the next record.
+        async Task<XElement?> NextRecord()
         {
-            throw new WorkdaySoapException((int)response.StatusCode, "Workday returned a non-XML response.", ex);
+            while (!reader.EOF)
+            {
+                if (reader.Depth > MaxDepth)
+                    throw new WorkdaySoapException(statusCode, TooDeepMessage);
+
+                if (reader.NodeType == XmlNodeType.Element && reader.NamespaceURI == recordName.NamespaceName)
+                {
+                    if (reader.LocalName == recordName.LocalName)
+                        return await ReadElement();
+
+                    if (reader.LocalName == "Response_Results")
+                    {
+                        var results = await ReadElement();
+                        totalPages = ParseInt(results.Element(Wd + "Total_Pages")?.Value);
+                        totalResults = ParseInt(results.Element(Wd + "Total_Results")?.Value);
+                        continue;
+                    }
+                }
+
+                metered.BeginNode();
+                await reader.ReadAsync();
+            }
+
+            return null;
+        }
+
+        async Task<XElement> ReadElement()
+        {
+            metered.BeginNode();
+            return (XElement)await XNode.ReadFromAsync(reader, timeout.Token);
         }
     }
 
     /// <summary>
-    /// Reads the response body, refusing one larger than <see cref="MaxResponseBytes"/> or slower than
-    /// <see cref="BodyReadTimeout"/>. Every way the read can fail becomes a <see cref="WorkdaySoapException"/>,
-    /// the one exception the sync and the probe report rather than let escape.
+    /// Reads at most <see cref="MaxFaultResponseBytes"/> of a failed response's body, within
+    /// <see cref="BodyReadTimeout"/>.
     /// </summary>
-    private static async Task<string> ReadBody(HttpResponseMessage response, int statusCode, CancellationToken cancellationToken)
+    private static async Task<string> ReadFaultBody(HttpResponseMessage response, int statusCode, CancellationToken cancellationToken)
     {
-        if (response.Content.Headers.ContentLength is > MaxResponseBytes and var declared)
-            throw new WorkdaySoapException(statusCode, $"{TooLargeMessage} It declared {declared / (1024.0 * 1024):F0} MB.");
-
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(BodyReadTimeout);
+
+        return await ReadBody(async () =>
+        {
+            await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token);
+            var buffer = new byte[MaxFaultResponseBytes];
+            var length = await stream.ReadAtLeastAsync(buffer, buffer.Length, throwOnEndOfStream: false, timeout.Token);
+
+            // Decoded as the response declares, and past any byte order mark, either of which would otherwise
+            // leave the fault unparseable.
+            using var text = new StreamReader(new MemoryStream(buffer, 0, length), DeclaredEncoding(response) ?? Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            return await text.ReadToEndAsync(timeout.Token);
+        }, response, statusCode, cancellationToken);
+    }
+
+    /// <summary>The encoding the response's Content-Type names, or null when it names none Wayd can decode.</summary>
+    private static Encoding? DeclaredEncoding(HttpResponseMessage response)
+    {
+        var charset = response.Content.Headers.ContentType?.CharSet?.Trim('"');
+        if (string.IsNullOrWhiteSpace(charset))
+            return null;
+
         try
         {
-            // Buffering with a limit stops reading at the cap even when no length was declared.
-            await response.Content.LoadIntoBufferAsync(MaxResponseBytes, timeout.Token);
+            return Encoding.GetEncoding(charset);
         }
-        catch (HttpRequestException ex) when (ex.HttpRequestError == HttpRequestError.ConfigurationLimitExceeded)
+        catch (ArgumentException)
         {
-            throw new WorkdaySoapException(statusCode, TooLargeMessage, ex);
+            return null;
         }
-        catch (HttpRequestException ex)
+    }
+
+    /// <summary>
+    /// Runs one step of reading a response body, turning every way it can fail into a
+    /// <see cref="WorkdaySoapException"/>, the one exception the sync and the probe report rather than let escape.
+    /// </summary>
+    private static async Task<T> ReadBody<T>(Func<Task<T>> read, HttpResponseMessage response, int statusCode, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await read();
+        }
+        catch (XmlException ex)
+        {
+            throw new WorkdaySoapException(statusCode, "Workday returned a non-XML response.", ex);
+        }
+        catch (Exception ex) when (ex is IOException or HttpRequestException)
         {
             throw new WorkdaySoapException(statusCode, "Workday's response was cut off before it arrived in full.", ex);
         }
@@ -317,14 +462,12 @@ public sealed class WorkdayStaffingClient(HttpClient httpClient, TimeProvider ti
         catch (InvalidOperationException ex)
         {
             // The resilience pipeline's retry check started reading this body and could not finish, so what is
-            // left of the stream cannot be buffered.
+            // left of the stream cannot be read.
             var reason = response.RequestMessage?.Options.TryGetValue(UnreadBodyReason, out var recorded) == true
                 ? recorded
                 : "Workday's response could not be read in full.";
             throw new WorkdaySoapException(statusCode, reason, ex);
         }
-
-        return await response.Content.ReadAsStringAsync(cancellationToken);
     }
 
     private static string Truncate(string value, int maxLength) =>
@@ -383,18 +526,18 @@ public sealed class WorkdayStaffingClient(HttpClient httpClient, TimeProvider ti
         return false;
     }
 
-    private static int ParseIntOrDefault(string? value, int fallback) =>
-        int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : fallback;
+    private static int? ParseInt(string? value) =>
+        int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : null;
 }
 
 /// <summary>One page of <c>Get_Workers</c>.</summary>
-/// <param name="Workers">The page's <c>wd:Worker</c> elements.</param>
+/// <param name="WorkerCount">The <c>wd:Worker</c> elements passed to the caller.</param>
 /// <param name="Page">The page number requested.</param>
 /// <param name="TotalPages">The page count Workday reports.</param>
 /// <param name="TotalResults">The worker count Workday reports.</param>
-/// <param name="ResponseBytes">The size of the response body, to compare with <see cref="WorkdayStaffingClient.MaxResponseBytes"/>.</param>
+/// <param name="ResponseBytes">The bytes of the response body read, to compare with <see cref="WorkdayStaffingClient.MaxResponseBytes"/>.</param>
 public sealed record GetWorkersResponse(
-    IReadOnlyList<XElement> Workers,
+    int WorkerCount,
     int Page,
     int TotalPages,
     int TotalResults,
@@ -405,6 +548,108 @@ public sealed record GetOrganizationsResponse(
     int Page,
     int TotalPages,
     int TotalResults);
+
+/// <summary>What reading one response found.</summary>
+/// <param name="Records">The records passed to the caller.</param>
+/// <param name="TotalPages">The page count Workday reports, when it reports one.</param>
+/// <param name="TotalResults">The record count Workday reports, when it reports one.</param>
+/// <param name="Bytes">The bytes of the body read.</param>
+internal sealed record ResponseRead(int Records, int? TotalPages, int? TotalResults, long Bytes);
+
+/// <summary>
+/// A read-only view of a response body that counts the bytes read and refuses to read past
+/// <see cref="WorkdayStaffingClient.MaxResponseBytes"/>, or past <see cref="WorkdayStaffingClient.MaxRecordBytes"/>
+/// within one node. Every read uses the token it was created with: <see cref="XmlReader"/> passes none.
+/// </summary>
+internal sealed class MeteredStream(Stream inner, int statusCode, CancellationToken readToken) : Stream
+{
+    private long _nodeStart;
+
+    /// <summary>The bytes read so far.</summary>
+    public long BytesRead { get; private set; }
+
+    /// <summary>
+    /// Starts counting the bytes of the next node the reader reads against
+    /// <see cref="WorkdayStaffingClient.MaxRecordBytes"/>.
+    /// </summary>
+    /// <remarks>
+    /// The reader has already buffered some of what follows, so the count is a close bound rather than exact.
+    /// </remarks>
+    public void BeginNode() => _nodeStart = BytesRead;
+
+    public override bool CanRead => true;
+    public override bool CanSeek => false;
+    public override bool CanWrite => false;
+    public override long Length => throw new NotSupportedException();
+    public override long Position { get => BytesRead; set => throw new NotSupportedException(); }
+
+    public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) =>
+        Count(await inner.ReadAsync(buffer, readToken));
+
+    public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+        ReadAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
+
+    public override int Read(byte[] buffer, int offset, int count) =>
+        throw new NotSupportedException("The body is read asynchronously.");
+
+    private int Count(int read)
+    {
+        BytesRead += read;
+        if (BytesRead > WorkdayStaffingClient.MaxResponseBytes)
+            throw new WorkdaySoapException(statusCode, WorkdayStaffingClient.TooLargeMessage);
+        if (BytesRead - _nodeStart > WorkdayStaffingClient.MaxRecordBytes)
+            throw new WorkdaySoapException(statusCode, WorkdayStaffingClient.RecordTooLargeMessage);
+        return read;
+    }
+
+    public override void Flush() { }
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+    public override void SetLength(long value) => throw new NotSupportedException();
+    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+            inner.Dispose();
+        base.Dispose(disposing);
+    }
+
+    public override ValueTask DisposeAsync()
+    {
+        GC.SuppressFinalize(this);
+        return inner.DisposeAsync();
+    }
+}
+
+/// <summary>
+/// The reader's store of the names it meets, refusing a response that uses more than
+/// <see cref="WorkdayStaffingClient.MaxDistinctNames"/> of them or more than
+/// <see cref="WorkdayStaffingClient.MaxNameCharacters"/> between them.
+/// </summary>
+internal sealed class BoundedNameTable(int statusCode) : XmlNameTable
+{
+    private readonly NameTable _names = new();
+    private int _count;
+    private long _characters;
+
+    public override string Add(string array) => Get(array) ?? Admit(array.Length, () => _names.Add(array));
+
+    public override string Add(char[] array, int offset, int length) =>
+        Get(array, offset, length) ?? Admit(length, () => _names.Add(array, offset, length));
+
+    public override string? Get(string array) => _names.Get(array);
+
+    public override string? Get(char[] array, int offset, int length) => _names.Get(array, offset, length);
+
+    private string Admit(int length, Func<string> add)
+    {
+        _count++;
+        _characters += length;
+        if (_count > WorkdayStaffingClient.MaxDistinctNames || _characters > WorkdayStaffingClient.MaxNameCharacters)
+            throw new WorkdaySoapException(statusCode, WorkdayStaffingClient.TooManyNamesMessage);
+        return add();
+    }
+}
 
 public sealed class WorkdaySoapException : Exception
 {

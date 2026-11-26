@@ -572,7 +572,7 @@ public class WorkdayStaffingServiceTests
         var client = new WorkdayStaffingClient(new HttpClient(handler), new FixedTimeProvider(_testNow), NullLogger<WorkdayStaffingClient>.Instance);
 
         // Act
-        var response = await client.GetWorkers(BuildContext(), 1, WorkdayStaffingService.SyncPageSize, TestContext.Current.CancellationToken);
+        var response = await client.GetWorkers(BuildContext(), 1, WorkdayStaffingService.SyncPageSize, _ => true, TestContext.Current.CancellationToken);
 
         // Assert
         response.ResponseBytes.Should().Be(Encoding.UTF8.GetByteCount(body));
@@ -611,7 +611,7 @@ public class WorkdayStaffingServiceTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("MB limit").And.Contain("It declared 256 MB");
+        result.Error.Should().Contain("MB limit").And.Contain("It declared 1,024 MB");
     }
 
     [Fact]
@@ -626,7 +626,7 @@ public class WorkdayStaffingServiceTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("MB limit");
+        result.Error.Should().Contain("MB limit").And.Contain(WorkdayStaffingClient.TooLargeMessage);
     }
 
     [Fact]
@@ -683,6 +683,277 @@ public class WorkdayStaffingServiceTests
         result.Error.Should().Contain("within 30 seconds");
     }
 
+    [Fact]
+    public async Task GetEmployees_pageOfSmallWorkersLargerThan256Mb_syncsEveryWorker()
+    {
+        // Arrange
+        var (service, handler) = BuildService();
+        var page = new GeneratedPage(WorkdayStaffingService.SyncPageSize, workerPaddingBytes: 1_400_000);
+        handler.Responses.Enqueue(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(page) });
+
+        // Act
+        var result = await service.GetEmployees(BuildContext(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.Employees.Should().HaveCount(WorkdayStaffingService.SyncPageSize);
+        page.BytesSent.Should().BeGreaterThan(256L * 1024 * 1024);
+    }
+
+    [Fact]
+    public async Task GetEmployees_workerAboveTheRecordCap_stopsReadingAtTheCap()
+    {
+        // Arrange
+        var (service, handler) = BuildService();
+        var page = new GeneratedPage(workers: 1, workerPaddingBytes: WorkdayStaffingClient.MaxRecordBytes * 2);
+        handler.Responses.Enqueue(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(page) });
+
+        // Act
+        var result = await service.GetEmployees(BuildContext(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain(WorkdayStaffingClient.RecordTooLargeMessage);
+        page.BytesSent.Should().BeLessThan(WorkdayStaffingClient.MaxRecordBytes + 1024L * 1024);
+    }
+
+    [Fact]
+    public async Task GetEmployees_whitespaceThatNeverEnds_stopsReadingAtTheNodeCap()
+    {
+        // Arrange
+        var (service, handler) = BuildService();
+        var body = new EndlessStream(nodeBytes: int.MaxValue);
+        handler.Responses.Enqueue(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(body) });
+
+        // Act
+        var result = await service.GetEmployees(BuildContext(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain(WorkdayStaffingClient.RecordTooLargeMessage);
+        body.BytesSent.Should().BeLessThan(WorkdayStaffingClient.MaxRecordBytes + 1024L * 1024);
+    }
+
+    [Fact]
+    public async Task GetEmployees_failedResponseThatNeverEnds_readsOnlyItsStart()
+    {
+        // Arrange
+        var (service, handler) = BuildService();
+        var body = new EndlessStream();
+        handler.Responses.Enqueue(new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StreamContent(body) });
+
+        // Act
+        var result = await service.GetEmployees(BuildContext(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("HTTP 500 without a SOAP fault");
+        body.BytesSent.Should().Be(WorkdayStaffingClient.MaxFaultResponseBytes);
+    }
+
+    [Fact]
+    public async Task GetEmployees_pageWithMoreWorkersThanRequested_stopsReadingIt()
+    {
+        // Arrange
+        var (service, handler) = BuildService();
+        var page = new GeneratedPage(workers: 10_000, workerPaddingBytes: 0);
+        handler.Responses.Enqueue(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(page) });
+
+        // Act
+        var result = await service.GetEmployees(BuildContext(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("more than the 200 requested");
+        page.Finished.Should().BeFalse("reading stops at the first worker past the page size");
+    }
+
+    [Fact]
+    public async Task GetEmployees_elementsNestedWithoutEnd_stopsReadingAtTheDepthCap()
+    {
+        // Arrange
+        var (service, handler) = BuildService();
+        var body = new PatternStream("", _ => "<a>");
+        handler.Responses.Enqueue(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(body) });
+
+        // Act
+        var result = await service.GetEmployees(BuildContext(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain(WorkdayStaffingClient.TooDeepMessage);
+        body.BytesSent.Should().BeLessThan(1024 * 1024);
+    }
+
+    [Fact]
+    public async Task GetEmployees_namesThatNeverRepeat_stopsReadingAtTheNameCap()
+    {
+        // Arrange
+        var (service, handler) = BuildService();
+        var body = new PatternStream("<r>", i => $"<n{i}/>");
+        handler.Responses.Enqueue(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(body) });
+
+        // Act
+        var result = await service.GetEmployees(BuildContext(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain(WorkdayStaffingClient.TooManyNamesMessage);
+        body.BytesSent.Should().BeLessThan(1024 * 1024);
+    }
+
+    [Fact]
+    public async Task GetEmployees_faultWithAByteOrderMark_reportsTheFault()
+    {
+        // Arrange
+        var (service, handler) = BuildService();
+        var body = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(File.ReadAllText("Fixtures/auth-fault.xml"))).ToArray();
+        var content = new ByteArrayContent(body);
+        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/xml") { CharSet = "utf-8" };
+        handler.Responses.Enqueue(new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = content });
+
+        // Act
+        var result = await service.GetEmployees(BuildContext(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("Authentication failed: invalid user or password");
+    }
+
+    [Fact]
+    public async Task GetOrganizations_pageWithMoreOrganizationsThanRequested_fails()
+    {
+        // Arrange
+        var handler = new FakeHttpMessageHandler();
+        handler.EnqueueXml(File.ReadAllText("Fixtures/get-organizations-catalog.xml"));
+        var client = new WorkdayStaffingClient(new HttpClient(handler), new FixedTimeProvider(_testNow), NullLogger<WorkdayStaffingClient>.Instance);
+
+        // Act
+        var act = () => client.GetOrganizations(BuildContext(), 1, 3, TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<WorkdaySoapException>().WithMessage("*more than the 3 requested organizations*");
+    }
+
+    /// <summary>
+    /// A Get_Workers page generated as it is read, so a page far larger than any buffer the test could hold is
+    /// sent without being held. Each worker is the healthy fixture's first, padded with an element the projection
+    /// never reads.
+    /// </summary>
+    private sealed class GeneratedPage : Stream
+    {
+        private readonly IEnumerator<ReadOnlyMemory<byte>> _segments;
+        private ReadOnlyMemory<byte> _current;
+
+        public GeneratedPage(int workers, int workerPaddingBytes)
+        {
+            var fixture = XDocument.Parse(File.ReadAllText("Fixtures/get-workers-healthy-page1.xml"));
+            var worker = fixture.Descendants(WorkdayStaffingClient.Wd + "Worker").First();
+            var data = worker.Parent!;
+            worker.Remove();
+            data.RemoveNodes();
+            data.Add(new XText("|"));
+            var (head, tail) = Split(fixture.ToString(SaveOptions.DisableFormatting), "|");
+
+            worker.Add(new XElement(WorkdayStaffingClient.Wd + "Padding", "|"));
+            var (workerHead, workerTail) = Split(worker.ToString(SaveOptions.DisableFormatting), "|");
+
+            _segments = Segments(head, tail, workerHead, workerTail, workers, workerPaddingBytes).GetEnumerator();
+        }
+
+        /// <summary>The bytes of the page read so far.</summary>
+        public long BytesSent { get; private set; }
+
+        /// <summary>Whether the page has been read to its end.</summary>
+        public bool Finished { get; private set; }
+
+        private static (byte[] Head, byte[] Tail) Split(string xml, string marker)
+        {
+            var at = xml.IndexOf(marker, StringComparison.Ordinal);
+            return (Encoding.UTF8.GetBytes(xml[..at]), Encoding.UTF8.GetBytes(xml[(at + marker.Length)..]));
+        }
+
+        private static IEnumerable<ReadOnlyMemory<byte>> Segments(byte[] head, byte[] tail, byte[] workerHead, byte[] workerTail, int workers, int paddingBytes)
+        {
+            var padding = new byte[64 * 1024];
+            Array.Fill(padding, (byte)'x');
+
+            yield return head;
+            for (var i = 0; i < workers; i++)
+            {
+                yield return workerHead;
+                for (var left = paddingBytes; left > 0; left -= padding.Length)
+                    yield return padding.AsMemory(0, Math.Min(left, padding.Length));
+                yield return workerTail;
+            }
+            yield return tail;
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            while (_current.IsEmpty)
+            {
+                if (!_segments.MoveNext())
+                {
+                    Finished = true;
+                    return 0;
+                }
+                _current = _segments.Current;
+            }
+
+            var read = Math.Min(count, _current.Length);
+            _current[..read].CopyTo(buffer.AsMemory(offset, read));
+            _current = _current[read..];
+            BytesSent += read;
+            return read;
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    /// <summary>
+    /// A body with no declared length that never ends: <c>prefix</c>, then the text <c>unit</c> gives for each
+    /// index in turn.
+    /// </summary>
+    private sealed class PatternStream(string prefix, Func<long, string> unit) : Stream
+    {
+        private ReadOnlyMemory<byte> _current = Encoding.UTF8.GetBytes(prefix);
+        private long _index;
+
+        /// <summary>The bytes read so far.</summary>
+        public long BytesSent { get; private set; }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            while (_current.IsEmpty)
+                _current = Encoding.UTF8.GetBytes(unit(_index++));
+
+            var read = Math.Min(count, _current.Length);
+            _current[..read].CopyTo(buffer.AsMemory(offset, read));
+            _current = _current[read..];
+            BytesSent += read;
+            return read;
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
     /// <summary>Records why it gave up on the body, as the resilience pipeline's retry check does.</summary>
     private sealed class GivingUpRetryCheck(string reason) : DelegatingHandler
     {
@@ -735,20 +1006,51 @@ public class WorkdayStaffingServiceTests
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
-    /// <summary>A body with no declared length that never ends.</summary>
-    private sealed class EndlessStream : Stream
+    /// <summary>
+    /// A body with no declared length that never ends, and is well-formed XML for as long as it is read: an open
+    /// element holding runs of whitespace, <paramref name="nodeBytes"/> long, each closed by an empty element.
+    /// </summary>
+    private sealed class EndlessStream(int nodeBytes = 1024 * 1024) : Stream
     {
+        private static readonly byte[] _open = "<r>"u8.ToArray();
+        private static readonly byte[] _node = "<a/>"u8.ToArray();
+
+        /// <summary>The bytes read so far.</summary>
+        public long BytesSent { get; private set; }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            int read;
+            if (BytesSent < _open.Length)
+            {
+                read = Math.Min(count, _open.Length - (int)BytesSent);
+                _open.AsSpan((int)BytesSent, read).CopyTo(buffer.AsSpan(offset));
+            }
+            else
+            {
+                var inPeriod = (BytesSent - _open.Length) % ((long)nodeBytes + _node.Length);
+                if (inPeriod < nodeBytes)
+                {
+                    read = (int)Math.Min(count, nodeBytes - inPeriod);
+                    buffer.AsSpan(offset, read).Fill((byte)' ');
+                }
+                else
+                {
+                    read = Math.Min(count, _node.Length - (int)(inPeriod - nodeBytes));
+                    _node.AsSpan((int)(inPeriod - nodeBytes), read).CopyTo(buffer.AsSpan(offset));
+                }
+            }
+
+            BytesSent += read;
+            return read;
+        }
+
         public override bool CanRead => true;
         public override bool CanSeek => false;
         public override bool CanWrite => false;
         public override long Length => throw new NotSupportedException();
         public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
         public override void Flush() { }
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            Array.Fill(buffer, (byte)'a', offset, count);
-            return count;
-        }
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();

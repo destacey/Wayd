@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Wayd.Infrastructure.ConnectorModules;
@@ -86,22 +86,22 @@ public sealed class WorkdayConnectorModuleTests
     }
 
     [Fact]
-    public async Task IsPermanentFailure_IsTrue_WithoutReading_WhenTheDeclaredBodyIsAboveTheCap()
+    public async Task IsPermanentFailure_IsFalse_WithoutReading_WhenTheDeclaredBodyIsAboveTheCap()
     {
         // Arrange
         var content = new StreamContent(new ThrowingStream());
-        content.Headers.ContentLength = WorkdayStaffingClient.MaxResponseBytes + 1L;
+        content.Headers.ContentLength = WorkdayStaffingClient.MaxFaultResponseBytes + 1L;
         using var response = Failure(content);
 
         // Act
         var result = await WorkdayConnectorModule.IsPermanentFailure(response, TestContext.Current.CancellationToken);
 
         // Assert
-        result.Should().BeTrue();
+        result.Should().BeFalse("a body that large holds no fault the client could read");
     }
 
     [Fact]
-    public async Task IsPermanentFailure_IsTrue_WhenAnUndeclaredBodyRunsPastTheCap()
+    public async Task IsPermanentFailure_IsFalse_WhenAnUndeclaredBodyRunsPastTheCap()
     {
         // Arrange
         using var response = Failure(new StreamContent(new EndlessStream()));
@@ -110,9 +110,9 @@ public sealed class WorkdayConnectorModuleTests
         var result = await WorkdayConnectorModule.IsPermanentFailure(response, TestContext.Current.CancellationToken);
 
         // Assert
-        result.Should().BeTrue();
+        result.Should().BeFalse("a body that large holds no fault the client could read");
         response.RequestMessage!.Options.TryGetValue(WorkdayStaffingClient.UnreadBodyReason, out var reason).Should().BeTrue();
-        reason.Should().Be(WorkdayStaffingClient.TooLargeMessage, "the client can no longer read the body to find out");
+        reason.Should().Be(WorkdayStaffingClient.NoFaultMessage(500), "the client can no longer read the body to find out");
     }
 
     private static HttpResponseMessage Failure(HttpContent content, HttpStatusCode status = HttpStatusCode.InternalServerError) =>

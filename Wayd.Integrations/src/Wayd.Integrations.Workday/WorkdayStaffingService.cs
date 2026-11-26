@@ -59,7 +59,7 @@ public sealed class WorkdayStaffingService(WorkdayStaffingClient client, ILogger
             var page = 1;
             int totalPages;
 
-            // Phase timing: separate the Workday round-trip (network + Workday-side response assembly)
+            // Phase timing: separate the Workday round-trip (network, Workday-side response assembly, parsing)
             // from local projection (XPath reads + value-object construction). The bulk-sync wall clock
             // is one or the other; logging the split tells us which to invest in rather than guessing.
             // Stopwatch.GetTimestamp/GetElapsedTime times without allocating a Stopwatch instance and
@@ -71,10 +71,45 @@ public sealed class WorkdayStaffingService(WorkdayStaffingClient client, ILogger
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var fetchStart = Stopwatch.GetTimestamp();
-                var response = await _client.GetWorkers(context, page, SyncPageSize, cancellationToken);
-                var pageFetchMs = Stopwatch.GetElapsedTime(fetchStart).TotalMilliseconds;
+                // Workers are projected while the page is still arriving, so the fetch time is the page's time
+                // less the time spent projecting.
+                var pageStart = Stopwatch.GetTimestamp();
+                double pageProjectMs = 0;
+                var pageWorkers = 0;
+                var response = await _client.GetWorkers(context, page, SyncPageSize, worker =>
+                {
+                    if (++pageWorkers > SyncPageSize)
+                        return false;
+
+                    var projectStart = Stopwatch.GetTimestamp();
+
+                    // Drop workers in any excluded org before projection — projection runs name
+                    // normalization, date parsing, etc., and there's no point doing that work for
+                    // workers we're about to discard.
+                    var matchedExclusion = FindMatchingExclusion(worker, exclusionCounts);
+                    if (matchedExclusion is not null)
+                    {
+                        exclusionCounts[matchedExclusion].Count++;
+                    }
+                    else if (TryProject(worker, context.WorkerKey, context.UseUserIdAsEmailFallback, context.UsePreferredName, context.NormalizeNameCasing, context.DepartmentOrganizationTypeId) is { } projected)
+                    {
+                        employees.Add(projected);
+                    }
+
+                    pageProjectMs += Stopwatch.GetElapsedTime(projectStart).TotalMilliseconds;
+                    return true;
+                }, cancellationToken);
+                var pageFetchMs = Stopwatch.GetElapsedTime(pageStart).TotalMilliseconds - pageProjectMs;
                 fetchMs += pageFetchMs;
+                projectMs += pageProjectMs;
+
+                if (pageWorkers > SyncPageSize)
+                {
+                    _logger.LogError("Workday Get_Workers returned more than {PageSize} workers on page {Page} for endpoint {Endpoint}.", SyncPageSize, page, context.SoapEndpoint);
+                    return Result.Failure<WorkdayEmployeeFetchResult>(
+                        $"Workday returned more than the {SyncPageSize} requested workers on one page, so the sync was stopped.");
+                }
+
                 totalPages = response.TotalPages;
                 if (totalPages > MaxSyncPages)
                 {
@@ -83,38 +118,11 @@ public sealed class WorkdayStaffingService(WorkdayStaffingClient client, ILogger
                         $"Workday reported {totalPages} pages of workers, more than the {MaxSyncPages}-page limit, so the sync was stopped.");
                 }
 
-                if (response.Workers.Count > SyncPageSize)
-                {
-                    _logger.LogError("Workday Get_Workers returned {Count} workers on page {Page} for endpoint {Endpoint}, more than the {PageSize} requested.", response.Workers.Count, page, context.SoapEndpoint, SyncPageSize);
-                    return Result.Failure<WorkdayEmployeeFetchResult>(
-                        $"Workday returned {response.Workers.Count} workers on one page, more than the {SyncPageSize} requested, so the sync was stopped.");
-                }
-
-                var projectStart = Stopwatch.GetTimestamp();
-                foreach (var worker in response.Workers)
-                {
-                    // Drop workers in any excluded org before projection — projection runs name
-                    // normalization, date parsing, etc., and there's no point doing that work for
-                    // workers we're about to discard.
-                    var matchedExclusion = FindMatchingExclusion(worker, exclusionCounts);
-                    if (matchedExclusion is not null)
-                    {
-                        exclusionCounts[matchedExclusion].Count++;
-                        continue;
-                    }
-
-                    var projected = TryProject(worker, context.WorkerKey, context.UseUserIdAsEmailFallback, context.UsePreferredName, context.NormalizeNameCasing, context.DepartmentOrganizationTypeId);
-                    if (projected is not null)
-                        employees.Add(projected);
-                }
-                var pageProjectMs = Stopwatch.GetElapsedTime(projectStart).TotalMilliseconds;
-                projectMs += pageProjectMs;
-
                 if (_logger.IsEnabled(LogLevel.Debug))
                 {
                     _logger.LogDebug(
                         "Workday Get_Workers page {Page}/{TotalPages} returned {Count} workers in {ResponseMegabytes:F1} MB ({ProjectedCount} after projection, {ExcludedCount} excluded by rules) — fetch {FetchMs:F0}ms, project {ProjectMs:F1}ms.",
-                        page, totalPages, response.Workers.Count, response.ResponseBytes / (1024.0 * 1024), employees.Count, exclusionCounts.Values.Sum(v => v.Count), pageFetchMs, pageProjectMs);
+                        page, totalPages, response.WorkerCount, response.ResponseBytes / (1024.0 * 1024), employees.Count, exclusionCounts.Values.Sum(v => v.Count), pageFetchMs, pageProjectMs);
                 }
 
                 page++;

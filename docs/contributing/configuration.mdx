@@ -100,7 +100,13 @@ It is a host setting rather than a provider field because it decides what the AP
 - An identity provider on a private address stops signing anyone in until the setting above is on, so set it before upgrading or keep a local administrator account to sign in with.
 - An `Authority` whose discovery URL answers with a redirect fails; enter the URL it redirects to.
 
-**No outbound proxy.** Discovery and key fetches, like Workday's calls, connect directly and ignore `HTTPS_PROXY` and any system proxy: through a proxy, the address check would see only the proxy's address. A deployment whose only route to the internet is a proxy cannot reach its identity provider or Workday.
+**Outbound proxy.** Discovery and key fetches, Workday's calls and the OAuth client-metadata fetch ignore `HTTPS_PROXY` and any system proxy, and connect directly unless the operator names a proxy for them:
+
+| Setting | Default | Effect |
+| --- | --- | --- |
+| `OutboundProxy:Address` (`OutboundProxy__Address`) | unset | An `http` or `https` proxy URL, such as `http://proxy.corp.example:3128`, that these requests go through. The proxy must allow `CONNECT` to port 443. Credentials in the URL are refused at startup; an authenticating proxy is not supported, and its `407` answer fails each request as unreachable. Read at startup. |
+
+Through a proxy, the API still resolves each destination itself, so its host needs working DNS for public names even when only the proxy can reach them; a name it cannot resolve fails as unreachable. It checks the destination's addresses before sending each request — public only, or the wider set `Oidc:AllowPrivateNetworkAuthorities` allows for identity providers — and the connection may go nowhere but the proxy, whose own address is exempt. Redirects stay off, and the size, time and HTTPS rules are unchanged. The proxy resolves the host name again, so a name that answers the API with a public address and the proxy with a private one (DNS rebinding) would get through: configure the proxy to refuse private and link-local destinations to close that.
 
 | Provider field | Purpose |
 | --- | --- |
@@ -807,6 +813,7 @@ The planning poker and story map hubs (`/hubs/planning-poker`, `/hubs/story-maps
 | `ASPNETCORE_FORWARDEDHEADERS_ENABLED`   | Trust a proxy's forwarded headers — see [Rate limits](#rate-limits) |
 | `CorsSettings__WebClient`               | Allowed web client origins — see [CORS](#cors) |
 | `Azure__SignalR__ConnectionString`      | Azure SignalR Service — see [Real-time (SignalR)](#real-time-signalr) |
+| `OutboundProxy__Address`                | Proxy for identity provider, Workday and OAuth client fetches — see [Identity providers](#identity-providers-db-managed) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT`           | OpenTelemetry collector endpoint; also turns on the Serilog OTLP sink |
 | `OTEL_SERVICE_NAME`                     | `service.name` on logs sent over OTLP (default `wayd-api`) |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Azure Application Insights                    |

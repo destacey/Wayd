@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Wayd.Infrastructure.Networking;
 
 namespace Wayd.Infrastructure.Auth.OAuth;
@@ -19,7 +20,10 @@ internal static class ConfigureServices
     {
         // The resolver's own deadline bounds the whole fetch, body included; HttpClient.Timeout would stop at the headers.
         services.AddSingleton<IOAuthClientResolver>(sp => new ClientMetadataDocumentResolver(
-            new HttpClient(PublicNetwork.CreateHandler(_fetchTimeout)) { Timeout = Timeout.InfiniteTimeSpan },
+            new HttpClient(PublicNetwork.CreateHandler(_fetchTimeout, proxy: sp.GetRequiredService<IOptions<OutboundProxyOptions>>().Value.Address))
+            {
+                Timeout = Timeout.InfiniteTimeSpan,
+            },
             _fetchTimeout,
             sp.GetRequiredService<ILogger<ClientMetadataDocumentResolver>>()));
 

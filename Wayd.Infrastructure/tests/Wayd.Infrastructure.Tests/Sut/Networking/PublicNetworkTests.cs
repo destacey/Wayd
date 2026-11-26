@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Sockets;
 using Wayd.Infrastructure.Networking;
 
 namespace Wayd.Infrastructure.Tests.Sut.Networking;
@@ -158,5 +159,138 @@ public sealed class PublicNetworkTests
         // Assert
         (await send.Should().ThrowAsync<HttpRequestException>())
             .Which.ToString().Should().Contain("'idp.corp.example' does not resolve to an allowed address");
+    }
+
+    [Theory]
+    [InlineData("127.0.0.1")]
+    [InlineData("::1")]
+    public async Task CreateHandler_ThroughAProxyAtAnIPLiteral_SendsARequestForAPublicHostToTheProxy(string proxyAddress)
+    {
+        // Arrange — the proxy is on loopback, which the destination check would refuse: its own address is exempt
+        using var proxy = new FakeProxy(IPAddress.Parse(proxyAddress));
+        IPAddress[] addresses = [IPAddress.Parse("8.8.8.8")];
+        using var client = new HttpClient(PublicNetwork.CreateHandler(TimeSpan.FromSeconds(5), (_, _) => Task.FromResult(addresses), proxy.Address));
+        var tunnel = proxy.RefuseNextTunnel();
+
+        // Act
+        var send = () => client.GetAsync("https://idp.acme.example/.well-known/openid-configuration", TestContext.Current.CancellationToken);
+
+        // Assert — the fake proxy refuses the tunnel, so the request fails only after reaching it
+        await send.Should().ThrowAsync<HttpRequestException>();
+        (await tunnel).Should().Be("CONNECT idp.acme.example:443 HTTP/1.1");
+    }
+
+    [Theory]
+    [InlineData("https://idp.acme.example/", "10.0.0.1")]
+    [InlineData("https://idp.acme.example/", "169.254.169.254")]
+    [InlineData("https://idp.acme.example/", "8.8.8.8", "127.0.0.1")]
+    [InlineData("https://10.0.0.1/")]
+    [InlineData("https://169.254.169.254/latest/meta-data/")]
+    [InlineData("https://[::1]/")]
+    public async Task CreateHandler_ThroughAProxy_RefusesANonPublicDestinationBeforeReachingTheProxy(string url, params string[] resolvedTo)
+    {
+        // Arrange
+        using var proxy = new FakeProxy();
+        var addresses = resolvedTo.Select(IPAddress.Parse).ToArray();
+        using var client = new HttpClient(PublicNetwork.CreateHandler(TimeSpan.FromSeconds(5), (_, _) => Task.FromResult(addresses), proxy.Address));
+
+        // Act
+        var send = () => client.GetAsync(url, TestContext.Current.CancellationToken);
+
+        // Assert
+        (await send.Should().ThrowAsync<HttpRequestException>())
+            .Which.ToString().Should().Contain("does not resolve to a public address");
+        proxy.WasConnectedTo.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CreateHandler_ThroughAProxy_ReportsAHostThatDoesNotResolveAsAnHttpRequestException()
+    {
+        // Arrange
+        using var proxy = new FakeProxy();
+        using var client = new HttpClient(PublicNetwork.CreateHandler(
+            TimeSpan.FromSeconds(5),
+            (_, _) => Task.FromException<IPAddress[]>(new SocketException((int)SocketError.HostNotFound)),
+            proxy.Address));
+
+        // Act
+        var send = () => client.GetAsync("https://missing.acme.example/", TestContext.Current.CancellationToken);
+
+        // Assert
+        (await send.Should().ThrowAsync<HttpRequestException>())
+            .Which.HttpRequestError.Should().Be(HttpRequestError.NameResolutionError);
+        proxy.WasConnectedTo.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CreatePrivateNetworkHandler_ThroughAProxy_SendsARequestForAPrivateHostToTheProxy()
+    {
+        // Arrange
+        using var proxy = new FakeProxy();
+        IPAddress[] addresses = [IPAddress.Parse("10.0.0.5")];
+        using var client = new HttpClient(PublicNetwork.CreatePrivateNetworkHandler(TimeSpan.FromSeconds(5), (_, _) => Task.FromResult(addresses), proxy.Address));
+        var tunnel = proxy.RefuseNextTunnel();
+
+        // Act
+        var send = () => client.GetAsync("https://idp.corp.example/.well-known/openid-configuration", TestContext.Current.CancellationToken);
+
+        // Assert
+        await send.Should().ThrowAsync<HttpRequestException>();
+        (await tunnel).Should().Be("CONNECT idp.corp.example:443 HTTP/1.1");
+    }
+
+    [Fact]
+    public async Task CreatePrivateNetworkHandler_ThroughAProxy_RefusesAHostNameThatResolvesToCloudMetadata()
+    {
+        // Arrange
+        using var proxy = new FakeProxy();
+        IPAddress[] addresses = [IPAddress.Parse("10.0.0.5"), IPAddress.Parse("169.254.169.254")];
+        using var client = new HttpClient(PublicNetwork.CreatePrivateNetworkHandler(TimeSpan.FromSeconds(5), (_, _) => Task.FromResult(addresses), proxy.Address));
+
+        // Act
+        var send = () => client.GetAsync("https://idp.corp.example/.well-known/openid-configuration", TestContext.Current.CancellationToken);
+
+        // Assert
+        (await send.Should().ThrowAsync<HttpRequestException>())
+            .Which.ToString().Should().Contain("'idp.corp.example' does not resolve to an allowed address");
+        proxy.WasConnectedTo.Should().BeFalse();
+    }
+
+    /// <summary>A loopback listener standing in for an outbound proxy: it records the first request line and refuses the tunnel.</summary>
+    private sealed class FakeProxy : IDisposable
+    {
+        private readonly TcpListener _listener;
+
+        public FakeProxy(IPAddress? address = null)
+        {
+            _listener = new TcpListener(address ?? IPAddress.Loopback, 0);
+            _listener.Start();
+        }
+
+        public Uri Address
+        {
+            get
+            {
+                var endpoint = (IPEndPoint)_listener.LocalEndpoint;
+                return new UriBuilder("http", endpoint.Address.ToString(), endpoint.Port).Uri;
+            }
+        }
+
+        /// <summary>Whether a connection is waiting to be accepted, which only a request sent on to the proxy makes.</summary>
+        public bool WasConnectedTo => _listener.Pending();
+
+        /// <summary>Accepts the next connection, answers its request with 502 and returns the request's first line.</summary>
+        public async Task<string?> RefuseNextTunnel()
+        {
+            // Bounded, so a request that never reaches the proxy fails the test instead of hanging it.
+            using var connection = await _listener.AcceptTcpClientAsync(TestContext.Current.CancellationToken)
+                .AsTask().WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            var stream = connection.GetStream();
+            var line = await new StreamReader(stream).ReadLineAsync(TestContext.Current.CancellationToken);
+            await stream.WriteAsync("HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"u8.ToArray(), TestContext.Current.CancellationToken);
+            return line;
+        }
+
+        public void Dispose() => _listener.Stop();
     }
 }

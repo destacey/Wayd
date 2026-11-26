@@ -26,9 +26,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- Collections run in parallel, each booting a host of its own against its own database (ApiTestCollections).
-             maxParallelThreads matches the number of those collections, so every host starts at once; raise it with a
-             new one only if the runner can boot that many hosts together. -->
+        <!-- The SQL Server and in-memory collections run beside each other, each with a host of its own
+             (ApiTestCollections). -->
         <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 

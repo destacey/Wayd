@@ -1,5 +1,4 @@
 {
   "$schema": "https://xunit.net/schema/current/xunit.runner.schema.json",
-  "parallelMode": "collections",
-  "maxParallelThreads": 5
+  "parallelMode": "collections"
 }

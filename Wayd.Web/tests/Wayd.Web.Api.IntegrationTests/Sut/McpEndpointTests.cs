@@ -43,7 +43,7 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// endpoint, so permission checks, delivery-leadership rules in the domain and validation all apply to it
 /// unchanged; these tests are what would notice if that stopped being true.
 /// </summary>
-[Collection(OAuthAndMcpApiTestCollection.Name)]
+[Collection(SqlServerApiTestCollection.Name)]
 public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
 {
     private readonly WaydSqlServerApiFactory _factory = factory;

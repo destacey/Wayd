@@ -12,7 +12,7 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// A personal access token is created or changed only from a sign-in to the web app: a token that could mint or
 /// extend tokens would let a leaked one outlive its own revocation.
 /// </summary>
-[Collection(SignInApiTestCollection.Name)]
+[Collection(SqlServerApiTestCollection.Name)]
 public sealed class PersonalAccessTokensControllerTests(WaydSqlServerApiFactory factory)
 {
     private const string Path = "/api/user-management/personal-access-tokens";

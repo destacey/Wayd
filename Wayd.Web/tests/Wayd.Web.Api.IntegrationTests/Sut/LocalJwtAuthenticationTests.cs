@@ -21,7 +21,7 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// A web sign-in's access token is self-contained, so only the scheme looking its user up on each request stops a
 /// deactivated user before the token expires, on endpoints that ask for no permission as on those that do.
 /// </summary>
-[Collection(SignInApiTestCollection.Name)]
+[Collection(SqlServerApiTestCollection.Name)]
 public sealed class LocalJwtAuthenticationTests(WaydSqlServerApiFactory factory)
 {
     private readonly WaydSqlServerApiFactory _factory = factory;

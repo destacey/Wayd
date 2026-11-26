@@ -15,7 +15,7 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// the caller's own roles or employee link. Checked against the booted host, since the controllers call the user
 /// service without dispatching and only the host shows which rules actually run.
 /// </summary>
-[Collection(SignInApiTestCollection.Name)]
+[Collection(SqlServerApiTestCollection.Name)]
 public sealed class UserAdministrationGuardTests(WaydSqlServerApiFactory factory)
 {
     private const string PrivilegedRefusal = "Manage Privileged Users";

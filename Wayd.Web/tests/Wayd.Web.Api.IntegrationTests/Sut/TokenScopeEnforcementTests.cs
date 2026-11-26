@@ -13,7 +13,7 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// keeps its user's view permissions, loses every permission that changes data, and cannot change anything through an
 /// endpoint that asks for sign-in alone.
 /// </summary>
-[Collection(SignInApiTestCollection.Name)]
+[Collection(SqlServerApiTestCollection.Name)]
 public sealed class TokenScopeEnforcementTests(WaydSqlServerApiFactory factory)
 {
     private const string Portfolios = "/api/ppm/portfolios";

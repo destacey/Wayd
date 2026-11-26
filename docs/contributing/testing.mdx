@@ -119,10 +119,11 @@ public sealed class MyIntegrationTests(SqlServerDbContextFixture fixture) { }
 ```
 
 Put a new class in the project's existing collection. Tests in a collection run one at a time; collections run
-in parallel. A collection costs a database and a migration, about a minute locally, so a project has a few:
-a class slow enough to hold the rest back gets one of its own, or shares one with classes like it
-(`ApiTestCollections` in `Wayd.Web.Api.IntegrationTests`). Never give each class a fixture of its own with
-`IClassFixture<T>` for a database the class could share; that is a migration per class.
+in parallel. A collection costs a database and a migration, about a minute locally, and parallel collections only
+pay when the tests wait rather than compute: on CI's 4-core runner, splitting the CPU-bound
+`Wayd.Web.Api.IntegrationTests` made it slower, so it keeps one SQL Server collection (`ApiTestCollections`). Never
+give each class a fixture of its own with `IClassFixture<T>` for a database the class could share; that is a
+migration per class.
 
 Tests in a collection **share a database**. Scope assertions to data the test itself created (a fresh `Guid`, a
 unique key) rather than assuming an empty schema or querying for "the only row". Nothing outside the database

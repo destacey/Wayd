@@ -26,9 +26,9 @@ namespace Wayd.Web.Api.IntegrationTests.Infrastructure;
 /// This is the one end-to-end proof that the whole pipeline executes — not just that its generated code
 /// compiles (that is the in-memory <see cref="WaydApiFactory"/>).
 /// <para>
-/// A collection fixture: one database, schema and host per collection (see <see cref="SqlServerApiTestCollection"/>
-/// and the collections beside it), and the collections run in parallel. Tests in a collection share its database and
-/// must scope their assertions to data they created rather than assuming they are alone in it.
+/// Shared as a collection fixture (see <see cref="SqlServerApiTestCollection"/>): one database, schema and
+/// host for every SQL-backed class. Tests therefore share a database and must scope their assertions to
+/// data they created rather than assuming they are alone in it.
 /// </para>
 /// </summary>
 /// <remarks>Requires Docker to be running on the machine executing the tests.</remarks>
@@ -153,8 +153,8 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
     /// </summary>
     /// <remarks>
     /// No test needs a job to run, and a running server works on its own schedule: the default recurring jobs fire
-    /// on every collection's database mid-test, and stopping the host waits for whatever job is in flight, which has
-    /// outlasted the host's shutdown timeout and failed the collection's clean-up. Hangfire registers the server as a
+    /// mid-test, in the factory's host and in every host a test derives from it, and stopping a host waits for whatever
+    /// job is in flight, which has outlasted the host's shutdown timeout and failed the collection's clean-up. Hangfire registers the server as a
     /// factory, so it is found by the type the factory returns; a registration this misses fails the boot rather
     /// than leaving the server running unnoticed.
     /// </remarks>

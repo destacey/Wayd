@@ -1,37 +1,20 @@
 namespace Wayd.Web.Api.IntegrationTests.Infrastructure;
 
-// The SQL Server collections run in parallel, each with a WaydSqlServerApiFactory of its own: its own database,
-// migrated schema and booted host. Tests within a collection run one at a time and share its database, so each uses
-// its own data rather than assuming an empty schema. A collection costs a host boot and a migration, so the suite has
-// a few large ones, split by how long their tests take: a class slow enough to hold the others back gets a collection
-// to itself or with others like it, and every other class goes in SqlServerApiTestCollection.
-
-/// <summary>Every SQL Server-backed test class without a collection of its own.</summary>
+/// <summary>
+/// Shares a single <see cref="WaydSqlServerApiFactory"/> — one database, migrated schema and booted host — across every
+/// test class that needs a real database. Tests share that database, so each uses its own data rather than assuming an
+/// empty schema.
+/// </summary>
+/// <remarks>
+/// One collection rather than several in parallel: the suite is CPU-bound, booting dozens of hosts of its own through
+/// <c>WithWebHostBuilder</c>, and on a 4-core CI runner parallel collections are slower, since each adds a host, a
+/// migration and a warm-up the runner has no cores spare for. Hosts share no process-wide configuration, so a split
+/// worth trying on a larger runner is a change to this file alone.
+/// </remarks>
 [CollectionDefinition(Name)]
 public sealed class SqlServerApiTestCollection : ICollectionFixture<WaydSqlServerApiFactory>
 {
     public const string Name = "SqlServer API integration tests";
-}
-
-/// <summary>The per-user rate limit tests, each booting a host of its own with lowered limits.</summary>
-[CollectionDefinition(Name)]
-public sealed class PerUserRateLimitApiTestCollection : ICollectionFixture<WaydSqlServerApiFactory>
-{
-    public const string Name = "SqlServer API integration tests: per-user rate limits";
-}
-
-/// <summary>Sign-in, local tokens and personal access tokens, with the sign-in rate limit tests.</summary>
-[CollectionDefinition(Name)]
-public sealed class SignInApiTestCollection : ICollectionFixture<WaydSqlServerApiFactory>
-{
-    public const string Name = "SqlServer API integration tests: sign-in and tokens";
-}
-
-/// <summary>The OAuth authorization server and the hosted MCP endpoint it issues tokens for.</summary>
-[CollectionDefinition(Name)]
-public sealed class OAuthAndMcpApiTestCollection : ICollectionFixture<WaydSqlServerApiFactory>
-{
-    public const string Name = "SqlServer API integration tests: OAuth and MCP";
 }
 
 /// <summary>

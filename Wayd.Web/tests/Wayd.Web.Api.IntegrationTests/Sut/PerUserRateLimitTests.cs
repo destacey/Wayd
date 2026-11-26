@@ -37,7 +37,7 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// Each test lowers a limit on a host of its own, so its limiter starts empty and no other test is throttled. Users and
 /// tokens are created through the shared host, whose limits are raised, so creating them spends nothing here.
 /// </remarks>
-[Collection(PerUserRateLimitApiTestCollection.Name)]
+[Collection(SqlServerApiTestCollection.Name)]
 public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
 {
     private const string Profile = "/api/me";

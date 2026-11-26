@@ -8,6 +8,7 @@ using Wayd.Common.Domain.Identity;
 using Moq;
 using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Enums.Imports;
+using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Imports;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
@@ -289,6 +290,25 @@ public sealed class ProjectImportDefinitionTests : IDisposable
         var outcome = result.Value.Rows.Single();
         outcome.Failed.Should().BeTrue();
         outcome.Error.Should().Contain(program.Id.ToString());
+    }
+
+    [Theory]
+    [InlineData(StrategicThemeState.Proposed)]
+    [InlineData(StrategicThemeState.Archived)]
+    public async Task CreateProjects_RejectsARowNamingAThemeThatIsNotActive(StrategicThemeState state)
+    {
+        // Arrange — only active themes can be attached, so an inactive one is reported rather than dropped
+        var theme = new StrategicThemeFaker().WithState(state).Generate();
+        _dbContext.AddPpmStrategicTheme(theme);
+
+        // Act
+        var result = await Run(Row("APOLLO", ProjectStatus.Proposed, start: null) with { StrategicThemeIds = [theme.Id] });
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().Contain(theme.Id.ToString());
+        _portfolio.Projects.Should().BeEmpty();
     }
 
     [Fact]

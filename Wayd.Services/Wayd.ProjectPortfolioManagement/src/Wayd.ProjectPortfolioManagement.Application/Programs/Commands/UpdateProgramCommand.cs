@@ -71,6 +71,17 @@ public sealed class UpdateProgramCommandHandler(
             return Result.Failure("Program not found.");
         }
 
+        var strategicThemes = request.StrategicThemeIds?.ToHashSet() ?? [];
+        var themesAttachable = await _ppmDbContext.EnsureThemesAttachable(
+            strategicThemes,
+            program.StrategicThemeTags.Select(t => t.StrategicThemeId).ToHashSet(),
+            cancellationToken);
+        if (themesAttachable.IsFailure)
+        {
+            _logger.LogInformation("Program {ProgramId} strategic themes refused: {Error}", request.Id, themesAttachable.Error);
+            return Result.Failure(themesAttachable.Error);
+        }
+
         var ancestry = program.AncestryRoles();
 
         var updateResult = program.UpdateDetails(
@@ -90,13 +101,6 @@ public sealed class UpdateProgramCommandHandler(
             return HandleDomainFailure(program, updateTimelineResult);
         }
 
-        var strategicThemes = request.StrategicThemeIds?.ToHashSet() ?? [];
-        // Each theme is a foreign key to the replica, so an unknown one is refused here rather than at the database.
-        if (strategicThemes.Count > 0
-            && await _ppmDbContext.PpmStrategicThemes.CountAsync(st => strategicThemes.Contains(st.Id), cancellationToken) != strategicThemes.Count)
-        {
-            return Result.Failure("One or more Strategic Themes not found.");
-        }
         var updateStrategicThemesResult = program.UpdateStrategicThemes(actor, ancestry, strategicThemes, _dateTimeProvider.Now);
         if (updateStrategicThemesResult.IsFailure)
         {

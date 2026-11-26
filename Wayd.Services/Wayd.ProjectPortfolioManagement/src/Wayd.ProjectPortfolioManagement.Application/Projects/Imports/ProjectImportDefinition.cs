@@ -7,7 +7,6 @@ using Wayd.Common.Application.Links;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Imports;
 using Wayd.Common.Domain.Events;
-using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
@@ -90,7 +89,7 @@ public sealed class ProjectImportDefinition(
         var portfoliosById = await ResolvePortfolios(context, cancellationToken);
         var categoryIds = await ResolveExpenditureCategoryIds(context, cancellationToken);
         var lifecyclesById = await ResolveLifecycles(context, cancellationToken);
-        var activeThemeIds = await ResolveActiveThemeIds(context, cancellationToken);
+        var attachableThemeIds = await ResolveAttachableThemeIds(context, cancellationToken);
         var employeeIdsByNumber = await ResolveEmployees(context, cancellationToken);
 
         // Projects are ranked at the bottom of their portfolio on creation, so the running max rank per
@@ -140,7 +139,7 @@ public sealed class ProjectImportDefinition(
             }
 
             // Only active themes can be attached, so an inactive one is reported rather than dropped.
-            var unusableThemes = data.StrategicThemeIds.Where(id => !activeThemeIds.Contains(id)).ToList();
+            var unusableThemes = data.StrategicThemeIds.Where(id => !attachableThemeIds.Contains(id)).ToList();
             if (unusableThemes.Count > 0)
             {
                 row.Failed($"No active strategic theme was found with id {Quote(unusableThemes.Select(id => id.ToString()))}.");
@@ -364,7 +363,8 @@ public sealed class ProjectImportDefinition(
             .ToDictionaryAsync(l => l.Id, l => l, cancellationToken);
     }
 
-    private async Task<HashSet<Guid>> ResolveActiveThemeIds(
+    /// <summary>The themes named in the file that a new record may carry (see <see cref="StrategicTheme.CanBeAttached"/>).</summary>
+    private async Task<HashSet<Guid>> ResolveAttachableThemeIds(
         ImportPassContext<ImportProjectDto> context, CancellationToken cancellationToken)
     {
         var themeIds = context.Rows.SelectMany(r => r.Data.StrategicThemeIds).Distinct().ToList();
@@ -372,12 +372,12 @@ public sealed class ProjectImportDefinition(
         if (themeIds.Count == 0)
             return [];
 
-        return (await _projectPortfolioManagementDbContext.PpmStrategicThemes
-                .AsNoTracking()
-                .Where(t => themeIds.Contains(t.Id) && t.State == StrategicThemeState.Active)
-                .Select(t => t.Id)
-                .ToListAsync(cancellationToken))
-            .ToHashSet();
+        var themes = await _projectPortfolioManagementDbContext.PpmStrategicThemes
+            .AsNoTracking()
+            .Where(t => themeIds.Contains(t.Id))
+            .ToListAsync(cancellationToken);
+
+        return themes.Where(t => t.CanBeAttached(alreadyAttached: false)).Select(t => t.Id).ToHashSet();
     }
 
     private async Task<Dictionary<string, Guid>> ResolveEmployees(

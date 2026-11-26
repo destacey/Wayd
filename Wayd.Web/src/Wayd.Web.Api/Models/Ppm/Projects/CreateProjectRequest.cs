@@ -84,7 +84,7 @@ public sealed record CreateProjectRequest
     public List<Guid>? MemberIds { get; set; } = [];
 
     /// <summary>
-    /// The strategic themes associated with this project.
+    /// The strategic themes to tag the project with. Each must be Active; StrategicThemes_GetStrategicThemeOptions lists them.
     /// </summary>
     public List<Guid>? StrategicThemeIds { get; set; } = [];
 

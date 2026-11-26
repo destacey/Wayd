@@ -46,7 +46,9 @@ public sealed record UpdateProgramRequest
     public List<Guid>? ManagerIds { get; set; } = [];
 
     /// <summary>
-    /// The strategic themes associated with this program.
+    /// The strategic themes to tag the program with, replacing its current set. A theme the program does not carry yet must
+    /// be Active (StrategicThemes_GetStrategicThemeOptions lists them); one it already carries is kept whatever its
+    /// state, so echoing back a theme archived since it was tagged is accepted.
     /// </summary>
     public List<Guid>? StrategicThemeIds { get; set; } = [];
 

@@ -2711,7 +2711,7 @@ export interface CreateProgramRequest {
      */
   managerIds?: string[] | null;
   /**
-     * The strategic themes associated with this program.
+     * The strategic themes to tag the program with. Each must be Active; StrategicThemes_GetStrategicThemeOptions lists them.
      * @nullable
      */
   strategicThemeIds?: string[] | null;
@@ -2886,7 +2886,7 @@ export interface CreateProjectRequest {
      */
   memberIds?: string[] | null;
   /**
-     * The strategic themes associated with this project.
+     * The strategic themes to tag the project with. Each must be Active; StrategicThemes_GetStrategicThemeOptions lists them.
      * @nullable
      */
   strategicThemeIds?: string[] | null;
@@ -18424,7 +18424,9 @@ export interface UpdateProgramRequest {
      */
   managerIds?: string[] | null;
   /**
-     * The strategic themes associated with this program.
+     * The strategic themes to tag the program with, replacing its current set. A theme the program does not carry yet must
+     * be Active (StrategicThemes_GetStrategicThemeOptions lists them); one it already carries is kept whatever its
+     * state, so echoing back a theme archived since it was tagged is accepted.
      * @nullable
      */
   strategicThemeIds?: string[] | null;
@@ -18563,7 +18565,9 @@ export interface UpdateProjectRequest {
      */
   memberIds?: string[] | null;
   /**
-     * The strategic themes associated with this project.
+     * The strategic themes to tag the project with, replacing its current set. A theme the project does not carry yet must
+     * be Active (StrategicThemes_GetStrategicThemeOptions lists them); one it already carries is kept whatever its
+     * state, so echoing back a theme archived since it was tagged is accepted.
      * @nullable
      */
   strategicThemeIds?: string[] | null;

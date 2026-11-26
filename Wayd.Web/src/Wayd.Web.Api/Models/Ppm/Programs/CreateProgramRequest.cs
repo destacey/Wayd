@@ -45,7 +45,7 @@ public sealed record CreateProgramRequest
     public List<Guid>? ManagerIds { get; set; } = [];
 
     /// <summary>
-    /// The strategic themes associated with this program.
+    /// The strategic themes to tag the program with. Each must be Active; StrategicThemes_GetStrategicThemeOptions lists them.
     /// </summary>
     public List<Guid>? StrategicThemeIds { get; set; } = [];
 

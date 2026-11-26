@@ -3,6 +3,7 @@ using Wayd.Common.Application.Exceptions;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Attachments;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Enums.StrategicManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Validators;
@@ -127,6 +128,58 @@ public class CreateProjectCommandHandlerTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         result.Value.Key.Should().NotBeNull();
         _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldAttachAStrategicTheme_WhenItIsActive()
+    {
+        // Arrange
+        var (portfolio, command) = CommandWithTheme(StrategicThemeState.Active, out var theme);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        portfolio.Projects.Should().ContainSingle()
+            .Which.StrategicThemeTags.Should().ContainSingle(t => t.StrategicThemeId == theme.Id);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData(StrategicThemeState.Proposed)]
+    [InlineData(StrategicThemeState.Archived)]
+    public async Task Handle_ShouldFail_WhenAStrategicThemeIsNotActive(StrategicThemeState state)
+    {
+        // Arrange
+        var (portfolio, command) = CommandWithTheme(state, out _);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("One or more Strategic Themes are not active.");
+        portfolio.Projects.Should().BeEmpty();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    /// <summary>A valid command for a new project in an active portfolio, tagged with one theme in the given state.</summary>
+    private (Domain.Models.ProjectPortfolio Portfolio, CreateProjectCommand Command) CommandWithTheme(
+        StrategicThemeState state, out Domain.Models.StrategicTheme theme)
+    {
+        var portfolio = new ProjectPortfolioFaker().AsActive(_dateTimeProvider);
+        var expenditureCategory = new ExpenditureCategoryFaker().GenerateActive();
+        theme = new StrategicThemeFaker().WithState(state).Generate();
+        _dbContext.AddPortfolio(portfolio);
+        _dbContext.AddExpenditureCategory(expenditureCategory);
+        _dbContext.AddPpmStrategicTheme(theme);
+
+        var command = new CreateProjectCommand(
+            "Test Project", "Description", null, null, new ProjectKey("TEST"), expenditureCategory.Id,
+            null, portfolio.Id, null, null, null, null, null, null, [theme.Id]);
+
+        return (portfolio, command);
     }
 
     [Fact]

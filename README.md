@@ -230,7 +230,7 @@ See [Architecture](docs/contributing/architecture.mdx) and [AGENTS.md](AGENTS.md
 ### Aspire Dashboard Not Loading
 
 - Check if port 17153 (or 15206 with the `http` profile) is available
-- No Aspire workload is needed: the AppHost restores `Aspire.AppHost.Sdk` from NuGet, so `dotnet restore` in `Wayd.AppHost` is enough
+- No Aspire workload is needed: the AppHost is a plain .NET project whose Aspire packages restore from NuGet, so `dotnet restore` in `Wayd.AppHost` is enough
 
 ### Next.js Build Errors
 

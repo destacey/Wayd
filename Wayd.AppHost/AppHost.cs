@@ -29,7 +29,7 @@ var waydDb = builder.AddConnectionString("WaydDb");
 //     .WithDataVolume("wayd-sqldata");
 // var waydDb = sqlServer.AddDatabase("WaydDb");
 
-var waydApi = builder.AddProject<Projects.Wayd_Web_Api>("wayd-api")
+var waydApi = builder.AddDotnetProject("wayd-api", "../Wayd.Web/src/Wayd.Web.Api/Wayd.Web.Api.csproj")
     .WithReference(waydDb)
     .WaitFor(waydDb)
     .WithHttpHealthCheck(global::Wayd.Infrastructure.ServiceEndpoints.HealthEndpointPath)

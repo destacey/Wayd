@@ -24,9 +24,9 @@ namespace Wayd.Web.Api.IntegrationTests.Infrastructure;
 /// This is the one end-to-end proof that the whole pipeline executes — not just that its generated code
 /// compiles (that is the in-memory <see cref="WaydApiFactory"/>).
 /// <para>
-/// Shared as a collection fixture (see <see cref="SqlServerApiTestCollection"/>): one database, schema and
-/// host for every SQL-backed class. Tests therefore share a database and must scope their assertions to
-/// data they created rather than assuming they are alone in it.
+/// A collection fixture: one database, schema and host per collection (see <see cref="SqlServerApiTestCollection"/>
+/// and the collections beside it), and the collections run in parallel. Tests in a collection share its database and
+/// must scope their assertions to data they created rather than assuming they are alone in it.
 /// </para>
 /// </summary>
 /// <remarks>Requires Docker to be running on the machine executing the tests.</remarks>
@@ -95,15 +95,6 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
 
     public override async ValueTask DisposeAsync()
     {
-        // Clear the env vars this factory set so nothing leaks to sibling test hosts. Safe because this
-        // factory is a single collection fixture (see SqlServerApiTestCollection) and xunit.runner.json
-        // disables collection parallelism, so no other host is constructing while these are cleared.
-        Environment.SetEnvironmentVariable("DatabaseSettings__DBProvider", null);
-        Environment.SetEnvironmentVariable("DatabaseSettings__ConnectionString", null);
-        Environment.SetEnvironmentVariable("HangfireSettings__Storage__ConnectionString", null);
-        Environment.SetEnvironmentVariable("SecuritySettings__LocalJwt__Secret", null);
-        HandlerCodegenMode.Clear();
-
         await base.DisposeAsync();
         if (_database is not null)
             await _database.DisposeAsync();
@@ -115,19 +106,16 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
         // the point of using a real SQL Server here rather than the in-memory provider.
         builder.UseEnvironment("Development");
 
-        // Inject the database connection string via a process ENVIRONMENT VARIABLE rather than
-        // ConfigureAppConfiguration. This is the one config source the host reads SYNCHRONOUSLY and early
-        // enough: Program.cs configures the Wolverine durable outbox during host construction, and
-        // PersistMessagesWithSqlServer needs the connection string right then — before any deferred
-        // ConfigureAppConfiguration override applies. The app's AddConfigurations() ends with
-        // AddEnvironmentVariables() (highest precedence, applied immediately), so an env var both reaches
-        // that eager read and out-ranks the database.json fallback. The double underscore is the .NET
-        // section separator. Cleared in DisposeAsync; safe because collection parallelism is disabled.
-        Environment.SetEnvironmentVariable("DatabaseSettings__DBProvider", "mssql");
-        Environment.SetEnvironmentVariable("DatabaseSettings__ConnectionString", _connectionString);
-        Environment.SetEnvironmentVariable("HangfireSettings__Storage__ConnectionString", _connectionString);
-        Environment.SetEnvironmentVariable("SecuritySettings__LocalJwt__Secret", "integration-test-secret-key-please-ignore-0123456789");
-        HandlerCodegenMode.Apply();
+        // Host settings, not ConfigureAppConfiguration: the start-up code reads the connection strings while the
+        // host is still being built (Wolverine's durable outbox, Hangfire's storage), before a deferred
+        // ConfigureAppConfiguration override applies. A host setting reaches Program as a command-line argument,
+        // which out-ranks the json files and user secrets, and it belongs to this host alone, so collections run
+        // in parallel, each against its own database.
+        builder.UseSetting("DatabaseSettings:DBProvider", "mssql");
+        builder.UseSetting("DatabaseSettings:ConnectionString", _connectionString);
+        builder.UseSetting("HangfireSettings:Storage:ConnectionString", _connectionString);
+        builder.UseSetting("SecuritySettings:LocalJwt:Secret", "integration-test-secret-key-please-ignore-0123456789");
+        HandlerCodegenMode.Apply(builder);
 
         builder.ConfigureServices(services =>
             services.ConfigureDbContext<WaydDbContext>(options => options.AddInterceptors(ConcurrentWrites, ImportClaims, Saves, SaveFaults)));
@@ -188,7 +176,7 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
             AppDomain.CurrentDomain.FirstChanceException -= Record;
 
             var report = new StringBuilder("The API host failed to start.");
-            report.AppendLine().AppendLine().AppendLine("Last exceptions thrown while it started (some may have been handled):");
+            report.AppendLine().AppendLine().AppendLine("Last exceptions thrown in the test process while it started (some may have been handled, and some may be from hosts starting beside it):");
             foreach (var exception in thrown)
                 report.AppendLine($"- {exception.GetType().FullName}: {exception.Message}").AppendLine(exception.StackTrace);
 

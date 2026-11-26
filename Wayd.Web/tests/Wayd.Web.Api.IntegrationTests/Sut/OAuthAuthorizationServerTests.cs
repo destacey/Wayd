@@ -37,7 +37,7 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// API the web app calls, and the token endpoint, then <c>/mcp</c> with the token. Clients are registered with
 /// <see cref="FakeOAuthClients"/> rather than fetched.
 /// </summary>
-[Collection(SqlServerApiTestCollection.Name)]
+[Collection(OAuthAndMcpApiTestCollection.Name)]
 public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factory)
 {
     private const string RedirectUri = "https://client.acme.example/callback";

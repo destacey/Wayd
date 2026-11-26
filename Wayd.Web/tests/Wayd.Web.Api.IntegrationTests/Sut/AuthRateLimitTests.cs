@@ -17,7 +17,7 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// Requests carry an empty body: request validation refuses it with 422 before the action runs, so nothing is written
 /// and no account is locked, while the limiter, which runs first, still counts it.
 /// </remarks>
-[Collection(SqlServerApiTestCollection.Name)]
+[Collection(SignInApiTestCollection.Name)]
 public sealed class AuthRateLimitTests(WaydSqlServerApiFactory factory)
 {
     private const int Limit = 2;

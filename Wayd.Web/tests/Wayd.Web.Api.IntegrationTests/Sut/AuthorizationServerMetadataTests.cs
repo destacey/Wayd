@@ -17,7 +17,7 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// Reads Wayd's OAuth authorization server metadata from the booted host as an MCP client would, against literal
 /// member names and paths, and holds it to the protected resource metadata that points clients at it.
 /// </summary>
-[Collection(SqlServerApiTestCollection.Name)]
+[Collection(SignInApiTestCollection.Name)]
 public sealed class AuthorizationServerMetadataTests(WaydSqlServerApiFactory factory)
 {
     private const string MetadataPath = "/.well-known/oauth-authorization-server";

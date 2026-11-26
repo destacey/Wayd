@@ -20,7 +20,7 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// and whoever else saw it, can do nothing else. Checked against the booted host, since it is the policies the
 /// endpoints actually run that decide.
 /// </summary>
-[Collection(SqlServerApiTestCollection.Name)]
+[Collection(SignInApiTestCollection.Name)]
 public sealed class PasswordChangeRequirementTests(WaydSqlServerApiFactory factory)
 {
     private const string TemporaryPassword = "Temporary-Passw0rd-1";

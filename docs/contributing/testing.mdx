@@ -54,8 +54,8 @@ script removes the container when the run ends, pass or fail, and prints its log
 runs at most four projects at a time; set `INTEGRATION_TEST_PARALLELISM` to change the limit, and
 `SQLSERVER_MEMORY_LIMIT_MB` to change the engine's memory (6144 by default).
 
-Leave `WAYD_TEST_SQLSERVER` unset and a project run on its own, from an IDE or `dotnet test`, starts a
-container of its own, so no setup is needed.
+Leave `WAYD_TEST_SQLSERVER` unset and a project run on its own, from an IDE or `dotnet test`, starts one
+container, which the collections running together share, so no setup is needed.
 
 ### A long-lived test engine
 
@@ -100,13 +100,12 @@ memory, so if early queries time out, lower `INTEGRATION_TEST_PARALLELISM`. When
 
 ### Sharing a database
 
-Each integration project creates a database of its own on that engine, named `wayd-test-<suite>-<guid>`,
-and drops it when the suite ends. A database older than a day with that prefix is from a run that crashed
-before dropping it, and the next suite to start drops it. Anything instance-wide — logins, server
-configuration — is shared by every suite on the engine, so a fixture must never change it.
+Each collection creates a database of its own on that engine, named `wayd-test-<suite>-<guid>`, and drops it
+when the collection ends. A database older than a day with that prefix is from a run that crashed before
+dropping it, and the next suite to start drops it. Anything instance-wide — logins, server configuration — is
+shared by every suite on the engine, so a fixture must never change it.
 
-Within a project, every test class shares that one database and one migrated schema, via a collection
-fixture:
+Every test class in a collection shares its database and migrated schema, through a collection fixture:
 
 ```csharp
 [CollectionDefinition(Name)]
@@ -119,18 +118,28 @@ public sealed class SqlServerTestCollection : ICollectionFixture<SqlServerDbCont
 public sealed class MyIntegrationTests(SqlServerDbContextFixture fixture) { }
 ```
 
-Use `[Collection(...)]`, **never `IClassFixture<T>`**. xUnit constructs a class fixture once per test
-class, so `IClassFixture` means a container start and schema migration for every class — which is what
-made one suite take six containers to run 44 tests.
+Put a new class in the project's existing collection. Tests in a collection run one at a time; collections run
+in parallel. A collection costs a database and a migration, about a minute locally, so a project has a few:
+a class slow enough to hold the rest back gets one of its own, or shares one with classes like it
+(`ApiTestCollections` in `Wayd.Web.Api.IntegrationTests`). Never give each class a fixture of its own with
+`IClassFixture<T>` for a database the class could share; that is a migration per class.
 
-The consequence is that tests **share a database**. Scope assertions to data the test itself created
-(a fresh `Guid`, a unique key) rather than assuming an empty schema or querying for "the only row".
+Tests in a collection **share a database**. Scope assertions to data the test itself created (a fresh `Guid`, a
+unique key) rather than assuming an empty schema or querying for "the only row". Nothing outside the database
+is per collection: a test may not change process-wide state — an environment variable, a static setting — that
+a test in another collection reads, and a host's configuration goes through `UseSetting`, never an environment
+variable.
 
-Get a fixture's database with `SqlServerTestDatabase.Create("<suite>")` from `Wayd.Tests.Containers`,
-rather than starting a container yourself. It uses the shared engine when there is one and otherwise starts
-a container from the image every suite shares, pinned once as `SqlServerTestImage.Name`. A test that needs
-a further database of its own, such as a migration test, names it on the server's connection string and
-drops it when it is done.
+Get a fixture's database with `SqlServerTestDatabase.Create("<suite>")` from `Wayd.Tests.Containers`, rather than
+starting a container yourself. It leases the shared engine when there is one, and otherwise the one container
+the test process shares (`SqlServerTestServer`), started from the image pinned once as `SqlServerTestImage.Name`.
+
+A migration test needs a database migrated only as far as the migration before the one it tests, so it cannot
+use the collection's. In `Wayd.Infrastructure.IntegrationTests`, such a class takes
+`IClassFixture<SqlServerMigrationFixture>` and asks it for `MigratedTo(previous)`: the first test migrates a
+database and snapshots it, and every later test gets it reverted to that snapshot, in a fraction of a second.
+Each such class is a collection of its own, so it runs beside the rest.
+
 `Wayd.Tests.Containers` is referenced only by integration projects, so `Wayd.Tests.Shared` and the unit
 projects never depend on Testcontainers.
 

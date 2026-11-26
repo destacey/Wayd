@@ -29,11 +29,26 @@ namespace Wayd.Common.Application.Notifications.Queries;
 /// </remarks>
 /// <param name="Paging">The page to read.</param>
 /// <param name="UnreadOnly">Keeps only entries with something unread.</param>
-public sealed record GetMyNotificationsQuery(CursorRequest Paging, bool UnreadOnly = false)
+/// <param name="Reasons">
+/// Keeps only notifications told for at least one of these reasons; every reason when empty or null. Each entry
+/// then counts and leads with those notifications alone.
+/// </param>
+public sealed record GetMyNotificationsQuery(
+    CursorRequest Paging,
+    bool UnreadOnly = false,
+    IReadOnlyCollection<NotificationReason>? Reasons = null)
     : IQuery<CursorPage<NotificationDto>>, ICursorQuery;
 
-/// <summary>Bounds the page size and refuses a cursor the API did not hand out.</summary>
-public sealed class GetMyNotificationsQueryValidator : CursorQueryValidator<GetMyNotificationsQuery, NotificationCursor>;
+/// <summary>Bounds the page size, refuses a cursor the API did not hand out, and refuses an undefined reason.</summary>
+public sealed class GetMyNotificationsQueryValidator : CursorQueryValidator<GetMyNotificationsQuery, NotificationCursor>
+{
+    public GetMyNotificationsQueryValidator()
+    {
+        RuleForEach(q => q.Reasons)
+            .Must(NotificationReasons.IsValid)
+            .WithMessage("'Reasons' must hold only defined notification reasons.");
+    }
+}
 
 /// <summary>Reads one page of the caller's notification list and describes the records on it.</summary>
 public sealed class GetMyNotificationsQueryHandler(
@@ -57,7 +72,8 @@ public sealed class GetMyNotificationsQueryHandler(
         }
 
         var owners = FollowReadRules.Select(_readRules, null).Value;
-        var rows = await NotificationRows.Build(_notificationsDbContext.Notifications, employeeId.Value, owners, cancellationToken);
+        var notifications = _notificationsDbContext.Notifications.WithAnyReason(NotificationReasons.Combine(request.Reasons));
+        var rows = await NotificationRows.Build(notifications, employeeId.Value, owners, cancellationToken);
         if (rows is null)
         {
             return CursorPage<NotificationDto>.Empty;
@@ -91,7 +107,7 @@ public sealed class GetMyNotificationsQueryHandler(
             page.RemoveAt(page.Count - 1);
         }
 
-        var items = await Render(employeeId.Value, page, owners, cancellationToken);
+        var items = await Render(employeeId.Value, notifications, page, owners, cancellationToken);
 
         // From the page's rows, not the rendered entries: an entry dropped while rendering still ends the page.
         var last = page.Count > 0 ? page[^1] : null;
@@ -106,11 +122,12 @@ public sealed class GetMyNotificationsQueryHandler(
 
     private async Task<List<NotificationDto>> Render(
         Guid employeeId,
+        IQueryable<Notification> notifications,
         List<NotificationGroupRow> page,
         List<(FollowOwnerDescriptor Descriptor, IRecordReadRule ReadRule)> owners,
         CancellationToken cancellationToken)
     {
-        var latest = await Latest(employeeId, page, owners, cancellationToken);
+        var latest = await Latest(employeeId, notifications, page, owners, cancellationToken);
         var summaries = await FollowReadRules.Describe(page.Select(g => (g.OwnerType, g.OwnerId)), owners, cancellationToken);
         var actors = await Actors(latest.Values, cancellationToken);
         var actorHidden = await ActorHidden(page, owners, cancellationToken);
@@ -169,10 +186,12 @@ public sealed class GetMyNotificationsQueryHandler(
     /// Reads only the rows at each entry's newest instant, so a busy record costs one row here rather than
     /// every notification it has had. Read through each owner type's
     /// <see cref="IRecordReadRule.VisibleNotifications"/>, one query per owner type on the page, so the change an
-    /// entry leads with is never one the caller may not be told about.
+    /// entry leads with is never one the caller may not be told about. Read from the same reason-filtered
+    /// notifications as the page, so it is never a change the filter left out.
     /// </remarks>
     private async Task<Dictionary<(string OwnerType, Guid OwnerId), Notification>> Latest(
         Guid employeeId,
+        IQueryable<Notification> source,
         List<NotificationGroupRow> page,
         List<(FollowOwnerDescriptor Descriptor, IRecordReadRule ReadRule)> owners,
         CancellationToken cancellationToken)
@@ -189,8 +208,7 @@ public sealed class GetMyNotificationsQueryHandler(
             }
 
             var notifications = await readRule.VisibleNotifications(
-                _notificationsDbContext.Notifications
-                    .Where(n => n.RecipientEmployeeId == employeeId && n.OwnerType == ownerType),
+                source.Where(n => n.RecipientEmployeeId == employeeId && n.OwnerType == ownerType),
                 cancellationToken);
 
             // The instants are compared in SQL rather than sent as a list, which a converted type cannot be.

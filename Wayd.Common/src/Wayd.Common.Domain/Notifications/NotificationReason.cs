@@ -79,6 +79,18 @@ public static class NotificationReasons
     /// <summary>Whether the set holds at least one reason and nothing that is not a defined reason.</summary>
     public static bool IsValid(NotificationReason reasons) => reasons != 0 && (reasons & ~All) == 0;
 
+    /// <summary>The set holding every given reason, or null when none is given.</summary>
+    public static NotificationReason? Combine(IEnumerable<NotificationReason>? reasons)
+    {
+        NotificationReason combined = 0;
+        foreach (var reason in reasons ?? [])
+        {
+            combined |= reason;
+        }
+
+        return combined == 0 ? null : combined;
+    }
+
     /// <summary>Whether the value is exactly one reason that is produced today, so it can be muted.</summary>
     public static bool IsMutable(NotificationReason reason) =>
         reason != 0 && (reason & (reason - 1)) == 0 && (reason & ~Produced) == 0;

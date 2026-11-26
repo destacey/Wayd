@@ -16,7 +16,7 @@ import {
   Tag,
   Tooltip,
 } from 'antd'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { formatEventTitle } from '@/src/components/common/activities'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import PersonAvatar from '@/src/components/common/person-avatar'
@@ -36,6 +36,7 @@ import DiscussionComposer from './discussion-composer'
 import { canWrite, errorText, useDiscussionContext } from './discussion-context'
 import { toComposerText, toDisplayMarkdown } from './discussion-mentions'
 import DiscussionRevisionsModal from './discussion-revisions-modal'
+import { scrollIntoViewGently } from './scroll-into-view'
 import styles from './discussion.module.css'
 import { type Instant } from '@/src/utils/instant'
 
@@ -49,6 +50,10 @@ export interface DiscussionMessageProps {
   message: DiscussionMessageDto
   /** Whether this is a reply shown inside its thread. */
   isReply?: boolean
+  /** A message a link opened: marked wherever it shows, here or in the thread. */
+  linkedMessageId?: string
+  /** Whether a top-level message's thread starts open. */
+  threadOpen?: boolean
 }
 
 /**
@@ -58,6 +63,8 @@ export interface DiscussionMessageProps {
 const DiscussionMessage = ({
   message,
   isReply = false,
+  linkedMessageId,
+  threadOpen = false,
 }: DiscussionMessageProps) => {
   const { target, access, mentionCandidates, noteMentionCandidates } =
     useDiscussionContext()
@@ -68,6 +75,14 @@ const DiscussionMessage = ({
   const [deleteMessage, { isLoading: isDeleting }] =
     useDeleteDiscussionMessageMutation()
   const { modal } = App.useApp()
+  const articleRef = useRef<HTMLElement>(null)
+  const isLinked = message.id === linkedMessageId
+
+  // A linked reply mounts only once its thread's replies load, after the pinned thread has scrolled into view, so
+  // it brings itself the rest of the way in a long thread.
+  useEffect(() => {
+    if (isLinked && isReply) scrollIntoViewGently(articleRef.current, 'center')
+  }, [isLinked, isReply])
 
   if (message.isDeleted) {
     return (
@@ -140,7 +155,8 @@ const DiscussionMessage = ({
 
   return (
     <article
-      className={`${styles.message} ${isNote && !isReply ? styles.note : ''} ${isReply ? styles.reply : ''}`}
+      ref={articleRef}
+      className={`${styles.message} ${isNote && !isReply ? styles.note : ''} ${isReply ? styles.reply : ''} ${isLinked ? styles.linked : ''}`}
       aria-label={`${isNote ? 'Internal note' : 'Message'} by ${message.author.name}`}
     >
       <PersonAvatar
@@ -218,7 +234,13 @@ const DiscussionMessage = ({
             )}
           </span>
         )}
-        {!isReply && <DiscussionThread message={message} />}
+        {!isReply && (
+          <DiscussionThread
+            message={message}
+            linkedMessageId={linkedMessageId}
+            defaultOpen={threadOpen}
+          />
+        )}
       </div>
       {showRevisions && (
         <DiscussionRevisionsModal
@@ -235,11 +257,19 @@ const DiscussionMessage = ({
  * order with a box to add one. A thread is wholly its message's kind, so its
  * reply box writes that kind.
  */
-const DiscussionThread = ({ message }: { message: DiscussionMessageDto }) => {
+const DiscussionThread = ({
+  message,
+  linkedMessageId,
+  defaultOpen,
+}: {
+  message: DiscussionMessageDto
+  linkedMessageId?: string
+  defaultOpen: boolean
+}) => {
   const { target, access, mentionCandidates, noteMentionCandidates } =
     useDiscussionContext()
   const messageApi = useMessage()
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(defaultOpen)
   const { data: replies, isLoading } = useGetDiscussionRepliesQuery(
     { ...target, messageId: message.id },
     { skip: !isOpen },
@@ -304,7 +334,12 @@ const DiscussionThread = ({ message }: { message: DiscussionMessageDto }) => {
       <div className={styles.thread}>
         {isLoading && <Spin size="small" />}
         {replies?.map((r) => (
-          <DiscussionMessage key={r.id} message={r} isReply />
+          <DiscussionMessage
+            key={r.id}
+            message={r}
+            isReply
+            linkedMessageId={linkedMessageId}
+          />
         ))}
         {mayReply && (
           <DiscussionComposer

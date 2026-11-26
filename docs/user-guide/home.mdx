@@ -18,7 +18,7 @@ The page appears straight away. Each widget loads on its own and shows a placeho
 You see only the widgets that apply to you. A widget needs some or all of:
 
 - **A permission.** My projects needs permission to view projects, and My work items permission to view work items, for example. Without it the widget is not shown.
-- **A feature flag.** What's changed and Following need the **Following** feature flag, and Desk queue and My requests the **Demand Management** flag, which an administrator turns on in **Settings → System → Feature Flags**.
+- **A feature flag.** Mentions, What's changed and Following need the **Following** feature flag, and Desk queue and My requests the **Demand Management** flag, which an administrator turns on in **Settings → System → Feature Flags**.
 - **An account linked to an employee.** Anything about "my" work — work items, projects, risks, tasks, teams, notifications, the records you follow — comes from the employee record your account is linked to.
 - **A duty only some people hold.** My project tasks shows only once you have a task assigned on an approved or active project. Project health checks due shows only if you are an Owner or Manager on an approved or active project, since reporting a project's health falls to them; being a sponsor, member or task assignee, or leading the project's program or portfolio, does not add it. My roadmaps shows only if you are an owner of an active roadmap. Each appears once you take that on.
 
@@ -30,13 +30,14 @@ Every widget is a card with its title at the top left and, where there is a full
 
 The row of counts across the top shows up to four numbers that need you today. Each one links to the list behind it, and its number turns orange or red. A count at zero gives up its place to the next one, and when every count is zero the row is not shown at all, so an empty row means nothing is waiting.
 
-When more counts are above zero than fit, the most urgent four show, in this order: overdue tasks, sprints to complete, health checks due, risk follow-ups, unhealthy dependencies, dependencies at risk, unassigned requests, tasks due this week, requests assigned to you, unread notifications. Where you placed the widgets makes no difference to which counts show.
+When more counts are above zero than fit, the most urgent four show, in this order: overdue tasks, sprints to complete, health checks due, risk follow-ups, unhealthy dependencies, dependencies at risk, unassigned requests, tasks due this week, unread mentions, requests assigned to you, unread notifications. Where you placed the widgets makes no difference to which counts show.
 
 A count you never act on — unread notifications, if you read them from the bell — can be switched off in the [Customize panel](#switching-counts-off), and its place goes to the next one.
 
 | Count | What it counts | Where it goes |
 |-------|----------------|---------------|
 | Unread notifications | Records with changes you have not read, the same count as the bell; shown as 99+ above 99 | Your [notifications](./notifications.mdx) |
+| Unread mentions | Records where someone mentioned you or replied in a thread you are in, and you have not read it; shown as 99+ above 99 | The Mentions widget below |
 | Overdue tasks (assigned to you) | Open tasks and milestones assigned to you on approved and active projects whose due date has passed | The My project tasks widget below |
 | Due this week (assigned to you) | Open tasks and milestones assigned to you on those projects due by the end of this week (Saturday) | The My project tasks widget below |
 | Health checks due (on projects you lead) | Active projects you own or manage with no current health check: none was reported, or the last one expired | The Project health checks due widget below |
@@ -47,7 +48,7 @@ A count you never act on — unread notifications, if you read them from the bel
 | Unassigned requests (on your desks) | Open [intake requests](./demand-management/index.mdx) on the desks Desk queue shows (of those you are a Desk Admin or Agent on) that no one is assigned to | Requests, filtered to those desks and Unassigned |
 | Requests assigned (to you) | Open intake requests assigned to you on the desks Desk queue shows | Requests, filtered to Assigned to me and, when Desk queue shows only some of your desks, to those |
 
-These counts follow the [teams, teams of teams and desks](#teams-and-desks) their widgets show, and Desk queue's sections: with its desks left out there are no unassigned requests, and with **Assigned to me** left out no requests assigned. A count shows only when its widget does: without permission to view projects there are no task or health check counts, with no project task assigned there are no task counts, unless you own or manage a project there is no health check count, without the Following flag there is no unread count, without permission to view risks there are no risk follow-ups, without permission to view work items there are no dependencies at risk or unhealthy dependencies, without permission to view iterations there are no sprints to complete, unless you are a member of a team of teams there are no sprints to complete or unhealthy dependencies, and without the Demand Management flag there are no request counts. A count that fails to load keeps its place and shows a dash rather than a zero.
+These counts follow the [teams, teams of teams and desks](#teams-and-desks) their widgets show, and Desk queue's sections: with its desks left out there are no unassigned requests, and with **Assigned to me** left out no requests assigned. A count shows only when its widget does: without permission to view projects there are no task or health check counts, with no project task assigned there are no task counts, unless you own or manage a project there is no health check count, without the Following flag there are no unread notification or mention counts, without permission to view risks there are no risk follow-ups, without permission to view work items there are no dependencies at risk or unhealthy dependencies, without permission to view iterations there are no sprints to complete, unless you are a member of a team of teams there are no sprints to complete or unhealthy dependencies, and without the Demand Management flag there are no request counts. A count that fails to load keeps its place and shows a dash rather than a zero.
 
 ## Widgets
 
@@ -55,6 +56,7 @@ This is each widget's usual place. Until you [customize](#customizing) the page,
 
 ### Main column
 
+- **Mentions** — the conversations that asked for you: a message that [mentions](./notifications.mdx#who-is-told) you, or a reply in a thread you started or replied in, on any record with a discussion. Unread ones come first, then the ones you have read, newest first; it lists up to five. Each shows who posted, on which record and when. Opening one goes to the record's Discussion with that message's thread open and the message marked, and marks the record's notifications read. An internal note appears only if you are in its audience, as everywhere else. **View all** opens your notifications.
 - **What's changed** — your five latest [notifications](./notifications.mdx): what changed, on which record, and why you were told. Opening one goes to the record and marks it read. **View all** opens the full list.
 - **My projects** — how many approved and active projects you hold a role on, broken down by role (Sponsor, Owner, PM, Member, Task Assignee). **View all** opens the Projects Dashboard.
 - **My work items** — the backlog-level [work items](./work-management/work-items.mdx) assigned to you, across every workspace, that are in progress or proposed: in progress first, then proposed, each in backlog order. Epics, features and tasks are left out. It lists up to eight and says how many more there are. Each shows its status, its type and its sprint (or, outside a sprint, its team), and opens the work item. Below them is how many you finished in the last seven days, today included, when you finished any.
@@ -96,7 +98,7 @@ The columns above are the starting point. Until you customize the page, Wayd reo
 
 - **What you lead or do every day comes first.** If you sponsor, own or manage a project, My projects and Deliverables I own move to the top of the main column, and if you own or manage one, so does Project health checks due. If you have a project task assigned, My project tasks moves up too. If you are a member of a team, My teams moves to the top of the main column too, followed by your My work items; if you are a member of a team of teams, so does My teams of teams. If you work an intake desk, Desk queue moves up as well.
 - **Areas you work in come next.** My projects and Deliverables I own for a project member or task assignee, My risks when risks are assigned to you, My requests when you have an open request, My roadmaps when you own an active roadmap, and Planning intervals when you are on a team or a team of teams.
-- **Shared widgets follow** — What's changed and Following, and My work items for someone who is not a member of a team (being on a team of teams alone does not count), since Wayd does not count your work items to decide.
+- **Shared widgets follow** — Mentions, What's changed and Following, and My work items for someone who is not a member of a team (being on a team of teams alone does not count), since Wayd does not count your work items to decide.
 - **Areas you are not part of go last.** They still show, with a line saying how they fill.
 
 Someone involved in several areas gets them interleaved in that order; widgets that rank the same keep their usual order. The **Needs attention** counts do not follow this order: they always go most urgent first.
@@ -132,7 +134,7 @@ What the panel offers follows what you can see. A widget you gain access to afte
 
 Every widget lets you change something about what it shows. Each has a gear at the top right of its card, which appears when you point at the card or move the keyboard focus into it and is always shown on a touch screen. The same settings are in the Customize panel: open the widget's row with the arrow beside its menu.
 
-- **Rows to show** — how many the widget lists: 3, 5, 8, 10 or 15. What's changed, My work items, My project tasks, Project health checks due, Deliverables I own, My requests, My roadmaps and Following have it. Desk queue has **Requests per list**, which sets both its Assigned to me and Participating lists. A widget still says how many more there are, and **View all** still opens the full list.
+- **Rows to show** — how many the widget lists: 3, 5, 8, 10 or 15. Mentions, What's changed, My work items, My project tasks, Project health checks due, Deliverables I own, My requests, My roadmaps and Following have it. Desk queue has **Requests per list**, which sets both its Assigned to me and Participating lists. A widget still says how many more there are, and **View all** still opens the full list.
 - **When there is nothing to show** — what a widget does when it has nothing to list. Every widget has it.
   - **Explain** (the default) — the line saying how the widget fills.
   - **One line** — the title with a short "nothing" beside it, such as *No open risks*.

@@ -94,6 +94,19 @@ internal sealed class NotificationGroupRow
 internal static class NotificationRows
 {
     /// <summary>
+    /// The notifications carrying at least one of the given reasons, or all of them when no reason is given.
+    /// </summary>
+    /// <remarks>
+    /// Applied to each notification before anything is grouped, so an entry filtered by reason counts, and leads
+    /// with, only the notifications that carry one: a project with a mention and a later status change leads
+    /// with the mention.
+    /// </remarks>
+    public static IQueryable<Notification> WithAnyReason(this IQueryable<Notification> notifications, NotificationReason? reasons) =>
+        reasons is { } set
+            ? notifications.Where(n => (n.Reasons & set) != 0)
+            : notifications;
+
+    /// <summary>
     /// The caller's notifications about records they can still read, or <c>null</c> when they can read no
     /// record of any registered owner type.
     /// </summary>

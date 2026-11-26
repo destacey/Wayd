@@ -10,6 +10,10 @@ namespace Wayd.Common.Domain.Events.Discussions;
 /// <remarks>
 /// Carries who to tell and why — the kind, the thread and who was mentioned — never what was said. A handler that
 /// needs the text reads the message through the conversation's own rules.
+/// <para>
+/// Shares the message's id as its <see cref="DomainEvent.EventId"/>: a message is posted once, and a notification
+/// keeps only the event's id, so this is what lets a notification open the message it is about.
+/// </para>
 /// </remarks>
 public sealed record DiscussionMessagePostedEvent : DomainEvent<DiscussionMessagePostedEvent>, IDomainEventDescriptor, IDiscussionEvent
 {
@@ -28,6 +32,7 @@ public sealed record DiscussionMessagePostedEvent : DomainEvent<DiscussionMessag
         Instant timestamp)
         : base(actor, "1.0")
     {
+        EventId = id;
         Id = id;
         ChannelId = channelId;
         ChannelType = channelType;

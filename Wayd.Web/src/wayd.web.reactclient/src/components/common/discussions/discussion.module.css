@@ -73,6 +73,36 @@
   background: transparent;
 }
 
+/* The message a link opened, so the reader sees which one asked for them. */
+.linked {
+  outline: 2px solid var(--ant-color-primary-border);
+  outline-offset: 2px;
+  scroll-margin-top: var(--ant-margin);
+}
+
+.reply.linked {
+  border-radius: var(--ant-border-radius);
+}
+
+/* The thread a link opened, shown above the conversation until dismissed. */
+.linkedThread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin-xs);
+  padding-bottom: var(--ant-padding);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+  /* Scrolled to on arrival: a little room above, so it does not sit against the edge of the page. */
+  scroll-margin-top: var(--ant-margin);
+}
+
+.linkedHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-margin-sm);
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}
+
 .messageBody {
   display: flex;
   flex: 1;

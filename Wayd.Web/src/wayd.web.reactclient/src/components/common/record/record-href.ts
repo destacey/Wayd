@@ -25,3 +25,26 @@ export const recordHref = (
       return null
   }
 }
+
+/** The owner types whose page has a Discussion section, each named `discussion`. */
+const discussionOwnerTypes: string[] = [
+  FollowOwnerTypes.Project,
+  FollowOwnerTypes.IntakeRequest,
+  FollowOwnerTypes.Incident,
+]
+
+/**
+ * A record's Discussion section, opened on one message when given; the
+ * record's page alone for a kind of record with no conversation, and null
+ * where `recordHref` has no page.
+ */
+export const recordDiscussionHref = (
+  record: Pick<FollowedRecordDto, 'ownerType' | 'key' | 'parentKey'>,
+  messageId?: string,
+): string | null => {
+  const href = recordHref(record)
+  if (!href || !discussionOwnerTypes.includes(record.ownerType)) return href
+  const query = new URLSearchParams({ section: 'discussion' })
+  if (messageId) query.set('message', messageId)
+  return `${href}?${query.toString()}`
+}

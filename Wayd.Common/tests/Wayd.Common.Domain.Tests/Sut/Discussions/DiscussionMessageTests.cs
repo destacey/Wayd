@@ -49,6 +49,7 @@ public sealed class DiscussionMessageTests
 
         var posted = message.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<DiscussionMessagePostedEvent>().Subject;
         posted.Id.Should().Be(message.Id);
+        posted.EventId.Should().Be(message.Id);
         posted.ChannelId.Should().Be(channel.Id);
         posted.ChannelType.Should().Be(Gadget.Key);
         posted.OwnerId.Should().Be(channel.OwnerId);
@@ -202,6 +203,7 @@ public sealed class DiscussionMessageTests
         reply.Mentions.Select(m => m.EmployeeId).Should().Equal(_authorId);
 
         var posted = reply.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<DiscussionMessagePostedEvent>().Subject;
+        posted.EventId.Should().Be(reply.Id);
         posted.ParentMessageId.Should().Be(note.Id);
         posted.Kind.Should().Be(DiscussionMessageKind.InternalNote);
     }

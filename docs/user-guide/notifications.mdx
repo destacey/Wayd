@@ -41,6 +41,7 @@ Each entry is one record, and it says:
 | Assignee changed | Ada Lovelace changed the assignee of Export invoices |
 | Participants changed | Ada Lovelace changed the participants of Export invoices |
 | Channel changed | Ada Lovelace changed the channel of Export invoices |
+| Message posted | Ada Lovelace posted on Apollo |
 
 Entries use the record's name as it is now, so a renamed record never leaves an old name behind. A change made by someone whose account has no linked employee reads "Someone"; a change Wayd made with no person to name reads "Wayd".
 
@@ -91,6 +92,8 @@ A request waiting on its desk with nobody assigned also tells the desk's [triage
 You are told only about changes you can see on the request: a follower who sees only a request's summary is not told that its details or participants changed, and is not shown who made a change. Someone removed as a participant is told only on an open desk; on any other desk they can no longer see who takes part.
 
 A message in a request's conversation also tells the people it mentions, and a reply in a thread tells everyone who started or replied in that thread. An internal note can mention only the desk's agents, so it never tells anyone outside the desk that it exists. Editing a message tells nobody; a mention added by editing that makes someone a participant tells them they were added.
+
+The [home page](./home.mdx)'s **Mentions** widget gathers the notifications that come from being mentioned or from a reply in your thread, unread first, and opens each one on the message itself, with its thread open. Its **Unread mentions** count shows how many records have one you have not read.
 
 You see a notification only while you can still see its record. If you lose access to a record, or it is deleted, its notifications leave your list and the unread count. Notifications are kept for 90 days.
 

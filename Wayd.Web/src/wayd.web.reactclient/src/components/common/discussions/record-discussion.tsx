@@ -7,6 +7,7 @@ import {
   UnlockOutlined,
 } from '@ant-design/icons'
 import { Alert, Button, Segmented, Spin, Tooltip, Typography } from 'antd'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import { formatDiscussionActivityTitle } from '@/src/components/common/activities/format-discussion-activity-title'
 import { useMessage } from '@/src/components/contexts/messaging'
@@ -33,6 +34,9 @@ import DiscussionComposer, {
 import { canWrite, DiscussionContext, errorText } from './discussion-context'
 import { MentionCandidate } from './discussion-mentions'
 import DiscussionMessage from './discussion-message'
+import LinkedDiscussionThread, {
+  LinkedMessageParam,
+} from './linked-discussion-thread'
 import styles from './discussion.module.css'
 
 /** The order a person reads conversations in, kept in their browser. */
@@ -77,7 +81,8 @@ const ActivityEntry = ({ activity }: { activity: ActivityLogDto }) => (
  * the composer to the top.
  *
  * Shows nothing when the caller cannot read the conversation, as the API
- * answers it.
+ * answers it. A `?message={id}` link pins that message's thread above the
+ * conversation and scrolls to it.
  */
 const RecordDiscussion = ({
   channelType,
@@ -94,6 +99,19 @@ const RecordDiscussion = ({
     { version: 1 },
   )
   const [messagesOnly, setMessagesOnly] = useState(false)
+  const router = useRouter()
+  const pathname = usePathname()
+  const params = useSearchParams()
+  const linkedMessageId = params.get(LinkedMessageParam)
+
+  // Dismissed in the URL rather than in state, so leaving the section and coming back, which carries the query
+  // across, does not pin the message again.
+  const dismissLink = () => {
+    const next = new URLSearchParams(params.toString())
+    next.delete(LinkedMessageParam)
+    const query = next.toString()
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+  }
 
   const { data: access, error, refetch } = useGetDiscussionQuery(target)
   const {
@@ -262,6 +280,14 @@ const RecordDiscussion = ({
             showIcon
             icon={<LockOutlined />}
             title="This conversation is locked. Nothing new can be posted, replied or edited."
+          />
+        )}
+
+        {linkedMessageId && (
+          <LinkedDiscussionThread
+            key={linkedMessageId}
+            messageId={linkedMessageId}
+            onDismiss={dismissLink}
           />
         )}
 

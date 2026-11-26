@@ -84,8 +84,17 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
         var firstPage = await handler.Handle(new GetMyNotificationsQuery(new CursorRequest(PageSize: 1)), cancellationToken);
         var secondPage = await handler.Handle(new GetMyNotificationsQuery(new CursorRequest(Before: firstPage.NextCursor, PageSize: 1)), cancellationToken);
         var unreadOnly = await handler.Handle(new GetMyNotificationsQuery(new CursorRequest(), UnreadOnly: true), cancellationToken);
+        var byReason = await handler.Handle(
+            new GetMyNotificationsQuery(new CursorRequest(), Reasons: [NotificationReason.Participant, NotificationReason.Mentioned]),
+            cancellationToken);
 
         // Assert
+        var participant = byReason.Items.Should().ContainSingle().Subject;
+        participant.Record.Id.Should().Be(middle.Id);
+        participant.Count.Should().Be(1);
+        participant.UnreadCount.Should().Be(0);
+        participant.OccurredOn.Should().Be(Timestamp);
+
         firstPage.Items.Should().ContainSingle().Which.Record.Id.Should().Be(newest.Id);
         firstPage.NextCursor.Should().NotBeNull();
         secondPage.NextCursor.Should().BeNull();
@@ -187,10 +196,12 @@ public sealed class NotificationQueryTranslationIntegrationTests(SqlServerDbCont
 
         // Act
         var count = await handler.Handle(new GetMyUnreadNotificationCountQuery(), cancellationToken);
+        var mentions = await handler.Handle(new GetMyUnreadNotificationCountQuery([NotificationReason.Mentioned]), cancellationToken);
 
         // Assert
         count.Count.Should().Be(1);
         count.IsCapped.Should().BeFalse();
+        mentions.Count.Should().Be(0);
     }
 
     [Fact]

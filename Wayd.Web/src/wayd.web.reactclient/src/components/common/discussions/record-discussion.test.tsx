@@ -24,14 +24,25 @@ vi.mock('@/src/components/common/markdown', () => ({
   ),
 }))
 
+let mockParams = new URLSearchParams()
+const mockReplace = vi.fn()
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => mockParams,
+  useRouter: () => ({ replace: mockReplace }),
+  usePathname: () => '/demand-management/requests/15',
+}))
+
 const mockUseDiscussion = vi.fn()
 const mockUseEntries = vi.fn()
+const mockUseMessage = vi.fn()
+const mockUseReplies = vi.fn()
 const mockPost = vi.fn()
 vi.mock('@/src/store/features/common/discussions-api', () => ({
   useGetDiscussionQuery: (...args: unknown[]) => mockUseDiscussion(...args),
   useGetDiscussionEntriesInfiniteQuery: (...args: unknown[]) =>
     mockUseEntries(...args),
-  useGetDiscussionRepliesQuery: () => ({ data: [], isLoading: false }),
+  useGetDiscussionMessageQuery: (...args: unknown[]) => mockUseMessage(...args),
+  useGetDiscussionRepliesQuery: (...args: unknown[]) => mockUseReplies(...args),
   useGetDiscussionRevisionsQuery: () => ({ data: [], isLoading: false }),
   usePostDiscussionMessageMutation: () => [mockPost, { isLoading: false }],
   useReplyToDiscussionMessageMutation: () => [vi.fn(), { isLoading: false }],
@@ -112,6 +123,166 @@ describe('RecordDiscussion', () => {
     mockUseDiscussion.mockReturnValue({ data: access(), isError: false })
     showEntries([])
     mockPost.mockResolvedValue({ data: 'm-2' })
+    mockParams = new URLSearchParams()
+    mockUseMessage.mockReturnValue({ data: undefined, isError: false })
+    mockUseReplies.mockReturnValue({ data: [], isLoading: false })
+  })
+
+  describe('a link to one message', () => {
+    /** Answers each message request from the ids given. */
+    const serveMessages = (messages: DiscussionMessageDto[]) =>
+      mockUseMessage.mockImplementation(
+        ({ messageId }: { messageId: string }, options?: { skip?: boolean }) =>
+          options?.skip
+            ? { data: undefined }
+            : {
+                data: messages.find((m) => m.id === messageId),
+                error: messages.some((m) => m.id === messageId)
+                  ? undefined
+                  : { status: 404 },
+                refetch: mockRefetch,
+              },
+      )
+    const mockRefetch = vi.fn()
+
+    it('pins a linked top-level message above the conversation and marks it', () => {
+      // Arrange
+      mockParams = new URLSearchParams('section=discussion&message=m-9')
+      serveMessages([message({ id: 'm-9', body: 'Can you check the budget?' })])
+
+      // Act
+      renderDiscussion()
+
+      // Assert
+      const linked = screen.getByRole('region', { name: 'Linked message' })
+      expect(linked).toHaveTextContent('The message you were sent to')
+      expect(linked).toHaveTextContent('Can you check the budget?')
+      expect(
+        screen.getByRole('article', { name: 'Message by Marcus Lee' })
+          .className,
+      ).toContain('linked')
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalled()
+    })
+
+    it('opens the thread a linked reply is in, with the reply marked', () => {
+      // Arrange
+      mockParams = new URLSearchParams('message=r-2')
+      const parent = message({ id: 'm-1', body: 'Start', replyCount: 1 })
+      const reply = message({
+        id: 'r-2',
+        parentMessageId: 'm-1',
+        body: 'Answer',
+      })
+      serveMessages([parent, reply])
+      mockUseReplies.mockReturnValue({ data: [reply], isLoading: false })
+
+      // Act
+      renderDiscussion()
+
+      // Assert
+      const linked = screen.getByRole('region', { name: 'Linked message' })
+      expect(linked).toHaveTextContent('The reply you were sent to')
+      expect(linked).toHaveTextContent('Start')
+      expect(linked).toHaveTextContent('Answer')
+      expect(mockUseReplies).toHaveBeenCalledWith(
+        expect.objectContaining({ messageId: 'm-1' }),
+        { skip: false },
+      )
+      // The reply brings itself into view once the thread's replies are in.
+      const replyArticle = screen
+        .getAllByRole('article', { name: 'Message by Marcus Lee' })
+        .find(
+          (a) =>
+            a.textContent?.includes('Answer') && a.className.includes('linked'),
+        )
+      expect(replyArticle).toBeDefined()
+      expect(
+        (Element.prototype.scrollIntoView as ReturnType<typeof vi.fn>).mock
+          .contexts,
+      ).toContain(replyArticle)
+    })
+
+    it('shows a linked reply on its own when its thread cannot be read', () => {
+      // Arrange
+      mockParams = new URLSearchParams('message=r-2')
+      serveMessages([
+        message({ id: 'r-2', parentMessageId: 'gone', body: 'Answer' }),
+      ])
+
+      // Act
+      renderDiscussion()
+
+      // Assert
+      const linked = screen.getByRole('region', { name: 'Linked message' })
+      expect(linked).toHaveTextContent('The reply you were sent to')
+      expect(linked).toHaveTextContent('Answer')
+      expect(screen.queryByText(/The linked message is no longer/)).toBeNull()
+    })
+
+    it('offers to try again when the linked message fails to load for another reason', () => {
+      // Arrange
+      mockParams = new URLSearchParams('message=m-9')
+      mockUseMessage.mockReturnValue({
+        data: undefined,
+        error: { status: 500 },
+        refetch: mockRefetch,
+      })
+      renderDiscussion()
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+
+      // Assert
+      expect(
+        screen.getByText('The linked message could not be loaded.'),
+      ).toBeInTheDocument()
+      expect(mockRefetch).toHaveBeenCalled()
+    })
+
+    it('says so when the linked message cannot be read', () => {
+      // Arrange
+      mockParams = new URLSearchParams('message=gone')
+      serveMessages([])
+
+      // Act
+      renderDiscussion()
+
+      // Assert
+      expect(
+        screen.getByText(
+          /The linked message is no longer in this conversation/,
+        ),
+      ).toBeInTheDocument()
+    })
+
+    it('drops the link from the URL, keeping the rest, once dismissed', () => {
+      // Arrange
+      mockParams = new URLSearchParams('section=discussion&message=m-9')
+      serveMessages([message({ id: 'm-9' })])
+      renderDiscussion()
+
+      // Act
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Show only the conversation' }),
+      )
+
+      // Assert
+      expect(mockReplace).toHaveBeenCalledWith(
+        '/demand-management/requests/15?section=discussion',
+        { scroll: false },
+      )
+    })
+
+    it('pins nothing without a link', () => {
+      // Act
+      renderDiscussion()
+
+      // Assert
+      expect(
+        screen.queryByRole('region', { name: 'Linked message' }),
+      ).toBeNull()
+      expect(mockUseMessage).not.toHaveBeenCalled()
+    })
   })
 
   it('offers no internal-note control to someone who cannot post notes', () => {

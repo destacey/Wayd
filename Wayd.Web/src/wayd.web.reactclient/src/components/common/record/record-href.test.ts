@@ -2,7 +2,7 @@ import {
   FollowedRecordDto,
   LifecycleCategory,
 } from '@/src/services/api/wayd.schemas'
-import { recordHref } from './record-href'
+import { recordDiscussionHref, recordHref } from './record-href'
 import { asInstant } from '@/src/utils/instant'
 
 const record = (overrides: Partial<FollowedRecordDto>): FollowedRecordDto => ({
@@ -50,6 +50,42 @@ describe('recordHref', () => {
     // Act & Assert
     expect(
       recordHref(record({ ownerType: 'demand.unknown-record' })),
+    ).toBeNull()
+  })
+})
+
+describe('recordDiscussionHref', () => {
+  it('opens the record on one message in its Discussion section', () => {
+    // Act & Assert
+    expect(recordDiscussionHref(record({}), 'm-1')).toBe(
+      '/ppm/projects/APOLLO?section=discussion&message=m-1',
+    )
+  })
+
+  it('opens the page alone for a kind of record with no conversation', () => {
+    // Act & Assert
+    expect(
+      recordDiscussionHref(
+        record({ ownerType: 'ppm.program', key: '42' }),
+        'm-1',
+      ),
+    ).toBe('/ppm/programs/42')
+  })
+
+  it('opens the Discussion section alone when no message is given', () => {
+    // Act & Assert
+    expect(recordDiscussionHref(record({}))).toBe(
+      '/ppm/projects/APOLLO?section=discussion',
+    )
+  })
+
+  it('gives no link for an owner type the client has no page for', () => {
+    // Act & Assert
+    expect(
+      recordDiscussionHref(
+        record({ ownerType: 'demand.unknown-record' }),
+        'm-1',
+      ),
     ).toBeNull()
   })
 })

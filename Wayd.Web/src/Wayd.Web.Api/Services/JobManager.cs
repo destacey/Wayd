@@ -66,11 +66,8 @@ public class JobManager(
             ? await _peopleSyncRunner.Run(connectionId.Value, trigger, syncType, cancellationToken)
             : await _peopleSyncRunner.Run(trigger, syncType, cancellationToken);
 
-        if (result.IsFailure)
-        {
-            _logger.LogError("Failed to run people sync: {Error}", result.Error);
-            throw new InternalServerException($"Failed to run people sync. Error: {result.Error}");
-        }
+        ThrowIfFailed(result, "run people sync");
+
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunPeopleSync));
     }
 
@@ -84,14 +81,18 @@ public class JobManager(
             ? await _workSyncRunner.Run(connectionId.Value, syncType, trigger, cancellationToken)
             : await _workSyncRunner.Run(syncType, trigger, cancellationToken);
 
-        if (result.IsFailure)
-        {
-            _logger.LogError("Failed to run work sync: {Error}", result.Error);
-            throw new InternalServerException($"Failed to run work sync. Error: {result.Error}");
-        }
+        ThrowIfFailed(result, "run work sync");
+
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunWorkSync));
     }
+
+    // The five replication syncs that follow (iterations, strategic themes, projects, estimation scales,
+    // teams) do not retry. An admin runs them by hand and watches for the outcome, and their failures are
+    // data problems — a sprint whose team has no copy yet, a theme a project still tags — that a re-run
+    // meets again. Hangfire's default ten retries would hold the job in Scheduled for hours before it
+    // showed as Failed.
     [DisableConcurrentExecution(60 * 3)]
+    [AutomaticRetry(Attempts = 0)]
     public async Task RunSyncIterations(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncIterations));
@@ -101,16 +102,13 @@ public class JobManager(
         var iterations = await _dispatcher.Send(new GetSimpleIterationsQuery(), cancellationToken);
 
         var result = await _dispatcher.Send(new SyncPlanningSprintsCommand(iterations, asOf), cancellationToken);
-        if (result.IsFailure)
-        {
-            _logger.LogError("Failed to sync Planning sprints: {Error}", result.Error);
-        }
+        ThrowIfFailed(result, "sync Planning sprints");
 
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncIterations));
     }
 
-
     [DisableConcurrentExecution(60 * 3)]
+    [AutomaticRetry(Attempts = 0)]
     public async Task RunSyncStrategicThemes(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncStrategicThemes));
@@ -119,32 +117,13 @@ public class JobManager(
         var strategicThemes = await _dispatcher.Send(new GetStrategicThemesDataQuery(), cancellationToken);
 
         var result = await _dispatcher.Send(new PpmSyncStrategicThemesCommand(strategicThemes, asOf), cancellationToken);
-        if (result.IsFailure)
-        {
-            _logger.LogError("Failed to sync strategic themes: {Error}", result.Error);
-        }
+        ThrowIfFailed(result, "sync strategic themes");
 
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncStrategicThemes));
     }
 
     [DisableConcurrentExecution(60 * 3)]
-    public async Task RunRepointWorkItemAttribution(string externalId, Guid? employeeId, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Running {BackgroundJob} job for external identity {ExternalId}",
-            nameof(RunRepointWorkItemAttribution), externalId);
-
-        var result = await _dispatcher.Send(
-            new RepointWorkItemAttributionCommand(externalId, employeeId), cancellationToken);
-        if (result.IsFailure)
-        {
-            _logger.LogError("Failed to repoint work item attribution for {ExternalId}: {Error}",
-                externalId, result.Error);
-        }
-
-        _logger.LogInformation("Completed {BackgroundJob} job for external identity {ExternalId}",
-            nameof(RunRepointWorkItemAttribution), externalId);
-    }
-
+    [AutomaticRetry(Attempts = 0)]
     public async Task RunSyncProjects(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncProjects));
@@ -152,53 +131,26 @@ public class JobManager(
         var asOf = _dateTimeProvider.Now;
         var projects = await _dispatcher.Send(new GetSimpleProjectsQuery(), cancellationToken);
 
-        // Each copy is synced on its own, so one module's failure never leaves the other stale.
-        try
-        {
-            var result = await _dispatcher.Send(new SyncWorkProjectsCommand(projects, asOf), cancellationToken);
-            if (result.IsFailure)
+        // Each copy is synced on its own, so one module's failure never leaves the other stale; the job
+        // still fails once they have all run. The deliverables go last: each deliverable copy needs its
+        // project's copy.
+        ThrowIfAnyFailed("Failed to sync one or more project copies.",
+        [
+            await RunIsolatedStep("sync Work projects", () => _dispatcher.Send(new SyncWorkProjectsCommand(projects, asOf), cancellationToken)),
+            await RunIsolatedStep("sync Demand Management projects", () => _dispatcher.Send(new SyncDemandProjectsCommand(projects, asOf), cancellationToken)),
+            await RunIsolatedStep("sync Demand Management project deliverables", async () =>
             {
-                _logger.LogError("Failed to sync projects: {Error}", result.Error);
-            }
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            _logger.LogError(ex, "Failed to sync projects");
-        }
-
-        try
-        {
-            var demandResult = await _dispatcher.Send(new SyncDemandProjectsCommand(projects, asOf), cancellationToken);
-            if (demandResult.IsFailure)
-            {
-                _logger.LogError("Failed to sync Demand Management projects: {Error}", demandResult.Error);
-            }
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            _logger.LogError(ex, "Failed to sync Demand Management projects");
-        }
-
-        // After the project copies, which each deliverable copy needs.
-        try
-        {
-            var deliverablesAsOf = _dateTimeProvider.Now;
-            var deliverables = await _dispatcher.Send(new GetSimpleProjectDeliverablesQuery(), cancellationToken);
-            var deliverableResult = await _dispatcher.Send(new SyncDemandProjectDeliverablesCommand(deliverables, deliverablesAsOf), cancellationToken);
-            if (deliverableResult.IsFailure)
-            {
-                _logger.LogError("Failed to sync Demand Management project deliverables: {Error}", deliverableResult.Error);
-            }
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            _logger.LogError(ex, "Failed to sync Demand Management project deliverables");
-        }
+                var deliverablesAsOf = _dateTimeProvider.Now;
+                var deliverables = await _dispatcher.Send(new GetSimpleProjectDeliverablesQuery(), cancellationToken);
+                return await _dispatcher.Send(new SyncDemandProjectDeliverablesCommand(deliverables, deliverablesAsOf), cancellationToken);
+            }),
+        ]);
 
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncProjects));
     }
 
     [DisableConcurrentExecution(60 * 3)]
+    [AutomaticRetry(Attempts = 0)]
     public async Task RunSyncEstimationScales(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncEstimationScales));
@@ -207,15 +159,13 @@ public class JobManager(
         var scales = await _dispatcher.Send(new GetEstimationScaleSnapshotsQuery(), cancellationToken);
 
         var result = await _dispatcher.Send(new SyncDemandEstimationScalesCommand(scales, asOf), cancellationToken);
-        if (result.IsFailure)
-        {
-            _logger.LogError("Failed to sync Demand Management estimation scales: {Error}", result.Error);
-        }
+        ThrowIfFailed(result, "sync Demand Management estimation scales");
 
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncEstimationScales));
     }
 
     [DisableConcurrentExecution(60 * 3)]
+    [AutomaticRetry(Attempts = 0)]
     public async Task RunSyncTeams(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunSyncTeams));
@@ -223,32 +173,40 @@ public class JobManager(
         var asOf = _dateTimeProvider.Now;
         var teams = await _dispatcher.Send(new GetSimpleTeamsQuery(), cancellationToken);
 
-        // Each copy is synced on its own, so one module's failure never leaves the others stale.
-        await SyncTeamCopy("planning", () => _dispatcher.Send(new SyncPlanningTeamsCommand(teams, asOf), cancellationToken));
-        await SyncTeamCopy("PPM", () => _dispatcher.Send(new SyncPpmTeamsCommand(teams, asOf), cancellationToken));
-        await SyncTeamCopy("product", () => _dispatcher.Send(new SyncProductTeamsCommand(teams, asOf), cancellationToken));
-        await SyncTeamCopy("work", () => _dispatcher.Send(new SyncWorkTeamsCommand(teams, asOf), cancellationToken));
+        // Each copy is synced on its own, so one module's failure never leaves the others stale; the job
+        // still fails once they have all run.
+        ThrowIfAnyFailed("Failed to sync one or more modules' team copies.",
+        [
+            await RunIsolatedStep("sync planning teams", () => _dispatcher.Send(new SyncPlanningTeamsCommand(teams, asOf), cancellationToken)),
+            await RunIsolatedStep("sync PPM teams", () => _dispatcher.Send(new SyncPpmTeamsCommand(teams, asOf), cancellationToken)),
+            await RunIsolatedStep("sync product teams", () => _dispatcher.Send(new SyncProductTeamsCommand(teams, asOf), cancellationToken)),
+            await RunIsolatedStep("sync work teams", () => _dispatcher.Send(new SyncWorkTeamsCommand(teams, asOf), cancellationToken)),
+        ]);
 
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncTeams));
     }
 
-    /// <summary>Runs one module's sync of the team copies, logging a failure or exception so the next module's still runs.</summary>
-    private async Task SyncTeamCopy(string module, Func<Task<Result>> sync)
+    // Retried, unlike the replication syncs: it is queued by an identity mapping rather than run by an admin
+    // who would run it again, its one set-based update can collide with a work sync writing the same rows,
+    // and repeating it is safe.
+    [DisableConcurrentExecution(60 * 3)]
+    [AutomaticRetry(Attempts = 3, DelaysInSeconds = [30, 60, 120])]
+    public async Task RunRepointWorkItemAttribution(string externalId, Guid? employeeId, CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await sync();
-            if (result.IsFailure)
-            {
-                _logger.LogError("Failed to sync {Module} teams: {Error}", module, result.Error);
-            }
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            _logger.LogError(ex, "Failed to sync {Module} teams", module);
-        }
+        _logger.LogInformation("Running {BackgroundJob} job for external identity {ExternalId}",
+            nameof(RunRepointWorkItemAttribution), externalId);
+
+        var result = await _dispatcher.Send(
+            new RepointWorkItemAttributionCommand(externalId, employeeId), cancellationToken);
+        ThrowIfFailed(result, $"repoint work item attribution for {externalId}");
+
+        _logger.LogInformation("Completed {BackgroundJob} job for external identity {ExternalId}",
+            nameof(RunRepointWorkItemAttribution), externalId);
     }
 
+    // Retried: a rebalance only re-spaces ranks, so repeating it is safe, and a retry touches only the
+    // portfolios still dense. Ranking takes no concurrency token, so a failure is most likely a transient
+    // database error.
     [DisableConcurrentExecution(60 * 30)]
     [AutomaticRetry(Attempts = 3, DelaysInSeconds = [60, 300, 600])]
     public async Task RunPortfolioRankRebalance(CancellationToken cancellationToken)
@@ -259,20 +217,21 @@ public class JobManager(
         // bypasses the per-actor Owner/Manager check for this maintenance pass.
         var portfolioIds = await _dispatcher.Send(new GetPortfolioIdsToRebalanceQuery(), cancellationToken);
 
+        // Each portfolio is rebalanced on its own, so one's failure never leaves the others dense; the job
+        // still fails once they have all run.
+        List<Exception?> failures = [];
         foreach (var portfolioId in portfolioIds)
         {
-            var result = await _dispatcher.Send(new RebalancePortfolioRanksCommand(portfolioId), cancellationToken);
-            if (result.IsFailure)
-            {
-                _logger.LogWarning("Failed to rebalance ranks for portfolio {PortfolioId}: {Error}", portfolioId, result.Error);
-            }
+            failures.Add(await RunIsolatedStep($"rebalance ranks for portfolio {portfolioId}",
+                () => _dispatcher.Send(new RebalancePortfolioRanksCommand(portfolioId), cancellationToken)));
         }
+        ThrowIfAnyFailed("Failed to rebalance ranks for one or more portfolios.", [.. failures]);
 
         _logger.LogInformation("Completed {BackgroundJob} job ({Count} portfolios)", nameof(RunPortfolioRankRebalance), portfolioIds.Count);
     }
 
-    // No retry: the sweep is idempotent and runs again on its own schedule, so a failed pass costs
-    // nothing but a log line.
+    // No retry: the sweep is idempotent and runs again on its own schedule, so a failed pass is left for
+    // the next one. It still fails, so the miss shows.
     [DisableConcurrentExecution(60 * 10)]
     [AutomaticRetry(Attempts = 0)]
     public async Task RunImportStallRecovery(CancellationToken cancellationToken)
@@ -280,11 +239,7 @@ public class JobManager(
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunImportStallRecovery));
 
         var result = await _dispatcher.Send(new RecoverStalledImportsCommand(), cancellationToken);
-        if (result.IsFailure)
-        {
-            _logger.LogError("Failed to recover stalled imports: {Error}", result.Error);
-            return;
-        }
+        ThrowIfFailed(result, "recover stalled imports");
 
         _logger.LogInformation(
             "Completed {BackgroundJob} job ({Republished} requeued, {Failed} failed)",
@@ -298,11 +253,7 @@ public class JobManager(
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunImportRetentionSweep));
 
         var result = await _dispatcher.Send(new PurgeExpiredImportPayloadsCommand(), cancellationToken);
-        if (result.IsFailure)
-        {
-            _logger.LogError("Failed to sweep expired import payloads: {Error}", result.Error);
-            return;
-        }
+        ThrowIfFailed(result, "sweep expired import payloads");
 
         _logger.LogInformation(
             "Completed {BackgroundJob} job ({Count} row payloads cleared)", nameof(RunImportRetentionSweep), result.Value);
@@ -315,11 +266,7 @@ public class JobManager(
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunNotificationRetentionSweep));
 
         var result = await _dispatcher.Send(new PurgeExpiredNotificationsCommand(), cancellationToken);
-        if (result.IsFailure)
-        {
-            _logger.LogError("Failed to sweep expired notifications: {Error}", result.Error);
-            return;
-        }
+        ThrowIfFailed(result, "sweep expired notifications");
 
         _logger.LogInformation(
             "Completed {BackgroundJob} job ({Count} notifications deleted)", nameof(RunNotificationRetentionSweep), result.Value);
@@ -332,13 +279,50 @@ public class JobManager(
         _logger.LogInformation("Running {BackgroundJob} job", nameof(RunAttachmentSweep));
 
         var result = await _dispatcher.Send(new PurgeAbandonedAttachmentsCommand(), cancellationToken);
-        if (result.IsFailure)
-        {
-            _logger.LogError("Failed to sweep abandoned attachments: {Error}", result.Error);
-            return;
-        }
+        ThrowIfFailed(result, "sweep abandoned attachments");
 
         _logger.LogInformation(
             "Completed {BackgroundJob} job ({Count} attachments deleted)", nameof(RunAttachmentSweep), result.Value);
+    }
+
+    /// <summary>
+    /// Runs one step of a job whose steps are independent, returning its failure (a failed result as an
+    /// exception) rather than throwing it, so the job's later steps still run. Cancellation is not a
+    /// failure and propagates.
+    /// </summary>
+    private async Task<Exception?> RunIsolatedStep(string step, Func<Task<Result>> run)
+    {
+        try
+        {
+            var result = await run();
+            if (result.IsSuccess)
+                return null;
+
+            _logger.LogError("Failed to {Step}: {Error}", step, result.Error);
+            return new InternalServerException($"Failed to {step}. Error: {result.Error}");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "Failed to {Step}", step);
+            return ex;
+        }
+    }
+
+    /// <summary>Fails the running job once all its isolated steps have run, carrying every step's failure.</summary>
+    private static void ThrowIfAnyFailed(string message, Exception?[] stepFailures)
+    {
+        var failed = stepFailures.OfType<Exception>().ToList();
+        if (failed.Count != 0)
+            throw new AggregateException(message, failed);
+    }
+
+    /// <summary>Fails the running job with a step's failed result, so Hangfire records it as Failed rather than Succeeded.</summary>
+    private void ThrowIfFailed(Result result, string step)
+    {
+        if (result.IsSuccess)
+            return;
+
+        _logger.LogError("Failed to {Step}: {Error}", step, result.Error);
+        throw new InternalServerException($"Failed to {step}. Error: {result.Error}");
     }
 }

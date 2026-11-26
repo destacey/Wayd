@@ -9,5 +9,5 @@ namespace Wayd.Tests.Containers;
 /// </remarks>
 public static class SqlServerTestImage
 {
-    public const string Name = "mcr.microsoft.com/mssql/server:2025-CU8-ubuntu-24.04";
+    public const string Name = "mcr.microsoft.com/mssql/server:2025-CU9-GDR1-ubuntu-24.04";
 }

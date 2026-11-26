@@ -87,6 +87,8 @@ A test CI never discovers has no value. `.github/scripts/dotnet-test-projects.sh
 ./.github/scripts/dotnet-test-projects.sh integration   # the integration half — needs Docker running
 ```
 
+CI runs the integration half in shards, one job each (`integration infrastructure`, `integration api`, `integration other`). A new integration project lands in `other` with no change; only a suite slow enough to set the pace of the run gets a shard of its own, defined in the script and added to the workflow matrix.
+
 Confirm a new test project appears in the half you expect. The one project whose `Category` and half disagree is `Wayd.Integrations.AzureDevOps.IntegrationTests` — see [dotnet.md](dotnet.md#the-testcontainers-tripwire).
 
 Tests run on Microsoft.Testing.Platform, where a module that runs zero tests fails with exit code 8. Filter within one project, never across the solution.

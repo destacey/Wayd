@@ -15,12 +15,16 @@ on:
             - "main"
 
 jobs:
-    build-and-test-api:
+    # The .NET suite runs as parallel jobs: this one for every project that needs no Docker, and
+    # test-dotnet-integration for the Testcontainers suites in shards. Each job restores and builds only what
+    # its own projects need; running them side by side costs a build per job but no job waits for another.
+    # dotnet-test-projects.sh owns the split and derives it from Wayd.slnx, so a new test project joins a job
+    # automatically.
+    test-dotnet-unit:
         runs-on: ubuntu-latest
         defaults:
             run:
                 shell: bash
-                working-directory: Wayd.Web/src/Wayd.Web.Api
         steps:
             - name: checkout
               uses: actions/checkout@v4
@@ -30,15 +34,9 @@ jobs:
               with:
                   dotnet-version: 10.0.x
 
-            - name: Restore dependencies
-              run: dotnet restore
-
             # Kiota, which generates the data-generation tool's client in the check below.
             - name: Restore local tools
               run: dotnet tool restore
-
-            - name: Build
-              run: dotnet build --no-restore -c Release
 
             # The generated client is committed; fails when it no longer matches the committed
             # specification.json, the project's path list, or the pinned Kiota version. Removing the lock
@@ -54,13 +52,67 @@ jobs:
                       exit 1
                   fi
 
-            # Generate the Wolverine handler tree (Internal/Generated/WolverineHandlers). It is NOT committed:
-            # `codegen write` boots the freshly built app to emit the TypeLoadMode.Static handler code that the
-            # integration tests and the shipped Docker image both run. This is the ONE generation per pipeline
-            # run — the tree is uploaded as an artifact below and reused by the image build, so the tested tree
-            # is byte-identical to the shipped tree (codegen output is DI-registration-order sensitive and not
-            # reproducible across environments, so regenerating separately would risk drift).
+            # Wayd.Integrations.AzureDevOps.IntegrationTests runs HERE despite the name: it needs a live Azure
+            # DevOps org (OrganizationUrl + PAT from a developer's config, absent in CI), not Docker, and skips
+            # itself via Assert.SkipUnless (see OptionsFixture.IsConfigured).
             #
+            # Coverage is collected only on the main-branch build (see the coverage job): instrumentation
+            # slows the run, and a PR gets no report from it, so PRs keep the faster uninstrumented path.
+            - name: Test (unit + architecture)
+              env:
+                  COLLECT_COVERAGE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+              run: bash .github/scripts/dotnet-test-projects.sh unit
+
+            # coverage-report merges every coverage-dotnet-* artifact. coverlet.MTP timestamps each file
+            # name, so the pattern must allow for it.
+            - name: Upload .NET coverage
+              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-dotnet-unit
+                  path: TestResults/coverage.cobertura.*.xml
+                  if-no-files-found: error
+                  retention-days: 1
+
+    # The Testcontainers suites, one shard per job. The shards are defined in dotnet-test-projects.sh: the
+    # suites long enough to set the pace of the run each get one, and `other` takes the rest. Each job starts
+    # one SQL Server on the runner's preinstalled Docker that its suites share, each on a database of its own;
+    # Ryuk does not reap that container, the script's EXIT trap removes it.
+    #
+    # The matrix must list the script's shard_names exactly, in order; the script checks each job's index and
+    # the job total against it, so a dropped or duplicated entry fails the run instead of leaving suites untested.
+    test-dotnet-integration:
+        runs-on: ubuntu-latest
+        strategy:
+            # A failing shard must not cancel the others: each reports suites no other job runs.
+            fail-fast: false
+            matrix:
+                shard: [infrastructure, api, other]
+        defaults:
+            run:
+                shell: bash
+        steps:
+            - name: checkout
+              uses: actions/checkout@v4
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: 10.0.x
+
+            # The Wolverine handler tree (Internal/Generated/WolverineHandlers) is generated in the api shard
+            # because Wayd.Web.Api.IntegrationTests is the one suite that boots it: under CI=true it forces
+            # Static mode, and Wayd.Web.Api.csproj compiles the tree in. It is NOT committed: `codegen write`
+            # boots the freshly built app to emit the TypeLoadMode.Static handler code that this suite and the
+            # shipped Docker image both run. This is the ONE generation per pipeline run — the tree is uploaded
+            # as an artifact below and reused by the image build, so the tested tree is byte-identical to the
+            # shipped tree (codegen output is DI-registration-order sensitive and not reproducible across
+            # environments, so regenerating separately would risk drift).
+            - name: Build API
+              if: matrix.shard == 'api'
+              working-directory: Wayd.Web/src/Wayd.Web.Api
+              run: dotnet build -c Release
+
             # Env: ASPNETCORE_ENVIRONMENT=Development runs the codegen boot in Auto mode (no pre-existing tree
             # needed), loads the development JWT secret and master key from security.Development.json, and skips
             # the guards that refuse those values outside Development. WAYD_SKIP_DB_INIT + a
@@ -69,6 +121,8 @@ jobs:
             # OTEL_EXPORTER_OTLP_ENDPOINT is cleared so the OTLP exporter services do not perturb registration
             # order. The generated output is the same Static handler code regardless of the host's own mode.
             - name: Generate Wolverine handler tree
+              if: matrix.shard == 'api'
+              working-directory: Wayd.Web/src/Wayd.Web.Api
               env:
                   ASPNETCORE_ENVIRONMENT: Development
                   WAYD_SKIP_DB_INIT: "true"
@@ -83,6 +137,7 @@ jobs:
 
             # Share the freshly generated tree with the image build so it ships the exact tree that was tested.
             - name: Upload Wolverine handler tree
+              if: matrix.shard == 'api'
               uses: actions/upload-artifact@v4
               with:
                   name: wolverine-handler-tree
@@ -90,45 +145,19 @@ jobs:
                   if-no-files-found: error
                   retention-days: 1
 
-            # Every test project that does not need Docker, run BEFORE the Testcontainers suites below.
-            # dotnet-test-projects.sh owns the split and derives it from Wayd.slnx, so a new test project joins
-            # a side automatically. Ordering matters: a step that fails ends the job, so a unit-test failure is
-            # reported without ever starting a SQL Server container.
-            #
-            # Wayd.Integrations.AzureDevOps.IntegrationTests runs HERE despite the name: it needs a live Azure
-            # DevOps org (OrganizationUrl + PAT from a developer's config, absent in CI), not Docker, and skips
-            # itself via Assert.SkipUnless (see OptionsFixture.IsConfigured).
-            #
-            # Coverage is collected only on the main-branch build (see the coverage job): instrumentation
-            # slows the run, and a PR gets no report from it, so PRs keep the faster uninstrumented path.
-            - name: Test (unit + architecture)
-              working-directory: .
+            # In the api shard, dotnet test rebuilds the API with the tree generated above compiled in.
+            - name: Test (integration, ${{ matrix.shard }})
               env:
                   COLLECT_COVERAGE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-              run: bash .github/scripts/dotnet-test-projects.sh unit
+                  WAYD_TEST_SHARD_INDEX: ${{ strategy.job-index }}
+                  WAYD_TEST_SHARD_COUNT: ${{ strategy.job-total }}
+              run: bash .github/scripts/dotnet-test-projects.sh integration ${{ matrix.shard }}
 
-            # The Testcontainers suites, in the SAME job as the unit tests above rather than a parallel one.
-            # A separate job has to repeat this job's restore and build before it can run a test -- 132s on the
-            # runner, against ~171s of actual integration testing -- and it cannot start until this job has
-            # published the Wolverine handler tree, so the two run effectively in series anyway. Sharing one
-            # build is both simpler and faster; the tests here already boot the tree this job just generated.
-            #
-            # The script starts one SQL Server on the runner's preinstalled Docker and every suite shares it,
-            # each on a database of its own. Ryuk does not reap that container; the script's EXIT trap removes it.
-            - name: Test (integration)
-              working-directory: .
-              env:
-                  COLLECT_COVERAGE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-              run: bash .github/scripts/dotnet-test-projects.sh integration
-
-            # One artifact for both halves: coverage-report merges whatever Cobertura it finds under this
-            # directory, and both test runs write into the repo-root TestResults directory. coverlet.MTP
-            # timestamps each file name, so the pattern must allow for it.
             - name: Upload .NET coverage
               if: github.event_name == 'push' && github.ref == 'refs/heads/main'
               uses: actions/upload-artifact@v4
               with:
-                  name: coverage-dotnet
+                  name: coverage-dotnet-${{ matrix.shard }}
                   path: TestResults/coverage.cobertura.*.xml
                   if-no-files-found: error
                   retention-days: 1
@@ -223,7 +252,7 @@ jobs:
                   if-no-files-found: error
                   retention-days: 14
 
-    # Merges the Cobertura files from BOTH test jobs into one report. Merging matters: the unit suites and
+    # Merges the Cobertura files from every .NET test job into one report. Merging matters: the unit suites and
     # the Testcontainers suites cover different code (integration tests exercise the dispatch and persistence
     # paths unit tests deliberately mock), so either half alone understates real coverage.
     #
@@ -231,7 +260,7 @@ jobs:
     # would find no artifacts. Never gates the build: this reports a number, it does not enforce one.
     coverage-report:
         runs-on: ubuntu-latest
-        needs: [build-and-test-api, build-and-test-client]
+        needs: [test-dotnet-unit, test-dotnet-integration, build-and-test-client]
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         steps:
             - name: Checkout repository
@@ -243,7 +272,7 @@ jobs:
                   dotnet-version: 10.0.x
 
             # Every coverage artifact lands under coverage/, one subdirectory per uploading job:
-            # coverage-dotnet holds Cobertura from both .NET halves, coverage-client holds Vitest's lcov.
+            # each coverage-dotnet-* holds one .NET job's Cobertura, coverage-client holds Vitest's lcov.
             - name: Download coverage artifacts
               uses: actions/download-artifact@v4
               with:
@@ -259,7 +288,7 @@ jobs:
             - name: Merge coverage reports
               run: >-
                   reportgenerator
-                  -reports:'coverage/coverage-dotnet/**/coverage.cobertura.*.xml'
+                  -reports:'coverage/coverage-dotnet-*/**/coverage.cobertura.*.xml'
                   -targetdir:coverage-report
                   -reporttypes:'Cobertura;MarkdownSummaryGithub'
 
@@ -292,7 +321,7 @@ jobs:
               continue-on-error: true
               run: >-
                   reportgenerator
-                  -reports:'coverage/coverage-dotnet/**/coverage.cobertura.*.xml'
+                  -reports:'coverage/coverage-dotnet-*/**/coverage.cobertura.*.xml'
                   -targetdir:coverage-report/html
                   -reporttypes:'HtmlInline_AzurePipelines'
 
@@ -305,7 +334,7 @@ jobs:
 
     build-and-push-image:
         runs-on: ubuntu-latest
-        needs: [build-and-test-api, build-and-test-client]
+        needs: [test-dotnet-unit, test-dotnet-integration, build-and-test-client]
         strategy:
             fail-fast: false
             matrix:
@@ -326,8 +355,8 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
-            # Bring in the Wolverine handler tree generated by build-and-test-api so the API image ships the
-            # exact tree that was tested (see that job). Only the API image needs it; the client leg skips this.
+            # Bring in the Wolverine handler tree generated by test-dotnet-integration's api shard so the API
+            # image ships the exact tree that was tested (see that job). Only the API image needs it; the client leg skips this.
             # The tree is git-ignored, so the Dockerfile COPY of the build context would otherwise find nothing.
             - name: Download Wolverine handler tree
               if: matrix.name == 'api'

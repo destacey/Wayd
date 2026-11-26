@@ -161,6 +161,25 @@ Each call makes a new role and user, so one test's permissions never reach anoth
 that belongs to the HTTP layer: status codes, headers, model binding, and the permission attributes. Tests
 that only need a handler to run can still dispatch through `IDispatcher` in a scope.
 
+### A setting the shared host does not have
+
+A test that needs a configuration value of its own, such as a lower rate limit or a public URL behind a proxy,
+asks for a host with it: `_factory.HostWith(("ApiSettings:PublicUrl", "https://api.example.com"))`. That boots
+one host per distinct set of settings, the first time a test asks for it, and every test that asks for the same
+set gets the same host. Never dispose it; the collection's factory does. Never call `WithWebHostBuilder`
+yourself: a host takes seconds to boot, and one per test makes them most of the suite's time.
+
+A shared host keeps whatever the tests before left in it, so a test must not depend on arriving first:
+
+- **A per-user limit** is keyed by user, so sign in as a user of your own with `CreateAuthenticatedClient`.
+- **A limit keyed by caller address** (the sign-in endpoints, the OAuth server) needs an address of your own:
+  `_factory.AddressLimited().CreateClientFromNewAddress()` sends from one no other test uses, on the host where
+  every such limit allows `AddressLimitedHost.Limit` requests. A plain `CreateClient()` there shares one address
+  with every other test.
+- **A feature flag** is cached by each host for five minutes, and toggling it through `_factory` clears only
+  `_factory`'s cache. A test on a shared host that needs a flag off cannot rely on it; give it a setting set of
+  its own, or test the flag on the collection's host.
+
 ## Frameworks and Libraries
 
 | Library | Purpose |

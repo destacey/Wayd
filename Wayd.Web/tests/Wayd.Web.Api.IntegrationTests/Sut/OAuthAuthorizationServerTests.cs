@@ -350,9 +350,7 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
         // Arrange — the same signing key, but the token says another server issued it
         await SetFlag(true);
         var tokens = await Redeem(RegisterClient());
-        using var elsewhere = _factory.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, config) =>
-            config.AddInMemoryCollection([new KeyValuePair<string, string?>("ApiSettings:PublicUrl", "https://api.wayd.example.com")])));
-        var client = elsewhere.CreateClient();
+        var client = _factory.HostWith(("ApiSettings:PublicUrl", "https://api.wayd.example.com")).CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens.GetProperty("access_token").GetString());
 
         // Act
@@ -477,18 +475,12 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
     [Fact]
     public async Task Authorize_AnswersTooManyRequests_PastItsLimit()
     {
-        // Arrange — a host of its own, so its limiter starts empty and the lowered limit touches no other test
+        // Arrange — the limit lowered on a shared host, from an address of its own so its window starts empty
         await SetFlag(true);
-        using var limited = _factory.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, config) =>
-            config.AddInMemoryCollection(
-            [
-                new KeyValuePair<string, string?>("RateLimitSettings:OAuthAuthorize:PermitLimit", "2"),
-                new KeyValuePair<string, string?>("RateLimitSettings:OAuthAuthorize:WindowSeconds", "3600"),
-            ])));
-        var browser = limited.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var browser = _factory.AddressLimited().CreateClientFromNewAddress(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var url = AuthorizeUrl(RegisterClient());
-        await browser.GetAsync(url, TestContext.Current.CancellationToken);
-        await browser.GetAsync(url, TestContext.Current.CancellationToken);
+        for (var i = 0; i < AddressLimitedHost.Limit; i++)
+            await browser.GetAsync(url, TestContext.Current.CancellationToken);
 
         // Act
         var response = await browser.GetAsync(url, TestContext.Current.CancellationToken);
@@ -1282,18 +1274,12 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
     [Fact]
     public async Task Token_AnswersTooManyRequests_PastItsLimit()
     {
-        // Arrange — a host of its own, so its limiter starts empty and the lowered limit touches no other test
+        // Arrange — the limit lowered on a shared host, from an address of its own so its window starts empty
         await SetFlag(true);
-        using var limited = _factory.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, config) =>
-            config.AddInMemoryCollection(
-            [
-                new KeyValuePair<string, string?>("RateLimitSettings:OAuthToken:PermitLimit", "2"),
-                new KeyValuePair<string, string?>("RateLimitSettings:OAuthToken:WindowSeconds", "3600"),
-            ])));
-        var client = limited.CreateClient();
+        var client = _factory.AddressLimited().CreateClientFromNewAddress();
         var form = new Dictionary<string, string> { ["grant_type"] = "refresh_token", ["client_id"] = "x", ["refresh_token"] = "x" };
-        await client.PostAsync(AuthorizationServerMetadata.TokenPath, new FormUrlEncodedContent(form), TestContext.Current.CancellationToken);
-        await client.PostAsync(AuthorizationServerMetadata.TokenPath, new FormUrlEncodedContent(form), TestContext.Current.CancellationToken);
+        for (var i = 0; i < AddressLimitedHost.Limit; i++)
+            await client.PostAsync(AuthorizationServerMetadata.TokenPath, new FormUrlEncodedContent(form), TestContext.Current.CancellationToken);
 
         // Act
         var response = await client.PostAsync(AuthorizationServerMetadata.TokenPath, new FormUrlEncodedContent(form), TestContext.Current.CancellationToken);
@@ -1313,9 +1299,7 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
     {
         // Arrange
         await SetFlag(true);
-        using var unconfigured = _factory.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, config) =>
-            config.AddInMemoryCollection([new KeyValuePair<string, string?>("ApiSettings:WebClientUrl", "")])));
-        var browser = unconfigured.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var browser = _factory.HostWith(("ApiSettings:WebClientUrl", "")).CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         // Act
         var response = await browser.GetAsync(AuthorizeUrl(RegisterClient()), TestContext.Current.CancellationToken);

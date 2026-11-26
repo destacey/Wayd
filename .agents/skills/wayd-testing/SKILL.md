@@ -70,6 +70,7 @@ Every rule this skill enforces, in one place. Run it on every change.
 - [ ] New test files use FluentAssertions; additions to an existing file follow that file's style?
 - [ ] No new `Testcontainers*` reference in a project that did not already need Docker?
 - [ ] Integration tests join the project's existing collection (`[Collection(...)]`), never an `IClassFixture<T>` database of their own (the migration fixture aside), assert only on data they created, and change no process-wide state another collection reads?
+- [ ] An API test that needs a setting of its own takes a shared host (`HostWith`, `AddressLimited`) rather than `WithWebHostBuilder`, and uses a user or client address of its own so it does not depend on arriving first?
 - [ ] For a PPM mutating handler, the `.Include` chain checked by eye (the gate cannot see it — [dotnet.md](dotnet.md#what-a-fake-dbcontext-cannot-see))?
 
 **Scope**

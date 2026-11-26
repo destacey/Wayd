@@ -4,7 +4,6 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
@@ -177,8 +176,7 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
     {
         // Arrange — the API behind a TLS-terminating proxy sees plain HTTP on an internal address
         await SetFlag(true);
-        using var behindProxy = WithPublicUrl("https://api.wayd.example.com/");
-        var client = behindProxy.CreateClient();
+        var client = WithPublicUrl("https://api.wayd.example.com/").CreateClient();
         using var invalidBearer = new HttpRequestMessage(HttpMethod.Post, McpServerSetup.Path) { Content = JsonContent.Create(new { }) };
         invalidBearer.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "not-a-real-token");
 
@@ -836,11 +834,9 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
     private string ResourceMetadataParameter() =>
         $"resource_metadata=\"{_factory.Server.BaseAddress.GetLeftPart(UriPartial.Authority)}/.well-known/oauth-protected-resource/mcp\"";
 
-    /// <summary>A host over the same database whose <c>ApiSettings:PublicUrl</c> is <paramref name="publicUrl"/>.</summary>
+    /// <summary>A shared host over the same database whose <c>ApiSettings:PublicUrl</c> is <paramref name="publicUrl"/>; never dispose it.</summary>
     private Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program> WithPublicUrl(string publicUrl) =>
-        _factory.WithWebHostBuilder(builder =>
-            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
-                [new KeyValuePair<string, string?>("ApiSettings:PublicUrl", publicUrl)])));
+        _factory.HostWith(("ApiSettings:PublicUrl", publicUrl));
 
     private static string TextOf(CallToolResult result) => Assert.IsType<TextContentBlock>(Assert.Single(result.Content)).Text;
 

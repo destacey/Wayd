@@ -8,7 +8,6 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
@@ -34,8 +33,10 @@ namespace Wayd.Web.Api.IntegrationTests.Sut;
 /// submissions held to a number in flight.
 /// </summary>
 /// <remarks>
-/// Each test lowers a limit on a host of its own, so its limiter starts empty and no other test is throttled. Users and
-/// tokens are created through the shared host, whose limits are raised, so creating them spends nothing here.
+/// The tests share the hosts on which these limits are lowered, one per configuration (<see cref="SharedHosts"/>). Each
+/// test signs in as a user of its own, and every per-user limit is keyed by user, so its buckets start full and no
+/// other test is throttled. Users and tokens are created through the collection's host, whose limits are raised, so
+/// creating them spends nothing here.
 /// </remarks>
 [Collection(SqlServerApiTestCollection.Name)]
 public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
@@ -48,7 +49,7 @@ public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
     public async Task SignedInUser_AnswersTooManyRequestsWithProblemDetails_PastTheirLimit()
     {
         // Arrange
-        using var host = LimitedPerUser(tokens: 2);
+        var host = LimitedPerUser(tokens: 2);
         var client = ClientFor(host, await _factory.CreateAuthenticatedClient());
         for (var i = 0; i < 2; i++)
             (await client.GetAsync(Profile, TestContext.Current.CancellationToken)).StatusCode.Should().Be(HttpStatusCode.OK);
@@ -71,7 +72,7 @@ public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
     public async Task Users_DoNotShareALimit()
     {
         // Arrange — the first user's budget spent entirely
-        using var host = LimitedPerUser(tokens: 2);
+        var host = LimitedPerUser(tokens: 2);
         var spent = ClientFor(host, await _factory.CreateAuthenticatedClient());
         var other = ClientFor(host, await _factory.CreateAuthenticatedClient());
         for (var i = 0; i < 3; i++)
@@ -88,7 +89,7 @@ public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
     public async Task OneUsersCredentials_ShareOneLimit()
     {
         // Arrange — the web app's token spends the budget, so a personal access token must not buy a second one
-        using var host = LimitedPerUser(tokens: 2);
+        var host = LimitedPerUser(tokens: 2);
         var (user, token) = await CreateUserWithToken();
         var session = ClientFor(host, user);
         for (var i = 0; i < 2; i++)
@@ -106,10 +107,11 @@ public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
     [Fact]
     public async Task AnonymousRequests_AreNotLimitedPerUser()
     {
-        // Arrange — a per-user budget of one, which anonymous requests would exhaust at once if they were counted
-        using var host = LimitedPerUser(tokens: 1);
+        // Arrange — a per-user budget of two, which anonymous requests would exhaust if they were counted
+        var host = LimitedPerUser(tokens: 2);
         var client = host.CreateClient();
-        await client.GetAsync("/api/auth/providers", TestContext.Current.CancellationToken);
+        for (var i = 0; i < 2; i++)
+            await client.GetAsync("/api/auth/providers", TestContext.Current.CancellationToken);
 
         // Act
         var response = await client.GetAsync("/api/auth/providers", TestContext.Current.CancellationToken);
@@ -123,7 +125,7 @@ public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
     {
         // Arrange — two tokens: connecting and listing must spend none, and each call exactly one
         await SetMcpFlag(true);
-        using var host = LimitedPerUser(tokens: 2);
+        var host = LimitedPerUser(tokens: 2);
         var (_, token) = await CreateUserWithToken();
         await using var mcp = await Connect(host, token);
         await mcp.ListToolsAsync(cancellationToken: TestContext.Current.CancellationToken);
@@ -144,8 +146,7 @@ public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
     public async Task ImportSubmission_AnswersTooManyRequests_WhileTheUsersLimitIsInFlight()
     {
         // Arrange — one submission held inside its response wait, so it holds the user's only slot
-        using var host = _factory.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, config) =>
-            config.AddInMemoryCollection([new KeyValuePair<string, string?>("RateLimitSettings:Imports:PermitLimit", "1")])));
+        var host = _factory.HostWith(("RateLimitSettings:Imports:PermitLimit", "1"));
         var user = await _factory.CreateAuthenticatedClient(
             ApplicationPermission.NameFor(ApplicationAction.Import, ApplicationResource.StrategicThemes));
         var client = ClientFor(host, user);
@@ -176,7 +177,7 @@ public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
     public async Task ElevatedUser_GetsTheElevatedBucket()
     {
         // Arrange — two standard tokens, four elevated
-        using var host = LimitedByTier(standard: 2, elevated: 4);
+        var host = LimitedByTier(standard: 2, elevated: 4);
         var client = ClientFor(host, await _factory.CreateAuthenticatedClient(ElevatedPermission));
         for (var i = 0; i < 4; i++)
             (await client.GetAsync(Profile, TestContext.Current.CancellationToken)).StatusCode.Should().Be(HttpStatusCode.OK, $"request {i + 1} is inside the elevated bucket");
@@ -192,7 +193,7 @@ public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
     public async Task UserWithoutTheElevatedPermission_IsHeldToTheStandardBucket()
     {
         // Arrange
-        using var host = LimitedByTier(standard: 2, elevated: 4);
+        var host = LimitedByTier(standard: 2, elevated: 4);
         var client = ClientFor(host, await _factory.CreateAuthenticatedClient());
         for (var i = 0; i < 2; i++)
             (await client.GetAsync(Profile, TestContext.Current.CancellationToken)).StatusCode.Should().Be(HttpStatusCode.OK);
@@ -208,7 +209,7 @@ public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
     public async Task ElevatedUsersPersonalAccessToken_IsElevated()
     {
         // Arrange — a personal access token carries no permission claims, so the tier must come from the user's roles
-        using var host = LimitedByTier(standard: 2, elevated: 4);
+        var host = LimitedByTier(standard: 2, elevated: 4);
         var (_, token) = await CreateUserWithToken(ElevatedPermission);
         var client = host.CreateClient();
         client.DefaultRequestHeaders.Add("x-api-key", token);
@@ -227,7 +228,7 @@ public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
     {
         // Arrange — the tool calls' inner requests are counted, so they must be resolved to the user's tier
         await SetMcpFlag(true);
-        using var host = LimitedByTier(standard: 2, elevated: 4);
+        var host = LimitedByTier(standard: 2, elevated: 4);
         var (_, token) = await CreateUserWithToken(ElevatedPermission);
         await using var mcp = await Connect(host, token);
         for (var i = 0; i < 4; i++)
@@ -246,7 +247,7 @@ public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
     {
         // Arrange — the elevated bucket spent, then the permission revoked; the host remembers no tier, as if the
         // remembered one had just expired
-        using var host = LimitedByTier(standard: 2, elevated: 4, tierCacheSeconds: 0);
+        var host = LimitedByTier(standard: 2, elevated: 4, tierCacheSeconds: 0);
         var user = await _factory.CreateAuthenticatedClient(ElevatedPermission);
         var client = ClientFor(host, user);
         for (var i = 0; i < 4; i++)
@@ -266,36 +267,29 @@ public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
 
     private const string ThemeImport = "/api/strategic-management/strategic-themes/import";
 
-    /// <summary>A host whose per-user bucket holds <paramref name="tokens"/> requests and does not refill within a test.</summary>
-    private WebApplicationFactory<Program> LimitedPerUser(int tokens) =>
-        _factory.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, config) =>
-            config.AddInMemoryCollection(
-            [
-                new KeyValuePair<string, string?>("RateLimitSettings:PerUser:TokenLimit", tokens.ToString(CultureInfo.InvariantCulture)),
-                new KeyValuePair<string, string?>("RateLimitSettings:PerUser:TokensPerPeriod", "1"),
-                new KeyValuePair<string, string?>("RateLimitSettings:PerUser:PeriodSeconds", "3600"),
-            ])));
+    /// <summary>
+    /// A shared host whose standard per-user bucket holds <paramref name="tokens"/> requests and does not refill within a
+    /// test. It is the <see cref="LimitedByTier"/> host with the elevated bucket the tier tests use, so the two share one.
+    /// </summary>
+    private WebApplicationFactory<Program> LimitedPerUser(int tokens) => LimitedByTier(standard: tokens, elevated: 4);
 
     /// <summary>The permission that selects the elevated per-user bucket.</summary>
     private static readonly string ElevatedPermission =
         ApplicationPermission.NameFor(ApplicationAction.Elevated, ApplicationResource.RateLimits);
 
     /// <summary>
-    /// A host whose standard and elevated per-user buckets hold the given numbers of requests and do not refill within a
-    /// test, remembering each user's tier for <paramref name="tierCacheSeconds"/>.
+    /// A shared host whose standard and elevated per-user buckets hold the given numbers of requests and do not refill
+    /// within a test, remembering each user's tier for <paramref name="tierCacheSeconds"/>. Never dispose it.
     /// </summary>
     private WebApplicationFactory<Program> LimitedByTier(int standard, int elevated, int tierCacheSeconds = 300) =>
-        _factory.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, config) =>
-            config.AddInMemoryCollection(
-            [
-                new KeyValuePair<string, string?>("RateLimitSettings:PerUser:TokenLimit", standard.ToString(CultureInfo.InvariantCulture)),
-                new KeyValuePair<string, string?>("RateLimitSettings:PerUser:TokensPerPeriod", "1"),
-                new KeyValuePair<string, string?>("RateLimitSettings:PerUser:PeriodSeconds", "3600"),
-                new KeyValuePair<string, string?>("RateLimitSettings:PerUserElevated:TokenLimit", elevated.ToString(CultureInfo.InvariantCulture)),
-                new KeyValuePair<string, string?>("RateLimitSettings:PerUserElevated:TokensPerPeriod", "1"),
-                new KeyValuePair<string, string?>("RateLimitSettings:PerUserElevated:PeriodSeconds", "3600"),
-                new KeyValuePair<string, string?>("RateLimitSettings:TierCacheSeconds", tierCacheSeconds.ToString(CultureInfo.InvariantCulture)),
-            ])));
+        _factory.HostWith(
+            ("RateLimitSettings:PerUser:TokenLimit", standard.ToString(CultureInfo.InvariantCulture)),
+            ("RateLimitSettings:PerUser:TokensPerPeriod", "1"),
+            ("RateLimitSettings:PerUser:PeriodSeconds", "3600"),
+            ("RateLimitSettings:PerUserElevated:TokenLimit", elevated.ToString(CultureInfo.InvariantCulture)),
+            ("RateLimitSettings:PerUserElevated:TokensPerPeriod", "1"),
+            ("RateLimitSettings:PerUserElevated:PeriodSeconds", "3600"),
+            ("RateLimitSettings:TierCacheSeconds", tierCacheSeconds.ToString(CultureInfo.InvariantCulture)));
 
     /// <summary>Takes every permission from the roles <paramref name="userId"/> holds.</summary>
     private async Task RevokeEveryPermission(string userId)

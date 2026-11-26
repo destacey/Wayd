@@ -125,6 +125,7 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
         builder.ConfigureTestServices(services =>
         {
             RemoveHangfireServer(services);
+            services.AddSingleton<IStartupFilter, ClientAddresses.StartupFilter>();
 
             // Read per scope rather than captured once, so WaitOnImportsFor reaches the next request.
             services.RemoveAll<ImportResponseTiming>();
@@ -134,8 +135,9 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
             services.AddSingleton<IOAuthClientResolver>(OAuthClients);
         });
 
-        // Every test shares one caller address, so the production limits would throttle the suite.
-        // A test of the limits themselves lowers them on a host of its own.
+        // Most tests send from the one address the test server gives every request, so the production limits would
+        // throttle the suite. A test of the limits themselves uses a host that lowers them (SharedHosts,
+        // AddressLimitedHost), from an address of its own (ClientAddresses).
         builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
             new[] { "OAuthAuthorize", "OAuthToken", "AuthSignIn", "AuthRefresh", "AuthProviders", "AuthSetup", "Imports" }
                 .Select(limit => new KeyValuePair<string, string?>($"RateLimitSettings:{limit}:PermitLimit", "100000"))

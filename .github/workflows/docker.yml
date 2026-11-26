@@ -104,46 +104,32 @@ jobs:
             # because Wayd.Web.Api.IntegrationTests is the one suite that boots it: under CI=true it forces
             # Static mode, and Wayd.Web.Api.csproj compiles the tree in. It is NOT committed: `codegen write`
             # boots the freshly built app to emit the TypeLoadMode.Static handler code that this suite and the
-            # shipped Docker image both run. This is the ONE generation per pipeline run — the tree is uploaded
-            # as an artifact below and reused by the image build, so the tested tree is byte-identical to the
-            # shipped tree (codegen output is DI-registration-order sensitive and not reproducible across
-            # environments, so regenerating separately would risk drift).
-            - name: Build API
+            # shipped Docker image both run. Off pull requests the shard also publishes the API with that tree
+            # compiled in, and build-and-push-image copies the publish output into the image, so the image ships
+            # the tree that was tested (codegen output is DI-registration-order sensitive and not reproducible
+            # across environments, so generating it again for the image would risk drift). A pull request pushes
+            # no image, so it publishes nothing here; build-api-image makes its own.
+            - name: Build API and generate the handler tree
               if: matrix.shard == 'api'
-              working-directory: Wayd.Web/src/Wayd.Web.Api
-              run: dotnet build -c Release
+              uses: ./.github/actions/build-api
+              with:
+                  publish-dir: ${{ github.event_name != 'pull_request' && format('{0}/api-image', runner.temp) || '' }}
 
-            # Env: ASPNETCORE_ENVIRONMENT=Development runs the codegen boot in Auto mode (no pre-existing tree
-            # needed), loads the development JWT secret and master key from security.Development.json, and skips
-            # the guards that refuse those values outside Development. WAYD_SKIP_DB_INIT + a
-            # placeholder connection string let the host boot without a database (codegen never connects; the
-            # `codegen write` verb builds the host but never calls app.Run(), so no hosted service runs).
-            # OTEL_EXPORTER_OTLP_ENDPOINT is cleared so the OTLP exporter services do not perturb registration
-            # order. The generated output is the same Static handler code regardless of the host's own mode.
-            - name: Generate Wolverine handler tree
-              if: matrix.shard == 'api'
-              working-directory: Wayd.Web/src/Wayd.Web.Api
-              env:
-                  ASPNETCORE_ENVIRONMENT: Development
-                  WAYD_SKIP_DB_INIT: "true"
-                  OTEL_EXPORTER_OTLP_ENDPOINT: ""
-                  # Placeholder connection string: codegen never opens a successful connection (WAYD_SKIP_DB_INIT
-                  # skips migrations/seeding and the `codegen write` verb never calls app.Run()). It must be a
-                  # syntactically valid SQL Server string on THIS runner though — a `(localdb)` data source throws
-                  # PlatformNotSupportedException at parse time on Linux, so use a plain unreachable TCP host.
-                  DatabaseSettings__ConnectionString: "Server=127.0.0.1,1433;Database=Codegen;User Id=sa;Password=Not_used_by_codegen_1;TrustServerCertificate=true;Connect Timeout=1"
-                  HangfireSettings__Storage__ConnectionString: "Server=127.0.0.1,1433;Database=Codegen;User Id=sa;Password=Not_used_by_codegen_1;TrustServerCertificate=true;Connect Timeout=1"
-              run: dotnet run --no-build --no-launch-profile -c Release -- codegen write
+            # One tar file rather than the directory: an artifact upload of thousands of small files is slow,
+            # and the tar keeps file modes, which an artifact drops.
+            - name: Pack API publish output
+              if: matrix.shard == 'api' && github.event_name != 'pull_request'
+              run: tar -cf "$RUNNER_TEMP/api-image.tar" -C "$RUNNER_TEMP/api-image" .
 
-            # Share the freshly generated tree with the image build so it ships the exact tree that was tested.
-            - name: Upload Wolverine handler tree
-              if: matrix.shard == 'api'
+            - name: Upload API publish artifact
+              if: matrix.shard == 'api' && github.event_name != 'pull_request'
               uses: actions/upload-artifact@v4
               with:
-                  name: wolverine-handler-tree
-                  path: Wayd.Web/src/Wayd.Web.Api/Internal/Generated/WolverineHandlers/
+                  name: api-image
+                  path: ${{ runner.temp }}/api-image.tar
                   if-no-files-found: error
-                  retention-days: 1
+                  # Long enough to re-run build-and-push-image a day or two after the tests passed.
+                  retention-days: 3
 
             # In the api shard, dotnet test rebuilds the API with the tree generated above compiled in.
             - name: Test (integration, ${{ matrix.shard }})
@@ -235,7 +221,13 @@ jobs:
 
             # The prebuild script runs typecheck first, so a type error fails here with tsc's own message
             # before the Next build starts.
+            #
+            # This build is the one the client image ships, so it carries the API URL placeholder that the
+            # image's entrypoint.sh replaces when the container starts, as the Dockerfile's own build does.
             - name: npm run build
+              env:
+                  NEXT_PUBLIC_API_BASE_URL: APP_NEXT_PUBLIC_API_BASE_URL
+                  NEXT_TELEMETRY_DISABLED: "1"
               run: npm run build
 
             - name: Save Next.js build cache
@@ -269,6 +261,31 @@ jobs:
                       echo "::error::Standalone server returned HTTP $status for /login"
                       exit 1
                   fi
+
+            # Lays the build out as the Dockerfile's prebuilt stage copies it: app/ is /app in the image and
+            # docs/ is /docs. Staged from .next/standalone, not the smoke test's copy, which holds its log.
+            # entrypoint.sh goes in after the standalone tree, which carries a traced copy of it. One tar file:
+            # an artifact drops symlinks and file modes, and the standalone tree needs both (its
+            # .next/node_modules links to the server-external packages, and entrypoint.sh must stay executable).
+            - name: Pack client image build
+              run: |
+                  stage="$RUNNER_TEMP/client-image"
+                  mkdir -p "$stage/app"
+                  cp -a .next/standalone/. "$stage/app/"
+                  cp -a .next/static "$stage/app/.next/static"
+                  cp -a public "$stage/app/public"
+                  cp entrypoint.sh "$stage/app/entrypoint.sh"
+                  cp -a "$GITHUB_WORKSPACE/docs" "$stage/docs"
+                  tar -cf "$RUNNER_TEMP/client-image.tar" -C "$stage" .
+
+            - name: Upload client image build
+              uses: actions/upload-artifact@v4
+              with:
+                  name: client-image
+                  path: ${{ runner.temp }}/client-image.tar
+                  if-no-files-found: error
+                  # Long enough to re-run build-and-push-image a day or two after the tests passed.
+                  retention-days: 3
 
     # The Vitest suite in shards. Vitest orders the test files by a hash of their path and gives each shard a
     # contiguous slice, so the shards together run every file once whatever the count; they balance by file
@@ -449,8 +466,129 @@ jobs:
                   path: coverage-report/
                   retention-days: 14
 
+    # The images are built from what CI already built, with each Dockerfile's `prebuilt` target, so Docker
+    # compiles nothing: the API from its publish output, the client from check-and-build-client's smoke-tested
+    # build. Pull requests and pushes use different jobs because a job's `needs` cannot vary by event, and a job
+    # always waits for its `needs` before it evaluates its `if:`, so no gate job could let a pull request skip
+    # the tests either.
+
+    # Pull requests only: proves the API image builds, alongside the tests, and pushes nothing. It publishes
+    # the API itself rather than waiting for test-dotnet-integration's api shard, because `needs` on a matrix
+    # job waits for every shard. The image is thrown away, so the tested-tree guarantee build-and-push-image
+    # gives does not apply here.
+    build-api-image:
+        runs-on: ubuntu-latest
+        if: github.event_name == 'pull_request'
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: 10.0.x
+
+            - name: Build and publish API
+              uses: ./.github/actions/build-api
+              with:
+                  publish-dir: ${{ runner.temp }}/api-image
+
+            - name: Build Docker image
+              uses: docker/build-push-action@v6
+              with:
+                  context: ${{ runner.temp }}/api-image
+                  file: ./Wayd.Web/src/Wayd.Web.Api/Dockerfile
+                  target: prebuilt
+                  push: false
+
+    # Pull requests only: proves the client image builds from the client build, and pushes nothing. A job of its
+    # own so that the API image, which needs nothing, never waits for the client build.
+    build-client-image:
+        runs-on: ubuntu-latest
+        if: github.event_name == 'pull_request'
+        needs: [check-and-build-client]
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Download client image build
+              uses: actions/download-artifact@v4
+              with:
+                  name: client-image
+                  path: ${{ runner.temp }}
+
+            - name: Unpack client image build
+              run: mkdir "$RUNNER_TEMP/client-image" && tar -xf "$RUNNER_TEMP/client-image.tar" -C "$RUNNER_TEMP/client-image"
+
+            - name: Build Docker image
+              uses: docker/build-push-action@v6
+              with:
+                  context: ${{ runner.temp }}/client-image
+                  file: ./Wayd.Web/src/wayd.web.reactclient/Dockerfile
+                  target: prebuilt
+                  push: false
+
+    # Pull requests only: builds the images the way `docker compose` does, from source with each Dockerfile's
+    # default target, which no other job builds. Only when the PR changes a file those builds depend on beyond
+    # the source itself: the Docker and compose files, the restore inputs the API's restore-inputs stage keeps,
+    # and the client's package files that its deps stage installs from. On any other PR the job skips its steps
+    # after the check.
+    build-compose-images:
+        runs-on: ubuntu-latest
+        if: github.event_name == 'pull_request'
+        strategy:
+            fail-fast: false
+            matrix:
+                service: [waydwebapi, waydwebclient]
+        steps:
+            # Depth 2 brings the merge commit's first parent, the base branch tip it was made from.
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 2
+
+            # The checkout is the PR's merge commit, so its diff against its first parent is the PR's change.
+            - name: Check for changes to the image builds
+              id: changes
+              run: |
+                  changed=$(git diff --name-only HEAD^1 HEAD -- \
+                      docker-compose.yml .dockerignore \
+                      Wayd.Web/src/Wayd.Web.Api/Dockerfile \
+                      Wayd.Web/src/wayd.web.reactclient/Dockerfile \
+                      Wayd.Web/src/wayd.web.reactclient/entrypoint.sh \
+                      Wayd.Web/src/wayd.web.reactclient/package.json \
+                      Wayd.Web/src/wayd.web.reactclient/package-lock.json \
+                      '*.csproj' Directory.Build.props Directory.Build.targets Directory.Packages.props \
+                      global.json nuget.config)
+                  echo "$changed"
+                  if [ -n "$changed" ]; then echo "build=true" >> "$GITHUB_OUTPUT"; fi
+
+            # The API's from-source build compiles in a handler tree that must already be in the build context.
+            - name: Setup .NET
+              if: steps.changes.outputs.build == 'true' && matrix.service == 'waydwebapi'
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: 10.0.x
+
+            - name: Generate Wolverine handler tree
+              if: steps.changes.outputs.build == 'true' && matrix.service == 'waydwebapi'
+              uses: ./.github/actions/build-api
+
+            - name: docker compose build
+              if: steps.changes.outputs.build == 'true'
+              env:
+                  SERVICE: ${{ matrix.service }}
+              run: docker compose build "$SERVICE"
+
+    # Pushes and workflow_dispatch only, after every test job has passed, so an untested image is never
+    # published. Skipped on pull requests, and a skipped job skips every job that needs it: `terraform` and
+    # `deploy` therefore can never run on a pull request, whatever their own `if:` says.
+    #
+    # The API image copies the api shard's publish output, which holds the handler tree that shard tested; the
+    # client image copies the build check-and-build-client smoke-tested.
     build-and-push-image:
         runs-on: ubuntu-latest
+        if: github.event_name != 'pull_request'
         needs: [test-dotnet-unit, test-dotnet-integration, check-and-build-client, test-client]
         strategy:
             fail-fast: false
@@ -459,11 +597,9 @@ jobs:
                     - name: api
                       dockerfile: ./Wayd.Web/src/Wayd.Web.Api/Dockerfile
                       image: ghcr.io/${{ github.repository_owner }}/wayd-api
-                      contextDir: .
                     - name: client
                       dockerfile: ./Wayd.Web/src/wayd.web.reactclient/Dockerfile
                       image: ghcr.io/${{ github.repository_owner }}/wayd-client
-                      contextDir: .
         permissions:
             contents: read
             packages: write
@@ -472,26 +608,21 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
-            # Bring in the Wolverine handler tree generated by test-dotnet-integration's api shard so the API
-            # image ships the exact tree that was tested (see that job). Only the API image needs it; the client leg skips this.
-            # The tree is git-ignored, so the Dockerfile COPY of the build context would otherwise find nothing.
-            - name: Download Wolverine handler tree
-              if: matrix.name == 'api'
+            - name: Download ${{ matrix.name }} image build
               uses: actions/download-artifact@v4
               with:
-                  name: wolverine-handler-tree
-                  path: Wayd.Web/src/Wayd.Web.Api/Internal/Generated/WolverineHandlers/
+                  name: ${{ matrix.name }}-image
+                  path: ${{ runner.temp }}
 
-            # Registry login and the push below are both gated on NOT being a pull_request. The job itself
-            # stays ungated so it always builds (a broken Dockerfile still fails the PR) and always reports
-            # success — `terraform` declares `needs: [build-and-push-image]`, and an `if:`-skipped job would
-            # propagate skipped-ness to any dependent whose own gate is later relaxed.
-            #
+            - name: Unpack ${{ matrix.name }} image build
+              env:
+                  IMAGE_NAME: ${{ matrix.name }}
+              run: mkdir "$RUNNER_TEMP/$IMAGE_NAME-image" && tar -xf "$RUNNER_TEMP/$IMAGE_NAME-image.tar" -C "$RUNNER_TEMP/$IMAGE_NAME-image"
+
             # workflow_dispatch MUST keep pushing even from a feature branch: `terraform apply` passes
             # -var="docker_tag=sha-${{ github.sha }}", so a suppressed push would point the container app at
             # a tag that was never published.
             - name: Log in to the GitHub Container Registry
-              if: github.event_name != 'pull_request'
               uses: docker/login-action@v3
               with:
                   registry: ghcr.io
@@ -514,9 +645,10 @@ jobs:
             - name: Build and push Docker image
               uses: docker/build-push-action@v6
               with:
-                  context: ${{ matrix.contextDir }}
+                  context: ${{ runner.temp }}/${{ matrix.name }}-image
                   file: ${{ matrix.dockerfile }}
-                  push: ${{ github.event_name != 'pull_request' }}
+                  target: prebuilt
+                  push: true
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
 

@@ -47,6 +47,14 @@ every remaining integration project, so a new suite lands there without any chan
 `dotnet-test-projects.sh`, and the integration matrix in `.github/workflows/docker.yml` must list them
 exactly, in the same order, or every shard fails.
 
+A pull request runs only the halves its changes can affect, decided by `.github/scripts/changed-areas.sh`: a
+change to the client alone skips the .NET jobs, and one to agent guidance, the docs site or other workflows
+skips both. Pushes to `main` and tags, and manual runs, always run everything. Any path the script does not list runs the .NET
+half, but a few files outside the .NET projects are read by .NET tests, such as
+`docs/getting-started/mcp-server.mdx`, `evals/scenarios/` and the recipe schema under `docs-site/`. A new test
+that reads another such file must add it to the script, or a pull request changing only that file skips the
+test.
+
 Each integration run (one per shard in CI) starts **one** SQL Server container for every suite in it and hands its connection string
 to the test processes as `WAYD_TEST_SQLSERVER`. The engine upgrades its system databases on every first
 boot, which takes about a minute, so sharing it pays that once per run instead of once per suite. The

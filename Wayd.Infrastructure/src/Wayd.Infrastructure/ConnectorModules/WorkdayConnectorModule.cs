@@ -67,31 +67,34 @@ public sealed class WorkdayConnectorModule : IConnectorModule
 
     /// <summary>
     /// Whether a failed Workday response is one a retry cannot fix: a permanent SOAP fault (bad credentials,
-    /// an invalid request), or a body too large or too slow to read, which the next attempt would only stream
-    /// again. False leaves the decision to the default transient classification.
+    /// an invalid request), or a body too slow to read, which the next attempt would only stream again. A body
+    /// larger than <see cref="WorkdayStaffingClient.MaxFaultResponseBytes"/> holds no fault the client could read,
+    /// so it is left, like every response false is returned for, to the default transient classification.
     /// </summary>
     /// <remarks>
-    /// The body is buffered, within the client's size cap, so the client's own later read still sees it. A read
-    /// given up part-way leaves the stream unusable, so its reason is recorded on the request
+    /// The body is buffered, within the client's cap on a failed response
+    /// (<see cref="WorkdayStaffingClient.MaxFaultResponseBytes"/>), so the client's own later read still sees it. A
+    /// read given up part-way leaves the stream unusable, so its reason is recorded on the request
     /// (<see cref="WorkdayStaffingClient.UnreadBodyReason"/>) for the client to report.
     /// </remarks>
     internal static async Task<bool> IsPermanentFailure(HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        if (response.Content.Headers.ContentLength > WorkdayStaffingClient.MaxResponseBytes)
-            return true;
+        if (response.Content.Headers.ContentLength > WorkdayStaffingClient.MaxFaultResponseBytes)
+            return false;
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(_faultReadTimeout);
         try
         {
-            await response.Content.LoadIntoBufferAsync(WorkdayStaffingClient.MaxResponseBytes, timeout.Token);
+            await response.Content.LoadIntoBufferAsync(WorkdayStaffingClient.MaxFaultResponseBytes, timeout.Token);
             var body = await response.Content.ReadAsStringAsync(timeout.Token);
             return WorkdayStaffingClient.IsNonRetryableFault(body);
         }
         catch (HttpRequestException ex) when (ex.HttpRequestError == HttpRequestError.ConfigurationLimitExceeded)
         {
-            response.RequestMessage?.Options.Set(WorkdayStaffingClient.UnreadBodyReason, WorkdayStaffingClient.TooLargeMessage);
-            return true;
+            response.RequestMessage?.Options.Set(WorkdayStaffingClient.UnreadBodyReason,
+                WorkdayStaffingClient.NoFaultMessage((int)response.StatusCode));
+            return false;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {

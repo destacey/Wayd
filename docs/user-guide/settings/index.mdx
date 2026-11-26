@@ -591,7 +591,7 @@ The Workday connector synchronizes workers (employees and contingent workers) fr
 
 Saving or editing the connection, and **Test Connection** on its page, probe the tenant with the given credentials and report what they can read. When Workday answers with an error, the result shows the reason from Workday's fault, or only the HTTP status when there is none; the rest of the response goes to the API's log. Workday supports differential sync, which fetches only workers changed since the last run.
 
-A sync stops with an error, rather than syncing part of the tenant, when Workday reports more than 10,000 pages of workers or more than 200 workers on a page (so at most 2,000,000, counting inactive and excluded workers), or a response is larger than 256 MB.
+A sync stops with an error, rather than syncing part of the tenant, when Workday reports more than 10,000 pages of workers or more than 200 workers on a page (so at most 2,000,000, counting inactive and excluded workers), a single worker is larger than 16 MB, the response is malformed in a way that would exhaust memory (nested more than 64 deep, or using more than 10,000 distinct names), or a response is larger than 1,024 MB.
 
 A connection saved with an `http://` WSDL URL, before HTTPS was required, sends nothing until it is edited to use the `https://` URL; on the same host, the stored password is kept.
 

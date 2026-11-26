@@ -43,9 +43,16 @@ public sealed class WorkdayConnectionInitializer(WorkdayStaffingClient client, I
         {
             // Probe is always a full-snapshot fetch — we want a representative slice, not a delta.
             var probeContext = context with { IncrementalUpdatedFrom = null };
-            var response = await _client.GetWorkers(probeContext, page: 1, pageSize: ProbeSampleSize, cancellationToken);
+            // The probe is a sample, so workers beyond the size asked for are left unread.
+            var workers = new List<XElement>();
+            await _client.GetWorkers(probeContext, page: 1, pageSize: ProbeSampleSize, worker =>
+            {
+                if (workers.Count == ProbeSampleSize)
+                    return false;
+                workers.Add(worker);
+                return true;
+            }, cancellationToken);
 
-            var workers = response.Workers;
             if (workers.Count == 0)
             {
                 return new ConnectionInitResult(

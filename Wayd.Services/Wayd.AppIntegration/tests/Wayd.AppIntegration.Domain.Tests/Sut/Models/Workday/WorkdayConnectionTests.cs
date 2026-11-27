@@ -80,6 +80,16 @@ public sealed class WorkdayConnectionTests
         connection.Configuration.IsuPassword.Should().Be(OriginalPassword);
     }
 
+    [Fact]
+    public void SystemId_IsTheTenantAlias()
+    {
+        // Arrange & Act
+        var connection = Create();
+
+        // Assert
+        connection.SystemId.Should().Be(connection.Configuration.TenantAlias).And.NotBeNullOrWhiteSpace();
+    }
+
     private WorkdayConnection Create() =>
         WorkdayConnection.Create(
             "People",

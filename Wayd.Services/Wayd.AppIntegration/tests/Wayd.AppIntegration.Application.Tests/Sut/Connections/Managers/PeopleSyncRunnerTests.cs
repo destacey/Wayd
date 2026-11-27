@@ -49,6 +49,8 @@ public class PeopleSyncRunnerTests
         _source = new Mock<IEmployeeSource>(MockBehavior.Strict);
         _source.SetupGet(s => s.SupportsIncremental).Returns(false);
         _source.SetupGet(s => s.MatchBy).Returns(EmployeeMatchProperty.Email);
+        _source.SetupGet(s => s.Connector).Returns(Connector.Entra);
+        _source.SetupGet(s => s.SystemId).Returns("tenant-id");
         _source.Setup(s => s.GetEmployees(It.IsAny<Instant?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(new EmployeeFetchResult([FakeEmployee()], [])));
 
@@ -173,7 +175,8 @@ public class PeopleSyncRunnerTests
         result.IsSuccess.Should().BeTrue();
         _mocker.GetMock<IDispatcher>().Verify(s => s.Send(
             It.Is<BulkUpsertEmployeesCommand>(c =>
-                c.MatchBy == EmployeeMatchProperty.EmployeeNumber && c.DeactivateMissing),
+                c.MatchBy == EmployeeMatchProperty.EmployeeNumber && c.DeactivateMissing
+                && c.Connector == Connector.Entra && c.SystemId == "tenant-id"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 

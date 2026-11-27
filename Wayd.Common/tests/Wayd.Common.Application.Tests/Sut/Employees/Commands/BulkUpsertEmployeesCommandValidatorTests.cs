@@ -24,7 +24,7 @@ public class BulkUpsertEmployeesCommandValidatorTests
         string firstNumber, string secondNumber, string firstEmail, string secondEmail, string field)
     {
         // Arrange
-        var command = new BulkUpsertEmployeesCommand(
+        var command = SyncCommand(
             [
                 FakeExternalEmployee(firstNumber, firstEmail),
                 FakeExternalEmployee(secondNumber, secondEmail),
@@ -46,7 +46,7 @@ public class BulkUpsertEmployeesCommandValidatorTests
     public void Validate_AcceptsPayload_WhenBothCandidateKeysAreDistinct()
     {
         // Arrange
-        var command = new BulkUpsertEmployeesCommand(
+        var command = SyncCommand(
             [
                 FakeExternalEmployee("E-1", "ada@acme.example"),
                 FakeExternalEmployee("E-2", "grace@acme.example"),
@@ -59,6 +59,9 @@ public class BulkUpsertEmployeesCommandValidatorTests
         // Assert
         result.IsValid.Should().BeTrue();
     }
+
+    private static BulkUpsertEmployeesCommand SyncCommand(IEnumerable<IExternalEmployee> payload, EmployeeMatchProperty matchBy, bool deactivateMissing = true) =>
+        new(payload, Connector.Workday, "acme", matchBy, deactivateMissing);
 
     private static FakeExternalEmployeeRecord FakeExternalEmployee(string employeeNumber, string email) =>
         new()

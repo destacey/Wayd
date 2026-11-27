@@ -25,6 +25,12 @@ public interface IEmployeeSource
     EmployeeMatchProperty MatchBy { get; }
 
     /// <summary>
+    /// The instance of the people system the bound connection reads — an Entra or Workday tenant. The
+    /// employees the sync manages name it in their reference. Valid only after <see cref="Bind"/>.
+    /// </summary>
+    string? SystemId { get; }
+
+    /// <summary>
     /// Bind this source instance to a specific connection. Called once by the factory before
     /// <see cref="GetEmployees"/> is invoked. Sources should cast the descriptor's boxed
     /// configuration here and fail fast if the shape is wrong.

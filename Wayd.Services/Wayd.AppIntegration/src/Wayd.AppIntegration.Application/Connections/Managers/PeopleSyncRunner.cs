@@ -213,7 +213,7 @@ public sealed class PeopleSyncRunner(
 
             stageTimer.Restart();
             var upsertResult = await _dispatcher.Send(
-                new BulkUpsertEmployeesCommand(employees, matchBy: source.MatchBy, deactivateMissing: !incremental),
+                new BulkUpsertEmployeesCommand(employees, source.Connector, source.SystemId, matchBy: source.MatchBy, deactivateMissing: !incremental),
                 cancellationToken);
             upsertMs = stageTimer.ElapsedMilliseconds;
             if (upsertResult.IsFailure)

@@ -1,7 +1,9 @@
 ﻿using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.Validators;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.AppIntegrations;
+using Wayd.Common.Extensions;
 using Wayd.Common.Models;
 
 namespace Wayd.Common.Application.Employees.Commands;
@@ -32,18 +34,34 @@ public sealed record BulkUpsertEmployeesCommand : ICommand<BulkUpsertEmployeesRe
     /// <see cref="EmployeeMatchProperty.Email"/>), silently giving an omitting caller the opposite
     /// matching behavior from every real sync.
     /// </param>
+    /// <param name="connector">The kind of people system the records come from.</param>
+    /// <param name="systemId">The instance of that system, such as the Entra or Workday tenant.</param>
     public BulkUpsertEmployeesCommand(
         IEnumerable<IExternalEmployee> employees,
+        Connector connector,
+        string? systemId,
         EmployeeMatchProperty matchBy,
         bool deactivateMissing = true)
     {
         // ignore records with no employee number
         Employees = employees.Where(e => !string.IsNullOrWhiteSpace(e.EmployeeNumber));
+        Connector = connector;
+        SystemId = systemId.NullIfWhiteSpacePlusTrim();
         MatchBy = matchBy;
         DeactivateMissing = deactivateMissing;
     }
 
     public IEnumerable<IExternalEmployee> Employees { get; }
+
+    /// <summary>
+    /// The kind of people system the records come from. With <see cref="SystemId"/> it names the system
+    /// whose employees this sync manages and updates; another system's are taken over only on the
+    /// configured key.
+    /// </summary>
+    public Connector Connector { get; }
+
+    /// <summary>The instance of the people system, such as the Entra or Workday tenant.</summary>
+    public string? SystemId { get; }
 
     /// <summary>
     /// Which unique field on <c>Employee</c> the upsert <em>prefers</em> when finding an existing
@@ -178,6 +196,15 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
 
                 if (existing is not null)
                 { // update
+                    var ownershipError = TakeOwnership(existing, match.OnConfiguredKey, request);
+                    if (ownershipError is not null)
+                    {
+                        _logger.LogWarning("Wayd Request: Record skipped for Request {Name}.  {Error}", requestName, ownershipError);
+                        errors.Add(externalEmployee.EmployeeNumber, ownershipError);
+
+                        continue;
+                    }
+
                     claimedEmployeeIds.Add(existing.Id);
 
                     // Snapshot the pre-update keys so the lookup indexes can be re-pointed below —
@@ -208,7 +235,7 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
                         }
                     }
 
-                    var updateResult = existing.Update(
+                    var updateResult = existing.UpdateFromSource(
                         externalEmployee.Name,
                         employeeNumber,
                         externalEmployee.HireDate,
@@ -261,7 +288,9 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
                 }
                 else
                 { // create
-                    var newEmployee = Employee.Create(
+                    var newEmployee = Employee.CreateManaged(
+                        request.Connector,
+                        request.SystemId,
                         externalEmployee.Name,
                         sourceEmployeeNumber,
                         externalEmployee.HireDate,
@@ -347,7 +376,8 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
     /// that moves a limit fails the build's test run rather than surfacing as a truncation error in
     /// production.
     /// </summary>
-    private const int EmployeeNumberMaxLength = 256;
+    // A synced employee's number is also its external id, whose shared ownership column is 64 long.
+    private const int EmployeeNumberMaxLength = 64;
     private const int EmailMaxLength = 256;
     private const int JobTitleMaxLength = 256;
     private const int DepartmentMaxLength = 256;
@@ -457,16 +487,49 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
         };
 
         if (preferred is not null && fallback is not null && preferred.Id != fallback.Id)
-            return new EmployeeMatch(preferred, fallback);
+            return new EmployeeMatch(preferred, OnConfiguredKey: true, fallback);
 
-        return new EmployeeMatch(preferred ?? fallback, null);
+        return preferred is not null
+            ? new EmployeeMatch(preferred, OnConfiguredKey: true, null)
+            : new EmployeeMatch(fallback, OnConfiguredKey: false, null);
     }
 
     /// <summary>
-    /// Outcome of candidate-key resolution: the matched row, if any, and the different row that holds
-    /// the payload's other key when the two keys disagree.
+    /// Outcome of candidate-key resolution: the matched row, if any, whether the connection's configured
+    /// key found it, and the different row that holds the payload's other key when the two keys disagree.
     /// </summary>
-    private readonly record struct EmployeeMatch(Employee? Employee, Employee? ConflictsWith);
+    private readonly record struct EmployeeMatch(Employee? Employee, bool OnConfiguredKey, Employee? ConflictsWith);
+
+    /// <summary>
+    /// Makes the matched employee this sync's to update, or says why it is not. An employee this system
+    /// manages already is. One Wayd owns is adopted, and one another people system manages is taken over,
+    /// but only when the connection's configured key found it: the other key is a fallback for finding
+    /// this system's own employees, never a reason to take someone else's.
+    /// </summary>
+    /// <returns>Null when the sync may update the employee, otherwise why the record was skipped.</returns>
+    private string? TakeOwnership(Employee employee, bool onConfiguredKey, BulkUpsertEmployeesCommand request)
+    {
+        if (employee.IsManagedBy(request.Connector, request.SystemId))
+            return null;
+
+        var holder = employee.IsManaged ? $"another people system ({employee.OwnershipInfo.Connector}) manages" : "Wayd owns";
+        if (!onConfiguredKey)
+        {
+            var configuredKey = request.MatchBy == EmployeeMatchProperty.Email ? "email" : "employee number";
+            return $"Matches employee {employee.Key} ({employee.Name.DisplayName}, {employee.EmployeeNumber}) only by its " +
+                $"{(request.MatchBy == EmployeeMatchProperty.Email ? "employee number" : "email")}, and {holder} that employee. " +
+                $"An employee is taken on only by the connection's Match Employees By key ({configuredKey}); give it the record's " +
+                $"{configuredKey} to take it on. Skipped.";
+        }
+
+        var result = employee.IsManaged
+            ? employee.TakeOver(request.Connector, request.SystemId, SyncActor, _dateTimeProvider.Now)
+            : employee.Adopt(request.Connector, request.SystemId, SyncActor, _dateTimeProvider.Now);
+
+        return result.IsSuccess
+            ? null
+            : $"Employee {employee.Key} ({employee.Name.DisplayName}, {employee.EmployeeNumber}): {result.Error} Skipped.";
+    }
 
     private async Task ProcessMissingManagers(Dictionary<string, string> missingManagers, CancellationToken cancellationToken)
     {
@@ -507,12 +570,16 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
 
     private async Task DeactivateEmployeesNotInPayload(HashSet<Guid> claimedEmployeeIds, CancellationToken cancellationToken)
     {
-        // Any active employee whose row this sync did not claim — i.e. it was neither matched against
-        // nor created from anything in the payload — is treated as no-longer-employed and deactivated.
-        // This is safe because PeopleSync is single-active by design: there's exactly one source of
-        // truth for who works here at any given time.
+        // An active managed employee the payload did not claim — neither matched nor created from any
+        // record — is deactivated, whichever people system manages it. Only one people connection is
+        // active, so it is the source of truth for everyone a sync brought in: after a switch of source,
+        // the previous system's employees the new one does not send would otherwise keep access with
+        // nothing left to end it. They stay managed by their old system, so the new source takes them
+        // over if it sends them later. Employees Wayd owns are never a sync's to deactivate.
         var toDeactivate = await _waydDbContext.Employees
-            .Where(e => e.IsActive && !claimedEmployeeIds.Contains(e.Id))
+            .Where(e => e.IsActive
+                && e.OwnershipInfo.Ownership == Ownership.Managed
+                && !claimedEmployeeIds.Contains(e.Id))
             .ToListAsync(cancellationToken);
 
         if (toDeactivate.Count == 0)

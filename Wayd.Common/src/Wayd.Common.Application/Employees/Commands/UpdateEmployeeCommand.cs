@@ -138,8 +138,8 @@ public sealed class UpdateEmployeeCommandHandler : ICommandHandler<UpdateEmploye
             request.Department,
             request.OfficeLocation,
             request.ManagerId,
-            employee.IsActive,        // this command should not change IsActive
-            employee.EmployeeType,    // manual edits don't change classification
+            employee.EmployeeType,
+            employee.AccessEndDate,
             EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
             _dateTimeProvider.Now
             );

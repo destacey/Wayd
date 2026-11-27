@@ -317,6 +317,8 @@ public partial class EventCoverageTests
     /// </summary>
     private static readonly Dictionary<string, string> SetBasedWriteMigrations = new()
     {
+        ["20261127185513_Baseline-Employee-Ownership.cs"] =
+            "Hands each employee to the active people connection's system, which wrote it before ownership existed, and records each as an EmployeeAdoptedEvent in the activity log itself: #1602.",
         ["20261127161348_Move-WorkProcess-To-OwnershipInfo.cs"] =
             "Retypes each work process's external id from a GUID to the text OwnershipInfo holds, carrying the value across, and names Azure DevOps as its connector, the only source one ever came from; no fact about a work process changed: #1599.",
         ["20261118015213_Gate-Links-By-Owner.cs"] =

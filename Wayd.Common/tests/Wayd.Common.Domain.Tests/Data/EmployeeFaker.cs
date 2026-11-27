@@ -1,4 +1,5 @@
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Models;
 using Wayd.Common.Models;
 using Wayd.Tests.Shared.Data;
 using Wayd.TestData.Core;
@@ -114,6 +115,18 @@ public static class EmployeeFakerExtensions
     public static EmployeeFaker WithManager(this EmployeeFaker faker, Guid managerId)
     {
         faker.RuleFor(x => x.ManagerId, managerId);
+        return faker;
+    }
+
+    public static EmployeeFaker WithOwnershipInfo(this EmployeeFaker faker, OwnershipInfo ownershipInfo)
+    {
+        faker.RuleFor(x => x.OwnershipInfo, ownershipInfo);
+        return faker;
+    }
+
+    public static EmployeeFaker WithAccessEndDate(this EmployeeFaker faker, LocalDate? accessEndDate)
+    {
+        faker.RuleFor(x => x.AccessEndDate, accessEndDate);
         return faker;
     }
 }

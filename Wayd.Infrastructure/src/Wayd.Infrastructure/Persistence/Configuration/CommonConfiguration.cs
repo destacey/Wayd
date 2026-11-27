@@ -51,6 +51,9 @@ public class EmployeeConfig : IEntityTypeConfiguration<Employee>
         builder.Property(e => e.IsActive);
 
         builder.Property(e => e.EmployeeType).HasMaxLength(128);
+        builder.Property(e => e.AccessEndDate);
+
+        builder.ConfigureOwnershipInfo();
 
         // Value Objects
         builder.ComplexProperty(e => e.Name, options =>

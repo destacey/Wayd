@@ -29,6 +29,17 @@ internal static class IncidentQuery
 
         return incidents;
     }
+
+    /// <summary>
+    /// The incidents still active: <see cref="IncidentActivity.IsActive"/>, written out so SQL Server evaluates
+    /// it — not closed, not canceled, and not in a done or removed category.
+    /// </summary>
+    public static IQueryable<Incident> Active(IQueryable<Incident> incidents) =>
+        incidents.Where(incident =>
+            incident.StatusAliasValue != (int)ProductStatusAlias.Closed
+            && incident.StatusAliasValue != (int)ProductStatusAlias.Canceled
+            && incident.StatusCategory != StatusCategory.Done
+            && incident.StatusCategory != StatusCategory.Removed);
 }
 
 /// <summary>
@@ -57,13 +68,7 @@ public sealed class GetIncidentFiguresQueryHandler(
             request.SeverityLevelIds);
         var now = _dateTimeProvider.Now;
 
-        // IncidentActivity.IsActive, written out so SQL Server evaluates it: not closed, not
-        // canceled, and not in a done or removed category.
-        var active = query.Where(incident =>
-            incident.StatusAliasValue != (int)ProductStatusAlias.Closed
-            && incident.StatusAliasValue != (int)ProductStatusAlias.Canceled
-            && incident.StatusCategory != StatusCategory.Done
-            && incident.StatusCategory != StatusCategory.Removed);
+        var active = IncidentQuery.Active(query);
         var activeCount = await active.CountAsync(cancellationToken);
         var longest = await active
             .OrderBy(incident => incident.NoticedAt)

@@ -28,6 +28,8 @@ using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Planning.Application.PlanningIntervals.Dtos;
 using Wayd.Planning.Application.PlanningIntervals.Queries;
 using Wayd.Planning.Application.Risks.Queries;
+using Wayd.ProductManagement.Application.Incidents.Dtos;
+using Wayd.ProductManagement.Application.Incidents.Queries;
 using Wayd.ProductManagement.Application.Products.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
@@ -253,6 +255,48 @@ public sealed class MeControllerTests
             .GetMock<IDispatcher>()
             .Setup(d => d.Send(It.IsAny<GetEmployeeTeamInvolvementQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new EmployeeTeamInvolvementDto { TeamCount = teamIds.Length, TeamOfTeamsCount = 0, TeamIds = teamIds });
+
+    [Fact]
+    public async Task GetIncidents_AsksForTheActiveIncidentsOnTheCallersTeamsProducts()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var payments = Guid.NewGuid();
+        var commerce = Guid.NewGuid();
+        LinkedTo(employeeId);
+        TeamsAre(payments, commerce);
+        IReadOnlyList<TeamProductIncidentDto> incidents = [new TeamProductIncidentDto { Key = 12, Title = "Checkout down" }];
+        var dispatcher = _mocker.GetMock<IDispatcher>();
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamsActiveIncidentsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(incidents);
+        var controller = CreateController();
+
+        // Act
+        var result = await controller.GetIncidents(TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>().Which.Value.Should().BeSameAs(incidents);
+        dispatcher.Verify(d => d.Send(It.Is<GetEmployeeTeamInvolvementQuery>(q => q.EmployeeId == employeeId), It.IsAny<CancellationToken>()), Times.Once);
+        dispatcher.Verify(d => d.Send(
+            It.Is<GetTeamsActiveIncidentsQuery>(q => q.TeamIds.SequenceEqual(new[] { payments, commerce })),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetIncidents_WhenNotLinkedToAnEmployee_ReturnsNotFound()
+    {
+        // Arrange
+        LinkedTo(null);
+        var controller = CreateController();
+
+        // Act
+        var result = await controller.GetIncidents(TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Result.Should().BeOfType<NotFoundObjectResult>();
+        VerifyNothingDispatched();
+    }
 
     [Fact]
     public async Task GetHomeContext_PutsTogetherEachModulesCounts()

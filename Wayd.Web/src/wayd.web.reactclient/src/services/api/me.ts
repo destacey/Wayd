@@ -12,6 +12,7 @@ import type {
   MeResponse,
   MyTeamsSummaryResponse,
   TeamMemberDto,
+  TeamProductIncidentDto,
   WorkItemListDto
 } from './wayd.schemas';
 
@@ -127,6 +128,30 @@ if (encodedParams.doneTo != null) {
 export const meGetWorkItems = async (params?: MeGetWorkItemsParams, options?: Parameters<typeof apiFetch>[1]): Promise<WorkItemListDto[]> => {
 
   return apiFetch<WorkItemListDto[]>(getMeGetWorkItemsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+export const getMeGetIncidentsUrl = () => {
+
+
+
+
+  return `/api/me/incidents`
+}
+
+/**
+ * The incidents still active (not Closed or Canceled, and not in a Done or Removed status category) on any proposed or active product linked to an active team or team of teams you are a member of, most severe first, then the longest active. Each lists, under `products`, only the products of your teams it is on; the incident's other products are on its record. Needs the Incidents view permission. Returns an empty list when your teams are linked to no proposed or active product, and 404 when your account is not linked to an employee.
+ * @summary Get the active incidents on the products your teams work on.
+ */
+export const meGetIncidents = async ( options?: Parameters<typeof apiFetch>[1]): Promise<TeamProductIncidentDto[]> => {
+
+  return apiFetch<TeamProductIncidentDto[]>(getMeGetIncidentsUrl(),
   {
     ...options,
     method: 'GET'

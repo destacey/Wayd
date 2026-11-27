@@ -24,6 +24,7 @@ using Wayd.Common.Domain.Models.Planning.EstimationScales;
 using Wayd.DemandManagement.Application.DemandEstimationScales.Commands;
 using Wayd.DemandManagement.Application.DemandProjectDeliverables.Commands;
 using Wayd.DemandManagement.Application.DemandProjects.Commands;
+using Wayd.Infrastructure.BackgroundJobs;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Planning.Application.PlanningSprints.Commands;
 using Wayd.Planning.Application.PlanningTeams.Commands;
@@ -77,12 +78,81 @@ public sealed class JobManagerTests
 
         // Act
         var missingRetry = jobs.Where(m => m.GetCustomAttribute<AutomaticRetryAttribute>() is null).Select(m => m.Name);
-        var missingLock = jobs.Where(m => m.GetCustomAttribute<DisableConcurrentExecutionAttribute>() is null).Select(m => m.Name);
+        var lockCounts = jobs.ToDictionary(
+            m => m.Name,
+            m => (m.GetCustomAttribute<SkipConcurrentExecutionAttribute>() is null ? 0 : 1)
+                + (m.GetCustomAttribute<DisableConcurrentExecutionAttribute>() is null ? 0 : 1));
 
         // Assert
         jobs.Should().NotBeEmpty();
         missingRetry.Should().BeEmpty("Hangfire's default of ten retries would apply");
-        missingLock.Should().BeEmpty();
+        lockCounts.Should().OnlyContain(c => c.Value == 1, "each job either skips or waits for a run already going, never both");
+    }
+
+    [Theory]
+    [InlineData(nameof(JobManager.RunPeopleSync))]
+    [InlineData(nameof(JobManager.RunWorkSync))]
+    [InlineData(nameof(JobManager.RunSyncIterations))]
+    [InlineData(nameof(JobManager.RunSyncStrategicThemes))]
+    [InlineData(nameof(JobManager.RunSyncProjects))]
+    [InlineData(nameof(JobManager.RunSyncEstimationScales))]
+    [InlineData(nameof(JobManager.RunSyncTeams))]
+    [InlineData(nameof(JobManager.RunPortfolioRankRebalance))]
+    [InlineData(nameof(JobManager.RunImportStallRecovery))]
+    [InlineData(nameof(JobManager.RunImportRetentionSweep))]
+    [InlineData(nameof(JobManager.RunNotificationRetentionSweep))]
+    [InlineData(nameof(JobManager.RunAttachmentSweep))]
+    public void Job_IsSkipped_WhenAnotherRunIsInProgress(string jobName)
+    {
+        // Arrange
+        var method = typeof(JobManager).GetMethod(jobName)!;
+
+        // Act
+        var skip = method.GetCustomAttribute<SkipConcurrentExecutionAttribute>();
+
+        // Assert
+        skip.Should().NotBeNull("an overlapping run repeats work the running one already covers");
+    }
+
+    [Theory]
+    [InlineData(nameof(JobManager.RunPeopleSync), typeof(SyncRunCoverage), 180)]
+    [InlineData(nameof(JobManager.RunWorkSync), typeof(SyncRunCoverage), 180)]
+    [InlineData(nameof(JobManager.RunSyncIterations), null, 0)]
+    [InlineData(nameof(JobManager.RunSyncStrategicThemes), null, 0)]
+    [InlineData(nameof(JobManager.RunSyncProjects), null, 0)]
+    [InlineData(nameof(JobManager.RunSyncEstimationScales), null, 0)]
+    [InlineData(nameof(JobManager.RunSyncTeams), null, 0)]
+    [InlineData(nameof(JobManager.RunPortfolioRankRebalance), null, 0)]
+    [InlineData(nameof(JobManager.RunImportStallRecovery), null, 0)]
+    [InlineData(nameof(JobManager.RunImportRetentionSweep), null, 0)]
+    [InlineData(nameof(JobManager.RunNotificationRetentionSweep), null, 0)]
+    [InlineData(nameof(JobManager.RunAttachmentSweep), null, 0)]
+    public void Job_IsSkipped_OnlyWhenTheRunInProgressCoversIt(string jobName, Type? coverage, int waitSeconds)
+    {
+        // Arrange
+        var method = typeof(JobManager).GetMethod(jobName)!;
+
+        // Act
+        var skip = method.GetCustomAttribute<SkipConcurrentExecutionAttribute>();
+
+        // Assert
+        skip.Should().NotBeNull();
+        skip!.CoverageType.Should().Be(coverage, "a sync's runs differ by connection and sync type; a parameterless job's never do");
+        skip.WaitTimeout.Should().Be(TimeSpan.FromSeconds(waitSeconds));
+    }
+
+    [Fact]
+    public void RunRepointWorkItemAttribution_WaitsForARunInProgress()
+    {
+        // Arrange
+        var method = typeof(JobManager).GetMethod(nameof(JobManager.RunRepointWorkItemAttribution))!;
+
+        // Act
+        var wait = method.GetCustomAttribute<DisableConcurrentExecutionAttribute>();
+
+        // Assert
+        wait.Should().NotBeNull("a queued repoint carries an identity and decision the running one does not cover");
+        method.GetCustomAttribute<SkipConcurrentExecutionAttribute>().Should().BeNull();
     }
 
     [Theory]

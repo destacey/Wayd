@@ -349,6 +349,19 @@ commands, and each follows one rule for failure:
 - **A job of independent steps runs every step, then fails.** Each step runs through `RunIsolatedStep`, so one
   module's or one record's failure does not leave the rest stale, and `ThrowIfAnyFailed` fails the job with an
   `AggregateException` holding every step's failure. Cancellation is not a failure and stops the job.
+- **A run locked out by a redundant run of the same job is skipped, not failed.** A job whose overlapping run
+  would repeat work the running one does — the syncs, the sweeps, Portfolio Rank Rebalance — carries
+  `[SkipConcurrentExecution]` (`Wayd.Infrastructure/BackgroundJobs/`). A run that finds the method's lock held ends at
+  once in Deleted, with the reason `Skipped: another run of <method> was already in progress.`, so it is not retried,
+  holds no worker, and leaves no Failed job to investigate.
+- **Runs that differ by their arguments are skipped only when the running one covers them.** Work and People Sync
+  pass an `IRunCoverage` (`SyncRunCoverage`): the run holding the lock covers a new one when it syncs every connection
+  or the same one, and is a full sync or of the same type. Only the holder counts, never another run still waiting,
+  which may yet time out. A run nothing covers — a full sync during a differential, one
+  connection's during another's — waits for the lock as under `[DisableConcurrentExecution]` and fails when the wait
+  times out, because its work did not happen. A job whose every queued run carries work of its own keeps
+  `[DisableConcurrentExecution]`: the work item attribution repoint, where a queued run is for another identity or a
+  newer decision.
 
 ### Tagging
 
@@ -655,7 +668,7 @@ Work-sync connectors (AzDO today, Jira/GitHub in future) plug into a single gene
 - **`IWorkItemSource`** ([Wayd.Integrations.Abstractions](https://github.com/destacey/Wayd/tree/main/Wayd.Integrations/src/Wayd.Integrations.Abstractions)) — connector-neutral contract: `TestConnection`, `GetSystemId`, `RefreshOrganizationConfiguration`, `GetSyncPlan` (returns a flat list of `WorkspaceSyncTarget`), `PrepareWorkspaceForItemSync`, `SyncIterations`, `SyncWorkItems`, `GetWorkItemHistory`. Sources hide connector-specific hierarchy internally — AzDO's `WorkProcess → Workspace` walk happens inside `GetSyncPlan`, the runner only sees workspaces.
 - **`IWorkItemSourceFactory`** — resolves the right source per connection via keyed DI. Sources hold credentials internally after `Bind(descriptor)` so per-call signatures stay credential-free.
 - **`WorkSyncRunner`** ([Wayd.AppIntegration.Application/Connections/Managers/WorkSyncRunner.cs](https://github.com/destacey/Wayd/blob/main/Wayd.Services/Wayd.AppIntegration/src/Wayd.AppIntegration.Application/Connections/Managers/WorkSyncRunner.cs)) — loops all active syncable connections, resolves each source via the factory, walks the flat plan, runs `ProcessDependenciesCommand`, and writes a `SyncRun` row per connection per run (`AppIntegrations.SyncRuns`). Per-connection failures don't kill the run; per-workspace failures don't kill the connection.
-- **Hangfire entry point**: `JobManager.RunWorkSync(SyncType, SyncTriggerSource, Guid? connectionId, CancellationToken)` — one job for all work-sync connectors. `connectionId = null` runs every active syncable connection (manual via `BackgroundJobType.WorkFullSync` / `WorkDiffSync`, or scheduled). Passing a `connectionId` runs that connection only (manual "Sync now" from the connection detail page). `[DisableConcurrentExecution]` is keyed on the method, so all variants serialize against each other.
+- **Hangfire entry point**: `JobManager.RunWorkSync(SyncType, SyncTriggerSource, Guid? connectionId, CancellationToken)` — one job for all work-sync connectors. `connectionId = null` runs every active syncable connection (manual via `BackgroundJobType.WorkFullSync` / `WorkDiffSync`, or scheduled). Passing a `connectionId` runs that connection only (manual "Sync now" from the connection detail page). `[SkipConcurrentExecution]` is keyed on the method, so all variants serialize against each other; `SyncRunCoverage` decides which overlapping run is skipped and which waits (see [Background jobs](#background-jobs)).
 
 ##### Work item history
 

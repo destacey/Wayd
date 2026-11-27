@@ -625,6 +625,8 @@ Three tabs sit below the strip, with the number of schedules and servers on thei
 
 **Processing** shows how long each job has been running and which server is running it. The longest-running job on the page is marked **longest**, which is where a stuck job shows first. A running job can be deleted but not requeued: requeueing would start a second copy while the first keeps going, so Wayd refuses it, including when the job starts running between your looking and your click.
 
+**A run that would repeat work already in progress is skipped.** Only one run of a job goes at a time. When a run starts while another run of the same job is doing all its work — a scheduled Work Differential Sync during a Work Full Sync, for example — it ends at once in **Deleted** instead of failing or retrying; its detail panel's state history gives the reason **Skipped: another run of … was already in progress.** A run whose work is not covered — a full sync starting during a differential, or one connection's sync during another's — waits its turn for up to three minutes, then fails like any other run whose work did not happen. Skipped runs are listed under Deleted and count toward the **All time** deleted total, alongside jobs an admin deleted.
+
 ### Diagnosing a failure
 
 Open the **Failed** state on the Jobs tab. Each job's exception message sits beside its name, so a shared cause is visible without opening anything. Select a job for its detail panel: the exception type and message, the **full stack trace**, the arguments the job ran with, and its state history — every transition and why.

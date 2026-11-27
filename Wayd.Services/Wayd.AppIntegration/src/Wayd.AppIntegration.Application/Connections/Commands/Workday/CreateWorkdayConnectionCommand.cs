@@ -54,9 +54,11 @@ public sealed class CreateWorkdayConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
-    IWorkdayConnectionInitializer initializer)
+    IWorkdayConnectionInitializer initializer,
+    IExternalSystemLinker externalSystemLinker)
     : ICommandHandler<CreateWorkdayConnectionCommand, Guid>
 {
+    private readonly IExternalSystemLinker _externalSystemLinker = externalSystemLinker;
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -88,7 +90,13 @@ public sealed class CreateWorkdayConnectionCommandHandler(
 
         // Create the connection first with IsValidConfiguration = false so the row exists even
         // if the probe is slow or fails — admins shouldn't lose typed config.
-        var connection = WorkdayConnection.Create(request.Name, request.Description, config, configurationIsValid: false, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), timestamp);
+        var actor = EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId());
+        var connection = WorkdayConnection.Create(request.Name, request.Description, config, configurationIsValid: false, actor, timestamp);
+
+        var linkResult = await _externalSystemLinker.Link(connection, actor, timestamp, cancellationToken);
+        if (linkResult.IsFailure)
+            return Result.Failure<Guid>(linkResult.Error);
+
         await _appIntegrationDbContext.WorkdayConnections.AddAsync(connection, cancellationToken);
         await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
 

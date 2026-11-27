@@ -26,7 +26,8 @@ public class SyncAzureDevOpsConnectionConfigurationCommandHandlerTests
             _clock,
             Mock.Of<ILogger<SyncAzureDevOpsConnectionConfigurationCommandHandler>>(),
             _azureDevOpsService.Object,
-            _dispatcher.Object);
+            _dispatcher.Object,
+            new Wayd.AppIntegration.Application.Connections.ExternalSystems.ExternalSystemLinker(_db, Mock.Of<IAzureDevOpsUrlResolver>()));
     }
 
     private AzureDevOpsBoardsConnection CreateConnectionWithProcess(Guid externalId, Guid internalId, bool integrationIsActive = true)

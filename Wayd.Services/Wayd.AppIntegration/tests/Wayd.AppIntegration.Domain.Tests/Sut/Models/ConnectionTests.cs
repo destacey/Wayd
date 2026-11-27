@@ -273,6 +273,100 @@ public class ConnectionTests
         deleted.Connector.Should().Be(Connector.Entra);
     }
 
+    [Fact]
+    public void LinkExternalSystem_TiesTheConnectionToItsSystemAndRaisesLinked()
+    {
+        // Arrange
+        var connection = CreateEntra();
+        var system = ExternalSystem.Create(Connector.Entra, "TENANT-1", "tenant-1", null, Actor, _dateTimeProvider.Now);
+
+        // Act
+        var result = connection.LinkExternalSystem(system, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        connection.ExternalSystemId.Should().Be(system.Id);
+        var linked = connection.DomainEvents.OfType<ConnectionExternalSystemLinkedEvent>().Should().ContainSingle().Subject;
+        linked.Id.Should().Be(connection.Id);
+        linked.ExternalSystemId.Should().Be(system.Id);
+        linked.Connector.Should().Be(Connector.Entra);
+        linked.SystemId.Should().Be("TENANT-1");
+    }
+
+    [Fact]
+    public void LinkExternalSystem_DoesNothing_WhenAlreadyLinkedToThatSystem()
+    {
+        // Arrange
+        var connection = CreateEntra();
+        var system = ExternalSystem.Create(Connector.Entra, "tenant-1", "tenant-1", null, Actor, _dateTimeProvider.Now);
+        connection.LinkExternalSystem(system, Actor, _dateTimeProvider.Now);
+        var eventsBefore = connection.DomainEvents.Count;
+
+        // Act
+        var result = connection.LinkExternalSystem(system, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        connection.DomainEvents.Should().HaveCount(eventsBefore);
+    }
+
+    [Fact]
+    public void LinkExternalSystem_RefusesAnotherSystem_OnceLinked()
+    {
+        // Arrange
+        var connection = CreateEntra();
+        var first = ExternalSystem.Create(Connector.Entra, "tenant-1", "tenant-1", null, Actor, _dateTimeProvider.Now);
+        var second = ExternalSystem.Create(Connector.Entra, "tenant-1", "tenant-1", null, Actor, _dateTimeProvider.Now);
+        connection.LinkExternalSystem(first, Actor, _dateTimeProvider.Now);
+
+        // Act
+        var result = connection.LinkExternalSystem(second, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("cannot change system");
+        connection.ExternalSystemId.Should().Be(first.Id);
+    }
+
+    [Theory]
+    [InlineData(Connector.Entra, "tenant-2")]
+    [InlineData(Connector.Workday, "tenant-1")]
+    public void LinkExternalSystem_RefusesASystemTheConnectionDoesNotReach(Connector connector, string systemId)
+    {
+        // Arrange
+        var connection = CreateEntra();
+        var system = ExternalSystem.Create(connector, systemId, systemId, null, Actor, _dateTimeProvider.Now);
+
+        // Act
+        var result = connection.LinkExternalSystem(system, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("is not the one this connection reaches");
+        connection.ExternalSystemId.Should().BeNull();
+        connection.DomainEvents.OfType<ConnectionExternalSystemLinkedEvent>().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void LinkExternalSystem_RefusesAConnectionThatSyncsNothing()
+    {
+        // Arrange
+        var connection = AzureOpenAIConnection.Create(
+            "Test AI Connection",
+            null,
+            new AzureOpenAIConnectionConfiguration("test-key", "gpt-4", "https://test.openai.azure.com"),
+            true,
+            Actor, _dateTimeProvider.Now);
+        var system = ExternalSystem.Create(Connector.AzureOpenAI, "x", "x", null, Actor, _dateTimeProvider.Now);
+
+        // Act
+        var result = connection.LinkExternalSystem(system, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        connection.ExternalSystemId.Should().BeNull();
+    }
+
     private EntraConnection CreateEntra() =>
         EntraConnection.Create(
             "People",

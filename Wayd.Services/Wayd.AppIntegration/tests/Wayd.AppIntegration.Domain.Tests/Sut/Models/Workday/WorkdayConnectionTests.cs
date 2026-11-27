@@ -90,6 +90,45 @@ public sealed class WorkdayConnectionTests
         connection.SystemId.Should().Be(connection.Configuration.TenantAlias).And.NotBeNullOrWhiteSpace();
     }
 
+    [Fact]
+    public void Update_RefusesANewTenant_OnceTheConnectionIsLinkedToItsSystem()
+    {
+        // Arrange
+        var connection = CreateLinked();
+        var eventsBefore = connection.DomainEvents.Count;
+
+        // Act
+        var result = Update(connection, "https://wd3-impl-services1.workday.com/ccx/service/other_tenant/Staffing/v46.1", OriginalUsername, OriginalPassword, name: "Renamed");
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("cannot be pointed at another one");
+        connection.Name.Should().Be("People");
+        connection.Configuration.TenantAlias.Should().Be("acme_corp1");
+        connection.DomainEvents.Should().HaveCount(eventsBefore);
+    }
+
+    [Fact]
+    public void Update_MovesToANewHostForTheSameTenant_OnceTheConnectionIsLinked()
+    {
+        // Arrange
+        var connection = CreateLinked();
+
+        // Act
+        var result = Update(connection, "https://wd5-services1.myworkday.com/ccx/service/ACME_CORP1/Staffing/v46.1", OriginalUsername, OriginalPassword);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        connection.Configuration.ServiceHost.Should().Be("wd5-services1.myworkday.com");
+    }
+
+    private WorkdayConnection CreateLinked()
+    {
+        var connection = Create();
+        connection.LinkExternalSystem(ExternalSystem.Create(Connector.Workday, "acme_corp1", "acme_corp1", null, Actor, _dateTimeProvider.Now), Actor, _dateTimeProvider.Now);
+        return connection;
+    }
+
     private WorkdayConnection Create() =>
         WorkdayConnection.Create(
             "People",

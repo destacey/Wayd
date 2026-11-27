@@ -48,9 +48,11 @@ public sealed class UpdateWorkdayConnectionCommandHandler(
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
     IWorkdayConnectionInitializer initializer,
-    ILogger<UpdateWorkdayConnectionCommandHandler> logger)
+    ILogger<UpdateWorkdayConnectionCommandHandler> logger,
+    IExternalSystemLinker externalSystemLinker)
     : ICommandHandler<UpdateWorkdayConnectionCommand, Guid>
 {
+    private readonly IExternalSystemLinker _externalSystemLinker = externalSystemLinker;
     private const string AppRequestName = nameof(UpdateWorkdayConnectionCommandHandler);
 
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
@@ -75,6 +77,9 @@ public sealed class UpdateWorkdayConnectionCommandHandler(
             .Select(e => new Wayd.AppIntegration.Domain.Models.Workday.WorkdayOrgExclusion(e.OrganizationTypeId, e.OrganizationReference, e.DisplayName))
             .ToList();
 
+        var actor = EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId());
+        var timestamp = _dateTimeProvider.Now;
+
         // Apply the change set with a placeholder configurationIsValid; the init probe right
         // after this overwrites that value with the real outcome.
         var updateResult = connection.Update(
@@ -92,14 +97,18 @@ public sealed class UpdateWorkdayConnectionCommandHandler(
             request.DepartmentOrganizationTypeId,
             exclusions,
             configurationIsValid: false,
-            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-            _dateTimeProvider.Now);
+            actor,
+            timestamp);
 
         if (updateResult.IsFailure)
         {
             _logger.LogInformation("Wayd Request: Failure for Request {Name}.  Error message: {Error}", AppRequestName, updateResult.Error);
             return Result.Failure<Guid>(updateResult.Error);
         }
+
+        var linkResult = await _externalSystemLinker.Link(connection, actor, timestamp, cancellationToken);
+        if (linkResult.IsFailure)
+            return Result.Failure<Guid>(linkResult.Error);
 
         // Persist the change-set first so a slow/failing probe doesn't roll back the typed config.
         await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);

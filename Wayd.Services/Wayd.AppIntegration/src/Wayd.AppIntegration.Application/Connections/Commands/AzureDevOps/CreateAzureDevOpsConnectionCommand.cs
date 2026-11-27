@@ -46,8 +46,9 @@ public sealed class CreateAzureDevOpsConnectionCommandValidator : CustomValidato
     }
 }
 
-public sealed class CreateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<CreateAzureDevOpsConnectionCommandHandler> logger, IAzureDevOpsService azureDevOpsService) : ICommandHandler<CreateAzureDevOpsConnectionCommand, Guid>
+public sealed class CreateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<CreateAzureDevOpsConnectionCommandHandler> logger, IAzureDevOpsService azureDevOpsService, IExternalSystemLinker externalSystemLinker) : ICommandHandler<CreateAzureDevOpsConnectionCommand, Guid>
 {
+    private readonly IExternalSystemLinker _externalSystemLinker = externalSystemLinker;
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -66,7 +67,12 @@ public sealed class CreateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbC
         }
         var systemId = systemIdResult.IsSuccess ? systemIdResult.Value : null;
 
-        var connection = AzureDevOpsBoardsConnection.Create(request.Name, request.Description, systemId, config, systemIdResult.IsSuccess, null, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), timestamp);
+        var actor = EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId());
+        var connection = AzureDevOpsBoardsConnection.Create(request.Name, request.Description, systemId, config, systemIdResult.IsSuccess, null, actor, timestamp);
+
+        var linkResult = await _externalSystemLinker.Link(connection, actor, timestamp, cancellationToken);
+        if (linkResult.IsFailure)
+            return Result.Failure<Guid>(linkResult.Error);
 
         await _appIntegrationDbContext.AzureDevOpsBoardsConnections.AddAsync(connection, cancellationToken);
 

@@ -49,9 +49,11 @@ public sealed class CreateEntraConnectionCommandValidator : CustomValidator<Crea
 public sealed class CreateEntraConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
     ICurrentUser currentUser,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    IExternalSystemLinker externalSystemLinker)
     : ICommandHandler<CreateEntraConnectionCommand, Guid>
 {
+    private readonly IExternalSystemLinker _externalSystemLinker = externalSystemLinker;
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -72,7 +74,12 @@ public sealed class CreateEntraConnectionCommandHandler(
         // TODO: Test the connection here and set IsValidConfiguration based on the outcome.
         var isConfigurationValid = true;
 
-        var connection = EntraConnection.Create(request.Name, request.Description, config, isConfigurationValid, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), timestamp);
+        var actor = EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId());
+        var connection = EntraConnection.Create(request.Name, request.Description, config, isConfigurationValid, actor, timestamp);
+
+        var linkResult = await _externalSystemLinker.Link(connection, actor, timestamp, cancellationToken);
+        if (linkResult.IsFailure)
+            return Result.Failure<Guid>(linkResult.Error);
 
         await _appIntegrationDbContext.EntraConnections.AddAsync(connection, cancellationToken);
 

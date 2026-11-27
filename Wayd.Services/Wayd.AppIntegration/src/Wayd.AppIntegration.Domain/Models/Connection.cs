@@ -43,9 +43,47 @@ public abstract class Connection : BaseSoftDeletableEntity, IActivatable<Connect
     public bool IsValidConfiguration { get; protected set; } = false;
 
     /// <summary>
+    /// The outside system the connection reaches. Set once, when a syncable connection first knows its system id,
+    /// and never changed; null for a connection that syncs nothing, such as an AI provider, and for an Azure DevOps
+    /// connection that has not yet read its organization's id.
+    /// </summary>
+    public Guid? ExternalSystemId { get; private set; }
+
+    /// <summary>
     /// The indicator for whether the connection has any active integration objects.
     /// </summary>
     public abstract bool HasActiveIntegrationObjects { get; }
+
+    /// <summary>
+    /// Ties the connection to the outside system it reaches. Refused for a connection that syncs nothing, for a
+    /// system that is not the one the connection's system id names, and for a connection already tied to another
+    /// system; linking to the system it already has does nothing.
+    /// </summary>
+    public Result LinkExternalSystem(ExternalSystem system, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(system, nameof(system));
+
+        if (this is not ISyncableConnection syncable)
+            return Result.Failure($"A {Connector} connection syncs nothing and is not tied to an outside system.");
+
+        if (ExternalSystemId == system.Id)
+            return Result.Success();
+
+        if (ExternalSystemId is not null)
+            return Result.Failure("The connection is already tied to another outside system and cannot change system.");
+
+        if (!system.Is(Connector, syncable.SystemId))
+            return Result.Failure($"The outside system {system.Connector} '{system.SystemId}' is not the one this connection reaches.");
+
+        ExternalSystemId = system.Id;
+        AddDomainEvent(new ConnectionExternalSystemLinkedEvent(Id, system.Id, system.Connector, system.SystemId, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>Why an edit that would point a linked connection at another outside system was refused.</summary>
+    protected const string SystemChangeRefusedMessage =
+        "This connection is tied to its outside system and cannot be pointed at another one. Create a new connection for the other system.";
 
     /// <summary>
     /// The connector's non-secret settings, in a fixed order, as the events record them.

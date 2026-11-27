@@ -13,8 +13,9 @@ public sealed record SyncAzureDevOpsConnectionConfigurationCommand(
     List<IExternalTeam> Teams)
     : ICommand;
 
-public sealed class SyncAzureDevOpsConnectionConfigurationCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, IDateTimeProvider dateTimeProvider, ILogger<SyncAzureDevOpsConnectionConfigurationCommandHandler> logger, IAzureDevOpsService azureDevOpsService, IDispatcher dispatcher) : ICommandHandler<SyncAzureDevOpsConnectionConfigurationCommand>
+public sealed class SyncAzureDevOpsConnectionConfigurationCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, IDateTimeProvider dateTimeProvider, ILogger<SyncAzureDevOpsConnectionConfigurationCommandHandler> logger, IAzureDevOpsService azureDevOpsService, IDispatcher dispatcher, IExternalSystemLinker externalSystemLinker) : ICommandHandler<SyncAzureDevOpsConnectionConfigurationCommand>
 {
+    private readonly IExternalSystemLinker _externalSystemLinker = externalSystemLinker;
     private const string AppRequestName = nameof(SyncAzureDevOpsConnectionConfigurationCommand);
 
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
@@ -39,6 +40,10 @@ public sealed class SyncAzureDevOpsConnectionConfigurationCommandHandler(IAppInt
             var setSystemIdResult = await SetConnectionSystemId(connection, cancellationToken);
             if (setSystemIdResult.IsFailure)
                 return setSystemIdResult;
+
+            var linkResult = await _externalSystemLinker.Link(connection, EventActor.System, _timestamp, cancellationToken);
+            if (linkResult.IsFailure)
+                return linkResult;
 
             await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
 

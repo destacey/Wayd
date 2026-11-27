@@ -29,6 +29,7 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
     private readonly List<WorkdayConnection> _workdayConnections = [];
     private readonly List<TeamsConnection> _teamsConnections = [];
     private readonly List<SyncRun> _syncRuns = [];
+    private readonly List<ExternalSystem> _externalSystems = [];
 
     // Common domain entities
     private readonly List<Employee> _employees = [];
@@ -47,6 +48,7 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
     public DbSet<WorkdayConnection> WorkdayConnections => _workdayConnections.AsDbSet();
     public DbSet<TeamsConnection> TeamsConnections => _teamsConnections.AsDbSet();
     public DbSet<SyncRun> SyncRuns => _syncRuns.AsDbSet();
+    public DbSet<ExternalSystem> ExternalSystems => _externalSystems.AsDbSet();
     public DbSet<Employee> Employees => _employees.AsDbSet();
     public DbSet<ExternalEmployeeBlacklistItem> ExternalEmployeeBlacklistItems => _externalEmployeeBlacklistItems.AsDbSet();
     public DbSet<ExternalIdentityMapping> ExternalIdentityMappings => _externalIdentityMappings.AsDbSet();
@@ -114,6 +116,9 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
     public void AddSyncRun(SyncRun syncRun) => _syncRuns.Add(syncRun);
     public void AddSyncRuns(IEnumerable<SyncRun> syncRuns) => _syncRuns.AddRange(syncRuns);
 
+    // ExternalSystem helpers
+    public void AddExternalSystem(ExternalSystem system) => _externalSystems.Add(system);
+
     // Employee
     public void AddEmployee(Employee employee) => _employees.Add(employee);
     public void AddEmployees(IEnumerable<Employee> employees) => _employees.AddRange(employees);
@@ -131,6 +136,7 @@ public class FakeAppIntegrationDbContext : IAppIntegrationDbContext, IDisposable
         _workdayConnections.Clear();
         _teamsConnections.Clear();
         _syncRuns.Clear();
+        _externalSystems.Clear();
         _employees.Clear();
         _externalEmployeeBlacklistItems.Clear();
         _externalIdentityMappings.Clear();

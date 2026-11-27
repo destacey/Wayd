@@ -283,7 +283,7 @@ public class AzureDevOpsBoardsConnectionTests
         var eventsBefore = connection.DomainEvents.Count;
 
         // Act
-        var result = connection.Update("Renamed", null, "OtherOrg", null, true, Actor, _dateTimeProvider.Now);
+        var result = connection.Update("Renamed", null, "OtherOrg", null, "system-id", true, Actor, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -301,12 +301,64 @@ public class AzureDevOpsBoardsConnectionTests
             new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT"), true, null, Actor, _dateTimeProvider.Now);
 
         // Act
-        var result = connection.Update("Renamed", null, "TestOrg", null, true, Actor, _dateTimeProvider.Now);
+        var result = connection.Update("Renamed", null, "TestOrg", null, "system-id", true, Actor, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         connection.Name.Should().Be("Renamed");
         connection.Configuration.PersonalAccessToken.Should().Be("TestPAT");
+    }
+
+    [Fact]
+    public void Update_AcceptsANewOrganizationName_WhenItReportsTheSameSystemId()
+    {
+        // Arrange
+        var connection = AzureDevOpsBoardsConnection.Create("Boards", null, "system-id",
+            new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT"), true, null, Actor, _dateTimeProvider.Now);
+
+        // Act
+        var result = connection.Update("Boards", null, "RenamedOrg", "NewPAT", "SYSTEM-ID", true, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        connection.Configuration.Organization.Should().Be("RenamedOrg");
+        connection.SystemId.Should().Be("system-id");
+    }
+
+    [Theory]
+    [InlineData("other-system-id")]
+    [InlineData(null)]
+    public void Update_RefusesANewOrganization_WhenItIsNotConfirmedAsTheSameSystem(string? organizationSystemId)
+    {
+        // Arrange
+        var connection = AzureDevOpsBoardsConnection.Create("Boards", null, "system-id",
+            new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT"), true, null, Actor, _dateTimeProvider.Now);
+        var eventsBefore = connection.DomainEvents.Count;
+
+        // Act
+        var result = connection.Update("Renamed", null, "OtherOrg", "NewPAT", organizationSystemId, true, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain(organizationSystemId is null ? "Unable to reach the organization 'OtherOrg'" : "cannot be pointed at another one");
+        connection.Name.Should().Be("Boards");
+        connection.Configuration.Organization.Should().Be("TestOrg");
+        connection.DomainEvents.Should().HaveCount(eventsBefore);
+    }
+
+    [Fact]
+    public void Update_AcceptsAnOrganizationChange_BeforeTheSystemIdIsKnown()
+    {
+        // Arrange
+        var connection = AzureDevOpsBoardsConnection.Create("Boards", null, null,
+            new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT"), false, null, Actor, _dateTimeProvider.Now);
+
+        // Act
+        var result = connection.Update("Boards", null, "OtherOrg", "NewPAT", null, false, Actor, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        connection.Configuration.Organization.Should().Be("OtherOrg");
     }
 
     [Fact]

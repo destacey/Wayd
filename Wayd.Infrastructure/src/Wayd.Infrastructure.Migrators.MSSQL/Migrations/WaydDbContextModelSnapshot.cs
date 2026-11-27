@@ -112,6 +112,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(1024)
                         .HasColumnType("nvarchar(1024)");
 
+                    b.Property<Guid?>("ExternalSystemId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -142,6 +145,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ExternalSystemId");
+
                     b.HasIndex("Id", "IsDeleted")
                         .HasFilter("[IsDeleted] = 0");
 
@@ -158,6 +163,52 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasDiscriminator<string>("Connector");
 
                     b.UseTphMappingStrategy();
+                });
+
+            modelBuilder.Entity("Wayd.AppIntegration.Domain.Models.ExternalSystem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BaseUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<string>("Connector")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("SystemId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Connector", "SystemId")
+                        .IsUnique();
+
+                    b.ToTable("ExternalSystems", "AppIntegrations");
                 });
 
             modelBuilder.Entity("Wayd.AppIntegration.Domain.Models.SyncRun", b =>
@@ -10002,6 +10053,14 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Wayd.AppIntegration.Domain.Models.Connection", b =>
+                {
+                    b.HasOne("Wayd.AppIntegration.Domain.Models.ExternalSystem", null)
+                        .WithMany()
+                        .HasForeignKey("ExternalSystemId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Wayd.Common.Domain.Activities.ActivityLogEntry", b =>

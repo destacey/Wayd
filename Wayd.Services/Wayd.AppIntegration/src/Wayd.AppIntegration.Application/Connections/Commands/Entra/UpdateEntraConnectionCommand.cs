@@ -54,9 +54,11 @@ public sealed class UpdateEntraConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
-    ILogger<UpdateEntraConnectionCommandHandler> logger)
+    ILogger<UpdateEntraConnectionCommandHandler> logger,
+    IExternalSystemLinker externalSystemLinker)
     : ICommandHandler<UpdateEntraConnectionCommand, Guid>
 {
+    private readonly IExternalSystemLinker _externalSystemLinker = externalSystemLinker;
     private const string AppRequestName = nameof(UpdateEntraConnectionCommandHandler);
 
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
@@ -75,6 +77,8 @@ public sealed class UpdateEntraConnectionCommandHandler(
 
         // TODO: Validate credentials with Graph and reflect in IsValidConfiguration.
         var configurationIsValid = true;
+        var actor = EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId());
+        var timestamp = _dateTimeProvider.Now;
 
         var updateResult = connection.Update(
             request.Name,
@@ -87,14 +91,18 @@ public sealed class UpdateEntraConnectionCommandHandler(
             request.MatchBy,
             request.NormalizeNameCasing,
             configurationIsValid,
-            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-            _dateTimeProvider.Now);
+            actor,
+            timestamp);
 
         if (updateResult.IsFailure)
         {
             _logger.LogInformation("Wayd Request: Failure for Request {Name}.  Error message: {Error}", AppRequestName, updateResult.Error);
             return Result.Failure<Guid>(updateResult.Error);
         }
+
+        var linkResult = await _externalSystemLinker.Link(connection, actor, timestamp, cancellationToken);
+        if (linkResult.IsFailure)
+            return Result.Failure<Guid>(linkResult.Error);
 
         await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
 

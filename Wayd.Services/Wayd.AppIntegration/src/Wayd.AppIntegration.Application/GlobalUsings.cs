@@ -5,6 +5,7 @@ global using Microsoft.EntityFrameworkCore;
 global using Microsoft.Extensions.Logging;
 global using Wayd.AppIntegration.Application.Connections;
 global using Wayd.AppIntegration.Application.Connections.Dtos;
+global using Wayd.AppIntegration.Application.Connections.ExternalSystems;
 global using Wayd.AppIntegration.Application.Connectors.Dtos;
 global using Wayd.AppIntegration.Application.Persistence;
 global using Wayd.AppIntegration.Domain.Models;

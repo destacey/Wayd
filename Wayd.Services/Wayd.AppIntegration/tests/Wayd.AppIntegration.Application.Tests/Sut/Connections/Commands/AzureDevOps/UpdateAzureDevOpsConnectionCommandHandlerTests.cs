@@ -144,6 +144,27 @@ public class UpdateAzureDevOpsConnectionCommandHandlerTests
         result.IsFailure.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task Handle_RefusesAnOrganizationThatIsAnotherSystem()
+    {
+        // Arrange
+        var connection = CreateConnection();
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetSystemId(It.Is<AzureDevOpsConnectionContext>(c => c.Organization == "other-org"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success("other-system-id"));
+        var command = new UpdateAzureDevOpsConnectionCommand(
+            connection.Id, connection.Name, connection.Description, "other-org", "new-pat-123456");
+
+        // Act
+        var result = await _sut.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("cannot be pointed at another one");
+        connection.Configuration.Organization.Should().Be("acme-org");
+        _db.SaveChangesCallCount.Should().Be(0);
+    }
+
     private AzureDevOpsBoardsConnection CreateConnection()
     {
         var connection = AzureDevOpsBoardsConnection.Create(

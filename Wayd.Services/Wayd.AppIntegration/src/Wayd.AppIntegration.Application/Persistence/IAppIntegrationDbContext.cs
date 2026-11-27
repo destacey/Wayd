@@ -15,4 +15,5 @@ public interface IAppIntegrationDbContext : IWaydDbContext
     DbSet<WorkdayConnection> WorkdayConnections { get; }
     DbSet<TeamsConnection> TeamsConnections { get; }
     DbSet<SyncRun> SyncRuns { get; }
+    DbSet<ExternalSystem> ExternalSystems { get; }
 }

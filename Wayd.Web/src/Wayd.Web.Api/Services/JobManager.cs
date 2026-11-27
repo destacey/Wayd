@@ -13,6 +13,7 @@ using Wayd.Common.Application.Requests.ProjectPortfolioManagement;
 using Wayd.DemandManagement.Application.DemandEstimationScales.Commands;
 using Wayd.DemandManagement.Application.DemandProjectDeliverables.Commands;
 using Wayd.DemandManagement.Application.DemandProjects.Commands;
+using Wayd.Infrastructure.BackgroundJobs;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Work.Application.Iterations.Queries;
 using Wayd.Planning.Application.PlanningSprints.Commands;
@@ -56,7 +57,7 @@ public class JobManager(
     //
     // The job still throws and still lands in Hangfire's Failed state — that's the signal the team
     // watches. This only removes the three pointless re-attempts in front of it.
-    [DisableConcurrentExecution(60 * 3)]
+    [SkipConcurrentExecution(typeof(SyncRunCoverage), 60 * 3)]
     [AutomaticRetry(Attempts = 0)]
     public async Task RunPeopleSync(SyncType syncType, SyncTriggerSource trigger, Guid? connectionId, CancellationToken cancellationToken)
     {
@@ -71,7 +72,7 @@ public class JobManager(
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunPeopleSync));
     }
 
-    [DisableConcurrentExecution(60 * 3)]
+    [SkipConcurrentExecution(typeof(SyncRunCoverage), 60 * 3)]
     [AutomaticRetry(Attempts = 3, DelaysInSeconds = [30, 60, 120])]
     public async Task RunWorkSync(SyncType syncType, SyncTriggerSource trigger, Guid? connectionId, CancellationToken cancellationToken)
     {
@@ -91,7 +92,7 @@ public class JobManager(
     // data problems — a sprint whose team has no copy yet, a theme a project still tags — that a re-run
     // meets again. Hangfire's default ten retries would hold the job in Scheduled for hours before it
     // showed as Failed.
-    [DisableConcurrentExecution(60 * 3)]
+    [SkipConcurrentExecution]
     [AutomaticRetry(Attempts = 0)]
     public async Task RunSyncIterations(CancellationToken cancellationToken)
     {
@@ -107,7 +108,7 @@ public class JobManager(
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncIterations));
     }
 
-    [DisableConcurrentExecution(60 * 3)]
+    [SkipConcurrentExecution]
     [AutomaticRetry(Attempts = 0)]
     public async Task RunSyncStrategicThemes(CancellationToken cancellationToken)
     {
@@ -122,7 +123,7 @@ public class JobManager(
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncStrategicThemes));
     }
 
-    [DisableConcurrentExecution(60 * 3)]
+    [SkipConcurrentExecution]
     [AutomaticRetry(Attempts = 0)]
     public async Task RunSyncProjects(CancellationToken cancellationToken)
     {
@@ -149,7 +150,7 @@ public class JobManager(
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncProjects));
     }
 
-    [DisableConcurrentExecution(60 * 3)]
+    [SkipConcurrentExecution]
     [AutomaticRetry(Attempts = 0)]
     public async Task RunSyncEstimationScales(CancellationToken cancellationToken)
     {
@@ -164,7 +165,7 @@ public class JobManager(
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncEstimationScales));
     }
 
-    [DisableConcurrentExecution(60 * 3)]
+    [SkipConcurrentExecution]
     [AutomaticRetry(Attempts = 0)]
     public async Task RunSyncTeams(CancellationToken cancellationToken)
     {
@@ -188,7 +189,8 @@ public class JobManager(
 
     // Retried, unlike the replication syncs: it is queued by an identity mapping rather than run by an admin
     // who would run it again, its one set-based update can collide with a work sync writing the same rows,
-    // and repeating it is safe.
+    // and repeating it is safe. It waits for a running repoint rather than being skipped: a queued run carries an
+    // identity and a decision of its own, which the running one does not cover.
     [DisableConcurrentExecution(60 * 3)]
     [AutomaticRetry(Attempts = 3, DelaysInSeconds = [30, 60, 120])]
     public async Task RunRepointWorkItemAttribution(string externalId, Guid? employeeId, CancellationToken cancellationToken)
@@ -207,7 +209,7 @@ public class JobManager(
     // Retried: a rebalance only re-spaces ranks, so repeating it is safe, and a retry touches only the
     // portfolios still dense. Ranking takes no concurrency token, so a failure is most likely a transient
     // database error.
-    [DisableConcurrentExecution(60 * 30)]
+    [SkipConcurrentExecution]
     [AutomaticRetry(Attempts = 3, DelaysInSeconds = [60, 300, 600])]
     public async Task RunPortfolioRankRebalance(CancellationToken cancellationToken)
     {
@@ -232,7 +234,7 @@ public class JobManager(
 
     // No retry: the sweep is idempotent and runs again on its own schedule, so a failed pass is left for
     // the next one. It still fails, so the miss shows.
-    [DisableConcurrentExecution(60 * 10)]
+    [SkipConcurrentExecution]
     [AutomaticRetry(Attempts = 0)]
     public async Task RunImportStallRecovery(CancellationToken cancellationToken)
     {
@@ -246,7 +248,7 @@ public class JobManager(
             nameof(RunImportStallRecovery), result.Value.Republished, result.Value.Failed);
     }
 
-    [DisableConcurrentExecution(60 * 60)]
+    [SkipConcurrentExecution]
     [AutomaticRetry(Attempts = 0)]
     public async Task RunImportRetentionSweep(CancellationToken cancellationToken)
     {
@@ -259,7 +261,7 @@ public class JobManager(
             "Completed {BackgroundJob} job ({Count} row payloads cleared)", nameof(RunImportRetentionSweep), result.Value);
     }
 
-    [DisableConcurrentExecution(60 * 60)]
+    [SkipConcurrentExecution]
     [AutomaticRetry(Attempts = 0)]
     public async Task RunNotificationRetentionSweep(CancellationToken cancellationToken)
     {
@@ -272,7 +274,7 @@ public class JobManager(
             "Completed {BackgroundJob} job ({Count} notifications deleted)", nameof(RunNotificationRetentionSweep), result.Value);
     }
 
-    [DisableConcurrentExecution(60 * 60)]
+    [SkipConcurrentExecution]
     [AutomaticRetry(Attempts = 0)]
     public async Task RunAttachmentSweep(CancellationToken cancellationToken)
     {

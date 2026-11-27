@@ -513,6 +513,8 @@ A user with no employee link is never activated or deactivated by people sync, e
 
 A full sync deactivates every employee its source no longer returns, including employees created by hand in Wayd, and with them the users linked to them. Link a contractor or service account to such an employee only if it should lose access when the next full sync runs.
 
+**The connection's Match Employees By setting decides which employee a record belongs to.** A sync finds the employee by that key, and by the other key only when the first finds no one. Sometimes the two keys find different employees — with Match Employees By set to Employee Number, the record's number belongs to one employee while its email already belongs to another, usually because one person has two employee records. The sync then updates the employee its configured key found with everything except the conflicting value, which stays on the other employee: two employees cannot share an email or an employee number. The run's **Sync History** lists the conflict as an error naming both employees, and it repeats on every sync until the duplicate is resolved. To resolve it, decide which record is the real person and remove the duplicate's claim to the value — correct it at the source if the source is wrong, or change or delete the duplicate employee in Wayd; the next sync applies the value.
+
 **Nothing syncs on a schedule until you create one.** Create a recurring **Work** or **People** sync job under [Background Jobs](#background-jobs).
 
 Viewing connections needs `Permissions.Connections.View`; creating, changing and deleting them need `Permissions.Connections.Create`, `.Update` and `.Delete`.

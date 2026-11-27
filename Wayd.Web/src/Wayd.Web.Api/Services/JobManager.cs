@@ -47,8 +47,7 @@ public class JobManager(
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     // No automatic retry. People-sync failures are overwhelmingly deterministic — a duplicate key
-    // on a uniquely-indexed employee field, an ambiguous identity match, a source returning zero
-    // workers. Re-running re-fetches every worker over SOAP, rebuilds the identical change set, and
+    // on a uniquely-indexed employee field, a source returning zero workers. Re-running re-fetches every worker over SOAP, rebuilds the identical change set, and
     // fails on the identical constraint, so the retries burn Workday API quota and emit a ~260 KB
     // exception log apiece without ever changing the outcome. The failure is already durably
     // recorded on the SyncRun row before the throw, so each retry also writes another failed row

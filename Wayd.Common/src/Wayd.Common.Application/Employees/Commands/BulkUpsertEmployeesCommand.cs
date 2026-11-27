@@ -7,15 +7,22 @@ using Wayd.Common.Models;
 namespace Wayd.Common.Application.Employees.Commands;
 
 /// <summary>
-/// What the upsert actually did. Records skipped for a bad length or an ambiguous identity match are
-/// reported rather than merely logged: the run still succeeds, so without this an admin reading sync
-/// history sees every payload record counted as upserted.
+/// What the upsert actually did. Skipped records and key conflicts are reported rather than merely
+/// logged: the run still succeeds, so without this an admin reading sync history sees every payload
+/// record counted as upserted and never learns a duplicate employee needs resolving.
 /// </summary>
 /// <param name="Upserted">Records that created or updated a row.</param>
 /// <param name="Skipped">
 /// Records that were rejected, keyed by EmployeeNumber with the reason as the value.
 /// </param>
-public sealed record BulkUpsertEmployeesResult(int Upserted, IReadOnlyDictionary<string, string> Skipped);
+/// <param name="Conflicts">
+/// Records that updated their row but left one key unapplied because a different employee already holds
+/// it, keyed by EmployeeNumber with a description naming both employees. These count as upserted.
+/// </param>
+public sealed record BulkUpsertEmployeesResult(
+    int Upserted,
+    IReadOnlyDictionary<string, string> Skipped,
+    IReadOnlyDictionary<string, string> Conflicts);
 
 public sealed record BulkUpsertEmployeesCommand : ICommand<BulkUpsertEmployeesResult>, ILongRunningRequest
 {
@@ -44,10 +51,14 @@ public sealed record BulkUpsertEmployeesCommand : ICommand<BulkUpsertEmployeesRe
     /// whether identity is keyed on email (the cross-source-stable choice) or on the source's
     /// <c>EmployeeNumber</c>. Both candidate fields are DB-uniquely indexed.
     /// <para>
-    /// This is a preference, not an exclusion: when the preferred key finds nothing the upsert
-    /// falls back to the other candidate key before deciding to create. Creating a row for someone
-    /// who already exists under the other key is never the desired outcome — it either violates the
-    /// unique index (failing the whole batch) or silently forks one person into two rows.
+    /// When the preferred key finds nothing the upsert falls back to the other candidate key before
+    /// deciding to create. Creating a row for someone who already exists under the other key is never
+    /// the desired outcome — it either violates the unique index (failing the whole batch) or silently
+    /// forks one person into two rows.
+    /// </para>
+    /// <para>
+    /// When the two keys find different rows, the preferred key decides: its row is updated and the
+    /// other key's value is left unapplied, because the other row still holds it.
     /// </para>
     /// </summary>
     public EmployeeMatchProperty MatchBy { get; }
@@ -74,7 +85,8 @@ public sealed class BulkUpsertEmployeesCommandValidator : CustomValidator<BulkUp
             // would pass a payload carrying "a1b2" and "A1B2", which the handler then treats as the
             // same employee — the second record silently overwriting the first — or which collides
             // at SaveChanges and fails the batch.
-            .Must(e => e.Select(emp => emp.EmployeeNumber).Distinct(StringComparer.OrdinalIgnoreCase).Count() == e.Count())
+            // Trimmed, as the stored value is: "A1" and "A1 " are the same employee number.
+            .Must(e => e.Select(emp => emp.EmployeeNumber.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() == e.Count())
                 .WithMessage("EmployeeNumber must be unique.")
             // Email is uniquely indexed too, so two payload records sharing an address would fail
             // the whole batch at SaveChanges. Reject the payload here, where the message names the
@@ -101,6 +113,7 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
     {
         string requestName = request.GetType().Name;
         Dictionary<string, string> errors = [];
+        Dictionary<string, string> conflicts = [];
         Dictionary<string, string> missingManagers = [];
 
         List<Employee> employees = await _waydDbContext.Employees
@@ -119,9 +132,6 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
             .GroupBy(e => e.EmployeeNumber, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
-        // Manager resolution always keys off the source's EmployeeNumber (that's what ManagerEmployeeNumber carries).
-        var employeeNumberToId = employees.ToDictionary(e => e.EmployeeNumber, e => e.Id, StringComparer.OrdinalIgnoreCase);
-
         // Track which rows the payload "claimed" — both matched-existing rows and rows created during
         // this run. Drives the deactivation pass at the end. We collect Employee.Id rather than
         // EmployeeNumber because match-by-email may rewrite EmployeeNumber, so the post-upsert "what's
@@ -129,10 +139,14 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
         // the deactivation pass would immediately deactivate them (they're saved before it runs).
         var claimedEmployeeIds = new HashSet<Guid>();
 
-        foreach (var externalEmployee in request.Employees.Where(e => !blacklist.Contains(e.EmployeeNumber)))
+        foreach (var externalEmployee in request.Employees.Where(e => !blacklist.Contains(e.EmployeeNumber.Trim())))
         {
             try
             {
+                // Stored numbers are trimmed by the aggregate, so a lookup with the source's padded
+                // value would miss the row and take the create branch.
+                var sourceEmployeeNumber = externalEmployee.EmployeeNumber.Trim();
+
                 // Pre-flight the length-constrained columns. The command validator enforces these
                 // too, but a validator failure rejects the entire payload — one over-long value
                 // from the source would block every other employee in the run. Sync is a bulk
@@ -150,26 +164,17 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
                     continue;
                 }
 
-                var managerId = GetManagerId(externalEmployee.ManagerEmployeeNumber, employeeNumberToId);
+                // The number index is re-pointed as rows change number, so a manager resolves to the
+                // row holding that number now, including rows created earlier in this run.
+                var managerId = GetManagerId(externalEmployee.ManagerEmployeeNumber, employeesByNumber);
 
-                var match = FindMatchingEmployee(externalEmployee, request.MatchBy, employeesByEmail, employeesByNumber);
-
-                if (match.IsAmbiguous)
-                {
-                    // Identity conflict: this record matches one row by number and a different row
-                    // by email. Skipping keeps both existing rows intact and surfaces the conflict
-                    // for reconciliation upstream; merging them here would be a guess.
-                    var error =
-                        $"Ambiguous match: EmployeeNumber '{externalEmployee.EmployeeNumber}' resolves to employee {match.ByNumber!.Id} " +
-                        $"but email '{externalEmployee.Email.Value}' resolves to employee {match.ByEmail!.Id}. Skipped.";
-
-                    _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", requestName, error);
-                    errors.Add(externalEmployee.EmployeeNumber, error);
-
-                    continue;
-                }
+                var match = FindMatchingEmployee(sourceEmployeeNumber, externalEmployee.Email, request.MatchBy, employeesByEmail, employeesByNumber);
 
                 var existing = match.Employee;
+
+                // The manager fix-up finds the row by number, and a key conflict can leave the row
+                // without the payload's number (another row holds it).
+                var upsertedEmployeeNumber = existing?.EmployeeNumber ?? sourceEmployeeNumber;
 
                 if (existing is not null)
                 { // update
@@ -180,11 +185,34 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
                     var previousEmail = existing.Email.Value;
                     var previousNumber = existing.EmployeeNumber;
 
+                    // The other row holds the conflicting key, and every key column is uniquely
+                    // indexed, so applying it would fail the whole batch at SaveChanges. Taking it off
+                    // the other row would guess which person really owns it, so it stays put.
+                    var employeeNumber = sourceEmployeeNumber;
+                    var email = externalEmployee.Email;
+                    var emails = ToDomainEmails(externalEmployee);
+                    string? conflict = null;
+                    if (match.ConflictsWith is { } holder)
+                    {
+                        if (request.MatchBy == EmployeeMatchProperty.EmployeeNumber)
+                        {
+                            conflict = DescribeConflict("Email", email.Value, existing, holder);
+                            email = existing.Email;
+                            var conflictingAddress = externalEmployee.Email.Value;
+                            emails = [.. emails.Where(e => !string.Equals(e.Email.Value, conflictingAddress, StringComparison.OrdinalIgnoreCase))];
+                        }
+                        else
+                        {
+                            conflict = DescribeConflict("EmployeeNumber", employeeNumber, existing, holder);
+                            employeeNumber = existing.EmployeeNumber;
+                        }
+                    }
+
                     var updateResult = existing.Update(
                         externalEmployee.Name,
-                        externalEmployee.EmployeeNumber,
+                        employeeNumber,
                         externalEmployee.HireDate,
-                        externalEmployee.Email,
+                        email,
                         externalEmployee.JobTitle,
                         externalEmployee.Department,
                         externalEmployee.OfficeLocation,
@@ -206,13 +234,19 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
                     // Runs after Update so the collection reconciles against the new canonical
                     // address. The source owns this collection, so an address it stopped reporting
                     // is removed here.
-                    var emailsResult = existing.SyncEmails(ToDomainEmails(externalEmployee), SyncActor, _dateTimeProvider.Now);
+                    var emailsResult = existing.SyncEmails(emails, SyncActor, _dateTimeProvider.Now);
                     if (emailsResult.IsFailure)
                     {
                         _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", requestName, emailsResult.Error);
                         errors.Add(externalEmployee.EmployeeNumber, emailsResult.Error);
 
                         continue;
+                    }
+
+                    if (conflict is not null)
+                    {
+                        _logger.LogWarning("Wayd Request: Key conflict for Request {Name}.  {Conflict}", requestName, conflict);
+                        conflicts.Add(externalEmployee.EmployeeNumber, conflict);
                     }
 
                     // Re-point the indexes at the row's new keys. Without this the indexes stay a
@@ -222,12 +256,14 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
                     // failing the entire batch on IX_Employees_Email.
                     Reindex(employeesByEmail, previousEmail, existing.Email.Value, existing);
                     Reindex(employeesByNumber, previousNumber, existing.EmployeeNumber, existing);
+
+                    upsertedEmployeeNumber = existing.EmployeeNumber;
                 }
                 else
                 { // create
                     var newEmployee = Employee.Create(
                         externalEmployee.Name,
-                        externalEmployee.EmployeeNumber,
+                        sourceEmployeeNumber,
                         externalEmployee.HireDate,
                         externalEmployee.Email,
                         externalEmployee.JobTitle,
@@ -249,7 +285,6 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
                     // either one matches it instead of creating a second row for the same person.
                     employeesByEmail[newEmployee.Email.Value] = newEmployee;
                     employeesByNumber[newEmployee.EmployeeNumber] = newEmployee;
-                    employeeNumberToId[newEmployee.EmployeeNumber] = newEmployee.Id;
 
                     await _waydDbContext.Employees.AddAsync(newEmployee, cancellationToken);
                 }
@@ -257,7 +292,9 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
                 // check only when no errors on update or create
                 if (managerId is null && externalEmployee.ManagerEmployeeNumber is not null)
                 {
-                    missingManagers.Add(externalEmployee.EmployeeNumber, externalEmployee.ManagerEmployeeNumber);
+                    // Assigned, not added: two records can resolve to the same row, and the last
+                    // record applied to it is the one whose manager stands.
+                    missingManagers[upsertedEmployeeNumber] = externalEmployee.ManagerEmployeeNumber.Trim();
                 }
             }
             catch (Exception ex)
@@ -277,8 +314,18 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
         if (request.DeactivateMissing)
             await DeactivateEmployeesNotInPayload(claimedEmployeeIds, cancellationToken);
 
-        return Result.Success(new BulkUpsertEmployeesResult(claimedEmployeeIds.Count, errors));
+        return Result.Success(new BulkUpsertEmployeesResult(claimedEmployeeIds.Count, errors, conflicts));
     }
+
+    /// <summary>
+    /// Says which key value was left off the matched row and which employee holds it, so an admin can
+    /// find and resolve the duplicate. Both rows are named by key and display name: either key alone may
+    /// be an opaque id (an Entra object id stands in for an unset employee number).
+    /// </summary>
+    private static string DescribeConflict(string field, string value, Employee matched, Employee holder) =>
+        $"{field} '{value}' was not applied to employee {matched.Key} ({matched.Name.DisplayName}, {matched.EmployeeNumber}) " +
+        $"because employee {holder.Key} ({holder.Name.DisplayName}, {holder.EmployeeNumber}) already holds it. " +
+        "The rest of the record was applied. Resolve the duplicate employee to apply it.";
 
     /// <summary>
     /// Identifies a payload record for a human reading an error. Both keys, because neither is reliable
@@ -375,7 +422,8 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
 
     /// <summary>
     /// Resolves the payload record to an existing row using the configured key first, then the
-    /// other candidate key. Returns the match plus whether the two keys disagreed.
+    /// other candidate key. Returns the match plus, when the two keys found different rows, the row
+    /// holding the other key.
     /// </summary>
     /// <remarks>
     /// The fallback exists because a miss on the preferred key does not mean "new person". An
@@ -385,24 +433,21 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
     /// <c>EmployeeNumber</c> are both uniquely indexed, so the insert either fails the whole batch
     /// on a duplicate key or, when only one field collides, forks the person into two rows.
     /// <para>
-    /// When the two keys resolve to <em>different</em> rows we have genuinely ambiguous identity
-    /// (this payload record looks like person A by number and person B by email). We report that
-    /// rather than guessing, because either choice silently corrupts one of the two rows and
-    /// whichever we skip would keep colliding on every subsequent run.
+    /// When the two keys resolve to <em>different</em> rows (this payload record looks like person A
+    /// by number and person B by email), the configured key's row is the match — the admin chose that
+    /// key as identity. Skipping the record instead would leave that row stale and, unclaimed, let the
+    /// deactivation pass deactivate someone the source still lists as active.
     /// </para>
     /// </remarks>
     private static EmployeeMatch FindMatchingEmployee(
-        IExternalEmployee externalEmployee,
+        string employeeNumber,
+        EmailAddress email,
         EmployeeMatchProperty matchBy,
         IReadOnlyDictionary<string, Employee> byEmail,
         IReadOnlyDictionary<string, Employee> byNumber)
     {
-        var emailMatch = byEmail.TryGetValue(externalEmployee.Email.Value, out var byE) ? byE : null;
-        var numberMatch = byNumber.TryGetValue(externalEmployee.EmployeeNumber, out var byN) ? byN : null;
-
-        // Both keys resolved, but to different people — ambiguous, don't guess.
-        if (emailMatch is not null && numberMatch is not null && emailMatch.Id != numberMatch.Id)
-            return EmployeeMatch.Ambiguous(numberMatch, emailMatch);
+        var emailMatch = byEmail.TryGetValue(email.Value, out var byE) ? byE : null;
+        var numberMatch = byNumber.TryGetValue(employeeNumber, out var byN) ? byN : null;
 
         var (preferred, fallback) = matchBy switch
         {
@@ -411,21 +456,17 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
             _ => (null, null),
         };
 
-        return EmployeeMatch.Resolved(preferred ?? fallback);
+        if (preferred is not null && fallback is not null && preferred.Id != fallback.Id)
+            return new EmployeeMatch(preferred, fallback);
+
+        return new EmployeeMatch(preferred ?? fallback, null);
     }
 
     /// <summary>
-    /// Outcome of candidate-key resolution: either a (possibly absent) unambiguous match, or a
-    /// conflict where the number and email keys point at two different existing rows.
+    /// Outcome of candidate-key resolution: the matched row, if any, and the different row that holds
+    /// the payload's other key when the two keys disagree.
     /// </summary>
-    private readonly record struct EmployeeMatch(Employee? Employee, Employee? ByNumber, Employee? ByEmail)
-    {
-        public static EmployeeMatch Resolved(Employee? employee) => new(employee, null, null);
-
-        public static EmployeeMatch Ambiguous(Employee byNumber, Employee byEmail) => new(null, byNumber, byEmail);
-
-        public bool IsAmbiguous => ByNumber is not null && ByEmail is not null;
-    }
+    private readonly record struct EmployeeMatch(Employee? Employee, Employee? ConflictsWith);
 
     private async Task ProcessMissingManagers(Dictionary<string, string> missingManagers, CancellationToken cancellationToken)
     {
@@ -491,13 +532,13 @@ public sealed class BulkUpsertEmployeesCommandHandler(IWaydDbContext waydDbConte
         _logger.LogInformation("Deactivated {Count} employees not present in the payload.", toDeactivate.Count);
     }
 
-    private static Guid? GetManagerId(string? managerEmployeeNumber, IDictionary<string, Guid> employeeNumberToId)
+    private static Guid? GetManagerId(string? managerEmployeeNumber, IReadOnlyDictionary<string, Employee> employeesByNumber)
     {
-        if (string.IsNullOrWhiteSpace(managerEmployeeNumber) || employeeNumberToId.Count == 0)
+        if (string.IsNullOrWhiteSpace(managerEmployeeNumber))
             return null;
 
-        return employeeNumberToId.TryGetValue(managerEmployeeNumber, out var id) && id != Guid.Empty
-            ? id
+        return employeesByNumber.TryGetValue(managerEmployeeNumber.Trim(), out var manager)
+            ? manager.Id
             : null;
     }
 }

@@ -435,14 +435,22 @@ public class BulkUpsertEmployeesCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_AmbiguousMatch_ReportsTheRecordAsSkipped()
+    public async Task Handle_MatchByNumber_KeysOnDifferentRows_UpdatesTheNumberRowAndLeavesTheEmailUnapplied()
     {
         // Arrange — EmployeeNumber resolves to one row, email to a different one.
-        Seed(
-            CreateExistingEmployee("E-6005", "byNumber@acme.example"),
-            CreateExistingEmployee("E-6006", "byEmail@acme.example"));
+        var byNumber = CreateExistingEmployee("E-6005", "byNumber@acme.example");
+        var byEmail = CreateExistingEmployee("E-6006", "byEmail@acme.example");
+        Seed(byNumber, byEmail);
 
-        var record = FakeExternalEmployee("E-6005", "byEmail@acme.example", isActive: true);
+        var record = FakeExternalEmployee("E-6005", "byEmail@acme.example", isActive: true) with
+        {
+            JobTitle = "Principal Engineer",
+            Emails =
+            [
+                new ExternalEmployeeEmail(new EmailAddress("byEmail@acme.example"), IsPrimary: true),
+                new ExternalEmployeeEmail(new EmailAddress("alias@acme.example"), IsPrimary: false),
+            ],
+        };
         var command = new BulkUpsertEmployeesCommand([record], EmployeeMatchProperty.EmployeeNumber);
 
         // Act
@@ -450,9 +458,172 @@ public class BulkUpsertEmployeesCommandHandlerTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Upserted.Should().Be(0);
-        result.Value.Skipped.Should().ContainKey("E-6005");
-        result.Value.Skipped["E-6005"].Should().Contain("Ambiguous match");
+        result.Value.Upserted.Should().Be(1);
+        result.Value.Skipped.Should().BeEmpty();
+        result.Value.Conflicts.Should().ContainKey("E-6005");
+        result.Value.Conflicts["E-6005"].Should()
+            .Contain("Email 'byEmail@acme.example' was not applied")
+            .And.Contain($"to employee {byNumber.Key} (Existing E-6005, E-6005)")
+            .And.Contain($"because employee {byEmail.Key} (Existing E-6006, E-6006)");
+
+        byNumber.IsActive.Should().BeTrue("the matched row is claimed, so the deactivation pass leaves it alone");
+        byNumber.JobTitle.Should().Be("Principal Engineer");
+        byNumber.Email.Value.Should().Be("byNumber@acme.example");
+        byNumber.Emails.Select(e => e.Email.Value).Should().BeEquivalentTo(["byNumber@acme.example", "alias@acme.example"]);
+
+        byEmail.Email.Value.Should().Be("byEmail@acme.example");
+        byEmail.EmployeeNumber.Should().Be("E-6006");
+        byEmail.JobTitle.Should().Be("Engineer");
+        byEmail.IsActive.Should().BeFalse("the record did not claim the row holding the other key");
+    }
+
+    [Fact]
+    public async Task Handle_MatchByEmail_KeysOnDifferentRows_UpdatesTheEmailRowAndLeavesTheNumberUnapplied()
+    {
+        // Arrange — EmployeeNumber resolves to one row, email to a different one.
+        var byNumber = CreateExistingEmployee("E-6010", "byNumber@acme.example");
+        var byEmail = CreateExistingEmployee("E-6011", "byEmail@acme.example");
+        Seed(byNumber, byEmail);
+
+        var record = FakeExternalEmployee("E-6010", "byEmail@acme.example", isActive: true) with
+        {
+            JobTitle = "Principal Engineer",
+        };
+        var command = new BulkUpsertEmployeesCommand([record], EmployeeMatchProperty.Email);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Upserted.Should().Be(1);
+        result.Value.Skipped.Should().BeEmpty();
+        result.Value.Conflicts.Should().ContainKey("E-6010");
+        result.Value.Conflicts["E-6010"].Should()
+            .Contain("EmployeeNumber 'E-6010' was not applied")
+            .And.Contain($"to employee {byEmail.Key} (Existing E-6011, E-6011)")
+            .And.Contain($"because employee {byNumber.Key} (Existing E-6010, E-6010)");
+
+        byEmail.IsActive.Should().BeTrue("the matched row is claimed, so the deactivation pass leaves it alone");
+        byEmail.JobTitle.Should().Be("Principal Engineer");
+        byEmail.EmployeeNumber.Should().Be("E-6011");
+        byEmail.Emails.Select(e => e.Email.Value).Should().BeEquivalentTo(["byEmail@acme.example"]);
+
+        byNumber.EmployeeNumber.Should().Be("E-6010");
+        byNumber.Email.Value.Should().Be("byNumber@acme.example");
+        byNumber.JobTitle.Should().Be("Engineer");
+        byNumber.IsActive.Should().BeFalse("the record did not claim the row holding the other key");
+    }
+
+    [Fact]
+    public async Task Handle_TwoRecordsResolveToOneRow_WithUnresolvedManagers_AppliesBoth()
+    {
+        // Arrange — record one matches row A by email and keeps A's number (B holds the payload's);
+        // record two carries A's number, so both records resolve to row A.
+        var rowA = CreateExistingEmployee("E-6014", "a@acme.example");
+        var rowB = CreateExistingEmployee("E-6015", "b@acme.example");
+        Seed(rowA, rowB);
+
+        var first = FakeExternalEmployee("E-6015", "a@acme.example", isActive: true) with { ManagerEmployeeNumber = "M-404" };
+        var second = FakeExternalEmployee("E-6014", "a2@acme.example", isActive: true) with
+        {
+            JobTitle = "Staff Engineer",
+            ManagerEmployeeNumber = "M-405",
+        };
+        var command = new BulkUpsertEmployeesCommand([first, second], EmployeeMatchProperty.Email, deactivateMissing: false);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Skipped.Should().BeEmpty();
+        rowA.JobTitle.Should().Be("Staff Engineer");
+    }
+
+    [Fact]
+    public async Task Handle_PaddedEmployeeNumber_MatchesTheStoredNumber()
+    {
+        // Arrange
+        var existing = CreateExistingEmployee("E-6016", "padded@acme.example");
+        Seed(existing);
+
+        var record = FakeExternalEmployee(" E-6016 ", "renamed@acme.example", isActive: true);
+        var command = new BulkUpsertEmployeesCommand([record], EmployeeMatchProperty.EmployeeNumber);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        (await GetEmployees()).Should().ContainSingle();
+        existing.Email.Value.Should().Be("renamed@acme.example");
+    }
+
+    [Fact]
+    public async Task Handle_ManagerNumberVacatedEarlierInTheRun_DoesNotResolveToTheRowThatLeftIt()
+    {
+        // Arrange — the first record moves the row off M-OLD; the second names M-OLD as its manager.
+        var manager = CreateExistingEmployee("M-OLD", "manager@acme.example");
+        var report = CreateExistingEmployee("E-6017", "report@acme.example");
+        Seed(manager, report);
+
+        var movesNumber = FakeExternalEmployee("M-NEW", "manager@acme.example", isActive: true);
+        var namesOldNumber = FakeExternalEmployee("E-6017", "report@acme.example", isActive: true) with { ManagerEmployeeNumber = "M-OLD" };
+        var command = new BulkUpsertEmployeesCommand([movesNumber, namesOldNumber], EmployeeMatchProperty.Email, deactivateMissing: false);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        manager.EmployeeNumber.Should().Be("M-NEW");
+        report.ManagerId.Should().BeNull("no employee holds M-OLD any more");
+    }
+
+    [Fact]
+    public async Task Handle_ManagerNumberTakenEarlierInTheRun_ResolvesToTheRowNowHoldingIt()
+    {
+        // Arrange
+        var manager = CreateExistingEmployee("M-OLD2", "manager2@acme.example");
+        var report = CreateExistingEmployee("E-6018", "report2@acme.example");
+        Seed(manager, report);
+
+        var movesNumber = FakeExternalEmployee("M-NEW2", "manager2@acme.example", isActive: true);
+        var namesNewNumber = FakeExternalEmployee("E-6018", "report2@acme.example", isActive: true) with { ManagerEmployeeNumber = "M-NEW2" };
+        var command = new BulkUpsertEmployeesCommand([movesNumber, namesNewNumber], EmployeeMatchProperty.Email, deactivateMissing: false);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        report.ManagerId.Should().Be(manager.Id);
+    }
+
+    [Fact]
+    public async Task Handle_MatchByEmail_KeyConflictWithMissingManager_ResolvesTheManagerOnTheMatchedRow()
+    {
+        // Arrange — the payload's number belongs to another row, so the manager fix-up must not find that one.
+        var byNumber = CreateExistingEmployee("E-6012", "byNumber@acme.example");
+        var byEmail = CreateExistingEmployee("E-6013", "byEmail@acme.example");
+        Seed(byNumber, byEmail);
+
+        var record = FakeExternalEmployee("E-6012", "byEmail@acme.example", isActive: true) with
+        {
+            ManagerEmployeeNumber = "M-1",
+        };
+        var manager = FakeExternalEmployee("M-1", "manager@acme.example", isActive: true);
+        var command = new BulkUpsertEmployeesCommand([record, manager], EmployeeMatchProperty.Email, deactivateMissing: false);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var managerRow = (await GetEmployees()).Single(e => e.EmployeeNumber == "M-1");
+        byEmail.ManagerId.Should().Be(managerRow.Id);
+        byNumber.ManagerId.Should().BeNull();
     }
 
     [Fact]

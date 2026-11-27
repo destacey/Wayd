@@ -68,7 +68,7 @@ public class PeopleSyncRunnerTests
         _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<BulkUpsertEmployeesCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((BulkUpsertEmployeesCommand c, CancellationToken _) =>
-                Result.Success(new BulkUpsertEmployeesResult(c.Employees.Count(), new Dictionary<string, string>())));
+                Result.Success(new BulkUpsertEmployeesResult(c.Employees.Count(), new Dictionary<string, string>(), new Dictionary<string, string>())));
         _mocker.GetMock<IUserService>()
             .Setup(u => u.UpdateMissingEmployeeIds(It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
@@ -291,5 +291,28 @@ public class PeopleSyncRunnerTests
         result.IsSuccess.Should().BeTrue();
         var run = _db.SyncRuns.Single();
         run.Status.Should().Be(SyncRunStatus.Failed);
+    }
+
+    [Fact]
+    public async Task Run_RecordsKeyConflictsAsErrors_WithoutCountingThemAsSkipped()
+    {
+        // Arrange
+        SeedActiveEntraConnection();
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<BulkUpsertEmployeesCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new BulkUpsertEmployeesResult(
+                1,
+                new Dictionary<string, string>(),
+                new Dictionary<string, string> { ["E1"] = "Email was not applied" })));
+
+        // Act
+        var result = await _sut.Run(SyncTriggerSource.Scheduled, SyncType.Full, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var run = _db.SyncRuns.Single();
+        run.ErrorsCount.Should().Be(1);
+        run.DetailsJson.Should().Contain("\"employeesSkipped\":0")
+            .And.Contain("Employee E1: Email was not applied");
     }
 }

@@ -223,13 +223,21 @@ public sealed class PeopleSyncRunner(
                 await SaveRun(run, details, cancellationToken);
                 return Result.Failure(upsertResult.Error);
             }
-            // The upsert skips individual records (over-long fields, ambiguous identity matches)
-            // without failing the run, so the payload count would overstate what was written.
+            // The upsert skips individual records (over-long fields) without failing the run, so the
+            // payload count would overstate what was written.
             details.EmployeesUpserted = upsertResult.Value.Upserted;
             details.EmployeesSkipped = upsertResult.Value.Skipped.Count;
             foreach (var (employeeNumber, reason) in upsertResult.Value.Skipped)
             {
                 details.Errors.Add($"Employee {employeeNumber}: {reason}");
+                run.RecordError();
+            }
+
+            // A key conflict was upserted, so it is not counted as skipped, but the duplicate it names
+            // repeats on every run until an admin resolves it.
+            foreach (var (employeeNumber, conflict) in upsertResult.Value.Conflicts)
+            {
+                details.Errors.Add($"Employee {employeeNumber}: {conflict}");
                 run.RecordError();
             }
 
@@ -350,8 +358,8 @@ public sealed class PeopleSyncRunner(
         public int EmployeesUpserted { get; set; }
 
         /// <summary>
-        /// Records the upsert rejected individually — an over-long field or an identity conflict
-        /// the sync refuses to guess at. Distinct from <see cref="EmployeesExcluded"/>: these
+        /// Records the upsert rejected individually, such as for an over-long field. A key conflict
+        /// is not counted here: its record was upserted. Distinct from <see cref="EmployeesExcluded"/>: these
         /// reached the upsert and failed there, so the reason is in <see cref="Errors"/>.
         /// </summary>
         public int EmployeesSkipped { get; set; }

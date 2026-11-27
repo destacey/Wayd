@@ -187,7 +187,7 @@ public partial class EventCoverageTests
         ["ProjectStage.UpdateStatus(TaskStatus)"] = "#950.",
         ["ProjectStage.UpdatePlannedDates(FlexibleDateRange)"] = "#950.",
         ["ProjectStage.UpdateProgress(Progress)"] = "#950.",
-        ["WorkProcess.CreateExternal(String, String, Guid, Instant)"] = "#955.",
+        ["WorkProcess.CreateExternal(String, String, Connector, Guid, Instant)"] = "#955.",
         ["WorkProcess.Update(String, String, Instant)"] = "#955.",
         ["AzureDevOpsBoardsConnection.SetSystemId(String)"] = "#956.",
         ["AzureDevOpsBoardsConnection.SyncWorkspaces(IEnumerable<AzureDevOpsBoardsWorkspace>, Instant)"] = "#956.",
@@ -317,6 +317,8 @@ public partial class EventCoverageTests
     /// </summary>
     private static readonly Dictionary<string, string> SetBasedWriteMigrations = new()
     {
+        ["20261127161348_Move-WorkProcess-To-OwnershipInfo.cs"] =
+            "Retypes each work process's external id from a GUID to the text OwnershipInfo holds, carrying the value across, and names Azure DevOps as its connector, the only source one ever came from; no fact about a work process changed: #1599.",
         ["20261118015213_Gate-Links-By-Owner.cs"] =
             "Names each link's owner type from the record it was on, removes links whose record is gone and completes scheme-less addresses, before a link raised any event; the baseline backfill that follows records what remains: #1490.",
         ["20261101202418_Assign-WorkflowSchemes-To-Scopes.cs"] =

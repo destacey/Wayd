@@ -1,5 +1,6 @@
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Validators;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Models;
 
 namespace Wayd.Common.Application.Requests.WorkManagement.Commands;
@@ -8,8 +9,9 @@ namespace Wayd.Common.Application.Requests.WorkManagement.Commands;
 /// Creates the Wayd work process for an external process, active, so workspaces can be set up on it. Its work
 /// types and workflows are kept in the status workflow engine by <see cref="SyncExternalWorkProcessWorkflowsCommand"/>.
 /// </summary>
+/// <param name="Connector">The kind of outside system the process is in.</param>
 /// <param name="ExternalWorkProcess">The external process.</param>
-public sealed record CreateExternalWorkProcessCommand(IExternalWorkProcess ExternalWorkProcess) : ICommand<IntegrationState<Guid>>;
+public sealed record CreateExternalWorkProcessCommand(Connector Connector, IExternalWorkProcess ExternalWorkProcess) : ICommand<IntegrationState<Guid>>;
 
 public sealed class CreateExternalWorkProcessCommandValidator : CustomValidator<CreateExternalWorkProcessCommand>
 {

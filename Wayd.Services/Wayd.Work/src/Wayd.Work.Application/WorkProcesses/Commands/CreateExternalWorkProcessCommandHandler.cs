@@ -18,14 +18,16 @@ public sealed class CreateExternalWorkProcessCommandHandler(IWorkDbContext workD
     {
         var externalProcess = request.ExternalWorkProcess;
 
-        if (await _workDbContext.WorkProcesses.AnyAsync(wp => wp.ExternalId == externalProcess.Id, cancellationToken))
+        var externalId = WorkProcess.ToExternalId(externalProcess.Id);
+
+        if (await _workDbContext.WorkProcesses.AnyAsync(wp => wp.OwnershipInfo.ExternalId == externalId, cancellationToken))
         {
             _logger.LogWarning("{AppRequestName}: work process {WorkProcessName} already exists.", AppRequestName, externalProcess.Name);
             return Result.Failure<IntegrationState<Guid>>($"Work process {externalProcess.Name} already exists.");
         }
 
         var timestamp = _dateTimeProvider.Now;
-        var workProcess = WorkProcess.CreateExternal(externalProcess.Name, externalProcess.Description, externalProcess.Id, timestamp);
+        var workProcess = WorkProcess.CreateExternal(externalProcess.Name, externalProcess.Description, request.Connector, externalProcess.Id, timestamp);
 
         // Created for a project that is being set up to sync, and a workspace needs an active work
         // process, so it starts active rather than waiting for an admin to switch it on.

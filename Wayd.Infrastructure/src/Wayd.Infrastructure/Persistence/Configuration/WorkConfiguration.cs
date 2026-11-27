@@ -625,24 +625,7 @@ public class IterationConfig : IEntityTypeConfiguration<Iteration>
             options.Property(d => d.End).HasColumnName("End");
         });
 
-        builder.ComplexProperty(i => i.OwnershipInfo, options =>
-        {
-            options.Property(o => o.Ownership).HasColumnName("Ownership")
-                .HasConversion<EnumConverter<Ownership>>()
-                .HasColumnType("varchar")
-                .HasMaxLength(32)
-                .IsRequired();
-            options.Property(o => o.Connector).HasColumnName("Connector")
-                .HasConversion<EnumConverter<Connector>>()
-                .HasColumnType("varchar")
-                .HasMaxLength(32);
-            options.Property(o => o.SystemId).HasColumnName("SystemId")
-                .HasColumnType("varchar")
-                .HasMaxLength(64);
-            options.Property(o => o.ExternalId).HasColumnName("ExternalId")
-                .HasColumnType("varchar")
-                .HasMaxLength(64);
-        });
+        builder.ConfigureOwnershipInfo();
 
         // Ignore
         builder.Ignore(i => i.ExternalMetadataManager);
@@ -692,19 +675,18 @@ public class WorkProcessConfig : IEntityTypeConfiguration<WorkProcess>
         builder.HasAlternateKey(w => w.Key);
 
         builder.HasIndex(i => new { i.Id, i.IsDeleted })
-            .IncludeProperties(i => new { i.Key, i.Name, i.ExternalId, i.Ownership, i.IsActive })
+            .IncludeProperties(i => new { i.Key, i.Name, i.IsActive })
             .WhereNotDeleted();
 
         builder.HasIndex(i => new { i.Key, i.IsDeleted })
-            .IncludeProperties(i => new { i.Id, i.Name, i.ExternalId, i.Ownership, i.IsActive })
+            .IncludeProperties(i => new { i.Id, i.Name, i.IsActive })
             .WhereNotDeleted();
 
         // An external process (Azure DevOps processes share one id across organizations) has one
         // Wayd work process, however many connections use it. Two setups racing for the same
-        // process make the second insert fail instead of creating a duplicate.
-        builder.HasIndex(i => i.ExternalId)
-            .IsUnique()
-            .WhereNotNullAndNotDeleted(nameof(WorkProcess.ExternalId));
+        // process make the second insert fail instead of creating a duplicate. That unique index,
+        // IX_WorkProcesses_ExternalId, is created by its migration and is absent from this model:
+        // EF cannot declare an index over a complex property's column.
 
         builder.Property(w => w.Key).ValueGeneratedOnAdd();
 
@@ -713,12 +695,13 @@ public class WorkProcessConfig : IEntityTypeConfiguration<WorkProcess>
         builder.Property(w => w.Name).HasMaxLength(128).IsRequired();
         builder.Property(w => w.Description).HasMaxLength(1024);
 
-        builder.Property(w => w.Ownership).IsRequired()
-            .HasConversion<EnumConverter<Ownership>>()
-            .HasColumnType("varchar")
-            .HasMaxLength(32);
-        builder.Property(w => w.ExternalId);
         builder.Property(w => w.IsActive);
+
+        // Value Objects
+        builder.ConfigureOwnershipInfo();
+
+        // Ignore
+        builder.Ignore(w => w.ExternalProcessId);
 
         // Soft Delete
         builder.Property(w => w.Deleted);
@@ -787,24 +770,7 @@ public class WorkspaceConfig : IEntityTypeConfiguration<Workspace>
         builder.Property(w => w.NeedsFullSync).IsRequired();
 
         // Value Objects
-        builder.ComplexProperty(w => w.OwnershipInfo, options =>
-        {
-            options.Property(o => o.Ownership).HasColumnName("Ownership")
-                .HasConversion<EnumConverter<Ownership>>()
-                .HasColumnType("varchar")
-                .HasMaxLength(32)
-                .IsRequired();
-            options.Property(o => o.Connector).HasColumnName("Connector")
-                .HasConversion<EnumConverter<Connector>>()
-                .HasColumnType("varchar")
-                .HasMaxLength(32);
-            options.Property(o => o.SystemId).HasColumnName("SystemId")
-                .HasColumnType("varchar")
-                .HasMaxLength(64);
-            options.Property(o => o.ExternalId).HasColumnName("ExternalId")
-                .HasColumnType("varchar")
-                .HasMaxLength(64);
-        });
+        builder.ConfigureOwnershipInfo();
 
 
         // Soft Delete

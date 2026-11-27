@@ -55,7 +55,7 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
                 return Result.Failure($"Unable to sync external work items for workspace {workspace.Id} because the workspace does not have a work process.");
             }
 
-            var recordTypeIds = await _statusWorkflowDbContext.SchemeRecordTypeIds(workProcess.ExternalId, cancellationToken);
+            var recordTypeIds = await _statusWorkflowDbContext.SchemeRecordTypeIds(workProcess.ExternalProcessId, cancellationToken);
             var workTypes = (await _workDbContext.WorkTypes
                 .AsNoTracking()
                 .Include(t => t.Level)

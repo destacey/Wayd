@@ -63,7 +63,8 @@ public sealed class CreateExternalWorkspaceCommandHandler(IWorkDbContext workDbC
 
     public async Task<Result<IntegrationState<Guid>>> Handle(CreateExternalWorkspaceCommand request, CancellationToken cancellationToken)
     {
-        var workProcess = await _workDbContext.WorkProcesses.FirstOrDefaultAsync(wp => wp.ExternalId == request.ExternalWorkspace.WorkProcessId, cancellationToken);
+        var workProcessExternalId = WorkProcess.ToExternalId(request.ExternalWorkspace.WorkProcessId);
+        var workProcess = await _workDbContext.WorkProcesses.FirstOrDefaultAsync(wp => wp.OwnershipInfo.ExternalId == workProcessExternalId, cancellationToken);
         if (workProcess is null || !workProcess.IsActive)
         {
             _logger.LogWarning("Unable to create an external workspace {WorkspaceExternalId} without an active work process {WorkProcessExternalId}.", request.ExternalWorkspace.Id, request.ExternalWorkspace.WorkProcessId);

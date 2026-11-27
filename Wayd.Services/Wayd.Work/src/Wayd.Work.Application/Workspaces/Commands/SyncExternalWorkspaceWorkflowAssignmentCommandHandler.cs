@@ -41,7 +41,7 @@ public sealed class SyncExternalWorkspaceWorkflowAssignmentCommandHandler(
             from w in _workDbContext.Workspaces
             join p in _workDbContext.WorkProcesses on w.WorkProcessId equals p.Id
             where w.Id == request.WorkspaceId
-            select new { w.Id, w.Name, ProcessExternalId = p.ExternalId })
+            select new { w.Id, w.Name, ProcessExternalId = p.OwnershipInfo.ExternalId })
             .FirstOrDefaultAsync(cancellationToken);
         if (workspace is null)
         {
@@ -50,7 +50,7 @@ public sealed class SyncExternalWorkspaceWorkflowAssignmentCommandHandler(
         }
 
         var ownerType = WorkWorkflowOwners.WorkItem.Key;
-        string? schemeKey = workspace.ProcessExternalId is { } processExternalId ? ManagedWorkflowKeys.Scheme(processExternalId) : null;
+        string? schemeKey = Guid.TryParse(workspace.ProcessExternalId, out var processExternalId) ? ManagedWorkflowKeys.Scheme(processExternalId) : null;
         var schemeExists = schemeKey is not null && await _statusWorkflowDbContext.StatusWorkflowSchemes
             .AnyAsync(s => s.OwnerType == ownerType && s.ExternalKey == schemeKey, cancellationToken);
         if (!schemeExists)

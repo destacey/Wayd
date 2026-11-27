@@ -14,6 +14,6 @@ public sealed record WorkProcessDto : IMapFrom<WorkProcess>
     public void ConfigureMapping(TypeAdapterConfig config)
     {
         config.NewConfig<WorkProcess, WorkProcessDto>()
-            .Map(dest => dest.Ownership, src => SimpleNavigationDto.FromEnum(src.Ownership));
+            .Map(dest => dest.Ownership, src => SimpleNavigationDto.FromEnum(src.OwnershipInfo.Ownership));
     }
 }

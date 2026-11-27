@@ -5,6 +5,8 @@ using NodaTime;
 using NodaTime.Testing;
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
+using Wayd.Common.Domain.Enums.AppIntegrations;
+using Wayd.Common.Domain.Models;
 using Wayd.Tests.Shared;
 using Wayd.Work.Application.Tests.Infrastructure;
 using Wayd.Work.Application.WorkProcesses.Commands;
@@ -33,19 +35,34 @@ public sealed class CreateExternalWorkProcessCommandHandlerTests : IDisposable
         var process = ExternalProcess("Agile", "The Agile process.");
 
         // Act
-        var result = await _handler.Handle(new CreateExternalWorkProcessCommand(process), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new CreateExternalWorkProcessCommand(Connector.AzureDevOps, process), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         _dbContext.SaveChangesCallCount.Should().Be(1);
         var workProcess = _dbContext.WorkProcesses.Single();
-        workProcess.ExternalId.Should().Be(process.Id);
+        workProcess.OwnershipInfo.Should().Be(OwnershipInfo.CreateExternalOwned(Connector.AzureDevOps, null, process.Id.ToString()));
+        workProcess.ExternalProcessId.Should().Be(process.Id);
         workProcess.Name.Should().Be("Agile");
         workProcess.Description.Should().Be("The Agile process.");
         // A workspace can only be created on an active work process.
         workProcess.IsActive.Should().BeTrue();
         result.Value.InternalId.Should().Be(workProcess.Id);
         result.Value.IsActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_RecordsTheConnectorTheCommandNames()
+    {
+        // Arrange
+        var process = ExternalProcess("Onboarding");
+
+        // Act
+        var result = await _handler.Handle(new CreateExternalWorkProcessCommand(Connector.Workday, process), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        _dbContext.WorkProcesses.Single().OwnershipInfo.Connector.Should().Be(Connector.Workday);
     }
 
     [Fact]
@@ -56,7 +73,7 @@ public sealed class CreateExternalWorkProcessCommandHandlerTests : IDisposable
         _dbContext.AddWorkProcess(new WorkProcessFaker().AsExternal(process.Id).Generate());
 
         // Act
-        var result = await _handler.Handle(new CreateExternalWorkProcessCommand(process), TestContext.Current.CancellationToken);
+        var result = await _handler.Handle(new CreateExternalWorkProcessCommand(Connector.AzureDevOps, process), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();

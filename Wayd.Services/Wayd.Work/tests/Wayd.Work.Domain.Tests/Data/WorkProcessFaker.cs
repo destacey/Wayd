@@ -1,4 +1,5 @@
-using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Enums.AppIntegrations;
+using Wayd.Common.Domain.Models;
 using Wayd.Tests.Shared.Data;
 using Wayd.Work.Domain.Models;
 using Wayd.TestData.Core;
@@ -13,8 +14,7 @@ public class WorkProcessFaker : PrivateConstructorFaker<WorkProcess>
         RuleFor(x => x.Key, f => f.Random.Int(1, 10000));
         RuleFor(x => x.Name, f => f.Company.CompanyName());
         RuleFor(x => x.Description, f => f.Lorem.Sentence());
-        RuleFor(x => x.Ownership, Ownership.Owned);
-        RuleFor(x => x.ExternalId, (Guid?)null);
+        RuleFor(x => x.OwnershipInfo, OwnershipInfo.CreateWaydOwned());
         RuleFor(x => x.IsActive, true);
     }
 }
@@ -45,16 +45,20 @@ public static class WorkProcessFakerExtensions
         return faker;
     }
 
-    public static WorkProcessFaker WithOwnership(this WorkProcessFaker faker, Ownership ownership)
+    public static WorkProcessFaker WithOwnershipInfo(this WorkProcessFaker faker, OwnershipInfo ownershipInfo)
     {
-        faker.RuleFor(x => x.Ownership, ownership);
+        faker.RuleFor(x => x.OwnershipInfo, ownershipInfo);
         return faker;
     }
 
+    /// <summary>
+    /// A work process managed from Azure DevOps with the given process id, or one owned by Wayd when null.
+    /// </summary>
     public static WorkProcessFaker WithExternalId(this WorkProcessFaker faker, Guid? externalId)
     {
-        faker.RuleFor(x => x.ExternalId, externalId);
-        return faker;
+        return faker.WithOwnershipInfo(externalId is { } id
+            ? OwnershipInfo.CreateExternalOwned(Connector.AzureDevOps, null, WorkProcess.ToExternalId(id))
+            : OwnershipInfo.CreateWaydOwned());
     }
 
     public static WorkProcessFaker WithIsActive(this WorkProcessFaker faker, bool isActive)
@@ -65,11 +69,6 @@ public static class WorkProcessFakerExtensions
 
     public static WorkProcessFaker AsExternal(this WorkProcessFaker faker, Guid? externalId = null)
     {
-        var id = externalId ?? faker.Generate().Id;
-
-        faker.WithOwnership(Ownership.Managed);
-        faker.WithExternalId(externalId ?? id);
-
-        return faker;
+        return faker.WithExternalId(externalId ?? Guid.NewGuid());
     }
 }

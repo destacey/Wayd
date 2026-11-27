@@ -54,8 +54,9 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandler(
         var process = request.WorkProcess;
         var ownerType = WorkWorkflowOwners.WorkItem.Key;
 
+        var externalId = WorkProcess.ToExternalId(process.Id);
         var workProcessId = await _workDbContext.WorkProcesses
-            .Where(p => p.ExternalId == process.Id)
+            .Where(p => p.OwnershipInfo.ExternalId == externalId)
             .Select(p => (Guid?)p.Id)
             .FirstOrDefaultAsync(cancellationToken);
         if (workProcessId is null)

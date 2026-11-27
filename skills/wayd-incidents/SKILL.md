@@ -18,3 +18,5 @@ Confirm every change with the user before you make it. Reads need no confirmatio
 3. To add a scale: `IncidentSeveritySets_CreateSet` with at least two `levelNames`, most severe first.
 
 System sets (`isSystem: true`) cannot be updated or deleted. The selected set cannot be deactivated or deleted. Removing a level from a custom set fails while an incident still uses that level id.
+
+An incident's conversation is held through the `Discussions_*` tools, with `channelType` `product.incident` and the incident's UUID as `ownerId`. Read the `wayd-discussions` skill before calling them.

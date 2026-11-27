@@ -18,7 +18,7 @@ namespace Wayd.Work.Domain.Models;
 /// </summary>
 /// <remarks>An iteration is characterized by its name, type, date range, and ownership information.  Its state is not
 /// stored: it follows the dates and is worked out when read (see <see cref="TeamSprintTimeline.StateAt"/>).</remarks>
-public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIteration, IHasOptionalWorkTeam
+public sealed class Iteration : BaseAuditableEntity, IHasIdAndKey, ISimpleIteration, IHasOptionalWorkTeam, IHasOwnershipInfo
 {
     private readonly List<KeyValueObjectMetadata> _externalMetadata = [];
     private List<TeamDayOff> _teamDaysOff = [];

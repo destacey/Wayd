@@ -115,7 +115,8 @@ an account. So the loop back to a working token is:
    account is created with no forced password change, so it is usable immediately.
 3. **Create a seeding account linked to an employee.** The incident import records the token's account as
    who submitted each incident, so it refuses an account linked to no employee, and an account cannot link
-   itself. As the first admin, create an employee (`POST /api/organization/employees`), then a second
+   itself. As the first admin, create an employee (`POST /api/organization/employees`, which requires an
+   `accessEndDate`: give one far enough ahead that the account keeps working), then a second
    account linked to it: `POST /api/user-management/users` with `firstName`, `lastName`, `email`,
    `loginProvider: "Wayd"`, a `password`, `roleNames: ["Admin"]` and the employee's id as `employeeId`. The
    seed checks the link before posting anything. Skip this step if the seed generates no incidents.
@@ -481,6 +482,9 @@ Operations) has its own management chains and **no team memberships**.
   up to five years back) and the current team structure as ~2 years old (`teamStructureAgeYears`; team
   active dates within two years).
 - **Former employees** — people who held a position and left it; see [Attrition](#attrition).
+- **Access end** — the import creates employees owned by Wayd, which each need an access end date. A current
+  employee's is ten years past the run's date, so the hourly access check leaves a seeded database alone; a
+  former employee's is the day they left.
 
 ### Attrition
 

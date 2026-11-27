@@ -253,7 +253,8 @@ public sealed class ImportPreflightTests(WaydSqlServerApiFactory factory)
         string importId, string number, string? managerNumber, bool isActive = true) =>
         new(importId, new ImportEmployeeDto(
             number, "Preflight", null, number, new EmailAddress($"{number.ToLowerInvariant()}@preflight.test"),
-            HireDate: null, JobTitle: null, Department: null, OfficeLocation: null, managerNumber, isActive));
+            HireDate: null, JobTitle: null, Department: null, OfficeLocation: null, managerNumber, isActive,
+            AccessEndDate: new NodaTime.LocalDate(2099, 12, 31)));
 
     private static SubmittedImportRow<ImportTeamDto> Team(string importId, string code, TeamType type) =>
         new(importId, new ImportTeamDto(type, $"Preflight {code}", new TeamCode(code), null, new LocalDate(2026, 1, 5)));

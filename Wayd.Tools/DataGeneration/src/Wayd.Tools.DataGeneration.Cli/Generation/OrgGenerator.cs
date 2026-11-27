@@ -30,6 +30,12 @@ public sealed class OrgGenerator
     // Names of the delivery groups that have no team of teams to name them. Planning intervals are named
     // after the group, and the import rejects two intervals of the same name.
     private readonly HashSet<string> _groupNames = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>
+    /// How far past the run's date a current employee's access runs: far enough that a seeded database stays
+    /// usable for years without the daily access check deactivating everyone.
+    /// </summary>
+    private const int AccessYearsAhead = 10;
+
     private int _nextEmployeeSeq = 1000;
 
     /// <summary>The area name this generator draws its seed under.</summary>
@@ -62,7 +68,7 @@ public sealed class OrgGenerator
         AssignEmployeeTypes();
 
         return new GeneratedOrg(
-            _people.Select(p => p.ToRow()).ToList(),
+            _people.Select(p => p.ToRow(_context.AsOf.AddYears(AccessYearsAhead))).ToList(),
             _teams,
             _teamMemberships,
             _members,
@@ -349,8 +355,11 @@ public sealed class OrgGenerator
         public DateOnly? LeftOn { get; set; }
         public string EmployeeType { get; set; } = OrgVocabulary.RegularEmployeeType;
 
-        public EmployeeCsvRow ToRow() => new()
+        /// <param name="currentAccessEnd">The access end given to someone still employed.</param>
+        public EmployeeCsvRow ToRow(DateOnly currentAccessEnd) => new()
         {
+            // The import creates employees Wayd owns, which need an access end: a leaver's ended when they left.
+            AccessEndDate = LeftOn ?? currentAccessEnd,
             ImportId = EmployeeNumber,
             EmployeeNumber = EmployeeNumber,
             FirstName = FirstName,

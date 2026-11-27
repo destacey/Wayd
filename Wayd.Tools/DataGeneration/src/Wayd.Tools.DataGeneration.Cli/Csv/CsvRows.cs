@@ -38,6 +38,9 @@ public sealed partial class EmployeeCsvRow
     public string? ManagerNumber { get; init; }
     public bool IsActive { get; init; } = true;
     public string? EmployeeType { get; init; }
+
+    /// <summary>The last day the employee keeps access; the import requires one on every row.</summary>
+    public required DateOnly AccessEndDate { get; init; }
 }
 
 /// <summary>One row of the unified teams CSV. <see cref="Type"/> is "Team" or "TeamOfTeams".</summary>

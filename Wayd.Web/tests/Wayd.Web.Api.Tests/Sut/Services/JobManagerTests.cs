@@ -8,7 +8,9 @@ using Moq;
 using Moq.AutoMock;
 using NodaTime;
 using Wayd.Common.Application.Attachments.Commands;
+using Wayd.Common.Application.Employees.Commands;
 using Wayd.Common.Application.Enums;
+using Wayd.Common.Application.Identity.Users;
 using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Interfaces;
@@ -69,6 +71,39 @@ public sealed class JobManagerTests
     }
 
     [Fact]
+    public async Task RunEmployeeAccessEnd_SyncsUsers_WhenItDeactivatedEmployees()
+    {
+        // Arrange
+        _dispatcher.Setup(d => d.Send(It.IsAny<DeactivateEmployeesPastAccessEndCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(2));
+        _mocker.GetMock<IUserService>()
+            .Setup(u => u.SyncUsersFromEmployeeRecords(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
+        var sut = _mocker.CreateInstance<JobManager>();
+
+        // Act
+        await sut.RunEmployeeAccessEnd(TestContext.Current.CancellationToken);
+
+        // Assert — a deactivated employee's linked user is deactivated only by the user sync
+        _mocker.GetMock<IUserService>().Verify(u => u.SyncUsersFromEmployeeRecords(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunEmployeeAccessEnd_SkipsTheUserSync_WhenNoEmployeeWasDeactivated()
+    {
+        // Arrange
+        _dispatcher.Setup(d => d.Send(It.IsAny<DeactivateEmployeesPastAccessEndCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(0));
+        var sut = _mocker.CreateInstance<JobManager>();
+
+        // Act
+        await sut.RunEmployeeAccessEnd(TestContext.Current.CancellationToken);
+
+        // Assert
+        _mocker.GetMock<IUserService>().Verify(u => u.SyncUsersFromEmployeeRecords(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public void EveryJob_SetsItsRetryCountAndDisallowsConcurrentRuns()
     {
         // Arrange
@@ -102,6 +137,7 @@ public sealed class JobManagerTests
     [InlineData(nameof(JobManager.RunImportRetentionSweep))]
     [InlineData(nameof(JobManager.RunNotificationRetentionSweep))]
     [InlineData(nameof(JobManager.RunAttachmentSweep))]
+    [InlineData(nameof(JobManager.RunEmployeeAccessEnd))]
     public void Job_IsSkipped_WhenAnotherRunIsInProgress(string jobName)
     {
         // Arrange
@@ -127,6 +163,7 @@ public sealed class JobManagerTests
     [InlineData(nameof(JobManager.RunImportRetentionSweep), null, 0)]
     [InlineData(nameof(JobManager.RunNotificationRetentionSweep), null, 0)]
     [InlineData(nameof(JobManager.RunAttachmentSweep), null, 0)]
+    [InlineData(nameof(JobManager.RunEmployeeAccessEnd), null, 0)]
     public void Job_IsSkipped_OnlyWhenTheRunInProgressCoversIt(string jobName, Type? coverage, int waitSeconds)
     {
         // Arrange
@@ -166,6 +203,7 @@ public sealed class JobManagerTests
     [InlineData(nameof(JobManager.RunImportRetentionSweep))]
     [InlineData(nameof(JobManager.RunNotificationRetentionSweep))]
     [InlineData(nameof(JobManager.RunAttachmentSweep))]
+    [InlineData(nameof(JobManager.RunEmployeeAccessEnd))]
     public void Job_IsNotRetried(string jobName)
     {
         // Arrange
@@ -206,6 +244,7 @@ public sealed class JobManagerTests
     [InlineData(nameof(JobManager.RunImportRetentionSweep))]
     [InlineData(nameof(JobManager.RunNotificationRetentionSweep))]
     [InlineData(nameof(JobManager.RunAttachmentSweep))]
+    [InlineData(nameof(JobManager.RunEmployeeAccessEnd))]
     public async Task SingleStepJob_Fails_WhenTheSyncReturnsAFailure(string jobName)
     {
         // Arrange
@@ -228,6 +267,7 @@ public sealed class JobManagerTests
     [InlineData(nameof(JobManager.RunImportRetentionSweep))]
     [InlineData(nameof(JobManager.RunNotificationRetentionSweep))]
     [InlineData(nameof(JobManager.RunAttachmentSweep))]
+    [InlineData(nameof(JobManager.RunEmployeeAccessEnd))]
     public async Task SingleStepJob_Succeeds_WhenTheSyncSucceeds(string jobName)
     {
         // Arrange
@@ -492,6 +532,9 @@ public sealed class JobManagerTests
             case nameof(JobManager.RunAttachmentSweep):
                 _dispatcher.Setup(d => d.Send(It.IsAny<PurgeAbandonedAttachmentsCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync(count).Verifiable(Times.Once);
                 break;
+            case nameof(JobManager.RunEmployeeAccessEnd):
+                _dispatcher.Setup(d => d.Send(It.IsAny<DeactivateEmployeesPastAccessEndCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync(count).Verifiable(Times.Once);
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(jobName), jobName, null);
         }
@@ -507,6 +550,7 @@ public sealed class JobManagerTests
         nameof(JobManager.RunImportRetentionSweep) => sut.RunImportRetentionSweep(TestContext.Current.CancellationToken),
         nameof(JobManager.RunNotificationRetentionSweep) => sut.RunNotificationRetentionSweep(TestContext.Current.CancellationToken),
         nameof(JobManager.RunAttachmentSweep) => sut.RunAttachmentSweep(TestContext.Current.CancellationToken),
+        nameof(JobManager.RunEmployeeAccessEnd) => sut.RunEmployeeAccessEnd(TestContext.Current.CancellationToken),
         _ => throw new ArgumentOutOfRangeException(nameof(jobName), jobName, null),
     };
 }

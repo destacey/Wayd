@@ -40,12 +40,22 @@ public sealed record CreateEmployeeRequest
     /// <summary>Gets the manager identifier.</summary>
     public Guid? ManagerId { get; set; }
 
+    /// <summary>The working relationship, in the organization's own words, such as Advisor or Contractor.</summary>
+    public string? EmployeeType { get; set; }
+
+    /// <summary>
+    /// The last day the employee keeps access, in <c>YYYY-MM-DD</c> form; today or later. Required: an employee
+    /// created here is one no people sync manages, so nothing else ends its access. Once the day has passed the
+    /// employee is deactivated, and any user linked to it with it.
+    /// </summary>
+    public LocalDate? AccessEndDate { get; set; }
+
     public CreateEmployeeCommand ToCreateEmployeeCommand()
     {
         PersonName personName = new(FirstName, MiddleName, LastName, Suffix, Title);
         EmailAddress emailAddress = (EmailAddress)Email;
 
-        return new CreateEmployeeCommand(personName, EmployeeNumber, HireDate, emailAddress, JobTitle, Department, OfficeLocation, ManagerId);
+        return new CreateEmployeeCommand(personName, EmployeeNumber, HireDate, emailAddress, JobTitle, Department, OfficeLocation, ManagerId, EmployeeType, AccessEndDate);
     }
 }
 
@@ -74,7 +84,7 @@ public sealed class CreateEmployeeRequestValidator : CustomValidator<CreateEmplo
 
         RuleFor(e => e.EmployeeNumber)
             .NotEmpty()
-            .MaximumLength(256);
+            .MaximumLength(64);
 
         RuleFor(e => e.Email)
             .NotEmpty()
@@ -88,5 +98,11 @@ public sealed class CreateEmployeeRequestValidator : CustomValidator<CreateEmplo
 
         RuleFor(e => e.OfficeLocation)
             .MaximumLength(256);
+
+        RuleFor(e => e.EmployeeType)
+            .MaximumLength(128);
+
+        RuleFor(e => e.AccessEndDate)
+            .NotNull();
     }
 }

@@ -43,12 +43,21 @@ public sealed record UpdateEmployeeRequest
     /// <summary>Gets the manager identifier.</summary>
     public Guid? ManagerId { get; set; }
 
+    /// <summary>The working relationship, in the organization's own words, such as Advisor or Contractor.</summary>
+    public string? EmployeeType { get; set; }
+
+    /// <summary>
+    /// The last day the employee keeps access, in <c>YYYY-MM-DD</c> form. Required. Once the day has passed the
+    /// employee is deactivated, and any user linked to it with it.
+    /// </summary>
+    public LocalDate? AccessEndDate { get; set; }
+
     public UpdateEmployeeCommand ToUpdateEmployeeCommand()
     {
         PersonName personName = new(FirstName, MiddleName, LastName, Suffix, Title);
         EmailAddress emailAddress = (EmailAddress)Email;
 
-        return new UpdateEmployeeCommand(Id, personName, EmployeeNumber, HireDate, emailAddress, JobTitle, Department, OfficeLocation, ManagerId);
+        return new UpdateEmployeeCommand(Id, personName, EmployeeNumber, HireDate, emailAddress, JobTitle, Department, OfficeLocation, ManagerId, EmployeeType, AccessEndDate);
     }
 }
 
@@ -77,7 +86,7 @@ public sealed class UpdateEmployeeRequestValidator : CustomValidator<UpdateEmplo
 
         RuleFor(e => e.EmployeeNumber)
             .NotEmpty()
-            .MaximumLength(256);
+            .MaximumLength(64);
 
         RuleFor(e => e.Email)
             .NotEmpty()
@@ -91,5 +100,11 @@ public sealed class UpdateEmployeeRequestValidator : CustomValidator<UpdateEmplo
 
         RuleFor(e => e.OfficeLocation)
             .MaximumLength(256);
+
+        RuleFor(e => e.EmployeeType)
+            .MaximumLength(128);
+
+        RuleFor(e => e.AccessEndDate)
+            .NotNull();
     }
 }

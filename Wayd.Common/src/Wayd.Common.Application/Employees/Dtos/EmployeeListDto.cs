@@ -1,5 +1,6 @@
 ﻿using Mapster;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Helpers;
 
 namespace Wayd.Common.Application.Employees.Dtos;
@@ -55,9 +56,18 @@ public sealed record EmployeeListDto : IMapFrom<Employee>
     /// <summary>Source-system classification of the working relationship (e.g. "Regular Employee", "Contingent Worker"). Free-form; null when not provided.</summary>
     public string? EmployeeType { get; set; }
 
+    /// <summary>
+    /// Who writes the employee's details: <c>Owned</c> when Wayd's admins do, <c>Managed</c> when a people sync does.
+    /// </summary>
+    public Ownership Ownership { get; set; }
+
+    /// <summary>The last day an employee Wayd owns keeps access; null for a managed employee.</summary>
+    public LocalDate? AccessEndDate { get; set; }
+
     public void ConfigureMapping(TypeAdapterConfig config)
     {
         config.NewConfig<Employee, EmployeeListDto>()
+            .Map(dest => dest.Ownership, src => src.OwnershipInfo.Ownership)
             .Map(dest => dest.DisplayName, src => StringHelpers.Concat(src.Name.FirstName, src.Name.LastName))
             .Map(dest => dest.FirstName, src => src.Name.FirstName)
             .Map(dest => dest.MiddleName, src => src.Name.MiddleName)

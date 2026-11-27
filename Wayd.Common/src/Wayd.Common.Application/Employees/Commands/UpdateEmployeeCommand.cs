@@ -6,7 +6,7 @@ namespace Wayd.Common.Application.Employees.Commands;
 
 public sealed record UpdateEmployeeCommand : ICommand<int>
 {
-    public UpdateEmployeeCommand(Guid id, PersonName name, string employeeNumber, Instant? hireDate, EmailAddress email, string? jobTitle, string? department, string? officeLocation, Guid? managerId)
+    public UpdateEmployeeCommand(Guid id, PersonName name, string employeeNumber, Instant? hireDate, EmailAddress email, string? jobTitle, string? department, string? officeLocation, Guid? managerId, string? employeeType, LocalDate? accessEndDate)
     {
         Id = id;
         Name = name;
@@ -17,6 +17,8 @@ public sealed record UpdateEmployeeCommand : ICommand<int>
         Department = department;
         OfficeLocation = officeLocation;
         ManagerId = managerId;
+        EmployeeType = employeeType;
+        AccessEndDate = accessEndDate;
     }
 
     /// <summary>Gets or sets the identifier.</summary>
@@ -54,6 +56,15 @@ public sealed record UpdateEmployeeCommand : ICommand<int>
     /// <summary>Gets the manager identifier.</summary>
     /// <value>The manager identifier.</value>
     public Guid? ManagerId { get; }
+
+    /// <summary>The working relationship, as the admin describes it: free text, such as Advisor or Contractor.</summary>
+    public string? EmployeeType { get; }
+
+    /// <summary>
+    /// The last day the employee keeps access. Required: no people sync manages this employee, so nothing
+    /// else will ever end its access. A date already past ends it at the next access check.
+    /// </summary>
+    public LocalDate? AccessEndDate { get; }
 }
 
 public sealed class UpdateEmployeeCommandValidator : CustomValidator<UpdateEmployeeCommand>
@@ -70,9 +81,10 @@ public sealed class UpdateEmployeeCommandValidator : CustomValidator<UpdateEmplo
             .NotNull()
             .SetValidator(new PersonNameValidator());
 
+        // 64, not the column's 256: a people sync that later adopts the employee uses the number as its external id.
         RuleFor(e => e.EmployeeNumber)
             .NotEmpty()
-            .MaximumLength(256)
+            .MaximumLength(64)
             .MustAsync(async (cmd, employeeNumber, cancellationToken) => await BeUniqueEmployeeNumber(cmd.Id, employeeNumber, cancellationToken))
                 .WithMessage("The EmployeeNumber already exists.");
 
@@ -88,6 +100,12 @@ public sealed class UpdateEmployeeCommandValidator : CustomValidator<UpdateEmplo
 
         RuleFor(e => e.OfficeLocation)
             .MaximumLength(256);
+
+        RuleFor(e => e.EmployeeType)
+            .MaximumLength(128);
+
+        RuleFor(e => e.AccessEndDate)
+            .NotNull().WithMessage("An access end date is required for an employee no people sync manages.");
     }
 
     public async Task<bool> BeUniqueEmployeeNumber(Guid id, string employeeNumber, CancellationToken cancellationToken)
@@ -138,8 +156,8 @@ public sealed class UpdateEmployeeCommandHandler : ICommandHandler<UpdateEmploye
             request.Department,
             request.OfficeLocation,
             request.ManagerId,
-            employee.EmployeeType,
-            employee.AccessEndDate,
+            request.EmployeeType,
+            request.AccessEndDate,
             EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
             _dateTimeProvider.Now
             );

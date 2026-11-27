@@ -10,8 +10,9 @@ namespace Wayd.Web.Api.Services;
 /// it could record the failure, and the only thing that republishes a run whose message never arrived —
 /// the import retention sweep, the only thing that discards the copy of each uploaded file once its
 /// run is old enough that nobody will retry it, the notification retention sweep, the only thing that
-/// keeps notifications from growing without end, and the attachment sweep, the only thing that deletes
-/// images uploaded into a form that was never saved.
+/// keeps notifications from growing without end, the attachment sweep, the only thing that deletes
+/// images uploaded into a form that was never saved, and the employee access end, the only thing that
+/// deactivates an employee no people sync manages.
 /// </summary>
 /// <remarks>
 /// Each is added only when absent, and matched on the method rather than an id, so a schedule an admin
@@ -28,6 +29,7 @@ public static class DefaultRecurringJobs
     public const string ImportRetentionSweepJobId = "import-retention-sweep";
     public const string NotificationRetentionSweepJobId = "notification-retention-sweep";
     public const string AttachmentSweepJobId = "attachment-sweep";
+    public const string EmployeeAccessEndJobId = "employee-access-end";
 
     // Its grace periods are 15 and 30 minutes, so checking every five keeps the wait close to them.
     private const string ImportStallRecoveryCron = "*/5 * * * *";
@@ -41,6 +43,10 @@ public static class DefaultRecurringJobs
 
     // Uploads are kept 24 hours unclaimed; hourly keeps an abandoned one from lingering much past that.
     private const string AttachmentSweepCron = "15 * * * *";
+
+    // Access ends at midnight in the system time zone, which a UTC schedule cannot name; hourly ends it
+    // within the hour whatever the zone.
+    private const string EmployeeAccessEndCron = "45 * * * *";
 
     // Methods removed from IJobManager that a deployment may still have scheduled. An entry can be dropped
     // once every deployment has started at least once with it in place.
@@ -59,6 +65,8 @@ public static class DefaultRecurringJobs
             jobManager => () => jobManager.RunNotificationRetentionSweep(CancellationToken.None)),
         (AttachmentSweepJobId, nameof(IJobManager.RunAttachmentSweep), AttachmentSweepCron,
             jobManager => () => jobManager.RunAttachmentSweep(CancellationToken.None)),
+        (EmployeeAccessEndJobId, nameof(IJobManager.RunEmployeeAccessEnd), EmployeeAccessEndCron,
+            jobManager => () => jobManager.RunEmployeeAccessEnd(CancellationToken.None)),
     ];
 
     public static void EnsureDefaultRecurringJobs(this IServiceProvider services)

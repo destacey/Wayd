@@ -21,15 +21,58 @@ public sealed class CreateEmployeeCommandHandlerTests
         var currentUser = new Mock<ICurrentUser>();
         currentUser.Setup(u => u.GetUserId()).Returns(SystemUser.Id);
 
+        var calendar = new Mock<ISystemCalendar>();
+        calendar.Setup(c => c.Today(It.IsAny<CancellationToken>())).ReturnsAsync(Today);
+
         return new CreateEmployeeCommandHandler(
             _dbContext,
             new TestingDateTimeProvider(new FakeClock(Instant.FromUtc(2026, 6, 2, 0, 0))),
+            calendar.Object,
             currentUser.Object,
             NullLogger<CreateEmployeeCommandHandler>.Instance);
     }
 
-    private static CreateEmployeeCommand Command(Guid? managerId) =>
-        new(new PersonName("Dana", null, "Reyes"), "E-1001", null, new EmailAddress("dana.reyes@acme.example"), null, null, null, managerId);
+    private static readonly LocalDate Today = new(2026, 6, 1);
+
+    private static CreateEmployeeCommand Command(Guid? managerId, LocalDate? accessEndDate = null) =>
+        new(new PersonName("Dana", null, "Reyes"), "E-1001", null, new EmailAddress("dana.reyes@acme.example"), null, null, null, managerId,
+            "Advisor", accessEndDate ?? new LocalDate(2027, 6, 30));
+
+    [Fact]
+    public async Task Handle_CreatesAnOwnedEmployee_WithTheAccessEndDateAndType()
+    {
+        // Act
+        var result = await CreateHandler().Handle(Command(null), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var employee = _dbContext.Employees.Single();
+        employee.IsManaged.Should().BeFalse();
+        employee.AccessEndDate.Should().Be(new LocalDate(2027, 6, 30));
+        employee.EmployeeType.Should().Be("Advisor");
+    }
+
+    [Fact]
+    public async Task Handle_AccessEndDateInThePast_FailsAndCreatesNothing()
+    {
+        // Act
+        var result = await CreateHandler().Handle(Command(null, Today.PlusDays(-1)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        _dbContext.Employees.Should().BeEmpty();
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_AccessEndDateToday_Creates()
+    {
+        // Act
+        var result = await CreateHandler().Handle(Command(null, Today), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
 
     [Fact]
     public async Task Handle_UnknownManager_FailsAndCreatesNothing()

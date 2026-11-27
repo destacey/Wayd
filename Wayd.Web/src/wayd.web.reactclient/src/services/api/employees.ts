@@ -66,7 +66,7 @@ export const getEmployeesGetListUrl = (params?: EmployeesGetListParams,) => {
 }
 
 /**
- * Returns active employees only unless `includeInactive` is true, sorted by last name. An employee is the person record that role, assignee and `employeeId` fields take, not a sign-in account. Each carries its UUID `id` (what those fields and the other employee tools take), integer `key`, employee number, email, job title, department and `manager`. Call it once and filter the result to resolve names to ids.
+ * Returns active employees only unless `includeInactive` is true, sorted by last name. An employee is the person record that role, assignee and `employeeId` fields take, not a sign-in account. Each carries its UUID `id` (what those fields and the other employee tools take), integer `key`, employee number, email, job title, department, `manager`, and `ownership`: `Managed` for one a people sync writes, `Owned` for one Wayd's admins do. Call it once and filter the result to resolve names to ids.
  * @summary Get a list of all employees.
  */
 export const employeesGetList = async (params?: EmployeesGetListParams, options?: Parameters<typeof apiFetch>[1]): Promise<EmployeeListDto[]> => {
@@ -90,7 +90,7 @@ export const getEmployeesCreateUrl = () => {
 }
 
 /**
- * Adds an active person record by hand, for someone no people connector syncs. Creates no sign-in account. `employeeNumber` must be unique across employees. `managerId` is another employee's UUID; one that matches no employee is refused. Returns the new employee's id and key.
+ * Adds an active person record by hand, for someone no people connector syncs, such as an outside advisor. The employee is owned by Wayd (`ownership` `Owned`): a people sync never updates or deactivates it, unless the sync later sends the same person on its configured match key and adopts it. Creates no sign-in account. `employeeNumber` must be unique across employees, at most 64 characters. `accessEndDate` is required and cannot be in the past; once that day has passed the employee, and any user linked to it, is deactivated. `employeeType` is free text. `managerId` is another employee's UUID; one that matches no employee is refused. Returns the new employee's id and key.
  * @summary Create an employee.
  */
 export const employeesCreate = async (createEmployeeRequest: CreateEmployeeRequest, options?: Parameters<typeof apiFetch>[1]): Promise<ObjectIdAndKey> => {
@@ -114,7 +114,7 @@ export const getEmployeesGetEmployeeUrl = (idOrKey: string,) => {
 }
 
 /**
- * Takes the employee's UUID `id` or integer `key`; the other employee tools take the UUID only. Returns the name parts, every email address the person is known by, employee number, hire date, job details, `manager` and `isActive`, active or not.
+ * Takes the employee's UUID `id` or integer `key`; the other employee tools take the UUID only. Returns the name parts, every email address the person is known by, employee number, hire date, job details, `manager` and `isActive`, active or not. `ownership` says who writes the record: `Managed` when a people sync does (`connector` names its system, and the record is read-only in Wayd), `Owned` when Wayd's admins do (`accessEndDate` is the last day it keeps access).
  * @summary Get employee details using the Id or key.
  */
 export const employeesGetEmployee = async (idOrKey: string, options?: Parameters<typeof apiFetch>[1]): Promise<EmployeeDetailsDto> => {
@@ -171,7 +171,7 @@ export const getEmployeesUpdateUrl = (id: string,) => {
 }
 
 /**
- * This is a whole-record overwrite: every field is set from the request body, so an omitted field is cleared — including `managerId`, which removes the manager. Read the employee first and send back every value that should stay. The `id` in the body must match the path. `employeeNumber` must stay unique, and a `managerId` that matches no employee is refused. Does not change whether the employee is active. An employee synced by a people connector is overwritten from the source system at its next sync.
+ * This is a whole-record overwrite: every field is set from the request body, so an omitted field is cleared — including `managerId`, which removes the manager. Read the employee first and send back every value that should stay. The `id` in the body must match the path. `employeeNumber` must stay unique, and a `managerId` that matches no employee is refused. `accessEndDate` is required; a date already past deactivates the employee at the next daily access check. Does not change whether the employee is active. Only an employee Wayd owns can be updated: one whose `ownership` is `Managed` is written by its people sync and is refused here; change it in its people system.
  * @summary Update an employee.
  */
 export const employeesUpdate = async (id: string,

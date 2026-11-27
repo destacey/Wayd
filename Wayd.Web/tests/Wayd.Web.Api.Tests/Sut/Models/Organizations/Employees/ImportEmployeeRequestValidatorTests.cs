@@ -14,7 +14,22 @@ public sealed class ImportEmployeeRequestValidatorTests
         FirstName = "Ada",
         LastName = "Lovelace",
         Email = email,
+        AccessEndDate = new DateOnly(2027, 12, 31),
     };
+
+    [Fact]
+    public void AccessEndDate_Absent_Fails()
+    {
+        // Arrange — an imported employee is owned by Wayd, so nothing else would end its access
+        var request = ValidRequest();
+        request.AccessEndDate = null;
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(r => r.AccessEndDate);
+    }
 
     [Fact]
     public void ValidRequest_Passes()

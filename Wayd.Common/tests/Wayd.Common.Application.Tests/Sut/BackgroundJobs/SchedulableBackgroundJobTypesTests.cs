@@ -20,6 +20,7 @@ public sealed class SchedulableBackgroundJobTypesTests
         BackgroundJobType.ImportRetentionSweep,
         BackgroundJobType.NotificationRetentionSweep,
         BackgroundJobType.AttachmentSweep,
+        BackgroundJobType.EmployeeAccessEnd,
     ];
 
     [Fact]

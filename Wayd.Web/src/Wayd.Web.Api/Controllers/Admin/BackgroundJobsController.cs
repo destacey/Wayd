@@ -98,6 +98,9 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
             case BackgroundJobType.AttachmentSweep:
                 _jobService.EnqueueSystem(() => jobManager.RunAttachmentSweep(cancellationToken));
                 break;
+            case BackgroundJobType.EmployeeAccessEnd:
+                _jobService.EnqueueSystem(() => jobManager.RunEmployeeAccessEnd(cancellationToken));
+                break;
             default:
                 _logger.LogWarning("Unknown job type {jobType} requested", jobType);
                 return BadRequest(ProblemDetailsExtensions.ForBadRequest($"Unknown job type {jobType} requested.", HttpContext));
@@ -141,6 +144,7 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
                 BackgroundJobType.ImportRetentionSweep => () => jobManager.RunImportRetentionSweep(cancellationToken),
                 BackgroundJobType.NotificationRetentionSweep => () => jobManager.RunNotificationRetentionSweep(cancellationToken),
                 BackgroundJobType.AttachmentSweep => () => jobManager.RunAttachmentSweep(cancellationToken),
+                BackgroundJobType.EmployeeAccessEnd => () => jobManager.RunEmployeeAccessEnd(cancellationToken),
                 // Unreachable: SchedulableBackgroundJobTypes gates entry, and this switch must cover
                 // every member of it. A miss here means the two have drifted.
                 _ => throw new ArgumentOutOfRangeException(nameof(jobType), jobType, "Job type is marked schedulable but has no recurring invocation mapped.")

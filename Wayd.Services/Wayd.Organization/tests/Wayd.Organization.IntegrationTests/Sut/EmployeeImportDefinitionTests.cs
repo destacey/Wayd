@@ -74,7 +74,10 @@ public sealed class EmployeeImportDefinitionTests
             OfficeLocation: null,
             ManagerNumber: managerNumber,
             IsActive: isActive,
-            AdditionalEmails: additionalEmails is null ? null : [.. additionalEmails.Select(e => new EmailAddress(e))]);
+            AdditionalEmails: additionalEmails is null ? null : [.. additionalEmails.Select(e => new EmailAddress(e))],
+            AccessEndDate: AccessEnd);
+
+    private static readonly NodaTime.LocalDate AccessEnd = new(2099, 12, 31);
 
     private static ImportProcessRow[] Rows(EmployeeImportDefinition definition, params ImportEmployeeDto[] employees) =>
         [.. employees.Select((e, i) => ImportProcessRow.Create($"r{i + 1}", i + 1, definition.SerializeRow(e)))];
@@ -94,6 +97,28 @@ public sealed class EmployeeImportDefinitionTests
         await context.SaveChangesAsync(cancellationToken);
 
         return result.Value;
+    }
+
+    [Fact]
+    public async Task CreateEmployees_CreatesAnEmployeeWaydOwns_WithItsAccessEndDate()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await _fixture.ResetOrganizationData(cancellationToken);
+
+        await using var context = _fixture.CreateContext();
+        var definition = CreateDefinition(context);
+        var rows = Rows(definition, Employee("E-1003", "Ada", "Lovelace", "ada3@acme.example"));
+
+        // Act
+        await RunPass(context, definition, CreatePass, rows, cancellationToken);
+
+        // Assert
+        await using var assertContext = _fixture.CreateContext();
+        var employee = await assertContext.Employees.SingleAsync(e => e.EmployeeNumber == "E-1003", cancellationToken);
+        employee.IsManaged.Should().BeFalse();
+        employee.OwnershipInfo.HasExternalReference.Should().BeFalse();
+        employee.AccessEndDate.Should().Be(AccessEnd);
     }
 
     [Fact]

@@ -41,7 +41,9 @@ public sealed class HangfireIdentityPropagationTests(WaydSqlServerApiFactory fac
             jobTitle: null,
             department: null,
             officeLocation: null,
-            managerId: null);
+            managerId: null,
+            employeeType: null,
+            accessEndDate: new NodaTime.LocalDate(2099, 12, 31));
 
         // Act
         var result = await dispatcher.Send(command, TestContext.Current.CancellationToken);
@@ -74,7 +76,9 @@ public sealed class HangfireIdentityPropagationTests(WaydSqlServerApiFactory fac
             jobTitle: null,
             department: null,
             officeLocation: null,
-            managerId: null);
+            managerId: null,
+            employeeType: null,
+            accessEndDate: new NodaTime.LocalDate(2099, 12, 31));
 
         // Act
         var result = await dispatcher.Send(command, TestContext.Current.CancellationToken);

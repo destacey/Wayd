@@ -37836,7 +37836,7 @@
           "Employees"
         ],
         "summary": "Get a list of all employees.",
-        "description": "Returns active employees only unless `includeInactive` is true, sorted by last name. An employee is the person record that role, assignee and `employeeId` fields take, not a sign-in account. Each carries its UUID `id` (what those fields and the other employee tools take), integer `key`, employee number, email, job title, department and `manager`. Call it once and filter the result to resolve names to ids.",
+        "description": "Returns active employees only unless `includeInactive` is true, sorted by last name. An employee is the person record that role, assignee and `employeeId` fields take, not a sign-in account. Each carries its UUID `id` (what those fields and the other employee tools take), integer `key`, employee number, email, job title, department, `manager`, and `ownership`: `Managed` for one a people sync writes, `Owned` for one Wayd's admins do. Call it once and filter the result to resolve names to ids.",
         "operationId": "Employees_GetList",
         "parameters": [
           {
@@ -37884,7 +37884,7 @@
           "Employees"
         ],
         "summary": "Create an employee.",
-        "description": "Adds an active person record by hand, for someone no people connector syncs. Creates no sign-in account. `employeeNumber` must be unique across employees. `managerId` is another employee's UUID; one that matches no employee is refused. Returns the new employee's id and key.",
+        "description": "Adds an active person record by hand, for someone no people connector syncs, such as an outside advisor. The employee is owned by Wayd (`ownership` `Owned`): a people sync never updates or deactivates it, unless the sync later sends the same person on its configured match key and adopts it. Creates no sign-in account. `employeeNumber` must be unique across employees, at most 64 characters. `accessEndDate` is required and cannot be in the past; once that day has passed the employee, and any user linked to it, is deactivated. `employeeType` is free text. `managerId` is another employee's UUID; one that matches no employee is refused. Returns the new employee's id and key.",
         "operationId": "Employees_Create",
         "requestBody": {
           "content": {
@@ -37931,7 +37931,7 @@
           "Employees"
         ],
         "summary": "Get employee details using the Id or key.",
-        "description": "Takes the employee's UUID `id` or integer `key`; the other employee tools take the UUID only. Returns the name parts, every email address the person is known by, employee number, hire date, job details, `manager` and `isActive`, active or not.",
+        "description": "Takes the employee's UUID `id` or integer `key`; the other employee tools take the UUID only. Returns the name parts, every email address the person is known by, employee number, hire date, job details, `manager` and `isActive`, active or not. `ownership` says who writes the record: `Managed` when a people sync does (`connector` names its system, and the record is read-only in Wayd), `Owned` when Wayd's admins do (`accessEndDate` is the last day it keeps access).",
         "operationId": "Employees_GetEmployee",
         "parameters": [
           {
@@ -38094,7 +38094,7 @@
           "Employees"
         ],
         "summary": "Update an employee.",
-        "description": "This is a whole-record overwrite: every field is set from the request body, so an omitted field is cleared — including `managerId`, which removes the manager. Read the employee first and send back every value that should stay. The `id` in the body must match the path. `employeeNumber` must stay unique, and a `managerId` that matches no employee is refused. Does not change whether the employee is active. An employee synced by a people connector is overwritten from the source system at its next sync.",
+        "description": "This is a whole-record overwrite: every field is set from the request body, so an omitted field is cleared — including `managerId`, which removes the manager. Read the employee first and send back every value that should stay. The `id` in the body must match the path. `employeeNumber` must stay unique, and a `managerId` that matches no employee is refused. `accessEndDate` is required; a date already past deactivates the employee at the next daily access check. Does not change whether the employee is active. Only an employee Wayd owns can be updated: one whose `ownership` is `Managed` is written by its people sync and is refused here; change it in its people system.",
         "operationId": "Employees_Update",
         "parameters": [
           {
@@ -59969,7 +59969,8 @@
           "firstName",
           "lastName",
           "employeeNumber",
-          "email"
+          "email",
+          "accessEndDate"
         ],
         "type": "object",
         "properties": {
@@ -60010,7 +60011,7 @@
             "description": "Gets the employee's personal title."
           },
           "employeeNumber": {
-            "maxLength": 256,
+            "maxLength": 64,
             "minLength": 1,
             "type": "string",
             "description": "Gets the employee number."
@@ -60060,6 +60061,22 @@
             ],
             "description": "Gets the manager identifier.",
             "format": "uuid"
+          },
+          "employeeType": {
+            "maxLength": 128,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The working relationship, in the organization's own words, such as Advisor or Contractor."
+          },
+          "accessEndDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The last day the employee keeps access, in `YYYY-MM-DD` form; today or later. Required: an employee\ncreated here is one no people sync manages, so nothing else ends its access. Once the day has passed the\nemployee is deactivated, and any user linked to it with it.",
+            "format": "date"
           }
         },
         "additionalProperties": false
@@ -64241,7 +64258,8 @@
           "id",
           "key",
           "emails",
-          "isActive"
+          "isActive",
+          "ownership"
         ],
         "type": "object",
         "properties": {
@@ -64356,6 +64374,33 @@
               "string"
             ],
             "description": "Source-system classification of the working relationship (e.g. \"Regular Employee\", \"Contingent Worker\"). Free-form, preserved verbatim from the source system; null when not provided."
+          },
+          "ownership": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ownership"
+              }
+            ],
+            "description": "Who writes the employee's details: `Owned` when Wayd's admins do, `Managed` when a people sync\ndoes. A managed employee is read-only in Wayd; change it in its people system."
+          },
+          "connector": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Connector"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The kind of people system that manages the employee, or null when Wayd owns it."
+          },
+          "accessEndDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The last day an employee Wayd owns keeps access; it is deactivated once the day has passed. Null for a\nmanaged employee, whose people system decides when its access ends.",
+            "format": "date"
           }
         },
         "additionalProperties": false
@@ -64427,7 +64472,8 @@
           "email",
           "id",
           "key",
-          "isActive"
+          "isActive",
+          "ownership"
         ],
         "type": "object",
         "properties": {
@@ -64523,6 +64569,22 @@
               "string"
             ],
             "description": "Source-system classification of the working relationship (e.g. \"Regular Employee\", \"Contingent Worker\"). Free-form; null when not provided."
+          },
+          "ownership": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ownership"
+              }
+            ],
+            "description": "Who writes the employee's details: `Owned` when Wayd's admins do, `Managed` when a people sync does."
+          },
+          "accessEndDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The last day an employee Wayd owns keeps access; null for a managed employee.",
+            "format": "date"
           }
         },
         "additionalProperties": false
@@ -66615,7 +66677,8 @@
           "firstName",
           "lastName",
           "email",
-          "isActive"
+          "isActive",
+          "accessEndDate"
         ],
         "type": "object",
         "properties": {
@@ -66628,7 +66691,7 @@
             "x-csv-column": "ImportId"
           },
           "employeeNumber": {
-            "maxLength": 256,
+            "maxLength": 64,
             "minLength": 1,
             "type": "string",
             "description": "The employee's natural key, unique across the company.",
@@ -66722,6 +66785,12 @@
             ],
             "description": "Further work addresses for this person, semicolon-separated. `Email` stays the\nprimary; these are additional addresses the person is known by in other systems — typically ones\nleft behind by a domain or tenant move. Home and personal addresses do not belong here.",
             "x-csv-column": "AdditionalEmails"
+          },
+          "accessEndDate": {
+            "type": "string",
+            "description": "The last day the employee keeps access, as `YYYY-MM-DD`. Required: an imported employee is owned by\nWayd, so no people sync ends its access. Once the day has passed the employee is deactivated, and any user\nlinked to it with it.",
+            "format": "date",
+            "x-csv-column": "AccessEndDate"
           }
         },
         "additionalProperties": false,
@@ -76403,6 +76472,14 @@
           }
         },
         "additionalProperties": false
+      },
+      "Ownership": {
+        "enum": [
+          "Owned",
+          "Managed",
+          "System"
+        ],
+        "type": "string"
       },
       "PagedResponseOfActivityLogDto": {
         "required": [
@@ -92132,7 +92209,8 @@
           "firstName",
           "lastName",
           "employeeNumber",
-          "email"
+          "email",
+          "accessEndDate"
         ],
         "type": "object",
         "properties": {
@@ -92178,7 +92256,7 @@
             "description": "Gets the employee's personal title."
           },
           "employeeNumber": {
-            "maxLength": 256,
+            "maxLength": 64,
             "minLength": 1,
             "type": "string",
             "description": "Gets the employee number."
@@ -92228,6 +92306,22 @@
             ],
             "description": "Gets the manager identifier.",
             "format": "uuid"
+          },
+          "employeeType": {
+            "maxLength": 128,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The working relationship, in the organization's own words, such as Advisor or Contractor."
+          },
+          "accessEndDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The last day the employee keeps access, in `YYYY-MM-DD` form. Required. Once the day has passed the\nemployee is deactivated, and any user linked to it with it.",
+            "format": "date"
           }
         },
         "additionalProperties": false

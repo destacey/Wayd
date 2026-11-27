@@ -511,9 +511,9 @@ To keep someone out while their employee record is active, remove their roles ra
 
 A user with no employee link is never activated or deactivated by people sync, even if their email matches an employee's.
 
-A full sync deactivates every employee its source no longer returns, including employees created by hand in Wayd, and with them the users linked to them. Link a contractor or service account to such an employee only if it should lose access when the next full sync runs.
+**A people sync writes only the employees it manages.** It creates each new person as a [managed employee](../organizations/index.mdx#synced-and-wayd-owned-employees), and a full sync deactivates every managed employee its source no longer returns, with the users linked to them. That includes employees an earlier people connection brought in, since the active connection is the source of truth for everyone a sync brought in: after switching source, people the new one does not send are deactivated, and any it does send are taken over by it on its Match Employees By key. Employees owned by Wayd, such as an outside advisor created by hand or by import, are never changed or deactivated by a sync; their access ends on their access end date instead. A sync takes over an owned employee only when its configured key matches; a match on the other key alone skips the record and reports it in **Sync History**.
 
-**The connection's Match Employees By setting decides which employee a record belongs to.** A sync finds the employee by that key, and by the other key only when the first finds no one. Sometimes the two keys find different employees — with Match Employees By set to Employee Number, the record's number belongs to one employee while its email already belongs to another, usually because one person has two employee records. The sync then updates the employee its configured key found with everything except the conflicting value, which stays on the other employee: two employees cannot share an email or an employee number. The run's **Sync History** lists the conflict as an error naming both employees, and it repeats on every sync until the duplicate is resolved. To resolve it, decide which record is the real person and remove the duplicate's claim to the value — correct it at the source if the source is wrong, or change or delete the duplicate employee in Wayd; the next sync applies the value.
+**The connection's Match Employees By setting decides which employee a record belongs to.** A sync finds the employee by that key, and by the other key only when the first finds no one. Sometimes the two keys find different employees — with Match Employees By set to Employee Number, the record's number belongs to one employee while its email already belongs to another, usually because one person has two employee records. The sync then updates the employee its configured key found with everything except the conflicting value, which stays on the other employee: two employees cannot share an email or an employee number. The run's **Sync History** lists the conflict as an error naming both employees, and it repeats on every sync until the duplicate is resolved. To resolve it, decide which record is the real person and remove the duplicate's claim to the value — correct it at the source if the source is wrong, or delete the duplicate employee in Wayd; the next sync applies the value.
 
 **Nothing syncs on a schedule until you create one.** Create a recurring **Work** or **People** sync job under [Background Jobs](#background-jobs).
 
@@ -557,7 +557,7 @@ The Entra connector synchronizes people from Microsoft Entra ID into Wayd's `Emp
 - Optionally scope to a single Entra group (transitive members)
 - Optionally include disabled accounts
 - Upsert into Wayd `Employee` records, with each user's manager
-- Deactivate Wayd employees no longer present in the latest payload
+- Deactivate managed employees no longer present in the latest payload; employees owned by Wayd are left alone
 
 **Configuration requirements:**
 - **Tenant ID** — The Entra tenant's directory ID
@@ -572,7 +572,7 @@ The Entra app registration needs the `User.Read.All` Microsoft Graph application
 
 **Business rules:**
 - Entra cannot fetch only what changed, so every run — differential or full — fetches the complete user set and reconciles against `Employee`.
-- Employees not in the latest payload are automatically deactivated.
+- Managed employees not in the latest payload are automatically deactivated; employees owned by Wayd are not.
 - Manager hierarchy is built from each user's Entra `manager` reference.
 
 ### Workday
@@ -648,6 +648,7 @@ Tick the jobs — or the header checkbox for every job shown — and use **Reque
 - **Import Stall Recovery** — Ends an import whose worker stopped responding and republishes one whose run never started. Scheduled every five minutes by default as `import-stall-recovery`; the schedule can be changed, and a deleted one is restored the next time the server starts. See [Imports](./imports.mdx#when-a-run-fails-unexpectedly).
 - **Import Retention Sweep** — Discards the stored copy of each row once an import is past its 30-day retention window. Scheduled nightly by default as `import-retention-sweep`; like the stall sweep, the schedule can be changed and a deleted one is restored the next time the server starts. See [Imports](./imports.mdx#limits-and-rules).
 - **Notification Retention Sweep** — Deletes notifications about changes more than 90 days old, read or not; the activity log keeps what happened. Scheduled nightly by default as `notification-retention-sweep`; the schedule can be changed, and a deleted one is restored the next time the server starts. See [Following](../following.mdx#notifications).
+- **Employee Access End** — Deactivates every employee owned by Wayd whose access end date has passed in the system time zone, and the users linked to them. Employees a people sync manages are left to it. Scheduled hourly by default as `employee-access-end`, so access ends within the hour of midnight in any time zone; the schedule can be changed, and a deleted one is restored the next time the server starts. See [Synced and Wayd-owned employees](../organizations/index.mdx#synced-and-wayd-owned-employees).
 
 **Create Recurring Job**, in the **Actions** menu, schedules a job with a cron expression. It offers only the job types that can run on a schedule — the cross-domain replication syncs (Projects, Teams, Iterations, Strategic Themes) are driven by the changes that trigger them, so they are available to run on demand but not to schedule. No sync is scheduled out of the box: to sync connections on a timetable, create a recurring **Work** or **People** sync job here.
 

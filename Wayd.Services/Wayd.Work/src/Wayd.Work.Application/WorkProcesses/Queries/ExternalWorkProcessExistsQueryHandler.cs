@@ -9,7 +9,9 @@ public sealed class ExternalWorkProcessExistsQueryHandler(IWorkDbContext workDbC
 
     public async Task<bool> Handle(ExternalWorkProcessExistsQuery request, CancellationToken cancellationToken)
     {
+        var externalId = WorkProcess.ToExternalId(request.ExternalId);
+
         return await _workDbContext.WorkProcesses
-            .AnyAsync(w => w.ExternalId == request.ExternalId, cancellationToken);
+            .AnyAsync(w => w.OwnershipInfo.ExternalId == externalId, cancellationToken);
     }
 }

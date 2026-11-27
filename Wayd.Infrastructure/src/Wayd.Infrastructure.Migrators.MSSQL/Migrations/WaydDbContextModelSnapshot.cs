@@ -9225,9 +9225,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(1024)
                         .HasColumnType("nvarchar(1024)");
 
-                    b.Property<Guid?>("ExternalId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -9245,11 +9242,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
-                    b.Property<string>("Ownership")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar");
-
                     b.Property<DateTime>("SystemCreated")
                         .HasColumnType("datetime2");
 
@@ -9264,23 +9256,45 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "OwnershipInfo", "Wayd.Work.Domain.Models.WorkProcess.OwnershipInfo#OwnershipInfo", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Connector")
+                                .HasMaxLength(32)
+                                .HasColumnType("varchar")
+                                .HasColumnName("Connector");
+
+                            b1.Property<string>("ExternalId")
+                                .HasMaxLength(64)
+                                .HasColumnType("varchar")
+                                .HasColumnName("ExternalId");
+
+                            b1.Property<string>("Ownership")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("varchar")
+                                .HasColumnName("Ownership");
+
+                            b1.Property<string>("SystemId")
+                                .HasMaxLength(64)
+                                .HasColumnType("varchar")
+                                .HasColumnName("SystemId");
+                        });
+
                     b.HasKey("Id");
 
                     b.HasAlternateKey("Key");
 
-                    b.HasIndex("ExternalId")
-                        .IsUnique()
-                        .HasFilter("[ExternalId] IS NOT NULL AND [IsDeleted] = 0");
-
                     b.HasIndex("Id", "IsDeleted")
                         .HasFilter("[IsDeleted] = 0");
 
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Id", "IsDeleted"), new[] { "Key", "Name", "ExternalId", "Ownership", "IsActive" });
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Id", "IsDeleted"), new[] { "Key", "Name", "IsActive" });
 
                     b.HasIndex("Key", "IsDeleted")
                         .HasFilter("[IsDeleted] = 0");
 
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Key", "IsDeleted"), new[] { "Id", "Name", "ExternalId", "Ownership", "IsActive" });
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Key", "IsDeleted"), new[] { "Id", "Name", "IsActive" });
 
                     b.ToTable("WorkProcesses", "Work");
                 });

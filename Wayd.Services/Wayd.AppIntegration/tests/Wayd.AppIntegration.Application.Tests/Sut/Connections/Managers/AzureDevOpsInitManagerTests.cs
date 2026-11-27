@@ -594,7 +594,7 @@ public class AzureDevOpsInitManagerTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().Be(new WorkProcessIntegration(wpInternalId, ReadFromSource: true));
         _mocker.GetMock<IDispatcher>()
-            .Verify(s => s.Send(It.Is<CreateExternalWorkProcessCommand>(c => c.ExternalWorkProcess == mockWpConfig.Object), It.IsAny<CancellationToken>()), Times.Once);
+            .Verify(s => s.Send(It.Is<CreateExternalWorkProcessCommand>(c => c.Connector == Connector.AzureDevOps && c.ExternalWorkProcess == mockWpConfig.Object), It.IsAny<CancellationToken>()), Times.Once);
         // The process is mirrored in the status workflow engine from what was just read.
         _mocker.GetMock<IDispatcher>()
             .Verify(s => s.Send(It.Is<SyncExternalWorkProcessWorkflowsCommand>(c => c.WorkProcess == mockWpConfig.Object), It.IsAny<CancellationToken>()), Times.Once);

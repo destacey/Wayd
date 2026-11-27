@@ -14,8 +14,9 @@ public sealed class UpdateExternalWorkProcessCommandHandler(IWorkDbContext workD
 
     public async Task<Result> Handle(UpdateExternalWorkProcessCommand request, CancellationToken cancellationToken)
     {
+        var externalId = WorkProcess.ToExternalId(request.ExternalWorkProcess.Id);
         var workProcess = await _workDbContext.WorkProcesses
-            .FirstOrDefaultAsync(wp => wp.ExternalId == request.ExternalWorkProcess.Id, cancellationToken);
+            .FirstOrDefaultAsync(wp => wp.OwnershipInfo.ExternalId == externalId, cancellationToken);
         if (workProcess is null)
         {
             _logger.LogWarning("{AppRequestName}: work process {WorkProcessExternalId} not found.", AppRequestName, request.ExternalWorkProcess.Id);

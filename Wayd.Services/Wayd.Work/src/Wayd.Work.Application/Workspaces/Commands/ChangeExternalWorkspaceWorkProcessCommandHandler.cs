@@ -20,7 +20,8 @@ public sealed class ChangeExternalWorkspaceWorkProcessCommandHandler(IWorkDbCont
             return Result.Failure($"Workspace {request.WorkspaceId} not found.");
         }
 
-        var newWorkProcess = await _workDbContext.WorkProcesses.FirstOrDefaultAsync(wp => wp.ExternalId == request.NewWorkProcessExternalId, cancellationToken);
+        var newWorkProcessExternalId = WorkProcess.ToExternalId(request.NewWorkProcessExternalId);
+        var newWorkProcess = await _workDbContext.WorkProcesses.FirstOrDefaultAsync(wp => wp.OwnershipInfo.ExternalId == newWorkProcessExternalId, cancellationToken);
         if (newWorkProcess is null)
         {
             _logger.LogWarning("{AppRequestName}: work process with external ID {WorkProcessExternalId} not found. The process may not be initialized yet.", AppRequestName, request.NewWorkProcessExternalId);

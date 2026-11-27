@@ -153,11 +153,12 @@ public sealed class WorkItemRevisionResolver
             IWorkDbContext dbContext, IStatusWorkflowDbContext statusWorkflowDbContext, IStatusResolver statusResolver, Guid workspaceId, CancellationToken cancellationToken)
         {
             // Unfiltered: a workspace deleted since it read a revision still names the types its process has.
-            var processExternalId = await dbContext.Workspaces
+            var processExternalIdText = await dbContext.Workspaces
                 .IgnoreQueryFilters()
                 .Where(w => w.Id == workspaceId)
-                .Select(w => w.WorkProcess!.ExternalId)
+                .Select(w => w.WorkProcess!.OwnershipInfo.ExternalId)
                 .FirstOrDefaultAsync(cancellationToken);
+            Guid? processExternalId = Guid.TryParse(processExternalIdText, out var parsedProcessId) ? parsedProcessId : null;
             var recordTypeIds = await statusWorkflowDbContext.SchemeRecordTypeIds(processExternalId, cancellationToken);
             var workTypes = await dbContext.WorkTypes
                 .LinkedTo(recordTypeIds)

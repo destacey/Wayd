@@ -38,12 +38,12 @@ public sealed class GetWorkProcessSchemesQueryHandler(IWorkDbContext workDbConte
     {
         var process = await _workDbContext.WorkProcesses
             .Where(p => p.Id == request.WorkProcessId)
-            .Select(p => new { p.ExternalId })
+            .Select(p => new { p.OwnershipInfo.ExternalId })
             .FirstOrDefaultAsync(cancellationToken);
         if (process is null)
             return null;
 
-        if (process.ExternalId is not Guid externalId)
+        if (!Guid.TryParse(process.ExternalId, out var externalId))
             return [];
 
         var ownerType = WorkWorkflowOwners.WorkItem.Key;

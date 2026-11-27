@@ -14,6 +14,11 @@ update <PreviousMigration>` with `--connection` set to the database Aspire's API
 `migrations remove` takes no `--connection`; never pass it `--force`, which rolls back whatever database the
 config names. See [Changing an unmerged migration](../docs/contributing/database.mdx#changing-an-unmerged-migration).
 
+**A record with `OwnershipInfo` implements `IHasOwnershipInfo` and maps it with `builder.ConfigureOwnershipInfo()`**, never
+by hand (`OwnershipMappingTests`). EF cannot index a complex property's column, so an index on `Ownership`,
+`Connector`, `SystemId` or `ExternalId` is created by hand in its migration, dropped by hand in `Down`, and covered
+by a migration test. See [Ownership and external references](../docs/contributing/database.mdx#ownership-and-external-references).
+
 **A save commits its rows together with what records them** — audit trails, activity log entries and outbox
 envelopes — and dispatches only once that transaction commits. Spanning several saves goes through
 `BaseDbContext.BeginUnitOfWork`, whose `CommitAsync` commits *and* dispatches; a bare

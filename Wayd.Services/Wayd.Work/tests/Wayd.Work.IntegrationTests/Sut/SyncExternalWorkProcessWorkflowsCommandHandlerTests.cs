@@ -205,7 +205,7 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandlerTests(SqlServe
             context.WorkTypeHierarchies.Add(WorkTypeHierarchy.Initialize(SqlServerDbContextFixture.FixedNow));
 
         var process = new TestProcess(Guid.NewGuid(), $"Sync Process {Guid.NewGuid():N}"[..24]);
-        var workProcess = WorkProcess.CreateExternal(process.Name, null, process.Id, SqlServerDbContextFixture.FixedNow);
+        var workProcess = WorkProcess.CreateExternal(process.Name, null, Connector.AzureDevOps, process.Id, SqlServerDbContextFixture.FixedNow);
         context.WorkProcesses.Add(workProcess);
         await context.SaveChangesAsync(ct);
 

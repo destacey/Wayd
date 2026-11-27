@@ -5,6 +5,7 @@ using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Infrastructure.Persistence.Context;
 using Wayd.Work.Application.WorkProcesses;
 using Wayd.Work.Domain;
+using Wayd.Work.Domain.Models;
 
 namespace Wayd.Work.IntegrationTests.Infrastructure;
 
@@ -93,9 +94,11 @@ public static class WorkItemWorkflowSeeder
     private static async Task<Guid> ProcessExternalId(WaydDbContext context, Guid workspaceId, CancellationToken ct)
     {
         var processId = await context.Workspaces.IgnoreQueryFilters().Where(w => w.Id == workspaceId).Select(w => w.WorkProcessId).SingleAsync(ct);
+        var newExternalId = WorkProcess.ToExternalId(Guid.NewGuid());
         await context.Database.ExecuteSqlInterpolatedAsync(
-            $"UPDATE [Work].[WorkProcesses] SET [ExternalId] = {Guid.NewGuid()} WHERE [Id] = {processId} AND [ExternalId] IS NULL;", ct);
-        return await context.WorkProcesses.IgnoreQueryFilters().Where(p => p.Id == processId).Select(p => p.ExternalId!.Value).SingleAsync(ct);
+            $"UPDATE [Work].[WorkProcesses] SET [Ownership] = 'Managed', [Connector] = 'AzureDevOps', [ExternalId] = {newExternalId} WHERE [Id] = {processId} AND [ExternalId] IS NULL;", ct);
+        var externalId = await context.WorkProcesses.IgnoreQueryFilters().Where(p => p.Id == processId).Select(p => p.OwnershipInfo.ExternalId).SingleAsync(ct);
+        return Guid.Parse(externalId!);
     }
 
     /// <summary>The seeded status named <paramref name="name"/>.</summary>

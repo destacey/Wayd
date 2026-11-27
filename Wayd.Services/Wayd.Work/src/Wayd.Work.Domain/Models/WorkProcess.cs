@@ -2,6 +2,7 @@
 using CSharpFunctionalExtensions;
 using Wayd.Common.Extensions;
 using NodaTime;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Events;
 
 namespace Wayd.Work.Domain.Models;
@@ -12,25 +13,17 @@ namespace Wayd.Work.Domain.Models;
 /// </summary>
 /// <seealso cref="Wayd.Common.Domain.Data.BaseSoftDeletableEntity" />
 /// <seealso cref="Wayd.Common.Domain.Interfaces.IActivatable" />
-public sealed class WorkProcess : BaseSoftDeletableEntity, IActivatable<WorkProcessActivationArgs>, IHasIdAndKey
+public sealed class WorkProcess : BaseSoftDeletableEntity, IActivatable<WorkProcessActivationArgs>, IHasIdAndKey, IHasOwnershipInfo
 {
     private readonly List<Workspace> _workspaces = [];
 
     private WorkProcess() { }
 
-    private WorkProcess(string name, string? description, Ownership ownership, Guid? externalId)
+    private WorkProcess(string name, string? description, OwnershipInfo ownershipInfo)
     {
         Name = name;
         Description = description;
-        Ownership = ownership;
-
-        if (ownership is Ownership.Managed)
-        {
-            if (!externalId.HasValue)
-                throw new ArgumentException("The external identifier is required when the ownership is managed.", nameof(externalId));
-
-            ExternalId = externalId.Value;
-        }
+        OwnershipInfo = Guard.Against.Null(ownershipInfo);
     }
 
     /// <summary>Gets the key.</summary>
@@ -56,15 +49,22 @@ public sealed class WorkProcess : BaseSoftDeletableEntity, IActivatable<WorkProc
     }
 
     /// <summary>
-    /// Indicates whether the work process is owned by Wayd or a third party system.  This value should not change.
+    /// Who writes the work process, and the process in an outside system it corresponds to. For Azure DevOps the
+    /// external id is the process id, which is the same in every organization, so no system id is held.
     /// </summary>
-    /// <value>The ownership.</value>
-    public Ownership Ownership { get; private init; }
+    public OwnershipInfo OwnershipInfo { get; private init; } = default!;
 
     /// <summary>
-    /// Gets the external identifier. The value is required when Ownership is managed; otherwise it's null.  For Azure DevOps, this is the process id.
+    /// The outside system's process id, or null when the work process does not correspond to one. Read from
+    /// <see cref="OwnershipInfo"/> in memory; a query filters on <c>OwnershipInfo.ExternalId</c> with
+    /// <see cref="ToExternalId"/> instead.
     /// </summary>
-    public Guid? ExternalId { get; private init; }
+    public Guid? ExternalProcessId => Guid.TryParse(OwnershipInfo.ExternalId, out var id) ? id : null;
+
+    /// <summary>
+    /// An outside system's process id as it is stored in <c>OwnershipInfo.ExternalId</c>.
+    /// </summary>
+    public static string ToExternalId(Guid externalProcessId) => externalProcessId.ToString("D");
 
     /// <summary>
     /// Indicates whether the work process is active or not.  Only active work processes can be assigned
@@ -126,7 +126,7 @@ public sealed class WorkProcess : BaseSoftDeletableEntity, IActivatable<WorkProc
 
     private void TryAddIntegrationStateChangedEvent(EventActor actor, Instant timestamp)
     {
-        if (Ownership is Ownership.Managed && ExternalId.HasValue)
+        if (OwnershipInfo.Ownership is Ownership.Managed)
         {
             AddDomainEvent(new IntegrationStateChangedEvent<Guid>(
                 SystemContext.WorkWorkProcess,
@@ -136,15 +136,15 @@ public sealed class WorkProcess : BaseSoftDeletableEntity, IActivatable<WorkProc
         }
     }
 
-    /// <summary>Creates a managed Work Process linked to a external id.</summary>
+    /// <summary>Creates a work process a sync manages, for a process in an outside system.</summary>
     /// <param name="name">The name.</param>
     /// <param name="description">The description.</param>
-    /// <param name="externalId">The external identifier.</param>
+    /// <param name="connector">The kind of outside system the process is in.</param>
+    /// <param name="externalProcessId">The outside system's process id.</param>
     /// <param name="timestamp">The timestamp.</param>
-    /// <returns></returns>
-    public static WorkProcess CreateExternal(string name, string? description, Guid externalId, Instant timestamp)
+    public static WorkProcess CreateExternal(string name, string? description, Connector connector, Guid externalProcessId, Instant timestamp)
     {
-        WorkProcess workProcess = new(name, description, Ownership.Managed, externalId);
-        return workProcess;
+        var ownershipInfo = OwnershipInfo.CreateExternalOwned(connector, null, ToExternalId(externalProcessId));
+        return new WorkProcess(name, description, ownershipInfo);
     }
 }

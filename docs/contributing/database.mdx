@@ -111,6 +111,23 @@ public class WorkItemConfiguration : IEntityTypeConfiguration<WorkItem>
 }
 ```
 
+### Ownership and external references
+
+A record that can come from an outside system carries an `OwnershipInfo` value object and implements `IHasOwnershipInfo`. It holds two separate facts:
+
+- **Ownership** — who writes the record: `Owned` (Wayd users), `Managed` (a sync) or `System` (built into Wayd).
+- **External reference** — which record in which outside system it corresponds to: connector type, system id and external id. It never names a Wayd connection, so it does not change when connections are added, replaced or removed.
+
+A managed record always has a reference. A Wayd-owned record has one only after `Release()`, so a later sync can `Adopt()` it instead of creating a second copy. A system record never has one.
+
+Map it with the shared extension, never by hand, so every such record has the same four columns. `OwnershipMappingTests` fails otherwise:
+
+```csharp
+builder.ConfigureOwnershipInfo();
+```
+
+`OwnershipInfo` is mapped as a complex property, and **EF Core cannot declare an index over a complex property's column**: `builder.HasIndex(w => w.OwnershipInfo.ExternalId)` throws when the model is built. An index on one of these columns is written into its migration with `migrationBuilder.CreateIndex`, and dropped by hand at the start of `Down`. EF does not track it, so cover it with a migration test, as `WorkProcessOwnershipMigrationTests` does for the unique index on a work process's external id.
+
 ## Audit Trail
 
 Every save of an `ISystemAuditable` entity writes a row to `Auditing.AuditTrails` with the old and new values of

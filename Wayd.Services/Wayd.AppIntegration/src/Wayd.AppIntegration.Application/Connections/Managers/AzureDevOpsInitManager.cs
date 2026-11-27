@@ -159,7 +159,7 @@ public sealed class AzureDevOpsInitManager(ILogger<AzureDevOpsInitManager> logge
 
             // A concurrent setup of the same process fails here on the unique external id; the next attempt
             // links to the winner. Its work types and workflows follow, kept in the status workflow engine.
-            var createProcessResult = await _dispatcher.Send(new CreateExternalWorkProcessCommand(processResult.Value), cancellationToken);
+            var createProcessResult = await _dispatcher.Send(new CreateExternalWorkProcessCommand(Connector.AzureDevOps, processResult.Value), cancellationToken);
             if (createProcessResult.IsFailure)
                 return createProcessResult.ConvertFailure<WorkProcessIntegration>();
 

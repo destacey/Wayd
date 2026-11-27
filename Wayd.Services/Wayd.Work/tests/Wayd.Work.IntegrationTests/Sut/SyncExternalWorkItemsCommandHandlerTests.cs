@@ -201,7 +201,7 @@ public sealed class SyncExternalWorkItemsCommandHandlerTests(SqlServerDbContextF
         await using var accessor = new WaydDbContextAccessor(_fixture);
         var context = accessor.Context;
 
-        var workProcess = WorkProcess.CreateExternal("Move Process", null, Guid.NewGuid(), SqlServerDbContextFixture.FixedNow);
+        var workProcess = WorkProcess.CreateExternal("Move Process", null, Connector.AzureDevOps, Guid.NewGuid(), SqlServerDbContextFixture.FixedNow);
         context.WorkProcesses.Add(workProcess);
         await context.SaveChangesAsync(ct);
 

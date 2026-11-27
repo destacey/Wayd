@@ -17058,6 +17058,32 @@ export interface TeamOperatingModelDetailsDto {
   isCurrent: boolean;
 }
 
+/**
+ * An active incident on a Proposed or Active product one of the caller's teams is linked to.
+ */
+export interface TeamProductIncidentDto {
+  /** Incident id. */
+  id: string;
+  /** Incident key. The record is addressed by this key. */
+  key: number;
+  /** What went wrong, as the incident is titled. */
+  title: string;
+  /** When the incident was first noticed; how long it has been active runs from here. */
+  noticedAt: string & { readonly __brand: 'Instant' };
+  /** How severe the incident is; the lowest sort order is the most severe. */
+  severityLevel: IncidentSeverityLevelNavigationDto;
+  /**
+     * Where the incident is in its workflow: any status not aliased Closed or Canceled and not in a Done or Removed
+     * category.
+     */
+  status: StatusNavigationDto;
+  /**
+     * The Proposed or Active products the incident is on that the caller's teams are linked to, by name. The incident may be on
+     * other products too; those are on its record.
+     */
+  products: NavigationDto[];
+}
+
 export interface TeamsConnectionConfigurationDto {
   tenantId: string;
   clientId: string;

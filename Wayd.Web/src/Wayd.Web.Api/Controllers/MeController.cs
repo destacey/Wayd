@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.FeatureManagement;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.FeatureManagement;
@@ -20,6 +21,8 @@ using Wayd.Planning.Application.PlanningIntervals.Dtos;
 using Wayd.Planning.Application.PlanningIntervals.Queries;
 using Wayd.Planning.Application.Risks.Queries;
 using Wayd.Planning.Application.Roadmaps.Queries;
+using Wayd.ProductManagement.Application.Incidents.Dtos;
+using Wayd.ProductManagement.Application.Incidents.Queries;
 using Wayd.ProductManagement.Application.Products.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
@@ -148,6 +151,24 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
         return Ok(await _dispatcher.Send(
             new GetEmployeeWorkItemsQuery(employeeId, statusCategories, UtcQueryTime.ToInstant(doneFrom), UtcQueryTime.ToInstant(doneTo)),
             cancellationToken));
+    }
+
+    [HttpGet("incidents")]
+    [FeatureGate(RequirementType.All, FeatureFlags.Names.ProductManagement, FeatureFlags.Names.IncidentManagement)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Incidents)]
+    [EndpointSummary("Get the active incidents on the products your teams work on.")]
+    [EndpointDescription(
+        "The incidents still active (not Closed or Canceled, and not in a Done or Removed status category) on any proposed or active product linked to an active team or team of teams you are a member of, most severe first, then the longest active. Each lists, under `products`, only the products of your teams it is on; the incident's other products are on its record. Needs the Incidents view permission. Returns an empty list when your teams are linked to no proposed or active product, and 404 when your account is not linked to an employee.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<TeamProductIncidentDto>>> GetIncidents(CancellationToken cancellationToken)
+    {
+        if (await _currentPrincipal.GetEmployeeId(cancellationToken) is not { } employeeId)
+            return NotLinked();
+
+        var teams = await _dispatcher.Send(new GetEmployeeTeamInvolvementQuery(employeeId), cancellationToken);
+
+        return Ok(await _dispatcher.Send(new GetTeamsActiveIncidentsQuery(teams.TeamIds), cancellationToken));
     }
 
     [HttpGet("home-context")]

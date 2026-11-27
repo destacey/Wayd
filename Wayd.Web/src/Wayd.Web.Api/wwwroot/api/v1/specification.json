@@ -3580,6 +3580,46 @@
         ]
       }
     },
+    "/api/me/incidents": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "Get the active incidents on the products your teams work on.",
+        "description": "The incidents still active (not Closed or Canceled, and not in a Done or Removed status category) on any proposed or active product linked to an active team or team of teams you are a member of, most severe first, then the longest active. Each lists, under `products`, only the products of your teams it is on; the incident's other products are on its record. Needs the Incidents view permission. Returns an empty list when your teams are linked to no proposed or active product, and 404 when your account is not linked to an employee.",
+        "operationId": "Me_GetIncidents",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeamProductIncidentDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/me/home-context": {
       "get": {
         "tags": [
@@ -91250,6 +91290,64 @@
         },
         "additionalProperties": false,
         "description": "A team's operating model in brief: the methodology and sizing method it uses, the time zone its days are\ncounted in, and its reporting cadence."
+      },
+      "TeamProductIncidentDto": {
+        "required": [
+          "id",
+          "key",
+          "title",
+          "noticedAt",
+          "severityLevel",
+          "status",
+          "products"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Incident id.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "description": "Incident key. The record is addressed by this key.",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string",
+            "description": "What went wrong, as the incident is titled."
+          },
+          "noticedAt": {
+            "type": "string",
+            "description": "When the incident was first noticed; how long it has been active runs from here.",
+            "format": "date-time"
+          },
+          "severityLevel": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IncidentSeverityLevelNavigationDto"
+              }
+            ],
+            "description": "How severe the incident is; the lowest sort order is the most severe."
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusNavigationDto"
+              }
+            ],
+            "description": "Where the incident is in its workflow: any status not aliased Closed or Canceled and not in a Done or Removed\ncategory."
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationDto"
+            },
+            "description": "The Proposed or Active products the incident is on that the caller's teams are linked to, by name. The incident may be on\nother products too; those are on its record."
+          }
+        },
+        "additionalProperties": false,
+        "description": "An active incident on a Proposed or Active product one of the caller's teams is linked to."
       },
       "TeamsConnectionConfigurationDto": {
         "required": [

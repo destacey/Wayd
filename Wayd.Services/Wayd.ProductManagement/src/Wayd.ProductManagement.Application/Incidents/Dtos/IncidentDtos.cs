@@ -68,6 +68,37 @@ public sealed record ActiveIncidentLinkDto
     public string StatusName { get; init; } = string.Empty;
 }
 
+/// <summary>An active incident on a Proposed or Active product one of the caller's teams is linked to.</summary>
+public sealed record TeamProductIncidentDto
+{
+    /// <summary>Incident id.</summary>
+    public Guid Id { get; init; }
+
+    /// <summary>Incident key. The record is addressed by this key.</summary>
+    public int Key { get; init; }
+
+    /// <summary>What went wrong, as the incident is titled.</summary>
+    public string Title { get; init; } = default!;
+
+    /// <summary>When the incident was first noticed; how long it has been active runs from here.</summary>
+    public Instant NoticedAt { get; init; }
+
+    /// <summary>How severe the incident is; the lowest sort order is the most severe.</summary>
+    public IncidentSeverityLevelNavigationDto SeverityLevel { get; init; } = default!;
+
+    /// <summary>
+    /// Where the incident is in its workflow: any status not aliased Closed or Canceled and not in a Done or Removed
+    /// category.
+    /// </summary>
+    public StatusNavigationDto Status { get; init; } = default!;
+
+    /// <summary>
+    /// The Proposed or Active products the incident is on that the caller's teams are linked to, by name. The incident may be on
+    /// other products too; those are on its record.
+    /// </summary>
+    public IReadOnlyList<NavigationDto> Products { get; init; } = [];
+}
+
 /// <summary>
 /// One incident in full.
 /// </summary>

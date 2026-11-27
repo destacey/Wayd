@@ -28,7 +28,7 @@ namespace Wayd.Web.Api.Controllers;
 public class DiscussionsController(IDispatcher dispatcher) : ControllerBase
 {
     private const string ChannelTypeDocs =
-        "`channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400.";
+        "`channelType` names the kind of record — `demand.intake-request` for an intake request, `ppm.project` for a project, `product.incident` for an incident — and `ownerId` is the record's id; a `channelType` that cannot be discussed returns 400.";
 
     private readonly IDispatcher _dispatcher = dispatcher;
 

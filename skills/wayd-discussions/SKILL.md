@@ -1,6 +1,6 @@
 ---
 name: wayd-discussions
-description: Read before calling the Wayd MCP tools named Discussions_*. Guides agents holding the conversation on a Wayd record via the Wayd MCP server — an intake request or a project — reading its threads and the record's changes between them, posting a message with a subject, replying in a thread, writing an intake request's internal notes, mentioning people, and setting how an intake desk's conversations work. Use when the user asks what has been said on a request or project, wants to ask, answer or raise a topic on one, or wants someone told through its conversation.
+description: Read before calling the Wayd MCP tools named Discussions_*. Guides agents holding the conversation on a Wayd record via the Wayd MCP server — an intake request, a project or an incident — reading its threads and the record's changes between them, posting a message with a subject, replying in a thread, writing an intake request's internal notes, mentioning people, and setting how an intake desk's conversations work. Use when the user asks what has been said on a request, project or incident, wants to ask, answer or raise a topic on one, or wants someone told through its conversation.
 ---
 
 # Wayd Discussions
@@ -11,6 +11,7 @@ The discussion tools are in the `discussions` toolset. They work on any record t
 | --- | --- | --- |
 | Intake request | `demand.intake-request` | The request's UUID (see the `wayd-intake` skill) |
 | Project | `ppm.project` | The project's UUID (see the `wayd-ppm` skill) |
+| Incident | `product.incident` | The incident's UUID: no tool looks incidents up yet, so take it from a notification's or a followed record's `record.id` |
 
 A `channelType` that cannot be discussed returns 400. A record that does not exist, or that the caller cannot read, returns 404 — never 403 — so treat 404 as "not visible to you" and say so rather than retrying.
 
@@ -45,3 +46,12 @@ Each record has one conversation. A **top-level message** may carry a `subject` 
 - A mention only notifies. It never gives anyone access to the project: someone who cannot read it is never shown the notification, so mentioning them tells them nothing. Say so if the user mentions someone who may not have access.
 - A message tells the project's role holders and followers, the people it mentions, and for a reply everyone who started or replied in its thread.
 - Take employee ids from the project's people (`Projects_GetProject`, `Projects_GetProjectTeam`) or `Employees_GetList`.
+
+## Incidents
+
+- Needs the `product-management` and `incident-management` feature flags. Everyone who can view incidents reads its conversation, and those of them with a linked employee and an account that is not read-only post in it. There are **no internal notes**: `canPostInternal` is always false.
+- **Moderating** — locking the conversation, deleting anyone's message, both done in the app — needs permission to update incidents. `canModerate` says whether the caller has it.
+- Any active employee can be mentioned. A mention only notifies: it gives no access, and someone who cannot view incidents is never shown the notification.
+- A message tells the incident's commander and followers, the people it mentions, and for a reply everyone who started or replied in its thread.
+- The incident's operational timeline notes are separate from its conversation, and these tools neither read nor write them.
+- Take employee ids from `Employees_GetList`.

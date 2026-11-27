@@ -523,9 +523,11 @@ same.
 **No text leaves through a side door.** Discussion events carry ids and mention lists, never a subject or body,
 and messages are not `ISystemAuditable`, so an internal note never reaches an event, the outbox, the audit trail
 or a log line. A module notifies from `DiscussionMessagePostedEvent`, filtered on its channel type, in the owner type's
-notification handler (`IntakeRequestNotificationEventHandler`, `ProjectNotificationEventHandler`). Where only some
+notification handler (`IntakeRequestNotificationEventHandler`, `ProjectNotificationEventHandler`,
+`IncidentNotificationEventHandler`). Where only some
 readers see internal notes, map `MessagePosted` and `InternalNotePosted` to the tiers its `VisibleNotifications`
-uses; a project holds no notes, so its handler never tells one and its read rule passes notifications through.
+uses; a project or incident holds no notes, so its handler never tells one and its read rule passes notifications
+through.
 
 ### KPIs
 

@@ -1,6 +1,7 @@
 import { toInstant } from '@/src/utils/instant'
 import {
   meGetHomeContext,
+  meGetIncidents,
   meGetTeamsSummary,
   meGetWorkItems,
 } from '@/src/services/api/me'
@@ -8,6 +9,7 @@ import {
   HomeContextResponse,
   MyTeamsSummaryResponse,
   StatusCategory,
+  TeamProductIncidentDto,
   WorkItemListDto,
 } from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
@@ -77,11 +79,28 @@ export const meApi = apiSlice.injectEndpoints({
       },
       providesTags: () => [QueryTags.EmployeeWorkItems],
     }),
+    getMyIncidents: builder.query<TeamProductIncidentDto[], void>({
+      queryFn: async () => {
+        try {
+          const data = await meGetIncidents()
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // An incident change, or a team linked to or unlinked from a product, can move one in or out of the list.
+      providesTags: [
+        { type: QueryTags.Incident, id: 'LIST' },
+        { type: QueryTags.ProductTeamLink, id: 'LIST' },
+      ],
+    }),
   }),
 })
 
 export const {
   useGetHomeContextQuery,
+  useGetMyIncidentsQuery,
   useGetMyTeamsSummaryQuery,
   useGetMyWorkItemsQuery,
 } = meApi

@@ -21,6 +21,11 @@ vi.mock('./widgets/my-requests-widget', () => ({
   MY_REQUESTS_LIMIT: 8,
   myRequestsSettings: [],
 }))
+vi.mock('./widgets/my-product-incidents-widget', () => ({
+  default: () => null,
+  MY_PRODUCT_INCIDENTS_LIMIT: 5,
+  ActiveIncidentsTile: () => null,
+}))
 vi.mock('./widgets/my-projects-widget', () => ({
   default: () => null,
   myProjectsSettings: [],
@@ -95,13 +100,14 @@ const everything: WidgetAccess = {
 
 /**
  * Every permission and flag, as a project manager with tasks on a team of
- * teams: everything a widget can require.
+ * teams that works on a product: everything a widget can require.
  */
 const everythingAsAManager: WidgetAccess = {
   ...everything,
   context: homeContext({
     projects: { totalCount: 1, managerCount: 1, assigneeCount: 1 },
     teams: { teamOfTeamsCount: 1 },
+    teamProductCount: 1,
   }),
 }
 
@@ -178,6 +184,7 @@ describe('HomeWidgets', () => {
 
     // Assert
     expect(tiles.map((t) => t.id)).toEqual([
+      'active-incidents',
       'overdue-tasks',
       'sprints-to-complete',
       'project-health-checks-due',
@@ -190,6 +197,44 @@ describe('HomeWidgets', () => {
       'requests-assigned-to-me',
       'unread-notifications',
     ])
+  })
+
+  it('hides incidents on my products while the Incident Management flag is off', () => {
+    // Arrange
+    const flagOff = {
+      ...everythingAsAManager,
+      isFeatureEnabled: (flag: string) => flag !== 'incident-management',
+    }
+
+    // Act
+    const columns = arrangeWidgets(HomeWidgets, flagOff)
+
+    // Assert
+    const ids = [...columns.main, ...columns.side].map((w) => w.id)
+    expect(ids).not.toContain('my-product-incidents')
+    expect(attentionTiles(columns).map((t) => t.id)).not.toContain(
+      'active-incidents',
+    )
+  })
+
+  it('hides incidents on my products without the View Incidents permission', () => {
+    // Arrange
+    const noPermission = {
+      ...everythingAsAManager,
+      hasPermissionClaim: (claim: string) =>
+        claim !== 'Permissions.Incidents.View',
+    }
+
+    // Act
+    const columns = arrangeWidgets(HomeWidgets, noPermission)
+
+    // Assert
+    expect([...columns.main, ...columns.side].map((w) => w.id)).not.toContain(
+      'my-product-incidents',
+    )
+    expect(attentionTiles(columns).map((t) => t.id)).not.toContain(
+      'active-incidents',
+    )
   })
 
   it('hides the notification and follow widgets while the Following flag is off', () => {
@@ -243,6 +288,26 @@ describe('HomeWidgets involvement rules', () => {
       'my-requests',
       'my-deliverables',
     ])
+  })
+
+  it('shows incidents on my products, its tile leading, once the caller’s teams work on a product', () => {
+    // Arrange / Act
+    const layout = defaultFor({ teams: { teamCount: 1 }, teamProductCount: 2 })
+
+    // Assert
+    expect(layout.side[0]).toBe('my-product-incidents')
+    expect(layout.tiles[0]).toBe('active-incidents')
+  })
+
+  it('shows no incidents on my products to a caller whose teams work on no product', () => {
+    // Arrange / Act
+    const layout = defaultFor({ teams: { teamCount: 1 } })
+
+    // Assert
+    expect([...layout.main, ...layout.side]).not.toContain(
+      'my-product-incidents',
+    )
+    expect(layout.tiles).not.toContain('active-incidents')
   })
 
   it('puts a project leader’s projects first', () => {

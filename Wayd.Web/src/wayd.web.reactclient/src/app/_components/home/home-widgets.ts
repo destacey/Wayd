@@ -33,6 +33,10 @@ import MyProjectTasksWidget, {
   myProjectTasksSettings,
   OverdueTasksTile,
 } from './widgets/my-project-tasks-widget'
+import MyProductIncidentsWidget, {
+  ActiveIncidentsTile,
+  MY_PRODUCT_INCIDENTS_LIMIT,
+} from './widgets/my-product-incidents-widget'
 import MyProjectsWidget, {
   myProjectsSettings,
 } from './widgets/my-projects-widget'
@@ -81,6 +85,8 @@ const MyTeamsOfTeamsWidget = lazy(
  * news, which waits until read.
  */
 export const TilePriority = {
+  // Something broken now on a product the caller's team works on outranks every plan running late.
+  ActiveIncidents: 110,
   OverdueTasks: 100,
   SprintsToComplete: 90,
   ProjectHealthChecksDue: 85,
@@ -436,6 +442,34 @@ export const HomeWidgets: HomeWidget[] = [
       intake.openRequestsRaisedCount > 0
         ? Involvement.Involved
         : Involvement.None,
+  },
+  {
+    id: 'my-product-incidents',
+    title: 'Incidents on my products',
+    description:
+      'The incidents still active (not closed, canceled or in a done status) on the products your teams work on, most severe first.',
+    // Top of the side column: the tile carries the urgency, the list says which products and how long.
+    defaultColumn: 'side',
+    defaultOrder: 5,
+    requires: {
+      featureFlag: 'incident-management',
+      permissions: ['Permissions.Incidents.View'],
+      linkedEmployee: true,
+      // Zero when the caller's teams work on no product, or Product Management is off.
+      involved: ({ teamProductCount }) => teamProductCount > 0,
+    },
+    Component: MyProductIncidentsWidget,
+    settings: [rowsSetting(MY_PRODUCT_INCIDENTS_LIMIT), emptySetting],
+    // Everyone it is shown to has a team working on a product.
+    involvement: () => Involvement.Involved,
+    tiles: [
+      {
+        id: 'active-incidents',
+        title: 'Active incidents',
+        priority: TilePriority.ActiveIncidents,
+        Tile: ActiveIncidentsTile,
+      },
+    ],
   },
   {
     id: 'following',

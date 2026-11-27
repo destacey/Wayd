@@ -38,11 +38,12 @@ public sealed class BulkUpsertEmployeesCommandHandlerTests
     private static async Task<Result<BulkUpsertEmployeesResult>> RunSync(
         SqlServerDbContextFixture fixture,
         IExternalEmployee[] payload,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        EmployeeMatchProperty matchBy = EmployeeMatchProperty.Email)
     {
         await using var context = fixture.CreateContext();
         return await CreateHandler(context).Handle(
-            new BulkUpsertEmployeesCommand(payload, EmployeeMatchProperty.Email),
+            new BulkUpsertEmployeesCommand(payload, matchBy),
             cancellationToken);
     }
 
@@ -170,6 +171,119 @@ public sealed class BulkUpsertEmployeesCommandHandlerTests
         employee.Email.Value.Should().Be("casey@acme.example");
         employee.Emails.Single(e => e.IsPrimary).Email.Value.Should().Be("casey@acme.example");
         employee.Emails.Select(e => e.Email.Value).Should().Contain("casey@acme-legacy.example");
+    }
+
+    /// <summary>
+    /// One employee leaves an address and another takes it in the same run, so both updates reach one save.
+    /// The unique indexes are checked per statement, so this passes only if the vacating row is written first.
+    /// </summary>
+    [Fact]
+    public async Task Handle_AddressHandedToAnotherEmployeeInOneRun_Saves()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await _fixture.ResetOrganizationData(cancellationToken);
+
+        var seeded = await RunSync(
+            _fixture,
+            [External("E-9010", "shared@acme.example"), External("E-9011", "other@acme.example")],
+            cancellationToken,
+            EmployeeMatchProperty.EmployeeNumber);
+        seeded.IsSuccess.Should().BeTrue(seeded.IsFailure ? seeded.Error : null);
+
+        // Act — the vacating record comes first, so the taking record finds the address free.
+        var result = await RunSync(
+            _fixture,
+            [External("E-9010", "moved@acme.example"), External("E-9011", "shared@acme.example")],
+            cancellationToken,
+            EmployeeMatchProperty.EmployeeNumber);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.Conflicts.Should().BeEmpty();
+
+        await using var assertContext = _fixture.CreateContext();
+        var emails = await assertContext.Employees
+            .ToDictionaryAsync(e => e.EmployeeNumber, e => e.Email.Value, cancellationToken);
+        emails.Should().BeEquivalentTo(new Dictionary<string, string>
+        {
+            ["E-9010"] = "moved@acme.example",
+            ["E-9011"] = "shared@acme.example",
+        });
+    }
+
+    /// <summary>
+    /// The employee-number counterpart of the address handover: one row leaves a number and another takes it.
+    /// </summary>
+    [Fact]
+    public async Task Handle_EmployeeNumberHandedToAnotherEmployeeInOneRun_Saves()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await _fixture.ResetOrganizationData(cancellationToken);
+
+        var seeded = await RunSync(
+            _fixture,
+            [External("E-9020", "first@acme.example"), External("E-9021", "second@acme.example")],
+            cancellationToken);
+        seeded.IsSuccess.Should().BeTrue(seeded.IsFailure ? seeded.Error : null);
+
+        // Act
+        var result = await RunSync(
+            _fixture,
+            [External("E-9022", "first@acme.example"), External("E-9020", "second@acme.example")],
+            cancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.Conflicts.Should().BeEmpty();
+
+        await using var assertContext = _fixture.CreateContext();
+        var numbers = await assertContext.Employees
+            .ToDictionaryAsync(e => e.Email.Value, e => e.EmployeeNumber, cancellationToken);
+        numbers.Should().BeEquivalentTo(new Dictionary<string, string>
+        {
+            ["first@acme.example"] = "E-9022",
+            ["second@acme.example"] = "E-9020",
+        });
+    }
+
+    /// <summary>
+    /// The key conflict against the real unique indexes: the conflicting address must be left off both
+    /// <c>Employees.Email</c> and <c>EmployeeEmails.Email</c>, or the save fails for the whole batch.
+    /// </summary>
+    [Fact]
+    public async Task Handle_KeysMatchDifferentEmployees_SavesWithoutTheConflictingAddress()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await _fixture.ResetOrganizationData(cancellationToken);
+
+        var seeded = await RunSync(
+            _fixture,
+            [External("E-9030", "holder@acme.example"), External("E-9031", "matched@acme.example")],
+            cancellationToken,
+            EmployeeMatchProperty.EmployeeNumber);
+        seeded.IsSuccess.Should().BeTrue(seeded.IsFailure ? seeded.Error : null);
+
+        // Act — E-9031's source record now carries the address E-9030 holds.
+        var result = await RunSync(
+            _fixture,
+            [External("E-9031", "holder@acme.example", "alias@acme.example")],
+            cancellationToken,
+            EmployeeMatchProperty.EmployeeNumber);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.Conflicts.Should().ContainKey("E-9031");
+
+        await using var assertContext = _fixture.CreateContext();
+        var matched = await assertContext.Employees
+            .Include(e => e.Emails)
+            .SingleAsync(e => e.EmployeeNumber == "E-9031", cancellationToken);
+        matched.IsActive.Should().BeTrue();
+        matched.Email.Value.Should().Be("matched@acme.example");
+        matched.Emails.Select(e => e.Email.Value).Should().BeEquivalentTo(["matched@acme.example", "alias@acme.example"]);
     }
 
     private static ExternalEmployeeRecord External(string employeeNumber, string email, params string[] additionalEmails) =>

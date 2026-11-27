@@ -72,6 +72,6 @@ public sealed class ImportEmployeeDtoValidator : CustomValidator<ImportEmployeeD
             .MaximumLength(256);
 
         RuleFor(e => e.EmployeeType)
-            .MaximumLength(256);
+            .MaximumLength(128);
     }
 }

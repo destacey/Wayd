@@ -39,6 +39,21 @@ public class BulkUpsertEmployeesCommandValidatorTests
         result.Errors.Should().Contain(e => e.ErrorMessage == $"{field} must be unique.");
     }
 
+    [Fact]
+    public void Validate_RejectsASystemIdTooLongForAReference()
+    {
+        // Arrange — every employee the sync creates or adopts would carry it, failing the whole save
+        var command = new BulkUpsertEmployeesCommand(
+            [FakeExternalEmployee("E-1", "one@acme.example")], Connector.Workday, new string('t', 65), EmployeeMatchProperty.Email);
+
+        // Act
+        var result = _validator.Validate(command);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(BulkUpsertEmployeesCommand.SystemId));
+    }
+
     /// <summary>
     /// The uniqueness rules must not reject a legitimate payload of distinct employees.
     /// </summary>

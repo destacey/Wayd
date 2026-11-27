@@ -120,13 +120,15 @@ public sealed class UpdateEmployeeCommandHandler : ICommandHandler<UpdateEmploye
 {
     private readonly IWaydDbContext _waydDbContext;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar;
     private readonly ICurrentUser _currentUser;
     private readonly ILogger<UpdateEmployeeCommandHandler> _logger;
 
-    public UpdateEmployeeCommandHandler(IWaydDbContext waydDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, ILogger<UpdateEmployeeCommandHandler> logger)
+    public UpdateEmployeeCommandHandler(IWaydDbContext waydDbContext, IDateTimeProvider dateTimeProvider, ISystemCalendar systemCalendar, ICurrentUser currentUser, ILogger<UpdateEmployeeCommandHandler> logger)
     {
         _waydDbContext = waydDbContext;
         _dateTimeProvider = dateTimeProvider;
+        _systemCalendar = systemCalendar;
         _currentUser = currentUser;
         _logger = logger;
     }
@@ -158,6 +160,7 @@ public sealed class UpdateEmployeeCommandHandler : ICommandHandler<UpdateEmploye
             request.ManagerId,
             request.EmployeeType,
             request.AccessEndDate,
+            await _systemCalendar.Today(cancellationToken),
             EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
             _dateTimeProvider.Now
             );

@@ -5925,7 +5925,7 @@ export interface ImportEmployeeRequest {
   isActive: boolean;
   /**
      * The worker type (e.g. Employee, Contractor, Intern), mirroring the HRIS descriptor. Free-form.
-     * @maxLength 256
+     * @maxLength 128
      * @nullable
      */
   employeeType?: string | null;

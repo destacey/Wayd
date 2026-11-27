@@ -834,6 +834,33 @@ public class BulkUpsertEmployeesCommandHandlerTests
         fromEntra.DomainEvents.OfType<EmployeeTakenOverEvent>().Should().ContainSingle();
     }
 
+    [Fact]
+    public async Task Handle_OwnedEmployeeWithANumberTooLongToReference_SkipsTheRecordAndSavesTheRest()
+    {
+        // Arrange — only an employee that predates the 64-character limit has one. Matched by email, and the
+        // payload's number is another employee's, so the conflict would keep the long number as the external id.
+        var longNumber = new string('L', Employee.ExternalReferenceMaxLength + 1);
+        var legacy = CreateOwnedEmployee(longNumber, "legacy@acme.example");
+        var holder = CreateExistingEmployee("E-9110", "holder@acme.example");
+        Seed(legacy, holder);
+        var command = SyncCommand(
+            [
+                FakeExternalEmployee("E-9110", "legacy@acme.example", isActive: true),
+                FakeExternalEmployee("E-9111", "fine@acme.example", isActive: true),
+            ],
+            EmployeeMatchProperty.Email,
+            deactivateMissing: false);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Skipped.Should().ContainKey("E-9110").WhoseValue.Should().Contain("longer than");
+        legacy.IsManaged.Should().BeFalse();
+        (await GetEmployees()).Should().Contain(e => e.EmployeeNumber == "E-9111");
+    }
+
     /// <summary>An employee Wayd owns, as an admin or an import creates one.</summary>
     private Employee CreateOwnedEmployee(string employeeNumber, string email) =>
         Employee.Create(

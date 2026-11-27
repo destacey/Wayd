@@ -210,9 +210,14 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable<EmployeeAct
     /// <param name="managerId">The manager identifier.</param>
     /// <param name="employeeType">The working relationship, as the admin describes it.</param>
     /// <param name="accessEndDate">The last day the employee keeps access.</param>
+    /// <param name="today">Today in the system time zone, which decides whether access had ended.</param>
     /// <param name="actor">Who made the change, for the events.</param>
     /// <param name="timestamp">The timestamp of the update.</param>
     /// <returns>Success, or a failure when a people sync manages the employee.</returns>
+    /// <remarks>
+    /// Moving an access end date that had passed to today or later reactivates an inactive employee: extending
+    /// access is the admin's way of giving it back, and an owned employee has no other way back.
+    /// </remarks>
     public Result Update(
         PersonName name,
         string employeeNumber,
@@ -224,6 +229,7 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable<EmployeeAct
         Guid? managerId,
         string? employeeType,
         LocalDate? accessEndDate,
+        LocalDate today,
         EventActor actor,
         Instant timestamp
         )
@@ -231,6 +237,7 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable<EmployeeAct
         if (IsManaged)
             return Result.Failure($"This employee is synced from {OwnershipInfo.Connector}; change it there.");
 
+        var accessHadEnded = HasAccessEnded(today);
         var previousDetails = Details();
 
         ApplyDetails(name, employeeNumber, hireDate, email, jobTitle, department, officeLocation, employeeType);
@@ -239,6 +246,11 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable<EmployeeAct
         if (Details() != previousDetails)
         {
             AddDomainEvent(new EmployeeDetailsUpdatedEvent(Id, actor, timestamp));
+        }
+
+        if (accessHadEnded && !IsActive && !HasAccessEnded(today) && AccessEndDate is not null)
+        {
+            Activate(EmployeeActivatableArgs.Create(actor, timestamp));
         }
 
         if (ManagerId != managerId)
@@ -313,6 +325,10 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable<EmployeeAct
     /// <returns>Success, or the reason the employee cannot be adopted.</returns>
     public Result Adopt(Connector connector, string? systemId, EventActor actor, Instant timestamp)
     {
+        var referenceError = ReferenceTooLong(systemId);
+        if (referenceError is not null)
+            return Result.Failure(referenceError);
+
         var previous = OwnershipInfo;
         var adopted = previous.Adopt(new ExternalReference(connector, systemId, EmployeeNumber));
         if (adopted.IsFailure)
@@ -354,6 +370,10 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable<EmployeeAct
         if (IsManagedBy(connector, systemId))
             return Result.Failure("The employee is already managed by this system.");
 
+        var referenceError = ReferenceTooLong(systemId);
+        if (referenceError is not null)
+            return Result.Failure(referenceError);
+
         var previous = OwnershipInfo;
         OwnershipInfo = OwnershipInfo.CreateExternalOwned(connector, systemId, EmployeeNumber);
 
@@ -367,6 +387,23 @@ public sealed class Employee : BaseSoftDeletableEntity, IActivatable<EmployeeAct
             timestamp));
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// The longest employee number or system id an external reference can hold. A managed employee's number is its
+    /// external id, and both reference columns are this long, so a longer value would fail the save it is in.
+    /// </summary>
+    public const int ExternalReferenceMaxLength = 64;
+
+    private string? ReferenceTooLong(string? systemId)
+    {
+        if (EmployeeNumber.Length > ExternalReferenceMaxLength)
+            return $"The employee number is longer than the {ExternalReferenceMaxLength} characters a people sync can manage; shorten it first.";
+
+        if (systemId is not null && systemId.Trim().Length > ExternalReferenceMaxLength)
+            return $"The people system's id is longer than {ExternalReferenceMaxLength} characters.";
+
+        return null;
     }
 
     private void ApplyDetails(

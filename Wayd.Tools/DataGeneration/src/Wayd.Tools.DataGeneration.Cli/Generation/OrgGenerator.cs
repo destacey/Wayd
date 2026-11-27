@@ -30,9 +30,10 @@ public sealed class OrgGenerator
     // Names of the delivery groups that have no team of teams to name them. Planning intervals are named
     // after the group, and the import rejects two intervals of the same name.
     private readonly HashSet<string> _groupNames = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
     /// How far past the run's date a current employee's access runs: far enough that a seeded database stays
-    /// usable for years without the daily access check deactivating everyone.
+    /// usable for years without the hourly access check deactivating everyone.
     /// </summary>
     private const int AccessYearsAhead = 10;
 

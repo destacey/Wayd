@@ -39,6 +39,84 @@ public sealed class EmployeeTests
             _now,
             emails);
 
+    private static readonly LocalDate Today = new(2026, 8, 20);
+
+    private static CSharpFunctionalExtensions.Result ExtendAccess(Employee employee, LocalDate accessEndDate) =>
+        employee.Update(
+            employee.Name, employee.EmployeeNumber, employee.HireDate, employee.Email, employee.JobTitle,
+            employee.Department, employee.OfficeLocation, employee.ManagerId, employee.EmployeeType, accessEndDate,
+            Today, EventActor.System, _now);
+
+    [Fact]
+    public void Update_ShouldReactivate_WhenAnEndedAccessEndDateMovesToTodayOrLater()
+    {
+        // Arrange — deactivated because its access had ended
+        var employee = new EmployeeFaker().WithAccessEndDate(Today.PlusDays(-3)).WithIsActive(false).Generate();
+
+        // Act
+        var result = ExtendAccess(employee, Today);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        employee.IsActive.Should().BeTrue();
+        employee.DomainEvents.OfType<EmployeeActivatedEvent>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public void Update_ShouldNotReactivate_WhenTheAccessEndDateHadNotPassed()
+    {
+        // Arrange — inactive for another reason, such as an imported leaver whose date is still ahead
+        var employee = new EmployeeFaker().WithAccessEndDate(Today.PlusDays(10)).WithIsActive(false).Generate();
+
+        // Act
+        ExtendAccess(employee, Today.PlusDays(30));
+
+        // Assert
+        employee.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Update_ShouldNotReactivate_WhenTheNewAccessEndDateHasAlsoPassed()
+    {
+        // Arrange
+        var employee = new EmployeeFaker().WithAccessEndDate(Today.PlusDays(-30)).WithIsActive(false).Generate();
+
+        // Act
+        ExtendAccess(employee, Today.PlusDays(-1));
+
+        // Assert
+        employee.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Adopt_ShouldFail_WhenTheEmployeeNumberIsTooLongToBeAnExternalId()
+    {
+        // Arrange — only an employee that predates the 64-character limit can have one
+        var employee = new EmployeeFaker().WithEmployeeNumber(new string('x', Employee.ExternalReferenceMaxLength + 1)).Generate();
+
+        // Act
+        var result = employee.Adopt(SyncConnector, SyncSystemId, EventActor.System, _now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        employee.IsManaged.Should().BeFalse();
+        employee.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void TakeOver_ShouldFail_WhenTheSystemIdIsTooLong()
+    {
+        // Arrange
+        var employee = CreateSettledEmployee();
+
+        // Act
+        var result = employee.TakeOver(Connector.Entra, new string('t', Employee.ExternalReferenceMaxLength + 1), EventActor.System, _now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        employee.IsManagedBy(SyncConnector, SyncSystemId).Should().BeTrue();
+    }
+
     private const Connector SyncConnector = Connector.Workday;
     private const string SyncSystemId = "acme";
     private const string SettledNumber = "E-4471";
@@ -430,7 +508,7 @@ public sealed class EmployeeTests
         var result = employee.Update(
             employee.Name, employee.EmployeeNumber, employee.HireDate, employee.Email, "Principal Engineer",
             employee.Department, employee.OfficeLocation, employee.ManagerId, employee.EmployeeType,
-            new LocalDate(2027, 1, 1), EventActor.System, _now);
+            new LocalDate(2027, 1, 1), Today, EventActor.System, _now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -450,7 +528,7 @@ public sealed class EmployeeTests
         var result = employee.Update(
             employee.Name, employee.EmployeeNumber, employee.HireDate, employee.Email, employee.JobTitle,
             employee.Department, employee.OfficeLocation, employee.ManagerId, "Advisor", accessEnd,
-            EventActor.System, _now);
+            Today, EventActor.System, _now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -614,6 +692,7 @@ public sealed class EmployeeTests
             employee.ManagerId,
             employee.EmployeeType,
             employee.AccessEndDate,
+            Today,
             EventActor.System,
             _now);
 

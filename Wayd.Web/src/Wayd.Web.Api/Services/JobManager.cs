@@ -288,12 +288,12 @@ public class JobManager(
         var result = await _dispatcher.Send(new DeactivateEmployeesPastAccessEndCommand(), cancellationToken);
         ThrowIfFailed(result, "deactivate employees past their access end date");
 
-        // The employee's deactivation reaches its linked user only through the user sync.
-        if (result.Value > 0)
-        {
-            var usersResult = await _userService.SyncUsersFromEmployeeRecords(cancellationToken);
-            ThrowIfFailed(usersResult, "deactivate the users linked to them");
-        }
+        // An employee's change of state reaches its linked user only through the user sync. It runs every time,
+        // not only when this run deactivated someone: a run whose user sync failed has already saved the
+        // deactivations, so the next run finds no one to deactivate and must still bring the users in step. It
+        // also gives back access to the user of an employee an admin reactivated by extending its access.
+        var usersResult = await _userService.SyncUsersFromEmployeeRecords(cancellationToken);
+        ThrowIfFailed(usersResult, "bring the users linked to employees in step");
 
         _logger.LogInformation(
             "Completed {BackgroundJob} job ({Count} employees deactivated)", nameof(RunEmployeeAccessEnd), result.Value);

@@ -169,7 +169,7 @@ Order the files so managers precede their reports where you can, and post them u
 | `OfficeLocation` | No | Max 256 chars. |
 | `ManagerNumber` | No | The manager's **employee number**. May reference someone elsewhere in the file. |
 | `IsActive` | No | Whether the employee is current. Defaults to `true`. |
-| `EmployeeType` | No | Free-form worker type (e.g. `Employee`, `Contractor`, `Intern`), mirroring an HRIS descriptor. Max 256 chars. |
+| `EmployeeType` | No | Free-form worker type (e.g. `Employee`, `Contractor`, `Intern`), mirroring an HRIS descriptor. Max 128 chars. |
 | `AccessEndDate` | Yes | The last day the employee keeps access, as `YYYY-MM-DD`. Once it has passed, Wayd deactivates the employee and any user linked to it. For a former employee, the day they left. |
 
 :::note[Former employees]

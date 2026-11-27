@@ -89,18 +89,39 @@ public sealed class JobManagerTests
     }
 
     [Fact]
-    public async Task RunEmployeeAccessEnd_SkipsTheUserSync_WhenNoEmployeeWasDeactivated()
+    public async Task RunEmployeeAccessEnd_SyncsUsers_EvenWhenNoEmployeeWasDeactivated()
     {
-        // Arrange
+        // Arrange — an earlier run deactivated the employees but its user sync failed, so this run finds no one
         _dispatcher.Setup(d => d.Send(It.IsAny<DeactivateEmployeesPastAccessEndCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(0));
+        _mocker.GetMock<IUserService>()
+            .Setup(u => u.SyncUsersFromEmployeeRecords(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
         var sut = _mocker.CreateInstance<JobManager>();
 
         // Act
         await sut.RunEmployeeAccessEnd(TestContext.Current.CancellationToken);
 
-        // Assert
-        _mocker.GetMock<IUserService>().Verify(u => u.SyncUsersFromEmployeeRecords(It.IsAny<CancellationToken>()), Times.Never);
+        // Assert — the users of those employees must still lose access
+        _mocker.GetMock<IUserService>().Verify(u => u.SyncUsersFromEmployeeRecords(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunEmployeeAccessEnd_Fails_WhenTheUserSyncFails()
+    {
+        // Arrange
+        _dispatcher.Setup(d => d.Send(It.IsAny<DeactivateEmployeesPastAccessEndCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(1));
+        _mocker.GetMock<IUserService>()
+            .Setup(u => u.SyncUsersFromEmployeeRecords(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Failure("user sync failed"));
+        var sut = _mocker.CreateInstance<JobManager>();
+
+        // Act
+        var act = () => sut.RunEmployeeAccessEnd(TestContext.Current.CancellationToken);
+
+        // Assert — the miss shows as a failed run rather than a quiet success
+        await act.Should().ThrowAsync<InternalServerException>().WithMessage("*user sync failed*");
     }
 
     [Fact]

@@ -115,6 +115,10 @@ public sealed class BulkUpsertEmployeesCommandValidator : CustomValidator<BulkUp
         RuleForEach(e => e.Employees)
             .NotNull()
             .SetValidator(new IExternalEmployeeValidator());
+
+        // Every employee the sync creates or adopts carries it, so a longer one would fail the whole save.
+        RuleFor(e => e.SystemId)
+            .MaximumLength(Employee.ExternalReferenceMaxLength);
     }
 }
 

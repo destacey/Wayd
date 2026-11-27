@@ -121,7 +121,7 @@ public sealed class ImportEmployeeRequestValidator : CustomValidator<ImportEmplo
             .MaximumLength(256);
 
         RuleFor(e => e.EmployeeType)
-            .MaximumLength(256);
+            .MaximumLength(128);
 
         // Validated before ToImportEmployeeDto runs — the EmailAddress cast there throws on a
         // malformed value, which would surface as a 500 rather than a row-level 422.

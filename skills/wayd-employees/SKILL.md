@@ -19,7 +19,10 @@ When the user approves, do exactly what they approved. An option you offered tha
 
 An **employee** is the person record: the one role lists (`sponsorIds`, `ownerIds`, `managerIds`, `memberIds`), task `assigneeIds`, work item assignees, team memberships and allocations point at. A **user** is a sign-in account (see the `wayd-users` skill). An employee may have no user, and creating an employee creates no account.
 
-Most employees are synced from a people connector (such as Microsoft Entra ID). An edit to a synced employee is overwritten from the source system at the next sync, so a lasting change to a name, title, department or manager belongs in that system.
+Each employee's `ownership` says who writes it:
+
+- **`Managed`** — a people connector (Microsoft Entra ID, Workday; `connector` names it) syncs the record. It is read-only in Wayd: `Employees_Update` refuses it, and a change to a name, title, department or manager belongs in that system. The connector deactivates it when it stops sending the person.
+- **`Owned`** — created in Wayd, for someone the people system does not hold, such as an outside advisor. A sync never updates or deactivates it. It has an `accessEndDate`, the last day it keeps access; once that day has passed Wayd deactivates it and any user linked to it. If the people system later sends the same person on the key the connection matches on (employee number or email), the sync takes the record over and it becomes `Managed`.
 
 ## Identifiers
 
@@ -33,8 +36,8 @@ Each employee's `manager` is another employee. `Employees_GetDirectReports` retu
 
 ## Changing an employee record
 
-- **`Employees_Update` is a whole-record overwrite.** Read the employee with `Employees_GetEmployee` first and send back every field that should stay; an omitted `managerId` removes the manager. It never changes whether the employee is active.
-- **`Employees_Create`** adds an active record by hand. A `managerId` that matches no employee is refused, as it is by `Employees_Update`.
+- **`Employees_Update` is a whole-record overwrite, for an `Owned` employee only.** Read the employee with `Employees_GetEmployee` first and send back every field that should stay; an omitted `managerId` removes the manager, and `accessEndDate` is required. It does not change whether the employee is active, except that moving an access end date that has passed to today or later reactivates an inactive employee. A `Managed` employee is refused: say it is synced from its people system and the change belongs there.
+- **`Employees_Create`** adds an active `Owned` record by hand. It requires `accessEndDate` (today or later); ask the user for it rather than inventing one. `employeeType` is free text, such as Advisor. A `managerId` that matches no employee is refused, as it is by `Employees_Update`.
 - **Removing a record.** `Employees_RemoveInvalid` is for a synced record that is not a real person (a shared mailbox, a service account): it clears the manager of its direct reports, deletes it and blocks its employee number so the connector never brings it back, and no tool lifts the block. `Employees_Delete` deletes the record outright, and the connector recreates it if it still syncs that person. Tell the user which one you mean and why.
 
 ## Time away

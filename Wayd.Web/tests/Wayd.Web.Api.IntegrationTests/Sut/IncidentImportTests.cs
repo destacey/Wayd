@@ -49,7 +49,9 @@ public sealed class IncidentImportTests(WaydSqlServerApiFactory factory)
                     null,
                     null,
                     null,
-                    null),
+                    null,
+                    null,
+                    new NodaTime.LocalDate(2099, 12, 31)),
                 TestContext.Current.CancellationToken);
             Assert.True(employee.IsSuccess, employee.IsFailure ? employee.Error : null);
 
@@ -112,7 +114,9 @@ public sealed class IncidentImportTests(WaydSqlServerApiFactory factory)
                     null,
                     null,
                     null,
-                    null),
+                    null,
+                    null,
+                    new NodaTime.LocalDate(2099, 12, 31)),
                 TestContext.Current.CancellationToken);
             Assert.True(employee.IsSuccess, employee.IsFailure ? employee.Error : null);
 

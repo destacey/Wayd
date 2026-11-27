@@ -59,7 +59,8 @@ public sealed class GetEmployeeByEmailQueryHandlerTests
             JobTitle: "Engineer",
             Department: "Engineering",
             OfficeLocation: null,
-            ManagerNumber: null);
+            ManagerNumber: null,
+            AccessEndDate: new NodaTime.LocalDate(2099, 12, 31));
 
         var rows = new[] { ImportProcessRow.Create("r1", 1, definition.SerializeRow(dto)) };
 

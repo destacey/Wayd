@@ -31,26 +31,15 @@ public sealed class RemoveInvalidEmployeeCommandHandler : ICommandHandler<Remove
         var objectId = employee.EmployeeNumber;
         var actor = EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId());
 
-        var updateResult = employee.Update(
-            employee.Name,
-            employee.EmployeeNumber,
-            employee.HireDate,
-            employee.Email,
-            employee.JobTitle,
-            employee.Department,
-            employee.OfficeLocation,
-            null,
-            false,  // this command should not change IsActive
-            employee.EmployeeType,
-            actor,
-            _dateTimeProvider.Now
-            );
-
-        if (updateResult.IsFailure)
+        // Works on a synced employee as well as one Wayd owns: removing a record the source should not
+        // have sent is the point of this command.
+        employee.UpdateManagerId(null, actor, _dateTimeProvider.Now);
+        var deactivateResult = employee.Deactivate(EmployeeActivatableArgs.Create(actor, _dateTimeProvider.Now));
+        if (deactivateResult.IsFailure)
         {
             var requestName = request.GetType().Name;
-            _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", requestName, updateResult.Error);
-            return Result.Failure<int>(updateResult.Error);
+            _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", requestName, deactivateResult.Error);
+            return Result.Failure<int>(deactivateResult.Error);
         }
 
         foreach (var report in employee.DirectReports)

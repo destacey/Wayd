@@ -23,6 +23,8 @@ public sealed class EntraEmployeeSource(IEntraEmployeeSource entraEmployeeSource
 
     public EmployeeMatchProperty MatchBy => _cfg?.MatchBy ?? EmployeeMatchProperty.Email;
 
+    public string? SystemId => _cfg?.TenantId;
+
     public Result Bind(SyncableConnectionDescriptor descriptor)
     {
         if (descriptor.Connector != Connector.Entra)

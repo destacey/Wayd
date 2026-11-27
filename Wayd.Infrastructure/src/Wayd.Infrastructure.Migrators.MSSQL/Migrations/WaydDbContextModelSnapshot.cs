@@ -659,6 +659,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("AccessEndDate")
+                        .HasColumnType("date");
+
                     b.Property<DateTime?>("Deleted")
                         .HasColumnType("datetime2");
 
@@ -754,6 +757,32 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                                 .HasMaxLength(50)
                                 .HasColumnType("nvarchar(50)")
                                 .HasColumnName("Title");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "OwnershipInfo", "Wayd.Common.Domain.Employees.Employee.OwnershipInfo#OwnershipInfo", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("Connector")
+                                .HasMaxLength(32)
+                                .HasColumnType("varchar")
+                                .HasColumnName("Connector");
+
+                            b1.Property<string>("ExternalId")
+                                .HasMaxLength(64)
+                                .HasColumnType("varchar")
+                                .HasColumnName("ExternalId");
+
+                            b1.Property<string>("Ownership")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("varchar")
+                                .HasColumnName("Ownership");
+
+                            b1.Property<string>("SystemId")
+                                .HasMaxLength(64)
+                                .HasColumnType("varchar")
+                                .HasColumnName("SystemId");
                         });
 
                     b.HasKey("Id");

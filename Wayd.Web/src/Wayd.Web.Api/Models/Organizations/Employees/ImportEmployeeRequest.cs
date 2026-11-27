@@ -50,6 +50,13 @@ public sealed partial class ImportEmployeeRequest
     /// </summary>
     public string? AdditionalEmails { get; set; }
 
+    /// <summary>
+    /// The last day the employee keeps access, as <c>YYYY-MM-DD</c>. Required: an imported employee is owned by
+    /// Wayd, so no people sync ends its access. Once the day has passed the employee is deactivated, and any user
+    /// linked to it with it.
+    /// </summary>
+    public DateOnly? AccessEndDate { get; set; }
+
     public ImportEmployeeDto ToImportEmployeeDto()
     {
         Instant? hireDate = HireDate.HasValue
@@ -69,7 +76,8 @@ public sealed partial class ImportEmployeeRequest
             string.IsNullOrWhiteSpace(ManagerNumber) ? null : ManagerNumber.Trim(),
             IsActive,
             string.IsNullOrWhiteSpace(EmployeeType) ? null : EmployeeType.Trim(),
-            [.. CsvList.Split(AdditionalEmails).Select(e => (EmailAddress)e)]);
+            [.. CsvList.Split(AdditionalEmails).Select(e => (EmailAddress)e)],
+            AccessEndDate?.ToLocalDate());
     }
 }
 
@@ -81,7 +89,10 @@ public sealed class ImportEmployeeRequestValidator : CustomValidator<ImportEmplo
 
         RuleFor(e => e.EmployeeNumber)
             .NotEmpty()
-            .MaximumLength(256);
+            .MaximumLength(64);
+
+        RuleFor(e => e.AccessEndDate)
+            .NotNull();
 
         RuleFor(e => e.FirstName)
             .NotEmpty()
@@ -110,7 +121,7 @@ public sealed class ImportEmployeeRequestValidator : CustomValidator<ImportEmplo
             .MaximumLength(256);
 
         RuleFor(e => e.EmployeeType)
-            .MaximumLength(256);
+            .MaximumLength(128);
 
         // Validated before ToImportEmployeeDto runs — the EmailAddress cast there throws on a
         // malformed value, which would surface as a 500 rather than a row-level 422.

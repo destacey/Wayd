@@ -14,6 +14,10 @@ namespace Wayd.Common.Application.Employees.Dtos;
 /// the domain, so the deactivation event fires.
 /// </para>
 /// </summary>
+/// <param name="AccessEndDate">
+/// The last day the employee keeps access. Required: an imported employee is owned by Wayd, so only this date
+/// ends its access.
+/// </param>
 /// <param name="AdditionalEmails">
 /// Further work addresses this person is known by, beyond <paramref name="Email"/>. Used to match people
 /// against systems still referencing an address they have moved away from.
@@ -31,7 +35,8 @@ public sealed record ImportEmployeeDto(
     string? ManagerNumber,
     bool IsActive = true,
     string? EmployeeType = null,
-    IReadOnlyList<EmailAddress>? AdditionalEmails = null);
+    IReadOnlyList<EmailAddress>? AdditionalEmails = null,
+    LocalDate? AccessEndDate = null);
 
 public sealed class ImportEmployeeDtoValidator : CustomValidator<ImportEmployeeDto>
 {
@@ -41,7 +46,11 @@ public sealed class ImportEmployeeDtoValidator : CustomValidator<ImportEmployeeD
 
         RuleFor(e => e.EmployeeNumber)
             .NotEmpty()
-            .MaximumLength(256);
+            .MaximumLength(64);
+
+        // An imported employee is owned by Wayd, so no people sync ends its access.
+        RuleFor(e => e.AccessEndDate)
+            .NotNull();
 
         RuleFor(e => e.FirstName)
             .NotEmpty();
@@ -63,6 +72,6 @@ public sealed class ImportEmployeeDtoValidator : CustomValidator<ImportEmployeeD
             .MaximumLength(256);
 
         RuleFor(e => e.EmployeeType)
-            .MaximumLength(256);
+            .MaximumLength(128);
     }
 }

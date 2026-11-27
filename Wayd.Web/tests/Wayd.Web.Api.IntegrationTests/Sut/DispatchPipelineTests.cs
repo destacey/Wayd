@@ -32,7 +32,9 @@ public sealed class DispatchPipelineTests(WaydSqlServerApiFactory factory)
             jobTitle: "Engineer",
             department: "Delivery",
             officeLocation: null,
-            managerId: null);
+            managerId: null,
+            employeeType: null,
+            accessEndDate: new NodaTime.LocalDate(2099, 12, 31));
 
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
@@ -64,7 +66,9 @@ public sealed class DispatchPipelineTests(WaydSqlServerApiFactory factory)
             jobTitle: null,
             department: null,
             officeLocation: null,
-            managerId: null);
+            managerId: null,
+            employeeType: null,
+            accessEndDate: new NodaTime.LocalDate(2099, 12, 31));
 
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();

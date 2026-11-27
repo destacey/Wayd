@@ -666,6 +666,17 @@ The **Employees** page (**Organizations > Employees**) shows every active employ
 
 Turn on **Include Inactive** in the grid's control menu to list former employees too. Click a name, or a manager, to open that employee's detail page. The grid sorts, filters and exports to CSV like the teams list.
 
+## Synced and Wayd-owned employees
+
+Every employee is either **managed** by a people sync or **owned** by Wayd:
+
+- **Managed** — The active [people connection](../settings/index.mdx#connections) (Microsoft Entra ID or Workday) brought the employee in and keeps it up to date. It is read-only in Wayd: change it in the people system, and the next sync brings the change across. When the people system stops sending the person, a full sync deactivates them.
+- **Owned** — Created in Wayd, through the API, the MCP server or the [employee import](./bulk-import.mdx#employees-import), for someone the people system does not hold, such as an outside advisor. A people sync never changes or deactivates an owned employee. Each one has an **access end date**, the last day it keeps access: once that day has passed in the system time zone, Wayd deactivates the employee, and any user linked to it, within the hour. An owned employee can be edited, and editing one requires an access end date. Moving an access end date that has passed to today or later gives access back: the employee is reactivated at once, and its linked user within the hour.
+
+If the people system later sends someone who matches an owned employee on the key its connection matches on (**Match Employees By**: employee number or email), the sync takes that employee over: it becomes managed, keeps its history, and its access end date is cleared, since the people system now decides when access ends. A match on the other key alone is never enough; the sync skips the record and reports it on the run, so the employee can be given the matching key first.
+
+Employees that existed before ownership was introduced were treated as managed by the people connection active at the time, and as owned where none was active.
+
 ## Business Rules
 
 | Rule | Description |

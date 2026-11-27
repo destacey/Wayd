@@ -132,7 +132,10 @@ waits, retries, stalls and retention — are in [Settings → System → Imports
 
 `POST /api/organization/employees/import`
 
-Loads [employees](./index.mdx#team-members) and their management chain. A manager is referenced by employee
+Loads [employees](./index.mdx#team-members) and their management chain. Imported employees are
+[owned by Wayd](./index.mdx#synced-and-wayd-owned-employees): no people sync changes or deactivates them, so
+each needs an `AccessEndDate`, and a people sync takes one over only if it later sends the same person on the
+key its connection matches on. A manager is referenced by employee
 number and may appear **anywhere in the same file** or already exist — the import resolves managers after
 creating everyone, so order within the file does not matter. An employee whose manager cannot be resolved is
 still created (without a manager) rather than failing the batch, and the row carries a warning saying so.
@@ -154,7 +157,7 @@ Order the files so managers precede their reports where you can, and post them u
 
 | Column | Required | Notes |
 |---|---|---|
-| `EmployeeNumber` | Yes | The employee's natural key, unique across the company. Max 256 chars. |
+| `EmployeeNumber` | Yes | The employee's natural key, unique across the company. Max 64 chars, because a people sync that later takes the employee over uses it as the employee's id in the people system. |
 | `FirstName` | Yes | Max 100 chars. |
 | `MiddleName` | No | Max 100 chars. |
 | `LastName` | Yes | Max 100 chars. |
@@ -166,7 +169,8 @@ Order the files so managers precede their reports where you can, and post them u
 | `OfficeLocation` | No | Max 256 chars. |
 | `ManagerNumber` | No | The manager's **employee number**. May reference someone elsewhere in the file. |
 | `IsActive` | No | Whether the employee is current. Defaults to `true`. |
-| `EmployeeType` | No | Free-form worker type (e.g. `Employee`, `Contractor`, `Intern`), mirroring an HRIS descriptor. Max 256 chars. |
+| `EmployeeType` | No | Free-form worker type (e.g. `Employee`, `Contractor`, `Intern`), mirroring an HRIS descriptor. Max 128 chars. |
+| `AccessEndDate` | Yes | The last day the employee keeps access, as `YYYY-MM-DD`. Once it has passed, Wayd deactivates the employee and any user linked to it. For a former employee, the day they left. |
 
 :::note[Former employees]
 Set `IsActive` to `false` to record someone who has left. Inactive employees are created active and then
@@ -182,9 +186,9 @@ work item still stamped with someone's previous address resolves to them once th
 Record **work addresses only**. Home and personal addresses serve no purpose for matching and should never be
 loaded into Wayd.
 
-If a people-sync connection (Workday or Microsoft Entra ID) is active, it owns employee email addresses: each
-sync replaces them with exactly what the source reports, so addresses added by import are removed unless the
-source reports them too. Use this column for tenants without a people connector, or as a one-off backfill.
+An imported employee is owned by Wayd, so a people sync leaves its addresses alone. If a people sync later
+takes the employee over, it owns the addresses from then on: each sync replaces them with exactly what the
+source reports, so an address added by import is removed unless the source reports it too.
 :::
 
 ## Teams import

@@ -27,11 +27,11 @@ public sealed class EntraConnection : Connection<EntraConnectionConfiguration>, 
 
     public override bool HasActiveIntegrationObjects => IsValidConfiguration;
 
-    // ISyncableConnection
-    // Entra has no AzDO-style external system identifier (each connection is wired to a tenant
-    // but the tenant id lives in Configuration, not at the system-id level). The interface
-    // declares SystemId as nullable for exactly this case.
-    public string? SystemId => null;
+    /// <summary>
+    /// The Entra tenant the connection reads, which is the system its employees' references name: two
+    /// connections to one tenant bring in the same users.
+    /// </summary>
+    public string? SystemId => Configuration.TenantId;
 
     public bool CanSync => IsActive && IsValidConfiguration && HasActiveIntegrationObjects;
 

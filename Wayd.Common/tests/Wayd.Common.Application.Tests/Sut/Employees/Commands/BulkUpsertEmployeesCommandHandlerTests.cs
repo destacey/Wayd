@@ -9,6 +9,7 @@ using Wayd.Common.Application.Tests.Infrastructure;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Models;
 using Wayd.Tests.Shared;
 
@@ -39,7 +40,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             FakeExternalEmployee("E-1003", "alan@acme.example", isActive: true),
         };
 
-        var command = new BulkUpsertEmployeesCommand(
+        var command = SyncCommand(
             payload,
             EmployeeMatchProperty.EmployeeNumber,
             deactivateMissing: true);
@@ -75,7 +76,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             FakeExternalEmployee("E-2003", "new@acme.example", isActive: true),
         };
 
-        var command = new BulkUpsertEmployeesCommand(
+        var command = SyncCommand(
             payload,
             EmployeeMatchProperty.EmployeeNumber,
             deactivateMissing: true);
@@ -110,7 +111,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             FakeExternalEmployee("E-3001", "gia.bachmann@new.example", isActive: true),
         };
 
-        var command = new BulkUpsertEmployeesCommand(
+        var command = SyncCommand(
             payload,
             EmployeeMatchProperty.Email,
             deactivateMissing: false);
@@ -141,7 +142,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             FakeExternalEmployee("E-4002", "stable@acme.example", isActive: true),
         };
 
-        var command = new BulkUpsertEmployeesCommand(
+        var command = SyncCommand(
             payload,
             EmployeeMatchProperty.EmployeeNumber,
             deactivateMissing: false);
@@ -175,7 +176,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             FakeExternalEmployee("E-5001", "byEmail@acme.example", isActive: true),
         };
 
-        var command = new BulkUpsertEmployeesCommand(
+        var command = SyncCommand(
             payload,
             EmployeeMatchProperty.Email,
             deactivateMissing: false);
@@ -210,7 +211,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             FakeExternalEmployee("E-6002", "migrated@acme.example", isActive: true),
         };
 
-        var command = new BulkUpsertEmployeesCommand(
+        var command = SyncCommand(
             payload,
             EmployeeMatchProperty.Email,
             deactivateMissing: false);
@@ -242,7 +243,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             FakeExternalEmployee("E-7003", "ok-after@acme.example", isActive: true),
         };
 
-        var command = new BulkUpsertEmployeesCommand(
+        var command = SyncCommand(
             payload,
             EmployeeMatchProperty.Email,
             deactivateMissing: false);
@@ -264,7 +265,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
     /// the Application layer cannot reference Infrastructure to read them directly.
     /// </summary>
     [Theory]
-    [InlineData(256, "EmployeeNumber")]
+    [InlineData(64, "EmployeeNumber")]
     [InlineData(128, "EmployeeType")]
     [InlineData(100, "MiddleName")]
     public async Task Handle_AcceptsValuesAtTheConfiguredColumnLimit(int maxLength, string field)
@@ -280,7 +281,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             _ => record with { Name = new PersonName("First", atLimit, "Last") },
         };
 
-        var command = new BulkUpsertEmployeesCommand(
+        var command = SyncCommand(
             [record],
             EmployeeMatchProperty.Email,
             deactivateMissing: false);
@@ -305,7 +306,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
                 new ExternalEmployeeEmail(new EmailAddress("avery.chen@acme-legacy.example"), IsPrimary: false),
             ],
         };
-        var command = new BulkUpsertEmployeesCommand([record], EmployeeMatchProperty.EmployeeNumber);
+        var command = SyncCommand([record], EmployeeMatchProperty.EmployeeNumber);
 
         // Act
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -334,7 +335,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
         {
             Emails = [new ExternalEmployeeEmail(new EmailAddress("jordan.blake@acme.example"), IsPrimary: true)],
         };
-        var command = new BulkUpsertEmployeesCommand([record], EmployeeMatchProperty.EmployeeNumber);
+        var command = SyncCommand([record], EmployeeMatchProperty.EmployeeNumber);
 
         // Act
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -360,7 +361,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
                 new ExternalEmployeeEmail(new EmailAddress("sam.ortiz@acme-legacy.example"), IsPrimary: false),
             ],
         };
-        var command = new BulkUpsertEmployeesCommand([record], EmployeeMatchProperty.EmployeeNumber);
+        var command = SyncCommand([record], EmployeeMatchProperty.EmployeeNumber);
 
         // Act
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -378,7 +379,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
     {
         // Arrange — connectors that expose a single address leave Emails empty.
         var record = FakeExternalEmployee("E-5004", "solo@acme.example", isActive: true);
-        var command = new BulkUpsertEmployeesCommand([record], EmployeeMatchProperty.EmployeeNumber);
+        var command = SyncCommand([record], EmployeeMatchProperty.EmployeeNumber);
 
         // Act
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -400,7 +401,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             FakeExternalEmployee("E-6001", "one@acme.example", isActive: true),
             FakeExternalEmployee("E-6002", "two@acme.example", isActive: true),
         };
-        var command = new BulkUpsertEmployeesCommand(payload, EmployeeMatchProperty.EmployeeNumber);
+        var command = SyncCommand(payload, EmployeeMatchProperty.EmployeeNumber);
 
         // Act
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -423,7 +424,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
                 JobTitle = new string('x', 257),
             },
         };
-        var command = new BulkUpsertEmployeesCommand(payload, EmployeeMatchProperty.EmployeeNumber);
+        var command = SyncCommand(payload, EmployeeMatchProperty.EmployeeNumber);
 
         // Act
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -451,7 +452,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
                 new ExternalEmployeeEmail(new EmailAddress("alias@acme.example"), IsPrimary: false),
             ],
         };
-        var command = new BulkUpsertEmployeesCommand([record], EmployeeMatchProperty.EmployeeNumber);
+        var command = SyncCommand([record], EmployeeMatchProperty.EmployeeNumber);
 
         // Act
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -489,7 +490,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
         {
             JobTitle = "Principal Engineer",
         };
-        var command = new BulkUpsertEmployeesCommand([record], EmployeeMatchProperty.Email);
+        var command = SyncCommand([record], EmployeeMatchProperty.Email);
 
         // Act
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -530,7 +531,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             JobTitle = "Staff Engineer",
             ManagerEmployeeNumber = "M-405",
         };
-        var command = new BulkUpsertEmployeesCommand([first, second], EmployeeMatchProperty.Email, deactivateMissing: false);
+        var command = SyncCommand([first, second], EmployeeMatchProperty.Email, deactivateMissing: false);
 
         // Act
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -549,7 +550,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
         Seed(existing);
 
         var record = FakeExternalEmployee(" E-6016 ", "renamed@acme.example", isActive: true);
-        var command = new BulkUpsertEmployeesCommand([record], EmployeeMatchProperty.EmployeeNumber);
+        var command = SyncCommand([record], EmployeeMatchProperty.EmployeeNumber);
 
         // Act
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -570,7 +571,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
 
         var movesNumber = FakeExternalEmployee("M-NEW", "manager@acme.example", isActive: true);
         var namesOldNumber = FakeExternalEmployee("E-6017", "report@acme.example", isActive: true) with { ManagerEmployeeNumber = "M-OLD" };
-        var command = new BulkUpsertEmployeesCommand([movesNumber, namesOldNumber], EmployeeMatchProperty.Email, deactivateMissing: false);
+        var command = SyncCommand([movesNumber, namesOldNumber], EmployeeMatchProperty.Email, deactivateMissing: false);
 
         // Act
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -591,7 +592,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
 
         var movesNumber = FakeExternalEmployee("M-NEW2", "manager2@acme.example", isActive: true);
         var namesNewNumber = FakeExternalEmployee("E-6018", "report2@acme.example", isActive: true) with { ManagerEmployeeNumber = "M-NEW2" };
-        var command = new BulkUpsertEmployeesCommand([movesNumber, namesNewNumber], EmployeeMatchProperty.Email, deactivateMissing: false);
+        var command = SyncCommand([movesNumber, namesNewNumber], EmployeeMatchProperty.Email, deactivateMissing: false);
 
         // Act
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -614,7 +615,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             ManagerEmployeeNumber = "M-1",
         };
         var manager = FakeExternalEmployee("M-1", "manager@acme.example", isActive: true);
-        var command = new BulkUpsertEmployeesCommand([record, manager], EmployeeMatchProperty.Email, deactivateMissing: false);
+        var command = SyncCommand([record, manager], EmployeeMatchProperty.Email, deactivateMissing: false);
 
         // Act
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -640,7 +641,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
                 new ExternalEmployeeEmail(new EmailAddress(longAddress), IsPrimary: false),
             ],
         };
-        var command = new BulkUpsertEmployeesCommand([record], EmployeeMatchProperty.EmployeeNumber);
+        var command = SyncCommand([record], EmployeeMatchProperty.EmployeeNumber);
 
         // Act
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -664,7 +665,7 @@ public class BulkUpsertEmployeesCommandHandlerTests
             Emails = [new ExternalEmployeeEmail(null!, IsPrimary: false)],
         };
         var accepted = FakeExternalEmployee("E-6009", "riley.moss@acme.example", isActive: true);
-        var command = new BulkUpsertEmployeesCommand([refused, accepted], EmployeeMatchProperty.EmployeeNumber, deactivateMissing: false);
+        var command = SyncCommand([refused, accepted], EmployeeMatchProperty.EmployeeNumber, deactivateMissing: false);
 
         // Act
         var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
@@ -689,8 +690,195 @@ public class BulkUpsertEmployeesCommandHandlerTests
     private async Task<List<Employee>> GetEmployees() =>
         await _dbContext.Employees.ToListAsync(TestContext.Current.CancellationToken);
 
-    private Employee CreateExistingEmployee(string employeeNumber, string email) =>
+    [Fact]
+    public async Task Handle_FullSync_LeavesAnOwnedEmployeeItDidNotSendActive()
+    {
+        // Arrange
+        var owned = CreateOwnedEmployee("ADV-1", "advisor@acme.example");
+        Seed(owned);
+        var command = SyncCommand([FakeExternalEmployee("E-9101", "someone@acme.example", isActive: true)], EmployeeMatchProperty.EmployeeNumber);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        owned.IsActive.Should().BeTrue("the sync deactivates only employees its own system manages");
+        owned.IsManaged.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_FullSync_DeactivatesAPreviousSystemsEmployeeItDidNotSend()
+    {
+        // Arrange — the organization moved from Entra; this person is not in the new source.
+        var otherSystems = Employee.CreateManaged(
+            Connector.Entra, "other-tenant", new PersonName("Other", null, "System"), "0b7c", null,
+            new EmailAddress("other@acme.example"), null, null, null, null, true, null, EventActor.System, _dateTimeProvider.Now);
+        Seed(otherSystems);
+        var command = SyncCommand([FakeExternalEmployee("E-9102", "someone@acme.example", isActive: true)], EmployeeMatchProperty.EmployeeNumber);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        otherSystems.IsActive.Should().BeFalse("the one active people connection is the source of truth for every synced employee");
+        otherSystems.IsManagedBy(Connector.Entra, "other-tenant").Should().BeTrue("it is taken over only if the new source sends it");
+    }
+
+    [Fact]
+    public async Task Handle_PreviousSystemsInactiveEmployeeSentByTheNewSource_TakesItOverAndReactivatesIt()
+    {
+        // Arrange
+        var leftBehind = Employee.CreateManaged(
+            Connector.Entra, "other-tenant", new PersonName("Left", null, "Behind"), "E-9107", null,
+            new EmailAddress("left@acme.example"), null, null, null, null, false, null, EventActor.System, _dateTimeProvider.Now);
+        Seed(leftBehind);
+        var command = SyncCommand([FakeExternalEmployee("E-9107", "left@acme.example", isActive: true)], EmployeeMatchProperty.EmployeeNumber);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        leftBehind.IsManagedBy(SyncConnector, SyncSystemId).Should().BeTrue();
+        leftBehind.IsActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_NewRecord_CreatesAnEmployeeManagedByTheSyncsSystem()
+    {
+        // Arrange
+        var command = SyncCommand([FakeExternalEmployee("E-9103", "new@acme.example", isActive: true)], EmployeeMatchProperty.Email);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var created = (await GetEmployees()).Single();
+        created.IsManagedBy(SyncConnector, SyncSystemId).Should().BeTrue();
+        created.OwnershipInfo.ExternalId.Should().Be("E-9103");
+    }
+
+    [Theory]
+    [InlineData(EmployeeMatchProperty.EmployeeNumber)]
+    [InlineData(EmployeeMatchProperty.Email)]
+    public async Task Handle_OwnedEmployeeOnTheConfiguredKey_AdoptsAndUpdatesIt(EmployeeMatchProperty matchBy)
+    {
+        // Arrange — the record matches the owned employee on the configured key only.
+        var owned = CreateOwnedEmployee("E-9104", "adopt@acme.example");
+        Seed(owned);
+        var record = matchBy == EmployeeMatchProperty.EmployeeNumber
+            ? FakeExternalEmployee("E-9104", "adopt.new@acme.example", isActive: true)
+            : FakeExternalEmployee("E-9199", "adopt@acme.example", isActive: true);
+        var command = SyncCommand([record with { JobTitle = "Principal Engineer" }], matchBy);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Skipped.Should().BeEmpty();
+        (await GetEmployees()).Should().ContainSingle("adoption keeps the employee rather than creating another");
+        owned.IsManagedBy(SyncConnector, SyncSystemId).Should().BeTrue();
+        owned.JobTitle.Should().Be("Principal Engineer");
+        owned.OwnershipInfo.ExternalId.Should().Be(owned.EmployeeNumber);
+        owned.DomainEvents.OfType<EmployeeAdoptedEvent>().Should().ContainSingle();
+    }
+
+    [Theory]
+    [InlineData(EmployeeMatchProperty.EmployeeNumber)]
+    [InlineData(EmployeeMatchProperty.Email)]
+    public async Task Handle_OwnedEmployeeOnTheOtherKeyOnly_SkipsAndReportsTheRecord(EmployeeMatchProperty matchBy)
+    {
+        // Arrange — the record matches the owned employee only on the key the connection does not match by.
+        var owned = CreateOwnedEmployee("E-9105", "other-key@acme.example");
+        Seed(owned);
+        var record = matchBy == EmployeeMatchProperty.EmployeeNumber
+            ? FakeExternalEmployee("E-9198", "other-key@acme.example", isActive: true)
+            : FakeExternalEmployee("E-9105", "other-key.new@acme.example", isActive: true);
+        var command = SyncCommand([record with { JobTitle = "Principal Engineer" }], matchBy);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Skipped.Should().ContainKey(record.EmployeeNumber)
+            .WhoseValue.Should().Contain("Wayd owns").And.Contain("Match Employees By");
+        result.Value.Upserted.Should().Be(0);
+        (await GetEmployees()).Should().ContainSingle();
+        owned.IsManaged.Should().BeFalse();
+        owned.JobTitle.Should().Be("Engineer");
+        owned.IsActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_AnotherSystemsEmployeeOnTheConfiguredKey_TakesItOver()
+    {
+        // Arrange — the organization moved from Entra to this sync's system.
+        var fromEntra = Employee.CreateManaged(
+            Connector.Entra, "old-tenant", new PersonName("Avery", null, "Chen"), "E-9106", null,
+            new EmailAddress("avery@acme.example"), null, null, null, null, true, null, EventActor.System, _dateTimeProvider.Now);
+        Seed(fromEntra);
+        var command = SyncCommand([FakeExternalEmployee("E-9106", "avery@acme.example", isActive: true)], EmployeeMatchProperty.EmployeeNumber);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Upserted.Should().Be(1);
+        fromEntra.IsManagedBy(SyncConnector, SyncSystemId).Should().BeTrue();
+        fromEntra.DomainEvents.OfType<EmployeeTakenOverEvent>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Handle_OwnedEmployeeWithANumberTooLongToReference_SkipsTheRecordAndSavesTheRest()
+    {
+        // Arrange — only an employee that predates the 64-character limit has one. Matched by email, and the
+        // payload's number is another employee's, so the conflict would keep the long number as the external id.
+        var longNumber = new string('L', Employee.ExternalReferenceMaxLength + 1);
+        var legacy = CreateOwnedEmployee(longNumber, "legacy@acme.example");
+        var holder = CreateExistingEmployee("E-9110", "holder@acme.example");
+        Seed(legacy, holder);
+        var command = SyncCommand(
+            [
+                FakeExternalEmployee("E-9110", "legacy@acme.example", isActive: true),
+                FakeExternalEmployee("E-9111", "fine@acme.example", isActive: true),
+            ],
+            EmployeeMatchProperty.Email,
+            deactivateMissing: false);
+
+        // Act
+        var result = await CreateHandler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Skipped.Should().ContainKey("E-9110").WhoseValue.Should().Contain("longer than");
+        legacy.IsManaged.Should().BeFalse();
+        (await GetEmployees()).Should().Contain(e => e.EmployeeNumber == "E-9111");
+    }
+
+    /// <summary>An employee Wayd owns, as an admin or an import creates one.</summary>
+    private Employee CreateOwnedEmployee(string employeeNumber, string email) =>
         Employee.Create(
+            new PersonName("Owned", null, employeeNumber), employeeNumber, null, new EmailAddress(email),
+            "Engineer", "Engineering", "Remote", null, isActive: true, employeeType: "Advisor",
+            EventActor.System, _dateTimeProvider.Now, accessEndDate: new LocalDate(2027, 12, 31));
+
+    private const Connector SyncConnector = Connector.Workday;
+    private const string SyncSystemId = "acme";
+
+    private static BulkUpsertEmployeesCommand SyncCommand(IEnumerable<IExternalEmployee> payload, EmployeeMatchProperty matchBy, bool deactivateMissing = true) =>
+        new(payload, SyncConnector, SyncSystemId, matchBy, deactivateMissing);
+
+    /// <summary>An employee this test's people sync already manages.</summary>
+    private Employee CreateExistingEmployee(string employeeNumber, string email) =>
+        Employee.CreateManaged(
+            SyncConnector,
+            SyncSystemId,
             new PersonName("Existing", null, employeeNumber),
             employeeNumber,
             hireDate: null,

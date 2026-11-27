@@ -43,7 +43,7 @@ public sealed class BulkUpsertEmployeesCommandHandlerTests
     {
         await using var context = fixture.CreateContext();
         return await CreateHandler(context).Handle(
-            new BulkUpsertEmployeesCommand(payload, matchBy),
+            new BulkUpsertEmployeesCommand(payload, Connector.Workday, "acme", matchBy),
             cancellationToken);
     }
 

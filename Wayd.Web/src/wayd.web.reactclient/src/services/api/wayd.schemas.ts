@@ -1956,7 +1956,7 @@ export interface CreateEmployeeRequest {
   /**
      * Gets the employee number.
      * @minLength 1
-     * @maxLength 256
+     * @maxLength 64
      */
   employeeNumber: string;
   /**
@@ -1993,6 +1993,19 @@ export interface CreateEmployeeRequest {
      * @nullable
      */
   managerId?: string | null;
+  /**
+     * The working relationship, in the organization's own words, such as Advisor or Contractor.
+     * @maxLength 128
+     * @nullable
+     */
+  employeeType?: string | null;
+  /**
+     * The last day the employee keeps access, in `YYYY-MM-DD` form; today or later. Required: an employee
+     * created here is one no people sync manages, so nothing else ends its access. Once the day has passed the
+     * employee is deactivated, and any user linked to it with it.
+     * @nullable
+     */
+  accessEndDate: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 export type CreateEntraConnectionRequestType = typeof CreateEntraConnectionRequestType[keyof typeof CreateEntraConnectionRequestType];
@@ -4605,6 +4618,15 @@ export interface EmployeeEmailDto {
   isPrimary: boolean;
 }
 
+export type Ownership = typeof Ownership[keyof typeof Ownership];
+
+
+export const Ownership = {
+  Owned: 'Owned',
+  Managed: 'Managed',
+  System: 'System',
+} as const;
+
 export interface EmployeeDetailsDto {
   /** The employee's unique identifier. */
   id: string;
@@ -4670,6 +4692,19 @@ export interface EmployeeDetailsDto {
      * @nullable
      */
   employeeType?: string | null;
+  /**
+     * Who writes the employee's details: `Owned` when Wayd's admins do, `Managed` when a people sync
+     * does. A managed employee is read-only in Wayd; change it in its people system.
+     */
+  ownership: Ownership;
+  /** The kind of people system that manages the employee, or null when Wayd owns it. */
+  connector?: Connector | null;
+  /**
+     * The last day an employee Wayd owns keeps access; it is deactivated once the day has passed. Null for a
+     * managed employee, whose people system decides when its access ends.
+     * @nullable
+     */
+  accessEndDate?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 /**
@@ -4742,6 +4777,13 @@ export interface EmployeeListDto {
      * @nullable
      */
   employeeType?: string | null;
+  /** Who writes the employee's details: `Owned` when Wayd's admins do, `Managed` when a people sync does. */
+  ownership: Ownership;
+  /**
+     * The last day an employee Wayd owns keeps access; null for a managed employee.
+     * @nullable
+     */
+  accessEndDate?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 /**
@@ -5831,7 +5873,7 @@ export interface ImportEmployeeRequest {
   /**
      * The employee's natural key, unique across the company.
      * @minLength 1
-     * @maxLength 256
+     * @maxLength 64
      */
   employeeNumber: string;
   /**
@@ -5883,7 +5925,7 @@ export interface ImportEmployeeRequest {
   isActive: boolean;
   /**
      * The worker type (e.g. Employee, Contractor, Intern), mirroring the HRIS descriptor. Free-form.
-     * @maxLength 256
+     * @maxLength 128
      * @nullable
      */
   employeeType?: string | null;
@@ -5894,6 +5936,12 @@ export interface ImportEmployeeRequest {
      * @nullable
      */
   additionalEmails?: string | null;
+  /**
+     * The last day the employee keeps access, as `YYYY-MM-DD`. Required: an imported employee is owned by
+     * Wayd, so no people sync ends its access. Once the day has passed the employee is deactivated, and any user
+     * linked to it with it.
+     */
+  accessEndDate: string & { readonly __brand: 'CalendarDate' };
 }
 
 /**
@@ -17573,7 +17621,7 @@ export interface UpdateEmployeeRequest {
   /**
      * Gets the employee number.
      * @minLength 1
-     * @maxLength 256
+     * @maxLength 64
      */
   employeeNumber: string;
   /**
@@ -17610,6 +17658,18 @@ export interface UpdateEmployeeRequest {
      * @nullable
      */
   managerId?: string | null;
+  /**
+     * The working relationship, in the organization's own words, such as Advisor or Contractor.
+     * @maxLength 128
+     * @nullable
+     */
+  employeeType?: string | null;
+  /**
+     * The last day the employee keeps access, in `YYYY-MM-DD` form. Required. Once the day has passed the
+     * employee is deactivated, and any user linked to it with it.
+     * @nullable
+     */
+  accessEndDate: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 export type UpdateEntraConnectionRequestType = typeof UpdateEntraConnectionRequestType[keyof typeof UpdateEntraConnectionRequestType];

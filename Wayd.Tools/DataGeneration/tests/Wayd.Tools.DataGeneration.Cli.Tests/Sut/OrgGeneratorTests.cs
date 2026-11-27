@@ -100,6 +100,36 @@ public class OrgGeneratorTests
         org.Employees.Should().OnlyContain(e => !string.IsNullOrWhiteSpace(e.EmployeeType));
     }
 
+    [Fact]
+    public void Generate_CurrentEmployeesKeepAccessForYears()
+    {
+        // Arrange
+        var context = Context();
+        var org = Generate(context: context);
+
+        // Act
+        var current = org.Employees.Where(e => e.IsActive).ToList();
+
+        // Assert — the daily access check must not deactivate a freshly seeded database.
+        current.Should().NotBeEmpty();
+        current.Should().OnlyContain(e => e.AccessEndDate > context.AsOf.AddYears(5));
+    }
+
+    [Fact]
+    public void Generate_LeaversAccessEndedOnOrBeforeTheRunDate()
+    {
+        // Arrange
+        var context = Context();
+        var org = Generate(new OrgOptions { ValueStreams = 3, Teams = 20, AttritionRate = 0.2 }, context);
+
+        // Act
+        var leavers = org.Employees.Where(e => !e.IsActive).ToList();
+
+        // Assert
+        leavers.Should().NotBeEmpty();
+        leavers.Should().OnlyContain(e => e.AccessEndDate <= context.AsOf);
+    }
+
     // ---- Hierarchy validity -------------------------------------------------------------------
 
     [Fact]

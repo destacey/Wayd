@@ -53,4 +53,7 @@ public enum BackgroundJobType
 
     [Display(Name = "Attachment Sweep", Description = "Delete images uploaded into a markdown field more than 24 hours ago that no saved record refers to, such as those pasted into a form that was then cancelled.", Order = 2005, GroupName = "Maintenance Jobs")]
     AttachmentSweep = 2004,
+
+    [Display(Name = "Employee Access End", Description = "Deactivate every employee that a people sync does not manage whose access end date has passed, then bring the users linked to employees in step.", Order = 2006, GroupName = "Maintenance Jobs")]
+    EmployeeAccessEnd = 2005,
 }

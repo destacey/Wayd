@@ -67,7 +67,8 @@ public sealed class DefaultRecurringJobsTests
             DefaultRecurringJobs.ImportStallRecoveryJobId,
             DefaultRecurringJobs.ImportRetentionSweepJobId,
             DefaultRecurringJobs.NotificationRetentionSweepJobId,
-            DefaultRecurringJobs.AttachmentSweepJobId);
+            DefaultRecurringJobs.AttachmentSweepJobId,
+            DefaultRecurringJobs.EmployeeAccessEndJobId);
     }
 
     [Fact]
@@ -97,6 +98,19 @@ public sealed class DefaultRecurringJobsTests
     }
 
     [Fact]
+    public void EnsureDefaultRecurringJobs_RunsTheEmployeeAccessEndHourly()
+    {
+        // Arrange
+        ScheduledJobsAre();
+
+        // Act
+        CreateServices().EnsureDefaultRecurringJobs();
+
+        // Assert — access ends at midnight in the system zone, which no UTC daily schedule can name
+        _added.Single(a => a.JobId == DefaultRecurringJobs.EmployeeAccessEndJobId).Cron.Should().Be("45 * * * *");
+    }
+
+    [Fact]
     public void EnsureDefaultRecurringJobs_RunsTheAttachmentSweepHourly()
     {
         // Arrange
@@ -117,7 +131,8 @@ public sealed class DefaultRecurringJobsTests
             new RecurringJobDto { Id = "nightly-import-recovery", Action = nameof(IJobManager.RunImportStallRecovery) },
             new RecurringJobDto { Id = "weekly-import-purge", Action = nameof(IJobManager.RunImportRetentionSweep) },
             new RecurringJobDto { Id = "weekly-notification-purge", Action = nameof(IJobManager.RunNotificationRetentionSweep) },
-            new RecurringJobDto { Id = "my-attachment-sweep", Action = nameof(IJobManager.RunAttachmentSweep) });
+            new RecurringJobDto { Id = "my-attachment-sweep", Action = nameof(IJobManager.RunAttachmentSweep) },
+            new RecurringJobDto { Id = "nightly-access-end", Action = nameof(IJobManager.RunEmployeeAccessEnd) });
 
         // Act
         CreateServices().EnsureDefaultRecurringJobs();
@@ -139,6 +154,7 @@ public sealed class DefaultRecurringJobsTests
         _added.Select(a => a.JobId).Should().Equal(
             DefaultRecurringJobs.ImportRetentionSweepJobId,
             DefaultRecurringJobs.NotificationRetentionSweepJobId,
-            DefaultRecurringJobs.AttachmentSweepJobId);
+            DefaultRecurringJobs.AttachmentSweepJobId,
+            DefaultRecurringJobs.EmployeeAccessEndJobId);
     }
 }

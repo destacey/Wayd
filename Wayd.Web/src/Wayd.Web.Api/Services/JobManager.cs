@@ -3,8 +3,10 @@ using Hangfire;
 using Wayd.AppIntegration.Application.Interfaces;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Application.Attachments.Commands;
+using Wayd.Common.Application.Employees.Commands;
 using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Exceptions;
+using Wayd.Common.Application.Identity.Users;
 using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Notifications.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
@@ -36,7 +38,8 @@ public class JobManager(
     IWorkSyncRunner workSyncRunner,
     IPeopleSyncRunner peopleSyncRunner,
     IDispatcher dispatcher,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    IUserService userService)
     : IJobManager
 {
     // TODO: does this belong in JobService/HangfireService?
@@ -46,11 +49,13 @@ public class JobManager(
     private readonly IPeopleSyncRunner _peopleSyncRunner = peopleSyncRunner;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly IUserService _userService = userService;
 
     // No automatic retry. People-sync failures are overwhelmingly deterministic — a duplicate key
-    // on a uniquely-indexed employee field, a source returning zero workers. Re-running re-fetches every worker over SOAP, rebuilds the identical change set, and
-    // fails on the identical constraint, so the retries burn Workday API quota and emit a ~260 KB
-    // exception log apiece without ever changing the outcome. The failure is already durably
+    // on a uniquely-indexed employee field, a source returning zero workers. Re-running re-fetches
+    // every worker over SOAP, rebuilds the identical change set, and fails on the identical constraint,
+    // so the retries burn Workday API quota and emit a ~260 KB exception log apiece without ever
+    // changing the outcome. The failure is already durably
     // recorded on the SyncRun row before the throw, so each retry also writes another failed row
     // for one underlying problem.
     //
@@ -271,6 +276,27 @@ public class JobManager(
 
         _logger.LogInformation(
             "Completed {BackgroundJob} job ({Count} notifications deleted)", nameof(RunNotificationRetentionSweep), result.Value);
+    }
+
+    // No retry: it runs again within the hour, and an employee left active for one more pass is the cost.
+    [SkipConcurrentExecution]
+    [AutomaticRetry(Attempts = 0)]
+    public async Task RunEmployeeAccessEnd(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Running {BackgroundJob} job", nameof(RunEmployeeAccessEnd));
+
+        var result = await _dispatcher.Send(new DeactivateEmployeesPastAccessEndCommand(), cancellationToken);
+        ThrowIfFailed(result, "deactivate employees past their access end date");
+
+        // An employee's change of state reaches its linked user only through the user sync. It runs every time,
+        // not only when this run deactivated someone: a run whose user sync failed has already saved the
+        // deactivations, so the next run finds no one to deactivate and must still bring the users in step. It
+        // also gives back access to the user of an employee an admin reactivated by extending its access.
+        var usersResult = await _userService.SyncUsersFromEmployeeRecords(cancellationToken);
+        ThrowIfFailed(usersResult, "bring the users linked to employees in step");
+
+        _logger.LogInformation(
+            "Completed {BackgroundJob} job ({Count} employees deactivated)", nameof(RunEmployeeAccessEnd), result.Value);
     }
 
     [SkipConcurrentExecution]

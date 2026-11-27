@@ -28,7 +28,11 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
 
     public override bool HasActiveIntegrationObjects => IsValidConfiguration;
 
-    public string? SystemId => null;
+    /// <summary>
+    /// The Workday tenant the connection reads, which is the system its employees' references name: two
+    /// connections to one tenant bring in the same workers.
+    /// </summary>
+    public string? SystemId => Configuration.TenantAlias;
 
     public bool CanSync => IsActive && IsValidConfiguration && HasActiveIntegrationObjects;
 

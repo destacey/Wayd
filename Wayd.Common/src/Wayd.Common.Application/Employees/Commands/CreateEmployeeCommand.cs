@@ -7,7 +7,7 @@ namespace Wayd.Common.Application.Employees.Commands;
 
 public sealed record CreateEmployeeCommand : ICommand<ObjectIdAndKey>
 {
-    public CreateEmployeeCommand(PersonName name, string employeeNumber, Instant? hireDate, EmailAddress email, string? jobTitle, string? department, string? officeLocation, Guid? managerId)
+    public CreateEmployeeCommand(PersonName name, string employeeNumber, Instant? hireDate, EmailAddress email, string? jobTitle, string? department, string? officeLocation, Guid? managerId, string? employeeType, LocalDate? accessEndDate)
     {
         Name = name;
         EmployeeNumber = employeeNumber;
@@ -17,6 +17,8 @@ public sealed record CreateEmployeeCommand : ICommand<ObjectIdAndKey>
         Department = department;
         OfficeLocation = officeLocation;
         ManagerId = managerId;
+        EmployeeType = employeeType;
+        AccessEndDate = accessEndDate;
     }
 
     /// <summary>Gets the employee name.</summary>
@@ -50,6 +52,15 @@ public sealed record CreateEmployeeCommand : ICommand<ObjectIdAndKey>
     /// <summary>Gets the manager identifier.</summary>
     /// <value>The manager identifier.</value>
     public Guid? ManagerId { get; }
+
+    /// <summary>The working relationship, as the admin describes it: free text, such as Advisor or Contractor.</summary>
+    public string? EmployeeType { get; }
+
+    /// <summary>
+    /// The last day the employee keeps access. Required: no people sync manages this employee, so nothing
+    /// else will ever end its access.
+    /// </summary>
+    public LocalDate? AccessEndDate { get; }
 }
 
 public sealed class CreateEmployeeCommandValidator : CustomValidator<CreateEmployeeCommand>
@@ -66,9 +77,10 @@ public sealed class CreateEmployeeCommandValidator : CustomValidator<CreateEmplo
             .NotNull()
             .SetValidator(new PersonNameValidator());
 
+        // 64, not the column's 256: a people sync that later adopts the employee uses the number as its external id.
         RuleFor(e => e.EmployeeNumber)
             .NotEmpty()
-            .MaximumLength(256)
+            .MaximumLength(64)
             .MustAsync(BeUniqueEmployeeNumber).WithMessage("The EmployeeId already exists.");
 
         RuleFor(e => e.Email)
@@ -83,6 +95,12 @@ public sealed class CreateEmployeeCommandValidator : CustomValidator<CreateEmplo
 
         RuleFor(e => e.OfficeLocation)
             .MaximumLength(256);
+
+        RuleFor(e => e.EmployeeType)
+            .MaximumLength(128);
+
+        RuleFor(e => e.AccessEndDate)
+            .NotNull().WithMessage("An access end date is required for an employee no people sync manages.");
     }
 
     public async Task<bool> BeUniqueEmployeeNumber(string employeeNumber, CancellationToken cancellationToken)
@@ -95,19 +113,25 @@ public sealed class CreateEmployeeCommandHandler : ICommandHandler<CreateEmploye
 {
     private readonly IWaydDbContext _waydDbContext;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ISystemCalendar _systemCalendar;
     private readonly ICurrentUser _currentUser;
     private readonly ILogger<CreateEmployeeCommandHandler> _logger;
 
-    public CreateEmployeeCommandHandler(IWaydDbContext waydDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, ILogger<CreateEmployeeCommandHandler> logger)
+    public CreateEmployeeCommandHandler(IWaydDbContext waydDbContext, IDateTimeProvider dateTimeProvider, ISystemCalendar systemCalendar, ICurrentUser currentUser, ILogger<CreateEmployeeCommandHandler> logger)
     {
         _waydDbContext = waydDbContext;
         _dateTimeProvider = dateTimeProvider;
+        _systemCalendar = systemCalendar;
         _currentUser = currentUser;
         _logger = logger;
     }
 
     public async Task<Result<ObjectIdAndKey>> Handle(CreateEmployeeCommand request, CancellationToken cancellationToken)
     {
+        // An end already past would have the employee deactivated by the next access check.
+        if (request.AccessEndDate < await _systemCalendar.Today(cancellationToken))
+            return Result.Failure<ObjectIdAndKey>("The access end date cannot be in the past.");
+
         if (request.ManagerId.HasValue
             && await _waydDbContext.Employees.AllAsync(e => e.Id != request.ManagerId.Value, cancellationToken))
         {
@@ -125,9 +149,10 @@ public sealed class CreateEmployeeCommandHandler : ICommandHandler<CreateEmploye
             request.OfficeLocation,
             request.ManagerId,
             true,
-            employeeType: null,
+            request.EmployeeType,
             EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-            _dateTimeProvider.Now
+            _dateTimeProvider.Now,
+            accessEndDate: request.AccessEndDate
             );
 
         await _waydDbContext.Employees.AddAsync(employee, cancellationToken);

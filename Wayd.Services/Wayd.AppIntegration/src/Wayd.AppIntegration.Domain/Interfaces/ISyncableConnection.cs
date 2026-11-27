@@ -9,9 +9,9 @@
 public interface ISyncableConnection
 {
     /// <summary>
-    /// The unique identifier for the external system this connection syncs with. Nullable —
-    /// connectors that don't have an AzDO-style external system id (e.g. Entra, where the
-    /// tenant id lives in <c>Configuration</c>) return <c>null</c>.
+    /// The outside system's own identifier for the instance this connection syncs with: the Azure DevOps
+    /// organization, the Entra tenant, the Workday tenant. Null until an Azure DevOps connection has
+    /// read its organization's id.
     /// </summary>
     string? SystemId { get; }
 

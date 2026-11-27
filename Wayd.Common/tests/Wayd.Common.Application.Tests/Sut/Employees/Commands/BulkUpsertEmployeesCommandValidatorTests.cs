@@ -24,7 +24,7 @@ public class BulkUpsertEmployeesCommandValidatorTests
         string firstNumber, string secondNumber, string firstEmail, string secondEmail, string field)
     {
         // Arrange
-        var command = new BulkUpsertEmployeesCommand(
+        var command = SyncCommand(
             [
                 FakeExternalEmployee(firstNumber, firstEmail),
                 FakeExternalEmployee(secondNumber, secondEmail),
@@ -39,6 +39,21 @@ public class BulkUpsertEmployeesCommandValidatorTests
         result.Errors.Should().Contain(e => e.ErrorMessage == $"{field} must be unique.");
     }
 
+    [Fact]
+    public void Validate_RejectsASystemIdTooLongForAReference()
+    {
+        // Arrange — every employee the sync creates or adopts would carry it, failing the whole save
+        var command = new BulkUpsertEmployeesCommand(
+            [FakeExternalEmployee("E-1", "one@acme.example")], Connector.Workday, new string('t', 65), EmployeeMatchProperty.Email);
+
+        // Act
+        var result = _validator.Validate(command);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(BulkUpsertEmployeesCommand.SystemId));
+    }
+
     /// <summary>
     /// The uniqueness rules must not reject a legitimate payload of distinct employees.
     /// </summary>
@@ -46,7 +61,7 @@ public class BulkUpsertEmployeesCommandValidatorTests
     public void Validate_AcceptsPayload_WhenBothCandidateKeysAreDistinct()
     {
         // Arrange
-        var command = new BulkUpsertEmployeesCommand(
+        var command = SyncCommand(
             [
                 FakeExternalEmployee("E-1", "ada@acme.example"),
                 FakeExternalEmployee("E-2", "grace@acme.example"),
@@ -59,6 +74,9 @@ public class BulkUpsertEmployeesCommandValidatorTests
         // Assert
         result.IsValid.Should().BeTrue();
     }
+
+    private static BulkUpsertEmployeesCommand SyncCommand(IEnumerable<IExternalEmployee> payload, EmployeeMatchProperty matchBy, bool deactivateMissing = true) =>
+        new(payload, Connector.Workday, "acme", matchBy, deactivateMissing);
 
     private static FakeExternalEmployeeRecord FakeExternalEmployee(string employeeNumber, string email) =>
         new()

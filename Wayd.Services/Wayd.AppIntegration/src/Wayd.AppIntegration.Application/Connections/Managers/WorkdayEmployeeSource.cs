@@ -23,6 +23,8 @@ public sealed class WorkdayEmployeeSource(IWorkdayEmployeeSource workdayEmployee
 
     public EmployeeMatchProperty MatchBy => _cfg?.MatchBy ?? EmployeeMatchProperty.Email;
 
+    public string? SystemId => _cfg?.TenantAlias;
+
     public Result Bind(SyncableConnectionDescriptor descriptor)
     {
         if (descriptor.Connector != Connector.Workday)

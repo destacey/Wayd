@@ -38,6 +38,16 @@ public sealed class EntraConnectionTests
     }
 
     [Fact]
+    public void SystemId_IsTheTenant()
+    {
+        // Arrange & Act
+        var connection = Create();
+
+        // Assert
+        connection.SystemId.Should().Be("tenant-1");
+    }
+
+    [Fact]
     public void Update_ChangesTheTenant_WhenTheSecretIsEnteredAgain()
     {
         // Arrange

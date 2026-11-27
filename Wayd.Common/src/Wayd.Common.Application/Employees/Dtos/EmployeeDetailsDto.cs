@@ -1,5 +1,7 @@
 ﻿using Mapster;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Helpers;
 
 namespace Wayd.Common.Application.Employees.Dtos;
@@ -70,6 +72,21 @@ public sealed record EmployeeDetailsDto : IMapFrom<Employee>
     /// <summary>Source-system classification of the working relationship (e.g. "Regular Employee", "Contingent Worker"). Free-form, preserved verbatim from the source system; null when not provided.</summary>
     public string? EmployeeType { get; set; }
 
+    /// <summary>
+    /// Who writes the employee's details: <c>Owned</c> when Wayd's admins do, <c>Managed</c> when a people sync
+    /// does. A managed employee is read-only in Wayd; change it in its people system.
+    /// </summary>
+    public Ownership Ownership { get; set; }
+
+    /// <summary>The kind of people system that manages the employee, or null when Wayd owns it.</summary>
+    public Connector? Connector { get; set; }
+
+    /// <summary>
+    /// The last day an employee Wayd owns keeps access; it is deactivated once the day has passed. Null for a
+    /// managed employee, whose people system decides when its access ends.
+    /// </summary>
+    public LocalDate? AccessEndDate { get; set; }
+
     public void ConfigureMapping(TypeAdapterConfig config)
     {
         config.NewConfig<Employee, EmployeeDetailsDto>()
@@ -81,6 +98,8 @@ public sealed record EmployeeDetailsDto : IMapFrom<Employee>
             .Map(dest => dest.Suffix, src => src.Name.Suffix)
             .Map(dest => dest.Title, src => src.Name.Title)
             .Map(dest => dest.Email, src => src.Email.Value)
+            .Map(dest => dest.Ownership, src => src.OwnershipInfo.Ownership)
+            .Map(dest => dest.Connector, src => src.OwnershipInfo.Ownership == Ownership.Managed ? src.OwnershipInfo.Connector : null)
             .Map(dest => dest.Manager, src => src.Manager == null ? null : EmployeeNavigationDto.From(src.Manager));
     }
 }

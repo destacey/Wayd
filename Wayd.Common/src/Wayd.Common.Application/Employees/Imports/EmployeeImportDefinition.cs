@@ -149,7 +149,8 @@ public sealed class EmployeeImportDefinition(
                 EventActor.Import(_currentUser.GetUserId()),
                 timestamp,
                 // The factory seeds the primary address itself; these are the extras.
-                emails: [.. (row.Data.AdditionalEmails ?? []).Select(e => (e, false))]);
+                emails: [.. (row.Data.AdditionalEmails ?? []).Select(e => (e, false))],
+                accessEndDate: row.Data.AccessEndDate);
 
             await _waydDbContext.Employees.AddAsync(employee, cancellationToken);
             row.Created(employee.Id);

@@ -286,7 +286,7 @@ export const importTemplates = {
             required: true,
             description:
               "The employee's natural key, unique across the company.",
-            maxLength: 256,
+            maxLength: 64,
           },
           {
             name: 'FirstName',
@@ -355,7 +355,7 @@ export const importTemplates = {
             required: false,
             description:
               'The worker type (e.g. Employee, Contractor, Intern), mirroring the HRIS descriptor. Free-form.',
-            maxLength: 256,
+            maxLength: 128,
           },
           {
             name: 'AdditionalEmails',
@@ -363,6 +363,13 @@ export const importTemplates = {
             required: false,
             description:
               'Further work addresses for this person, semicolon-separated. `Email` stays the primary; these are additional addresses the person is known by in other systems — typically ones left behind by a domain or tenant move. Home and personal addresses do not belong here.',
+          },
+          {
+            name: 'AccessEndDate',
+            type: 'date',
+            required: true,
+            description:
+              'The last day the employee keeps access, as `YYYY-MM-DD`. Required: an imported employee is owned by Wayd, so no people sync ends its access. Once the day has passed the employee is deactivated, and any user linked to it with it.',
           },
         ],
       },

@@ -38,7 +38,7 @@ public sealed class ImportEmployeesCommandHandlerTests
     private static SubmittedImportRow<ImportEmployeeDto> Row(string importId = "r1") =>
         new(importId, new ImportEmployeeDto(
             "E-1001", "Dana", null, "Reyes", new EmailAddress("dana.reyes@example.com"),
-            null, null, null, null, null));
+            null, null, null, null, null, AccessEndDate: new LocalDate(2027, 12, 31)));
 
     private Task<CSharpFunctionalExtensions.Result<Guid>> Handle(
         params SubmittedImportRow<ImportEmployeeDto>[] rows) =>

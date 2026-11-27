@@ -15,6 +15,7 @@ using Wayd.AppIntegration.Application.Connections.Dtos.Teams;
 using Wayd.AppIntegration.Domain.Models.Teams;
 using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.AppIntegration;
 
@@ -47,6 +48,44 @@ public class GetConnectionQueryHandlerTests
 
         // Assert
         dto.Configuration.OrganizationUrl.Should().Be("https://devops.example.com/contoso");
+    }
+
+    [Fact]
+    public async Task Handle_ShowsTheOutsideSystemTheConnectionReaches()
+    {
+        // Arrange
+        var connection = AzureDevOpsBoardsConnection.Create(
+            "AzDO", null, "system-id", new AzureDevOpsBoardsConnectionConfiguration("contoso", "pat"), true, null, EventActor.System, _now);
+        var system = ExternalSystem.Create(Connector.AzureDevOps, "system-id", "contoso", "https://dev.azure.com/contoso", EventActor.System, _now);
+        connection.LinkExternalSystem(system, EventActor.System, _now).IsSuccess.Should().BeTrue();
+        _db.AddExternalSystem(system);
+        _db.AddConnection(connection);
+
+        // Act
+        var dto = await _sut.Handle(new GetConnectionQuery(connection.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        dto!.ExternalSystem.Should().BeEquivalentTo(new ExternalSystemNavigationDto
+        {
+            Id = system.Id,
+            Name = "contoso",
+            BaseUrl = "https://dev.azure.com/contoso",
+        });
+    }
+
+    [Fact]
+    public async Task Handle_ShowsNoOutsideSystem_ForAConnectionNotYetLinked()
+    {
+        // Arrange
+        var connection = AzureDevOpsBoardsConnection.Create(
+            "AzDO", null, null, new AzureDevOpsBoardsConnectionConfiguration("contoso", "pat"), false, null, EventActor.System, _now);
+        _db.AddConnection(connection);
+
+        // Act
+        var dto = await _sut.Handle(new GetConnectionQuery(connection.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        dto!.ExternalSystem.Should().BeNull();
     }
 
     [Fact]

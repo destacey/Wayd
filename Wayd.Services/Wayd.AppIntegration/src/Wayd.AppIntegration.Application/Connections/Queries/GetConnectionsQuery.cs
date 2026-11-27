@@ -43,15 +43,27 @@ public sealed class GetConnectionsQueryHandler(IAppIntegrationDbContext appInteg
         // Map each connection to its appropriate derived DTO type for polymorphic serialization.
         // Every concrete connection type must have an arm here — falling through to the base DTO
         // would silently drop the configuration and $type discriminator, so throw instead.
-        return [.. connections.Select(connection => connection switch
+        var systemIds = connections.Where(c => c.ExternalSystemId.HasValue).Select(c => c.ExternalSystemId!.Value).Distinct().ToList();
+        var systems = systemIds.Count == 0
+            ? []
+            : await _appIntegrationDbContext.ExternalSystems
+                .Where(s => systemIds.Contains(s.Id))
+                .ToDictionaryAsync(s => s.Id, ExternalSystemNavigationDto.From, cancellationToken);
+
+        return [.. connections.Select(connection =>
         {
-            AzureDevOpsBoardsConnection azdo => (ConnectionListDto)azdo.Adapt<AzureDevOpsConnectionListDto>(),
-            AzureOpenAIConnection aoai => aoai.Adapt<AzureOpenAIConnectionListDto>(),
-            EntraConnection entra => entra.Adapt<EntraConnectionListDto>(),
-            WorkdayConnection workday => workday.Adapt<WorkdayConnectionListDto>(),
-            TeamsConnection teams => teams.Adapt<TeamsConnectionListDto>(),
-            _ => throw new InvalidOperationException(
-                $"No list DTO mapping is registered for connection type '{connection.GetType().Name}'.")
+            ConnectionListDto dto = connection switch
+            {
+                AzureDevOpsBoardsConnection azdo => azdo.Adapt<AzureDevOpsConnectionListDto>(),
+                AzureOpenAIConnection aoai => aoai.Adapt<AzureOpenAIConnectionListDto>(),
+                EntraConnection entra => entra.Adapt<EntraConnectionListDto>(),
+                WorkdayConnection workday => workday.Adapt<WorkdayConnectionListDto>(),
+                TeamsConnection teams => teams.Adapt<TeamsConnectionListDto>(),
+                _ => throw new InvalidOperationException(
+                    $"No list DTO mapping is registered for connection type '{connection.GetType().Name}'.")
+            };
+            dto.ExternalSystem = connection.ExternalSystemId is { } id ? systems.GetValueOrDefault(id) : null;
+            return dto;
         })];
     }
 }

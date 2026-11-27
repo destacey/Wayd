@@ -5,6 +5,7 @@ import { getCapabilityNames } from '@/src/types/connectors'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { ResponsiveFlex } from '@/src/components/common'
 import { Descriptions, Flex, Typography } from 'antd'
+import ExternalSystemValue from './external-system-value'
 
 const { Item } = Descriptions
 const { Title } = Typography
@@ -44,6 +45,11 @@ const GenericConnectionDetails = ({
       <ResponsiveFlex>
         <Descriptions column={1}>
           <Item label="Connector">{connection.connector?.name}</Item>
+          {connection.canSync != null && (
+            <Item label="System">
+              <ExternalSystemValue system={connection.externalSystem} />
+            </Item>
+          )}
           <Item label="Capabilities">{getCapabilityNames(connection)}</Item>
           <Item label="Is Active?">{connection.isActive ? 'Yes' : 'No'}</Item>
           <Item label="Is Valid Configuration?">

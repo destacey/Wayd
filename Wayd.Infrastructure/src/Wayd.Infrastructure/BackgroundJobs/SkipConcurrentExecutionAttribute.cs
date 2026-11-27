@@ -142,11 +142,15 @@ public sealed class SkipConcurrentExecutionAttribute : JobFilterAttribute, IServ
     }
 
     /// <summary>Gives a skipped run's Deleted state the reason it was skipped.</summary>
+    /// <remarks>
+    /// Rewrites the candidate's reason rather than electing a new state: Hangfire records a replaced candidate in the
+    /// job's history, which would show the run deleted twice.
+    /// </remarks>
     public void OnStateElection(ElectStateContext context)
     {
-        if (context.CandidateState is DeletedState { Reason: CanceledReason })
+        if (context.CandidateState is DeletedState { Reason: CanceledReason } deleted)
         {
-            context.CandidateState = new DeletedState { Reason = SkippedReason(context.BackgroundJob.Job.Method.Name) };
+            deleted.Reason = SkippedReason(context.BackgroundJob.Job.Method.Name);
         }
     }
 

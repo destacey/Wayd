@@ -98,6 +98,8 @@ public sealed class SkipConcurrentExecutionAttributeTests : IDisposable
         // Assert — at once, not after waiting for the lock
         var skipped = await WaitForState(overlapping, DeletedState.StateName, TimeSpan.FromSeconds(5));
         skipped.Reason.Should().Be("Skipped: another run of Held was already in progress.");
+        _storage.GetMonitoringApi().JobDetails(overlapping).History
+            .Should().ContainSingle(h => h.StateName == DeletedState.StateName, "the run is deleted once, with the skip reason");
         CurrentState(running).Should().Be(ProcessingState.StateName);
     }
 

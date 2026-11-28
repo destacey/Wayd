@@ -40,6 +40,7 @@ The `Me_*` tools act for the caller and take no id:
 | What am I involved in? Where should I start? | `Me_GetHomeContext` — counts only: your teams, approved and active projects by role, intake desks by role and open requests you raised, open risks assigned to you, products your teams work on, and active roadmaps you own; then list what a count points to with the tools below |
 | Which teams am I on? | `Me_GetTeamMemberships` — membership and the member roles you hold |
 | How is my time split across teams? | `Me_GetAllocations` (team-capacity-management flag) |
+| What ships next on my teams' products? What has slipped? | `Me_GetUpcomingReleases` — releases and versions not yet released, targeted within `days` (default 14) or past target (`isPastTarget`); a release counts through its product line or what it carries, listed in `teamProducts`. `releases` is null without View Releases, `versions` null without View Delivery. For anything else about a release or version, see the `wayd-delivery` skill |
 | What are my tickets? | `Me_GetWorkItems` — pass `statusCategories` `Proposed` and `Active` for open work |
 | Where am I the project manager (or sponsor, owner, member)? | `Projects_GetProjects` with `role` and no `employeeId`: a role filter defaults to the caller |
 | My projects at a glance, how many of my tasks are late | `Projects_GetMyProjectsSummary`, `Projects_GetMyProjectsTaskMetrics` |

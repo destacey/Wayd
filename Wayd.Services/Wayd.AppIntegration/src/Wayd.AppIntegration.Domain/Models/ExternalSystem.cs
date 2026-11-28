@@ -15,6 +15,15 @@ namespace Wayd.AppIntegration.Domain.Models;
 /// </remarks>
 public sealed class ExternalSystem : BaseAuditableEntity
 {
+    /// <summary>The longest <see cref="SystemId"/> the database holds.</summary>
+    public const int SystemIdMaxLength = 64;
+
+    /// <summary>The longest <see cref="Name"/> the database holds.</summary>
+    public const int NameMaxLength = 128;
+
+    /// <summary>The longest <see cref="BaseUrl"/> the database holds.</summary>
+    public const int BaseUrlMaxLength = 512;
+
     private ExternalSystem() { }
 
     private ExternalSystem(Connector connector, string systemId, string name, string? baseUrl)
@@ -79,6 +88,24 @@ public sealed class ExternalSystem : BaseAuditableEntity
         {
             AddDomainEvent(new ExternalSystemDetailsUpdatedEvent(Id, details.Name, details.BaseUrl, previous, actor, timestamp));
         }
+    }
+
+    /// <summary>
+    /// Refuses values the database cannot hold, so a connection describing its system with one is turned away with
+    /// a message rather than failing the save.
+    /// </summary>
+    public static Result CheckFits(string systemId, string name, string? baseUrl)
+    {
+        if (systemId.Trim().Length > SystemIdMaxLength)
+            return Result.Failure($"The outside system's id '{systemId}' is longer than {SystemIdMaxLength} characters.");
+
+        if (name.Trim().Length > NameMaxLength)
+            return Result.Failure($"The outside system's name is longer than {NameMaxLength} characters.");
+
+        if (baseUrl is not null && baseUrl.Trim().Length > BaseUrlMaxLength)
+            return Result.Failure($"The outside system's address is longer than {BaseUrlMaxLength} characters.");
+
+        return Result.Success();
     }
 
     /// <summary>Records a system the first time a connection learns its id.</summary>

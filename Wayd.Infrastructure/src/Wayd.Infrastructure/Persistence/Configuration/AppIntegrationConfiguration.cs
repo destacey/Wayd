@@ -83,9 +83,9 @@ public class ExternalSystemConfig : IEntityTypeConfiguration<ExternalSystem>
             .HasMaxLength(32);
         builder.Property(s => s.SystemId).IsRequired()
             .HasColumnType("varchar")
-            .HasMaxLength(64);
-        builder.Property(s => s.Name).IsRequired().HasMaxLength(128);
-        builder.Property(s => s.BaseUrl).HasMaxLength(512);
+            .HasMaxLength(ExternalSystem.SystemIdMaxLength);
+        builder.Property(s => s.Name).IsRequired().HasMaxLength(ExternalSystem.NameMaxLength);
+        builder.Property(s => s.BaseUrl).HasMaxLength(ExternalSystem.BaseUrlMaxLength);
     }
 }
 

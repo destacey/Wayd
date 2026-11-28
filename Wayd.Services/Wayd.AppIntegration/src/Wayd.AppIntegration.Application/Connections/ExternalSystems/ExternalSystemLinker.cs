@@ -21,21 +21,48 @@ public sealed class ExternalSystemLinker(IAppIntegrationDbContext appIntegration
             return Result.Success();
 
         var (name, baseUrl) = Describe(connection);
+        var fits = ExternalSystem.CheckFits(syncable.SystemId, name, baseUrl);
+        if (fits.IsFailure)
+            return fits;
 
         var system = await Find(connection, syncable.SystemId, cancellationToken);
         if (system is null)
         {
+            // Added only once linked, so a refused link leaves no system behind for a later save to write.
             system = ExternalSystem.Create(connection.Connector, syncable.SystemId, name, baseUrl, actor, timestamp);
+            var created = connection.LinkExternalSystem(system, actor, timestamp);
+            if (created.IsFailure)
+                return created;
+
             await _appIntegrationDbContext.ExternalSystems.AddAsync(system, cancellationToken);
             _created.Add(system);
-        }
-        else
-        {
-            system.UpdateDetails(name, baseUrl, actor, timestamp);
+            return created;
         }
 
-        return connection.LinkExternalSystem(system, actor, timestamp);
+        var linked = connection.LinkExternalSystem(system, actor, timestamp);
+        if (linked.IsFailure)
+            return linked;
+
+        system.UpdateDetails(name, baseUrl, actor, timestamp);
+        return linked;
     }
+
+    public async Task<Result> Save(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+            return Result.Success();
+        }
+        catch (DbUpdateException ex) when (_created.Count > 0 && DbUpdateErrors.IsUniqueViolation(ex))
+        {
+            return Result.Failure(ConcurrentCreateMessage);
+        }
+    }
+
+    /// <summary>Why a save that created an outside system another request saved at the same moment failed.</summary>
+    public const string ConcurrentCreateMessage =
+        "Another connection to the same outside system was saved at the same moment. Try again: the connection will share that system.";
 
     private async Task<ExternalSystem?> Find(Connection connection, string systemId, CancellationToken cancellationToken)
     {

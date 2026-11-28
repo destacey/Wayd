@@ -76,7 +76,9 @@ public sealed class CreateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbC
 
         await _appIntegrationDbContext.AzureDevOpsBoardsConnections.AddAsync(connection, cancellationToken);
 
-        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+        var saveResult = await _externalSystemLinker.Save(cancellationToken);
+        if (saveResult.IsFailure)
+            return Result.Failure<Guid>(saveResult.Error);
 
         return Result.Success(connection.Id);
     }

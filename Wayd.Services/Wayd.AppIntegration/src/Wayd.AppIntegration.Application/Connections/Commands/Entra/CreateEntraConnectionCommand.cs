@@ -83,7 +83,9 @@ public sealed class CreateEntraConnectionCommandHandler(
 
         await _appIntegrationDbContext.EntraConnections.AddAsync(connection, cancellationToken);
 
-        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+        var saveResult = await _externalSystemLinker.Save(cancellationToken);
+        if (saveResult.IsFailure)
+            return Result.Failure<Guid>(saveResult.Error);
 
         return Result.Success(connection.Id);
     }

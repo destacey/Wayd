@@ -5,12 +5,13 @@ using Moq.AutoMock;
 using NodaTime;
 using Wayd.AppIntegration.Application.Connections;
 using Wayd.AppIntegration.Application.Connections.Commands.AzureDevOps;
+using Wayd.AppIntegration.Application.Connections.ExternalSystems;
 using Wayd.AppIntegration.Application.Persistence;
 using Wayd.AppIntegration.Application.Tests.Infrastructure;
 using Wayd.AppIntegration.Domain.Models;
-using Wayd.Common.Domain.Events;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.AppIntegration.Application.Tests.Sut.Connections.Commands.AzureDevOps;
 
@@ -27,6 +28,7 @@ public class UpdateAzureDevOpsConnectionCommandHandlerTests
     public UpdateAzureDevOpsConnectionCommandHandlerTests()
     {
         _mocker.Use<IAppIntegrationDbContext>(_db);
+        _mocker.Use<IExternalSystemLinker>(new ExternalSystemLinker(_db, Mock.Of<IAzureDevOpsUrlResolver>()));
         _mocker.GetMock<IDateTimeProvider>().SetupGet(p => p.Now).Returns(_now);
         _mocker.GetMock<IAzureDevOpsService>()
             .Setup(s => s.GetSystemId(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))

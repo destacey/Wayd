@@ -12,4 +12,10 @@ public interface IExternalSystemLinker : IScopedService
     /// Does nothing for a connection that syncs nothing or does not yet know its system id.
     /// </summary>
     Task<Result> Link(Connection connection, EventActor actor, Instant timestamp, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Saves the context. When a system this scope created collides with one another request saved first, the save
+    /// fails with a message to try again, which then finds and shares that system; any other failed save is thrown.
+    /// </summary>
+    Task<Result> Save(CancellationToken cancellationToken);
 }

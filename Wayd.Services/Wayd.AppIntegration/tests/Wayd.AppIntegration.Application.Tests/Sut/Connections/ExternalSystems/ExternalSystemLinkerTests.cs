@@ -173,6 +173,39 @@ public sealed class ExternalSystemLinkerTests
         connection.ExternalSystemId.Should().BeNull();
     }
 
+    [Fact]
+    public async Task Link_AddsNoSystem_WhenTheConnectionRefusesIt()
+    {
+        // Arrange
+        var connection = Entra("tenant-1");
+        var missing = ExternalSystem.Create(Connector.Entra, "tenant-1", "tenant-1", null, Actor, _now);
+        connection.LinkExternalSystem(missing, Actor, _now).IsSuccess.Should().BeTrue();
+
+        // Act
+        var result = await _sut.Link(connection, Actor, _now, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        _db.ExternalSystems.Should().BeEmpty("a system the connection refused must not be left for the save to write");
+        connection.ExternalSystemId.Should().Be(missing.Id);
+    }
+
+    [Fact]
+    public async Task Link_RefusesADescriptionTooLongToStore()
+    {
+        // Arrange
+        var connection = AzureDevOps(new string('o', ExternalSystem.NameMaxLength + 1), "org-id");
+
+        // Act
+        var result = await _sut.Link(connection, Actor, _now, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain($"{ExternalSystem.NameMaxLength} characters");
+        _db.ExternalSystems.Should().BeEmpty();
+        connection.ExternalSystemId.Should().BeNull();
+    }
+
     private static AzureDevOpsBoardsConnection AzureDevOps(string organization, string? systemId) =>
         AzureDevOpsBoardsConnection.Create("Boards", null, systemId, new AzureDevOpsBoardsConnectionConfiguration(organization, "pat"), systemId is not null, null, Actor, _now);
 

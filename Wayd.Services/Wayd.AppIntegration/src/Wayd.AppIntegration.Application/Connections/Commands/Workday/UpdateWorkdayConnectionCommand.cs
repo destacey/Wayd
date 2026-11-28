@@ -34,13 +34,17 @@ public sealed class UpdateWorkdayConnectionCommandValidator : CustomValidator<Up
         RuleFor(c => c.WsdlUrl)
             .NotEmpty()
             .MaximumLength(1024)
-            .Must(BeParseable).WithMessage("WsdlUrl must be a Workday Staffing endpoint URL of the form https://{host}/ccx/service/{tenant}/Staffing/{version}.");
+            .Must(BeParseable).WithMessage("WsdlUrl must be a Workday Staffing endpoint URL of the form https://{host}/ccx/service/{tenant}/Staffing/{version}.")
+            .Must(HaveATenantAliasThatFits).WithMessage($"The tenant in the WsdlUrl must be {ExternalSystem.SystemIdMaxLength} characters or fewer.");
         RuleFor(c => c.IsuUsername).NotEmpty().MaximumLength(256);
         // Deliberately not NotEmpty: a blank password means "keep the stored one".
         RuleFor(c => c.IsuPassword).MaximumLength(512);
     }
 
     private static bool BeParseable(string url) => WorkdayConnectionConfiguration.TryParse(url, out _);
+
+    private static bool HaveATenantAliasThatFits(string url) =>
+        WorkdayConnectionConfiguration.TryParse(url, out var parts) && parts.TenantAlias.Length <= ExternalSystem.SystemIdMaxLength;
 }
 
 public sealed class UpdateWorkdayConnectionCommandHandler(
@@ -111,7 +115,9 @@ public sealed class UpdateWorkdayConnectionCommandHandler(
             return Result.Failure<Guid>(linkResult.Error);
 
         // Persist the change-set first so a slow/failing probe doesn't roll back the typed config.
-        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+        var saveResult = await _externalSystemLinker.Save(cancellationToken);
+        if (saveResult.IsFailure)
+            return Result.Failure<Guid>(saveResult.Error);
 
         await RunInitProbe(connection, cancellationToken);
         await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);

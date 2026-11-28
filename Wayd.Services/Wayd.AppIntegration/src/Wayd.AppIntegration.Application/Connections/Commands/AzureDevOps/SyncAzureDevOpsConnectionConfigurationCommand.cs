@@ -45,7 +45,9 @@ public sealed class SyncAzureDevOpsConnectionConfigurationCommandHandler(IAppInt
             if (linkResult.IsFailure)
                 return linkResult;
 
-            await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+            var saveResult = await _externalSystemLinker.Save(cancellationToken);
+            if (saveResult.IsFailure)
+                return saveResult;
 
             _logger.LogInformation("Set SystemId for Azure DevOps connection {ConnectionId} to {SystemId}.", connection.Id, connection.SystemId);
 

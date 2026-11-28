@@ -104,7 +104,9 @@ public sealed class UpdateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbC
         if (linkResult.IsFailure)
             return Result.Failure<Guid>(linkResult.Error);
 
-        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+        var saveResult = await _externalSystemLinker.Save(cancellationToken);
+        if (saveResult.IsFailure)
+            return Result.Failure<Guid>(saveResult.Error);
 
         return Result.Success(connection.Id);
     }

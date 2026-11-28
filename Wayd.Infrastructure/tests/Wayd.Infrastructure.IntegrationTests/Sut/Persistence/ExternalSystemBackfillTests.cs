@@ -5,6 +5,7 @@ using Moq;
 using Wayd.AppIntegration.Application.Connections.ExternalSystems;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Domain.Models.Entra;
+using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Events;
@@ -115,6 +116,33 @@ public sealed class ExternalSystemBackfillTests(SqlServerDbContextFixture fixtur
         await using var verify = _fixture.CreateContext();
         var linked = await verify.Connections.Where(c => c.Id == connection.Id).Select(c => c.ExternalSystemId).SingleAsync(ct);
         linked.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Run_SkipsAConnectionItsSystemCannotHold_AndLinksTheRest()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var tooLong = $"t{Guid.NewGuid():N}{new string('t', ExternalSystem.SystemIdMaxLength)}";
+        var unfit = WorkdayConnection.Create(
+            "Workday", null, new WorkdayConnectionConfiguration($"https://wd.acme.example/ccx/service/{tooLong}/Staffing/v46.1", "isu", "password"), true, EventActor.System, Now);
+        await using (var context = _fixture.CreateContext())
+        {
+            context.Connections.Add(unfit);
+            await context.SaveChangesAsync(ct);
+        }
+        var tenantId = $"tenant-{Guid.NewGuid():N}";
+        var fit = await SeedEntra(tenantId, ct);
+
+        // Act
+        var run = () => RunBackfill(ct);
+
+        // Assert
+        await run.Should().NotThrowAsync();
+        await using var verify = _fixture.CreateContext();
+        (await verify.Connections.Where(c => c.Id == unfit.Id).Select(c => c.ExternalSystemId).SingleAsync(ct)).Should().BeNull();
+        (await verify.Connections.Where(c => c.Id == fit.Id).Select(c => c.ExternalSystemId).SingleAsync(ct)).Should().NotBeNull();
+        (await verify.ExternalSystems.AnyAsync(s => s.Connector == Connector.Workday && s.SystemId.StartsWith(tooLong.Substring(0, 33)), ct)).Should().BeFalse("a system the connection could not be tied to must not be saved");
     }
 
     private async Task<EntraConnection> SeedEntra(string tenantId, CancellationToken ct)

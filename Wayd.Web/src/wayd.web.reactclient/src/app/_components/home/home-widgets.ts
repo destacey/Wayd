@@ -40,6 +40,11 @@ import MyProductIncidentsWidget, {
 import MyProjectsWidget, {
   myProjectsSettings,
 } from './widgets/my-projects-widget'
+import UpcomingReleasesWidget, {
+  UPCOMING_RELEASES_LIMIT,
+  upcomingReleasesSettings,
+  VersionsPastTargetTile,
+} from './widgets/upcoming-releases-widget'
 import MyRequestsWidget, {
   MY_REQUESTS_LIMIT,
   myRequestsSettings,
@@ -91,6 +96,8 @@ export const TilePriority = {
   SprintsToComplete: 90,
   ProjectHealthChecksDue: 85,
   RiskFollowUps: 80,
+  // Late, but the team's rather than the caller's own: below the follow-ups assigned to them.
+  VersionsPastTarget: 78,
   CrossTeamDependencies: 75,
   DependenciesAtRisk: 70,
   UnassignedRequests: 65,
@@ -468,6 +475,37 @@ export const HomeWidgets: HomeWidget[] = [
         title: 'Active incidents',
         priority: TilePriority.ActiveIncidents,
         Tile: ActiveIncidentsTile,
+      },
+    ],
+  },
+  {
+    id: 'upcoming-releases',
+    title: 'Upcoming releases',
+    description:
+      'The releases and versions targeted to ship soon on the products your teams work on, and those past their target date.',
+    defaultColumn: 'side',
+    defaultOrder: 15,
+    requires: {
+      featureFlag: 'product-management',
+      permissions: ['Permissions.Releases.View', 'Permissions.Delivery.View'],
+      linkedEmployee: true,
+      // Zero when the caller's teams work on no product, or Product Management is off.
+      involved: ({ teamProductCount }) => teamProductCount > 0,
+    },
+    Component: UpcomingReleasesWidget,
+    settings: [
+      ...upcomingReleasesSettings,
+      rowsSetting(UPCOMING_RELEASES_LIMIT),
+      emptySetting,
+    ],
+    // Everyone it is shown to has a team working on a product.
+    involvement: () => Involvement.Involved,
+    tiles: [
+      {
+        id: 'versions-past-target',
+        title: 'Versions past target',
+        priority: TilePriority.VersionsPastTarget,
+        Tile: VersionsPastTargetTile,
       },
     ],
   },

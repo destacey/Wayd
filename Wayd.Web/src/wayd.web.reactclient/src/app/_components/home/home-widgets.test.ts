@@ -26,6 +26,12 @@ vi.mock('./widgets/my-product-incidents-widget', () => ({
   MY_PRODUCT_INCIDENTS_LIMIT: 5,
   ActiveIncidentsTile: () => null,
 }))
+vi.mock('./widgets/upcoming-releases-widget', () => ({
+  default: () => null,
+  UPCOMING_RELEASES_LIMIT: 5,
+  upcomingReleasesSettings: [],
+  VersionsPastTargetTile: () => null,
+}))
 vi.mock('./widgets/my-projects-widget', () => ({
   default: () => null,
   myProjectsSettings: [],
@@ -189,6 +195,7 @@ describe('HomeWidgets', () => {
       'sprints-to-complete',
       'project-health-checks-due',
       'risk-follow-ups',
+      'versions-past-target',
       'cross-team-dependencies',
       'dependencies-at-risk',
       'unassigned-requests',
@@ -236,6 +243,47 @@ describe('HomeWidgets', () => {
       'active-incidents',
     )
   })
+
+  it('hides upcoming releases while the Product Management flag is off', () => {
+    // Arrange
+    const flagOff = {
+      ...everythingAsAManager,
+      isFeatureEnabled: (flag: string) => flag !== 'product-management',
+    }
+
+    // Act
+    const columns = arrangeWidgets(HomeWidgets, flagOff)
+
+    // Assert
+    expect([...columns.main, ...columns.side].map((w) => w.id)).not.toContain(
+      'upcoming-releases',
+    )
+    expect(attentionTiles(columns).map((t) => t.id)).not.toContain(
+      'versions-past-target',
+    )
+  })
+
+  it.each(['Permissions.Releases.View', 'Permissions.Delivery.View'])(
+    'hides upcoming releases without %s',
+    (missing) => {
+      // Arrange
+      const noPermission = {
+        ...everythingAsAManager,
+        hasPermissionClaim: (claim: string) => claim !== missing,
+      }
+
+      // Act
+      const columns = arrangeWidgets(HomeWidgets, noPermission)
+
+      // Assert
+      expect([...columns.main, ...columns.side].map((w) => w.id)).not.toContain(
+        'upcoming-releases',
+      )
+      expect(attentionTiles(columns).map((t) => t.id)).not.toContain(
+        'versions-past-target',
+      )
+    },
+  )
 
   it('hides the notification and follow widgets while the Following flag is off', () => {
     // Arrange
@@ -308,6 +356,24 @@ describe('HomeWidgets involvement rules', () => {
       'my-product-incidents',
     )
     expect(layout.tiles).not.toContain('active-incidents')
+  })
+
+  it('shows upcoming releases once the caller’s teams work on a product', () => {
+    // Arrange / Act
+    const layout = defaultFor({ teams: { teamCount: 1 }, teamProductCount: 2 })
+
+    // Assert
+    expect(layout.side).toContain('upcoming-releases')
+    expect(layout.tiles).toContain('versions-past-target')
+  })
+
+  it('shows no upcoming releases to a caller whose teams work on no product', () => {
+    // Arrange / Act
+    const layout = defaultFor({ teams: { teamCount: 1 } })
+
+    // Assert
+    expect([...layout.main, ...layout.side]).not.toContain('upcoming-releases')
+    expect(layout.tiles).not.toContain('versions-past-target')
   })
 
   it('puts a project leader’s projects first', () => {

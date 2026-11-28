@@ -3,6 +3,7 @@ import {
   meGetHomeContext,
   meGetIncidents,
   meGetTeamsSummary,
+  meGetUpcomingReleases,
   meGetWorkItems,
 } from '@/src/services/api/me'
 import {
@@ -10,6 +11,7 @@ import {
   MyTeamsSummaryResponse,
   StatusCategory,
   TeamProductIncidentDto,
+  TeamProductReleasesDto,
   WorkItemListDto,
 } from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
@@ -89,10 +91,32 @@ export const meApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      // An incident change, or a team linked to or unlinked from a product, can move one in or out of the list.
+      // An incident change, a team linked to or unlinked from a product, or a product's status leaving or
+      // entering Proposed and Active, can move one in or out of the list.
       providesTags: [
         { type: QueryTags.Incident, id: 'LIST' },
         { type: QueryTags.ProductTeamLink, id: 'LIST' },
+        { type: QueryTags.Product, id: 'LIST' },
+      ],
+    }),
+    getMyUpcomingReleases: builder.query<TeamProductReleasesDto, number>({
+      queryFn: async (days) => {
+        try {
+          const data = await meGetUpcomingReleases({ days })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // A release, a version or a package's manifest changing, a team linked to or unlinked from a product, or a
+      // product's status leaving or entering Proposed and Active, can move one in or out of the list.
+      providesTags: [
+        { type: QueryTags.Release, id: 'LIST' },
+        { type: QueryTags.Version, id: 'LIST' },
+        { type: QueryTags.ReleasePackage, id: 'LIST' },
+        { type: QueryTags.ProductTeamLink, id: 'LIST' },
+        { type: QueryTags.Product, id: 'LIST' },
       ],
     }),
   }),
@@ -102,5 +126,6 @@ export const {
   useGetHomeContextQuery,
   useGetMyIncidentsQuery,
   useGetMyTeamsSummaryQuery,
+  useGetMyUpcomingReleasesQuery,
   useGetMyWorkItemsQuery,
 } = meApi

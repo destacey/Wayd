@@ -24,6 +24,8 @@ using Wayd.Planning.Application.Roadmaps.Queries;
 using Wayd.ProductManagement.Application.Incidents.Dtos;
 using Wayd.ProductManagement.Application.Incidents.Queries;
 using Wayd.ProductManagement.Application.Products.Queries;
+using Wayd.ProductManagement.Application.Releases.Dtos;
+using Wayd.ProductManagement.Application.Releases.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
@@ -54,6 +56,9 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
 {
     /// <summary>How many days, today included, a Kanban team's recent completions are counted over.</summary>
     private const int RecentFlowDays = 14;
+
+    /// <summary>How many days after today the upcoming releases window runs to when the caller names none.</summary>
+    private const int UpcomingReleaseDays = 14;
 
     private const string NoLinkedEmployee = "Your account is not linked to an employee, so nothing in Wayd is recorded against you as a person. An administrator links an account to an employee on its user record in Settings.";
 
@@ -169,6 +174,35 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
         var teams = await _dispatcher.Send(new GetEmployeeTeamInvolvementQuery(employeeId), cancellationToken);
 
         return Ok(await _dispatcher.Send(new GetTeamsActiveIncidentsQuery(teams.TeamIds), cancellationToken));
+    }
+
+    [HttpGet("upcoming-releases")]
+    [FeatureGate(FeatureFlags.Names.ProductManagement)]
+    [EndpointSummary("Get the releases and versions due to ship on the products your teams work on, and those past their target date.")]
+    [EndpointDescription(
+        "Releases and versions in a Proposed or Active status (not yet released or withdrawn) whose target date is no later than `days` days from today, those already past it included, earliest target first, on any proposed or active product linked to an active team or team of teams you are a member of. `isPastTarget` marks those whose target date is before today in the system time zone. A version counts when it is cut against one of those products. A release counts when it is announced under one of them or under a product line above one, or when it carries a version of one directly or as a changed line of a package; its `teamProducts` lists which, and `product` is what it is announced under (null for a release spanning product lines). `days` is 1 to 90 and defaults to 14; outside that range returns 422. `releases` is null without the Releases view permission, and `versions` null without the Delivery view permission. Returns empty lists when your teams are linked to no proposed or active product, and 404 when your account is not linked to an employee.")]
+    [McpTool("Me_GetUpcomingReleases", "List upcoming releases on my teams' products")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<TeamProductReleasesDto>> GetUpcomingReleases(
+        [FromQuery] int days = UpcomingReleaseDays,
+        CancellationToken cancellationToken = default)
+    {
+        if (await _currentPrincipal.GetEmployeeId(cancellationToken) is not { } employeeId)
+            return NotLinked();
+
+        var teams = await _dispatcher.Send(new GetEmployeeTeamInvolvementQuery(employeeId), cancellationToken);
+        var today = await _systemCalendar.DayOf(_dateTimeProvider.Now, cancellationToken);
+
+        return Ok(await _dispatcher.Send(
+            new GetTeamsUpcomingReleasesQuery(
+                teams.TeamIds,
+                today,
+                days,
+                IncludeReleases: await CanView(ApplicationResource.Releases, cancellationToken),
+                IncludeVersions: await CanView(ApplicationResource.Delivery, cancellationToken)),
+            cancellationToken));
     }
 
     [HttpGet("home-context")]

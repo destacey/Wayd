@@ -17114,6 +17114,80 @@ export interface TeamProductIncidentDto {
   products: NavigationDto[];
 }
 
+/**
+ * A release still to be announced that reaches one of the caller's teams' products.
+ */
+export interface TeamProductReleaseDto {
+  /** Release id. */
+  id: string;
+  /** Release key. The record is addressed by this key. */
+  key: number;
+  /** The release's own label, such as `2026.07`. Free text, never parsed. */
+  version: string;
+  /**
+     * The release's name, where it has one.
+     * @nullable
+     */
+  name?: string | null;
+  /** When the release is expected to be announced. */
+  targetDate: string & { readonly __brand: 'CalendarDate' };
+  /** Whether the target date is before today in the system time zone. */
+  isPastTarget: boolean;
+  /** Where the release is in its workflow: a status in the Proposed or Active category. */
+  status: StatusNavigationDto;
+  /** The product or product line the release is announced under, or null for a release spanning product lines. */
+  product?: NavigationDto | null;
+  /**
+     * The caller's teams' products the release reaches, by name: the product it is announced under, the products
+     * beneath that product line, and the products of the versions it carries directly or in a package as changed.
+     */
+  teamProducts: NavigationDto[];
+}
+
+/**
+ * A version still to ship, cut against one of the caller's teams' products.
+ */
+export interface TeamProductVersionDto {
+  /** Version id. */
+  id: string;
+  /** Version key. The record is addressed by this key. */
+  key: number;
+  /** The version as the organization writes it, such as `4.12.0`. Free text, never parsed. */
+  number: string;
+  /**
+     * The version's name, where it has one.
+     * @nullable
+     */
+  name?: string | null;
+  /** When the version is expected to ship. */
+  targetDate: string & { readonly __brand: 'CalendarDate' };
+  /** Whether the target date is before today in the system time zone. */
+  isPastTarget: boolean;
+  /** Where the version is in its workflow: a status in the Proposed or Active category. */
+  status: StatusNavigationDto;
+  /** The product the version is cut against. */
+  product: NavigationDto;
+}
+
+/**
+ * The releases and versions still to ship on the Proposed or Active products the caller's teams are linked to:
+ * those targeted within the window, and those already past their target date.
+ */
+export interface TeamProductReleasesDto {
+  /**
+     * Releases in a Proposed or Active status with a target date on or before the window's last day, earliest target
+     * first. Null when the caller may not view releases.
+     * @nullable
+     */
+  releases?: TeamProductReleaseDto[] | null;
+  /**
+     * Versions in a Proposed or Active status with a target date on or before the window's last day, earliest target
+     * first. Null when the caller may not view delivery.
+     * @nullable
+     */
+  versions?: TeamProductVersionDto[] | null;
+}
+
 export interface TeamsConnectionConfigurationDto {
   tenantId: string;
   clientId: string;
@@ -20422,6 +20496,10 @@ export type MeGetWorkItemsParams = {
   statusCategories?: StatusCategory[];
   doneFrom?: string & { readonly __brand: 'Instant' };
   doneTo?: string & { readonly __brand: 'Instant' };
+};
+
+export type MeGetUpcomingReleasesParams = {
+  days?: number;
 };
 
 export type MeGetTeamsSummaryParams = {

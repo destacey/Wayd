@@ -8,11 +8,13 @@ import type {
   EmployeeAllocationDto,
   HomeContextResponse,
   MeGetTeamsSummaryParams,
+  MeGetUpcomingReleasesParams,
   MeGetWorkItemsParams,
   MeResponse,
   MyTeamsSummaryResponse,
   TeamMemberDto,
   TeamProductIncidentDto,
+  TeamProductReleasesDto,
   WorkItemListDto
 } from './wayd.schemas';
 
@@ -152,6 +154,37 @@ export const getMeGetIncidentsUrl = () => {
 export const meGetIncidents = async ( options?: Parameters<typeof apiFetch>[1]): Promise<TeamProductIncidentDto[]> => {
 
   return apiFetch<TeamProductIncidentDto[]>(getMeGetIncidentsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+export const getMeGetUpcomingReleasesUrl = (params?: MeGetUpcomingReleasesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/me/upcoming-releases?${stringifiedParams}` : `/api/me/upcoming-releases`
+}
+
+/**
+ * Releases and versions in a Proposed or Active status (not yet released or withdrawn) whose target date is no later than `days` days from today, those already past it included, earliest target first, on any proposed or active product linked to an active team or team of teams you are a member of. `isPastTarget` marks those whose target date is before today in the system time zone. A version counts when it is cut against one of those products. A release counts when it is announced under one of them or under a product line above one, or when it carries a version of one directly or as a changed line of a package; its `teamProducts` lists which, and `product` is what it is announced under (null for a release spanning product lines). `days` is 1 to 90 and defaults to 14; outside that range returns 422. `releases` is null without the Releases view permission, and `versions` null without the Delivery view permission. Returns empty lists when your teams are linked to no proposed or active product, and 404 when your account is not linked to an employee.
+ * @summary Get the releases and versions due to ship on the products your teams work on, and those past their target date.
+ */
+export const meGetUpcomingReleases = async (params?: MeGetUpcomingReleasesParams, options?: Parameters<typeof apiFetch>[1]): Promise<TeamProductReleasesDto> => {
+
+  return apiFetch<TeamProductReleasesDto>(getMeGetUpcomingReleasesUrl(params),
   {
     ...options,
     method: 'GET'

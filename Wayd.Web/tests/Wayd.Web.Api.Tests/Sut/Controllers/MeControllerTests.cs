@@ -31,6 +31,8 @@ using Wayd.Planning.Application.Risks.Queries;
 using Wayd.ProductManagement.Application.Incidents.Dtos;
 using Wayd.ProductManagement.Application.Incidents.Queries;
 using Wayd.ProductManagement.Application.Products.Queries;
+using Wayd.ProductManagement.Application.Releases.Dtos;
+using Wayd.ProductManagement.Application.Releases.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
@@ -292,6 +294,59 @@ public sealed class MeControllerTests
 
         // Act
         var result = await controller.GetIncidents(TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Result.Should().BeOfType<NotFoundObjectResult>();
+        VerifyNothingDispatched();
+    }
+
+    [Fact]
+    public async Task GetUpcomingReleases_AsksForTheCallersTeamsWithTodayTheWindowAndWhatTheyMayView()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var payments = Guid.NewGuid();
+        var commerce = Guid.NewGuid();
+        LinkedTo(employeeId);
+        TeamsAre(payments, commerce);
+        // Still 1 April in the system time zone, so a controller taking the UTC day would ask for 2 April.
+        _mocker.GetMock<IDateTimeProvider>().Setup(p => p.Now).Returns(Instant.FromUtc(2026, 4, 2, 5, 0));
+        _mocker.Use<ISystemCalendar>(new TestingSystemCalendar(_mocker.Get<IDateTimeProvider>()));
+        _mocker
+            .GetMock<ICurrentPrincipal>()
+            .Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string permission, CancellationToken _) => permission == ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Releases));
+        var schedule = new TeamProductReleasesDto { Releases = [new TeamProductReleaseDto { Key = 7, Version = "2026.04" }] };
+        var dispatcher = _mocker.GetMock<IDispatcher>();
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamsUpcomingReleasesQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(schedule);
+        var controller = CreateController();
+
+        // Act
+        var result = await controller.GetUpcomingReleases(30, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>().Which.Value.Should().BeSameAs(schedule);
+        dispatcher.Verify(d => d.Send(
+            It.Is<GetTeamsUpcomingReleasesQuery>(q =>
+                q.TeamIds.SequenceEqual(new[] { payments, commerce })
+                && q.Today == new LocalDate(2026, 4, 1)
+                && q.Days == 30
+                && q.IncludeReleases
+                && !q.IncludeVersions),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetUpcomingReleases_WhenNotLinkedToAnEmployee_ReturnsNotFound()
+    {
+        // Arrange
+        LinkedTo(null);
+        var controller = CreateController();
+
+        // Act
+        var result = await controller.GetUpcomingReleases(cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Result.Should().BeOfType<NotFoundObjectResult>();

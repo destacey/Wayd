@@ -3620,6 +3620,64 @@
         ]
       }
     },
+    "/api/me/upcoming-releases": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "Get the releases and versions due to ship on the products your teams work on, and those past their target date.",
+        "description": "Releases and versions in a Proposed or Active status (not yet released or withdrawn) whose target date is no later than `days` days from today, those already past it included, earliest target first, on any proposed or active product linked to an active team or team of teams you are a member of. `isPastTarget` marks those whose target date is before today in the system time zone. A version counts when it is cut against one of those products. A release counts when it is announced under one of them or under a product line above one, or when it carries a version of one directly or as a changed line of a package; its `teamProducts` lists which, and `product` is what it is announced under (null for a release spanning product lines). `days` is 1 to 90 and defaults to 14; outside that range returns 422. `releases` is null without the Releases view permission, and `versions` null without the Delivery view permission. Returns empty lists when your teams are linked to no proposed or active product, and 404 when your account is not linked to an employee.",
+        "operationId": "Me_GetUpcomingReleases",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 14
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamProductReleasesDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/me/home-context": {
       "get": {
         "tags": [
@@ -91397,6 +91455,167 @@
         },
         "additionalProperties": false,
         "description": "An active incident on a Proposed or Active product one of the caller's teams is linked to."
+      },
+      "TeamProductReleaseDto": {
+        "required": [
+          "id",
+          "key",
+          "version",
+          "targetDate",
+          "isPastTarget",
+          "status",
+          "teamProducts"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Release id.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "description": "Release key. The record is addressed by this key.",
+            "format": "int32"
+          },
+          "version": {
+            "type": "string",
+            "description": "The release's own label, such as `2026.07`. Free text, never parsed."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The release's name, where it has one."
+          },
+          "targetDate": {
+            "type": "string",
+            "description": "When the release is expected to be announced.",
+            "format": "date"
+          },
+          "isPastTarget": {
+            "type": "boolean",
+            "description": "Whether the target date is before today in the system time zone."
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusNavigationDto"
+              }
+            ],
+            "description": "Where the release is in its workflow: a status in the Proposed or Active category."
+          },
+          "product": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The product or product line the release is announced under, or null for a release spanning product lines."
+          },
+          "teamProducts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationDto"
+            },
+            "description": "The caller's teams' products the release reaches, by name: the product it is announced under, the products\nbeneath that product line, and the products of the versions it carries directly or in a package as changed."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A release still to be announced that reaches one of the caller's teams' products."
+      },
+      "TeamProductReleasesDto": {
+        "type": "object",
+        "properties": {
+          "releases": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/TeamProductReleaseDto"
+            },
+            "description": "Releases in a Proposed or Active status with a target date on or before the window's last day, earliest target\nfirst. Null when the caller may not view releases."
+          },
+          "versions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/TeamProductVersionDto"
+            },
+            "description": "Versions in a Proposed or Active status with a target date on or before the window's last day, earliest target\nfirst. Null when the caller may not view delivery."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The releases and versions still to ship on the Proposed or Active products the caller's teams are linked to:\nthose targeted within the window, and those already past their target date."
+      },
+      "TeamProductVersionDto": {
+        "required": [
+          "id",
+          "key",
+          "number",
+          "targetDate",
+          "isPastTarget",
+          "status",
+          "product"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Version id.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "description": "Version key. The record is addressed by this key.",
+            "format": "int32"
+          },
+          "number": {
+            "type": "string",
+            "description": "The version as the organization writes it, such as `4.12.0`. Free text, never parsed."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The version's name, where it has one."
+          },
+          "targetDate": {
+            "type": "string",
+            "description": "When the version is expected to ship.",
+            "format": "date"
+          },
+          "isPastTarget": {
+            "type": "boolean",
+            "description": "Whether the target date is before today in the system time zone."
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusNavigationDto"
+              }
+            ],
+            "description": "Where the version is in its workflow: a status in the Proposed or Active category."
+          },
+          "product": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The product the version is cut against."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A version still to ship, cut against one of the caller's teams' products."
       },
       "TeamsConnectionConfigurationDto": {
         "required": [

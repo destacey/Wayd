@@ -80,6 +80,9 @@ public sealed class WorkdayConnection : Connection<WorkdayConnectionConfiguratio
             return Result.Failure(
                 $"WsdlUrl '{newWsdlUrl}' is not a valid Workday Staffing endpoint URL. Expected form: https://{{host}}/ccx/service/{{tenant}}/Staffing/{{version}}.");
 
+        if (ExternalSystemId is not null && !string.Equals(Configuration.TenantAlias, parts.TenantAlias, StringComparison.OrdinalIgnoreCase))
+            return Result.Failure(SystemChangeRefusedMessage);
+
         var scopeResult = RequireCredentialsForNewScope(
             [EndpointAuthority(parts.SoapEndpoint), parts.TenantAlias, newIsuUsername], passwordKept, "ISU password");
         if (scopeResult.IsFailure)

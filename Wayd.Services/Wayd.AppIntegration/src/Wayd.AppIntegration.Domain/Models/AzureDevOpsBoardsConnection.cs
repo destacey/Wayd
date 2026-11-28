@@ -44,8 +44,13 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
         && Configuration.Workspaces.Any(w => w.IntegrationIsActive);
 
     /// <summary>Applies an administrator's edit, refusing one that sends the kept token to another organization.</summary>
+    /// <remarks>
+    /// Once the connection knows its organization's id, a new organization name is accepted only when it reports
+    /// that same id, as a renamed organization does; any other organization is another system.
+    /// </remarks>
     /// <param name="personalAccessToken">The new token, or null to keep the stored one.</param>
-    public Result Update(string name, string? description, string organization, string? personalAccessToken, bool configurationIsValid, EventActor actor, Instant timestamp)
+    /// <param name="organizationSystemId">The id <paramref name="organization"/> reported, or null when it could not be reached.</param>
+    public Result Update(string name, string? description, string organization, string? personalAccessToken, string? organizationSystemId, bool configurationIsValid, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(Configuration, nameof(Configuration));
 
@@ -59,6 +64,15 @@ public sealed class AzureDevOpsBoardsConnection : Connection<AzureDevOpsBoardsCo
         var scopeResult = CheckCredentialsFor(newOrganization, personalAccessToken);
         if (scopeResult.IsFailure)
             return scopeResult;
+
+        if (!string.IsNullOrWhiteSpace(SystemId)
+            && !string.Equals(Configuration.Organization, newOrganization, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(SystemId, organizationSystemId?.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            return Result.Failure(organizationSystemId is null
+                ? $"Unable to reach the organization '{newOrganization}' to confirm it is the one this connection is tied to."
+                : SystemChangeRefusedMessage);
+        }
 
         if (!UpdateValuesChanged(newName, newDescription, newOrganization, newPersonalAccessToken, configurationIsValid))
             return Result.Success();

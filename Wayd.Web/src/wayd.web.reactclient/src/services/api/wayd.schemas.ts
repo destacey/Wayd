@@ -703,6 +703,25 @@ export interface SimpleNavigationDto {
 }
 
 /**
+ * The outside system a connection reaches, as a connection shows it: an Azure DevOps organization, an Entra
+ * tenant or a Workday tenant. Several connections may share one.
+ */
+export interface ExternalSystemNavigationDto {
+  /** The unique identifier of the outside system. */
+  id: string;
+  /**
+     * The system's name, taken from the connection that reaches it: the Azure DevOps organization, the Entra
+     * tenant id, or the Workday tenant alias.
+     */
+  name: string;
+  /**
+     * The address the system is reached at, when its connector has one.
+     * @nullable
+     */
+  baseUrl?: string | null;
+}
+
+/**
  * A capability a connector supports, with the display category it is grouped under.
  */
 export interface ConnectorCapabilityDto {
@@ -724,6 +743,12 @@ export interface ConnectionDetailsDto {
   description?: string | null;
   /** The type of connector for the connection. This value cannot be changed once set. */
   connector: SimpleNavigationDto;
+  /**
+     * The outside system the connection reaches, which other connections to it share. Null for a connector that
+     * syncs nothing, such as Azure OpenAI, and for an Azure DevOps connection that has not yet read its
+     * organization's id.
+     */
+  externalSystem?: ExternalSystemNavigationDto | null;
   /** The capabilities this connection's connector supports, each with its display category. */
   capabilities: ConnectorCapabilityDto[];
   /** Indicates whether the connection is active or not. Inactive connections are not included in operations. */
@@ -791,12 +816,17 @@ export interface ConnectionListDto {
   /** The name of the connection. */
   name: string;
   /**
-     * The unique identifier for the external system that this connection connects to.
-     * Null when the connector has no external system identifier, such as Entra, Workday, or Azure OpenAI,
-     * and for an Azure DevOps connection whose identifier has not been resolved yet.
+     * The outside system's own identifier for itself: the Azure DevOps organization id, the Entra tenant id, or
+     * the Workday tenant alias. Null for a connector that syncs nothing, such as Azure OpenAI, and for an Azure
+     * DevOps connection whose identifier has not been resolved yet.
      * @nullable
      */
   systemId?: string | null;
+  /**
+     * The outside system the connection reaches, which other connections to it share. Null whenever
+     * string? ConnectionListDto.SystemId is.
+     */
+  externalSystem?: ExternalSystemNavigationDto | null;
   /** The type of connector for the connection. This value cannot be changed once set. */
   connector: SimpleNavigationDto;
   /** The capabilities this connection's connector supports, each with its display category. */

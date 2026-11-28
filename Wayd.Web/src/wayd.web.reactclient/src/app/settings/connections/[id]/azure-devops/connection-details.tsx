@@ -3,6 +3,7 @@ import { getCapabilityNames } from '@/src/types/connectors'
 import { ResponsiveFlex } from '@/src/components/common'
 import { Descriptions, Flex, Typography } from 'antd'
 import AzdoConnectionConfiguration from './connection-configuration'
+import ExternalSystemValue from '../_components/external-system-value'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 
 const { Item } = Descriptions
@@ -18,6 +19,9 @@ const AzdoConnectionDetails = ({ connection }: AzdoConnectionDetailsProps) => {
     <Flex vertical gap="middle">
       <ResponsiveFlex>
         <Descriptions column={1}>
+          <Item label="System">
+            <ExternalSystemValue system={connection.externalSystem} />
+          </Item>
           <Item label="System Id">{connection.systemId}</Item>
           <Item label="Connector">{connection.connector.name}</Item>
           <Item label="Capabilities">{getCapabilityNames(connection)}</Item>

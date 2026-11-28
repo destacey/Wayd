@@ -89,6 +89,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<WorkdayConnection> WorkdayConnections => Set<WorkdayConnection>();
     public DbSet<TeamsConnection> TeamsConnections => Set<TeamsConnection>();
     public DbSet<SyncRun> SyncRuns => Set<SyncRun>();
+    public DbSet<ExternalSystem> ExternalSystems => Set<ExternalSystem>();
 
     #endregion IAppIntegration
 

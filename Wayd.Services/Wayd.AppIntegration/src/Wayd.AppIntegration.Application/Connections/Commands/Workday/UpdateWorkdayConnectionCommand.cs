@@ -34,13 +34,17 @@ public sealed class UpdateWorkdayConnectionCommandValidator : CustomValidator<Up
         RuleFor(c => c.WsdlUrl)
             .NotEmpty()
             .MaximumLength(1024)
-            .Must(BeParseable).WithMessage("WsdlUrl must be a Workday Staffing endpoint URL of the form https://{host}/ccx/service/{tenant}/Staffing/{version}.");
+            .Must(BeParseable).WithMessage("WsdlUrl must be a Workday Staffing endpoint URL of the form https://{host}/ccx/service/{tenant}/Staffing/{version}.")
+            .Must(HaveATenantAliasThatFits).WithMessage($"The tenant in the WsdlUrl must be {ExternalSystem.SystemIdMaxLength} characters or fewer.");
         RuleFor(c => c.IsuUsername).NotEmpty().MaximumLength(256);
         // Deliberately not NotEmpty: a blank password means "keep the stored one".
         RuleFor(c => c.IsuPassword).MaximumLength(512);
     }
 
     private static bool BeParseable(string url) => WorkdayConnectionConfiguration.TryParse(url, out _);
+
+    private static bool HaveATenantAliasThatFits(string url) =>
+        WorkdayConnectionConfiguration.TryParse(url, out var parts) && parts.TenantAlias.Length <= ExternalSystem.SystemIdMaxLength;
 }
 
 public sealed class UpdateWorkdayConnectionCommandHandler(
@@ -48,9 +52,11 @@ public sealed class UpdateWorkdayConnectionCommandHandler(
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
     IWorkdayConnectionInitializer initializer,
-    ILogger<UpdateWorkdayConnectionCommandHandler> logger)
+    ILogger<UpdateWorkdayConnectionCommandHandler> logger,
+    IExternalSystemLinker externalSystemLinker)
     : ICommandHandler<UpdateWorkdayConnectionCommand, Guid>
 {
+    private readonly IExternalSystemLinker _externalSystemLinker = externalSystemLinker;
     private const string AppRequestName = nameof(UpdateWorkdayConnectionCommandHandler);
 
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
@@ -75,6 +81,9 @@ public sealed class UpdateWorkdayConnectionCommandHandler(
             .Select(e => new Wayd.AppIntegration.Domain.Models.Workday.WorkdayOrgExclusion(e.OrganizationTypeId, e.OrganizationReference, e.DisplayName))
             .ToList();
 
+        var actor = EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId());
+        var timestamp = _dateTimeProvider.Now;
+
         // Apply the change set with a placeholder configurationIsValid; the init probe right
         // after this overwrites that value with the real outcome.
         var updateResult = connection.Update(
@@ -92,8 +101,8 @@ public sealed class UpdateWorkdayConnectionCommandHandler(
             request.DepartmentOrganizationTypeId,
             exclusions,
             configurationIsValid: false,
-            EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),
-            _dateTimeProvider.Now);
+            actor,
+            timestamp);
 
         if (updateResult.IsFailure)
         {
@@ -101,8 +110,14 @@ public sealed class UpdateWorkdayConnectionCommandHandler(
             return Result.Failure<Guid>(updateResult.Error);
         }
 
+        var linkResult = await _externalSystemLinker.Link(connection, actor, timestamp, cancellationToken);
+        if (linkResult.IsFailure)
+            return Result.Failure<Guid>(linkResult.Error);
+
         // Persist the change-set first so a slow/failing probe doesn't roll back the typed config.
-        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+        var saveResult = await _externalSystemLinker.Save(cancellationToken);
+        if (saveResult.IsFailure)
+            return Result.Failure<Guid>(saveResult.Error);
 
         await RunInitProbe(connection, cancellationToken);
         await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);

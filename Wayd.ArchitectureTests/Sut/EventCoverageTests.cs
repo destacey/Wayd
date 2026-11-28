@@ -74,6 +74,7 @@ public partial class EventCoverageTests
         typeof(AzureDevOpsBoardsConnection),
         typeof(AzureOpenAIConnection),
         typeof(EntraConnection),
+        typeof(ExternalSystem),
         typeof(TeamsConnection),
         typeof(WorkdayConnection),
 

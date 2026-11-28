@@ -8,17 +8,20 @@ internal class ApplicationDbInitializer
     private readonly WaydDbContext _dbContext;
     private readonly ApplicationDbSeeder _dbSeeder;
     private readonly ConnectionSecretBackfill _secretBackfill;
+    private readonly ExternalSystemBackfill _externalSystemBackfill;
     private readonly ILogger<ApplicationDbInitializer> _logger;
 
     public ApplicationDbInitializer(
         WaydDbContext dbContext,
         ApplicationDbSeeder dbSeeder,
         ConnectionSecretBackfill secretBackfill,
+        ExternalSystemBackfill externalSystemBackfill,
         ILogger<ApplicationDbInitializer> logger)
     {
         _dbContext = dbContext;
         _dbSeeder = dbSeeder;
         _secretBackfill = secretBackfill;
+        _externalSystemBackfill = externalSystemBackfill;
         _logger = logger;
     }
 
@@ -38,6 +41,7 @@ internal class ApplicationDbInitializer
 
                 await _dbSeeder.SeedDatabase(_dbContext, cancellationToken);
                 await _secretBackfill.Run(cancellationToken);
+                await _externalSystemBackfill.Run(cancellationToken);
             }
         }
     }

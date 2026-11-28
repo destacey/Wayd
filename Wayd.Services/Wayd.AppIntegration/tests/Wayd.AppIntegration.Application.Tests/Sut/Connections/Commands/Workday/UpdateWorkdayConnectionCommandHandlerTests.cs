@@ -3,13 +3,14 @@ using Moq;
 using Moq.AutoMock;
 using NodaTime;
 using Wayd.AppIntegration.Application.Connections.Commands.Workday;
+using Wayd.AppIntegration.Application.Connections.ExternalSystems;
 using Wayd.AppIntegration.Application.Persistence;
 using Wayd.AppIntegration.Application.Tests.Infrastructure;
 using Wayd.AppIntegration.Domain.Models.Workday;
-using Wayd.Common.Domain.Events;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Common.Domain.Enums.AppIntegrations;
+using Wayd.Common.Domain.Events;
 
 namespace Wayd.AppIntegration.Application.Tests.Sut.Connections.Commands.Workday;
 
@@ -32,6 +33,7 @@ public class UpdateWorkdayConnectionCommandHandlerTests
     public UpdateWorkdayConnectionCommandHandlerTests()
     {
         _mocker.Use<IAppIntegrationDbContext>(_db);
+        _mocker.Use<IExternalSystemLinker>(new ExternalSystemLinker(_db, Mock.Of<IAzureDevOpsUrlResolver>()));
         _mocker.GetMock<IDateTimeProvider>().SetupGet(p => p.Now).Returns(_now);
         _mocker.GetMock<IWorkdayConnectionInitializer>()
             .Setup(i => i.Initialize(It.IsAny<WorkdayRequestContext>(), It.IsAny<CancellationToken>()))

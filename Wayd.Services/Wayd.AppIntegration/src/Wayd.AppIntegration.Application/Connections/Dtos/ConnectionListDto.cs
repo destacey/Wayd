@@ -35,11 +35,17 @@ public record ConnectionListDto : IMapFrom<Connection>
     public required string Name { get; set; }
 
     /// <summary>
-    /// The unique identifier for the external system that this connection connects to.
-    /// Null when the connector has no external system identifier, such as Entra, Workday, or Azure OpenAI,
-    /// and for an Azure DevOps connection whose identifier has not been resolved yet.
+    /// The outside system's own identifier for itself: the Azure DevOps organization id, the Entra tenant id, or
+    /// the Workday tenant alias. Null for a connector that syncs nothing, such as Azure OpenAI, and for an Azure
+    /// DevOps connection whose identifier has not been resolved yet.
     /// </summary>
     public string? SystemId { get; set; }
+
+    /// <summary>
+    /// The outside system the connection reaches, which other connections to it share. Null whenever
+    /// <see cref="SystemId"/> is.
+    /// </summary>
+    public ExternalSystemNavigationDto? ExternalSystem { get; set; }
 
     /// <summary>
     /// The type of connector for the connection. This value cannot be changed once set.
@@ -77,6 +83,7 @@ public record ConnectionListDto : IMapFrom<Connection>
             .Include<EntraConnection, EntraConnectionListDto>()
             .Include<WorkdayConnection, WorkdayConnectionListDto>()
             .Include<TeamsConnection, TeamsConnectionListDto>()
+            .Ignore(dest => dest.ExternalSystem!)
             .Map(dest => dest.Connector, src => SimpleNavigationDto.FromEnum(src.Connector))
             .Map(dest => dest.Capabilities, src => src.Connector.GetCapabilities().Select(ConnectorCapabilityDto.FromEnum).ToList())
             .Map(dest => dest.SystemId, src => (src as ISyncableConnection) != null ? ((ISyncableConnection)src).SystemId : null)

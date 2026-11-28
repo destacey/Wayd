@@ -6,6 +6,7 @@ using Wayd.AppIntegration.Application.Tests.Infrastructure;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Models;
 using Wayd.Tests.Shared;
 
@@ -26,7 +27,8 @@ public class SyncAzureDevOpsConnectionConfigurationCommandHandlerTests
             _clock,
             Mock.Of<ILogger<SyncAzureDevOpsConnectionConfigurationCommandHandler>>(),
             _azureDevOpsService.Object,
-            _dispatcher.Object);
+            _dispatcher.Object,
+            new Wayd.AppIntegration.Application.Connections.ExternalSystems.ExternalSystemLinker(_db, Mock.Of<IAzureDevOpsUrlResolver>()));
     }
 
     private AzureDevOpsBoardsConnection CreateConnectionWithProcess(Guid externalId, Guid internalId, bool integrationIsActive = true)
@@ -47,6 +49,26 @@ public class SyncAzureDevOpsConnectionConfigurationCommandHandlerTests
 
         _db.AddAzureDevOpsBoardsConnection(connection);
         return connection;
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheSystemIdIsFirstRead_TiesTheConnectionToItsOrganization()
+    {
+        // Arrange
+        var connection = AzureDevOpsBoardsConnection.Create(
+            "Test Connection", null, null, new AzureDevOpsBoardsConnectionConfiguration("TestOrg", "TestPAT"), false, null, EventActor.System, _clock.Now);
+        _db.AddAzureDevOpsBoardsConnection(connection);
+        _azureDevOpsService
+            .Setup(s => s.GetSystemId(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CSharpFunctionalExtensions.Result.Success("org-id"));
+
+        // Act
+        await _sut.Handle(new SyncAzureDevOpsConnectionConfigurationCommand(connection.Id, [], [], [], []), TestContext.Current.CancellationToken);
+
+        // Assert
+        var system = _db.ExternalSystems.Should().ContainSingle().Subject;
+        system.SystemId.Should().Be("org-id");
+        connection.ExternalSystemId.Should().Be(system.Id);
     }
 
     [Fact]

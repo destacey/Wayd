@@ -45,6 +45,13 @@ public record ConnectionDetailsDto : IMapFrom<Connection>
     public required SimpleNavigationDto Connector { get; set; }
 
     /// <summary>
+    /// The outside system the connection reaches, which other connections to it share. Null for a connector that
+    /// syncs nothing, such as Azure OpenAI, and for an Azure DevOps connection that has not yet read its
+    /// organization's id.
+    /// </summary>
+    public ExternalSystemNavigationDto? ExternalSystem { get; set; }
+
+    /// <summary>
     /// The capabilities this connection's connector supports, each with its display category.
     /// </summary>
     public IReadOnlyList<ConnectorCapabilityDto> Capabilities { get; set; } = [];
@@ -74,6 +81,7 @@ public record ConnectionDetailsDto : IMapFrom<Connection>
             .Include<EntraConnection, EntraConnectionDetailsDto>()
             .Include<WorkdayConnection, WorkdayConnectionDetailsDto>()
             .Include<TeamsConnection, TeamsConnectionDetailsDto>()
+            .Ignore(dest => dest.ExternalSystem!)
             .Map(dest => dest.Connector, src => SimpleNavigationDto.FromEnum(src.Connector))
             .Map(dest => dest.Capabilities, src => src.Connector.GetCapabilities().Select(ConnectorCapabilityDto.FromEnum).ToList())
             .Map(dest => dest.CanSync, src => (src as ISyncableConnection) != null ? ((ISyncableConnection)src).CanSync : (bool?)null);

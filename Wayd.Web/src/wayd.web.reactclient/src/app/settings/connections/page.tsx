@@ -56,6 +56,13 @@ const ConnectionsPage = () => {
         meta: { filterType: 'set' },
       },
       {
+        id: 'externalSystem',
+        accessorFn: (row) => row.externalSystem?.name ?? '',
+        header: 'System',
+        size: 200,
+        meta: { filterType: 'set' },
+      },
+      {
         id: 'capabilities',
         accessorFn: (row) => getCapabilityNames(row),
         header: 'Capabilities',

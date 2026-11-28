@@ -71,6 +71,7 @@ internal static class ConfigureServices
             .AddTransient<ApplicationDbInitializer>()
             .AddTransient<ApplicationDbSeeder>()
             .AddTransient<ConnectionSecretBackfill>()
+            .AddTransient<ExternalSystemBackfill>()
             .AddServices(typeof(ICustomSeeder), ServiceLifetime.Transient)
             .AddTransient<CustomSeederRunner>()
 

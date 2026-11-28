@@ -76,6 +76,39 @@ public sealed class EntraConnectionTests
         connection.Configuration.ClientSecret.Should().Be(OriginalSecret);
     }
 
+    [Fact]
+    public void Update_RefusesANewTenant_OnceTheConnectionIsLinkedToItsSystem()
+    {
+        // Arrange
+        var connection = Create();
+        connection.LinkExternalSystem(ExternalSystem.Create(Connector.Entra, "tenant-1", "tenant-1", null, Actor, _dateTimeProvider.Now), Actor, _dateTimeProvider.Now);
+        var eventsBefore = connection.DomainEvents.Count;
+
+        // Act
+        var result = Update(connection, "tenant-2", "client-1", "new-secret", name: "Renamed");
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("cannot be pointed at another one");
+        connection.Name.Should().Be("People");
+        connection.Configuration.TenantId.Should().Be("tenant-1");
+        connection.DomainEvents.Should().HaveCount(eventsBefore);
+    }
+
+    [Fact]
+    public void Update_AcceptsTheSameTenantInAnotherCase_OnceTheConnectionIsLinked()
+    {
+        // Arrange
+        var connection = Create();
+        connection.LinkExternalSystem(ExternalSystem.Create(Connector.Entra, "tenant-1", "tenant-1", null, Actor, _dateTimeProvider.Now), Actor, _dateTimeProvider.Now);
+
+        // Act
+        var result = Update(connection, "TENANT-1", "client-1", "new-secret");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
     private EntraConnection Create() =>
         EntraConnection.Create("People", null, new EntraConnectionConfiguration("tenant-1", "client-1", OriginalSecret), true, Actor, _dateTimeProvider.Now);
 

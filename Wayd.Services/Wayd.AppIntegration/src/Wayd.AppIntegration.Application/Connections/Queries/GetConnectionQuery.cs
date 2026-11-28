@@ -30,13 +30,25 @@ public sealed class GetConnectionQueryHandler(IAppIntegrationDbContext appIntegr
             return null;
         }
 
-        // Polymorphic adapt — each arm projects the connection-typed row to its concrete DTO so the
-        // configuration block and the $type discriminator both survive serialization. Every concrete
-        // connection type must have an arm here — falling through to the base DTO would silently drop
-        // the configuration, so throw instead.
-        //
-        // Secrets are masked here rather than at the call site, so a new caller cannot leak one by
-        // forgetting to. Callers needing the real credential use the connector-specific queries.
+        var dto = Describe(connection);
+        dto.ExternalSystem = connection.ExternalSystemId is { } systemId
+            ? await _appIntegrationDbContext.ExternalSystems
+                .Where(s => s.Id == systemId)
+                .Select(s => new ExternalSystemNavigationDto { Id = s.Id, Name = s.Name, BaseUrl = s.BaseUrl })
+                .FirstOrDefaultAsync(cancellationToken)
+            : null;
+
+        return dto;
+    }
+
+    /// <summary>
+    /// Maps the connection to its concrete details DTO, so the configuration block and the $type discriminator
+    /// both survive serialization, and masks its secrets here rather than at the call site so a new caller cannot
+    /// leak one. A connection type with no arm throws rather than falling back to the base DTO, which would drop
+    /// the configuration. Callers needing the real credential use the connector-specific queries.
+    /// </summary>
+    private ConnectionDetailsDto Describe(Connection connection)
+    {
         switch (connection)
         {
             case AzureDevOpsBoardsConnection:

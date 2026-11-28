@@ -46,8 +46,9 @@ public sealed class UpdateAzureDevOpsConnectionCommandValidator : CustomValidato
     }
 }
 
-public sealed class UpdateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<UpdateAzureDevOpsConnectionCommandHandler> logger, IAzureDevOpsService azureDevOpsService) : ICommandHandler<UpdateAzureDevOpsConnectionCommand, Guid>
+public sealed class UpdateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbContext appIntegrationDbContext, ICurrentUser currentUser, IDateTimeProvider dateTimeProvider, ILogger<UpdateAzureDevOpsConnectionCommandHandler> logger, IAzureDevOpsService azureDevOpsService, IExternalSystemLinker externalSystemLinker) : ICommandHandler<UpdateAzureDevOpsConnectionCommand, Guid>
 {
+    private readonly IExternalSystemLinker _externalSystemLinker = externalSystemLinker;
     private const string AppRequestName = nameof(UpdateAzureDevOpsConnectionCommandHandler);
 
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
@@ -88,14 +89,24 @@ public sealed class UpdateAzureDevOpsConnectionCommandHandler(IAppIntegrationDbC
 
         var configurationIsValid = systemIdAndTestResult.IsSuccess && !string.IsNullOrWhiteSpace(connection.SystemId);
 
-        var updateResult = connection.Update(request.Name, request.Description, request.Organization, newPat, configurationIsValid, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+        var actor = EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId());
+        var timestamp = _dateTimeProvider.Now;
+        var organizationSystemId = systemIdAndTestResult.IsSuccess ? systemIdAndTestResult.Value : null;
+
+        var updateResult = connection.Update(request.Name, request.Description, request.Organization, newPat, organizationSystemId, configurationIsValid, actor, timestamp);
         if (updateResult.IsFailure)
         {
             _logger.LogInformation("Wayd Request: Failure for Request {Name}.  Error message: {Error}", AppRequestName, updateResult.Error);
             return Result.Failure<Guid>(updateResult.Error);
         }
 
-        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+        var linkResult = await _externalSystemLinker.Link(connection, actor, timestamp, cancellationToken);
+        if (linkResult.IsFailure)
+            return Result.Failure<Guid>(linkResult.Error);
+
+        var saveResult = await _externalSystemLinker.Save(cancellationToken);
+        if (saveResult.IsFailure)
+            return Result.Failure<Guid>(saveResult.Error);
 
         return Result.Success(connection.Id);
     }

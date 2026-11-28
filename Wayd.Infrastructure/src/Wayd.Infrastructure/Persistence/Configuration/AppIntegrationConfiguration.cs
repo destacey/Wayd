@@ -57,6 +57,35 @@ public class ConnectionConfig : IEntityTypeConfiguration<Connection>
         builder.Property(c => c.IsDeleted);
 
         // Relationships
+        builder.HasOne<ExternalSystem>()
+            .WithMany()
+            .HasForeignKey(c => c.ExternalSystemId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class ExternalSystemConfig : IEntityTypeConfiguration<ExternalSystem>
+{
+    public void Configure(EntityTypeBuilder<ExternalSystem> builder)
+    {
+        builder.ToTable("ExternalSystems", SchemaNames.AppIntegration);
+
+        builder.HasKey(s => s.Id);
+        builder.Property(s => s.Id).ValueGeneratedNever();
+
+        builder.HasIndex(s => new { s.Connector, s.SystemId })
+            .IsUnique();
+
+        builder.Property(s => s.Connector).IsRequired()
+            .HasConversion<EnumConverter<Connector>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+        builder.Property(s => s.SystemId).IsRequired()
+            .HasColumnType("varchar")
+            .HasMaxLength(ExternalSystem.SystemIdMaxLength);
+        builder.Property(s => s.Name).IsRequired().HasMaxLength(ExternalSystem.NameMaxLength);
+        builder.Property(s => s.BaseUrl).HasMaxLength(ExternalSystem.BaseUrlMaxLength);
     }
 }
 

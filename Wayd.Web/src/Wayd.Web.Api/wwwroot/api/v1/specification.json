@@ -59476,6 +59476,17 @@
             ],
             "description": "The type of connector for the connection. This value cannot be changed once set."
           },
+          "externalSystem": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ExternalSystemNavigationDto"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The outside system the connection reaches, which other connections to it share. Null for a connector that\nsyncs nothing, such as Azure OpenAI, and for an Azure DevOps connection that has not yet read its\norganization's id."
+          },
           "capabilities": {
             "type": "array",
             "items": {
@@ -59587,7 +59598,18 @@
               "null",
               "string"
             ],
-            "description": "The unique identifier for the external system that this connection connects to.\nNull when the connector has no external system identifier, such as Entra, Workday, or Azure OpenAI,\nand for an Azure DevOps connection whose identifier has not been resolved yet."
+            "description": "The outside system's own identifier for itself: the Azure DevOps organization id, the Entra tenant id, or\nthe Workday tenant alias. Null for a connector that syncs nothing, such as Azure OpenAI, and for an Azure\nDevOps connection whose identifier has not been resolved yet."
+          },
+          "externalSystem": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ExternalSystemNavigationDto"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The outside system the connection reaches, which other connections to it share. Null whenever\nstring? ConnectionListDto.SystemId is."
           },
           "connector": {
             "oneOf": [
@@ -65370,6 +65392,33 @@
         },
         "additionalProperties": false,
         "description": "One external system user and the employee it resolves to, for the connection's People tab."
+      },
+      "ExternalSystemNavigationDto": {
+        "required": [
+          "name",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the outside system.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The system's name, taken from the connection that reaches it: the Azure DevOps organization, the Entra\ntenant id, or the Workday tenant alias."
+          },
+          "baseUrl": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The address the system is reached at, when its connector has one."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The outside system a connection reaches, as a connection shows it: an Azure DevOps organization, an Entra\ntenant or a Workday tenant. Several connections may share one."
       },
       "FailDeploymentRequest": {
         "type": "object",

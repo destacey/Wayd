@@ -70,6 +70,29 @@ public class GetConnectionsQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShowsEachConnectionsOutsideSystem_SharedWhereTheyReachTheSameOne()
+    {
+        // Arrange
+        var system = ExternalSystem.Create(Connector.Entra, "tenant-1", "tenant-1", null, EventActor.System, _now);
+        var first = EntraConnection.Create("People", null, new EntraConnectionConfiguration("tenant-1", "client-1", "secret"), true, EventActor.System, _now);
+        var second = EntraConnection.Create("People 2", null, new EntraConnectionConfiguration("tenant-1", "client-2", "secret"), true, EventActor.System, _now);
+        first.LinkExternalSystem(system, EventActor.System, _now).IsSuccess.Should().BeTrue();
+        second.LinkExternalSystem(system, EventActor.System, _now).IsSuccess.Should().BeTrue();
+        var unlinked = AzureDevOpsBoardsConnection.Create(
+            "Boards", null, null, new AzureDevOpsBoardsConnectionConfiguration("org", "pat"), false, null, EventActor.System, _now);
+        _db.AddExternalSystem(system);
+        _db.AddConnections([first, second, unlinked]);
+
+        // Act
+        var result = await _sut.Handle(new GetConnectionsQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Single(c => c.Id == first.Id).ExternalSystem!.Id.Should().Be(system.Id);
+        result.Single(c => c.Id == second.Id).ExternalSystem!.Name.Should().Be("tenant-1");
+        result.Single(c => c.Id == unlinked.Id).ExternalSystem.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Handle_ExcludesInactiveConnections_ByDefault()
     {
         // Arrange

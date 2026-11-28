@@ -62,6 +62,9 @@ public sealed class EntraConnection : Connection<EntraConnectionConfiguration>, 
             : Guard.Against.NullOrWhiteSpace(clientSecret, nameof(clientSecret)).Trim();
         var newGroupId = string.IsNullOrWhiteSpace(allUsersGroupObjectId) ? null : allUsersGroupObjectId.Trim();
 
+        if (ExternalSystemId is not null && !string.Equals(Configuration.TenantId, newTenantId, StringComparison.OrdinalIgnoreCase))
+            return Result.Failure(SystemChangeRefusedMessage);
+
         var scopeResult = RequireCredentialsForNewScope([newTenantId, newClientId], clientSecret is null, "client secret");
         if (scopeResult.IsFailure)
             return scopeResult;

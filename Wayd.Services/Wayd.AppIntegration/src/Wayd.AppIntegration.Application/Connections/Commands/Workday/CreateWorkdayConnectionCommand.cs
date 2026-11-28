@@ -42,21 +42,27 @@ public sealed class CreateWorkdayConnectionCommandValidator : CustomValidator<Cr
         RuleFor(c => c.WsdlUrl)
             .NotEmpty()
             .MaximumLength(1024)
-            .Must(BeParseable).WithMessage("WsdlUrl must be a Workday Staffing endpoint URL of the form https://{host}/ccx/service/{tenant}/Staffing/{version}.");
+            .Must(BeParseable).WithMessage("WsdlUrl must be a Workday Staffing endpoint URL of the form https://{host}/ccx/service/{tenant}/Staffing/{version}.")
+            .Must(HaveATenantAliasThatFits).WithMessage($"The tenant in the WsdlUrl must be {ExternalSystem.SystemIdMaxLength} characters or fewer.");
         RuleFor(c => c.IsuUsername).NotEmpty().MaximumLength(256);
         RuleFor(c => c.IsuPassword).NotEmpty().MaximumLength(512);
     }
 
     private static bool BeParseable(string url) => WorkdayConnectionConfiguration.TryParse(url, out _);
+
+    private static bool HaveATenantAliasThatFits(string url) =>
+        WorkdayConnectionConfiguration.TryParse(url, out var parts) && parts.TenantAlias.Length <= ExternalSystem.SystemIdMaxLength;
 }
 
 public sealed class CreateWorkdayConnectionCommandHandler(
     IAppIntegrationDbContext appIntegrationDbContext,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
-    IWorkdayConnectionInitializer initializer)
+    IWorkdayConnectionInitializer initializer,
+    IExternalSystemLinker externalSystemLinker)
     : ICommandHandler<CreateWorkdayConnectionCommand, Guid>
 {
+    private readonly IExternalSystemLinker _externalSystemLinker = externalSystemLinker;
     private readonly IAppIntegrationDbContext _appIntegrationDbContext = appIntegrationDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -88,9 +94,17 @@ public sealed class CreateWorkdayConnectionCommandHandler(
 
         // Create the connection first with IsValidConfiguration = false so the row exists even
         // if the probe is slow or fails — admins shouldn't lose typed config.
-        var connection = WorkdayConnection.Create(request.Name, request.Description, config, configurationIsValid: false, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), timestamp);
+        var actor = EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId());
+        var connection = WorkdayConnection.Create(request.Name, request.Description, config, configurationIsValid: false, actor, timestamp);
+
+        var linkResult = await _externalSystemLinker.Link(connection, actor, timestamp, cancellationToken);
+        if (linkResult.IsFailure)
+            return Result.Failure<Guid>(linkResult.Error);
+
         await _appIntegrationDbContext.WorkdayConnections.AddAsync(connection, cancellationToken);
-        await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
+        var saveResult = await _externalSystemLinker.Save(cancellationToken);
+        if (saveResult.IsFailure)
+            return Result.Failure<Guid>(saveResult.Error);
 
         // Run the init probe and persist the structured result.
         await RunInitProbe(connection, cancellationToken);
